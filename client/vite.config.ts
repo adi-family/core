@@ -1,22 +1,47 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig, loadEnv } from 'vite'
 import path from 'path'
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+import tsconfigPathsPlugin from 'vite-tsconfig-paths'
+import { resolve } from 'node:path'
+
+const tsconfigPaths = tsconfigPathsPlugin({
+  projects: [resolve('tsconfig.json')],
+})
 
 // https://vite.dev/config/
-export default defineConfig({
-  plugins: [react()],
-  resolve: {
-    alias: {
-      "@": path.resolve(__dirname, "./src"),
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, path.resolve(__dirname, '..'), '')
+
+  if (!env.CLIENT_PORT) {
+    throw new Error('CLIENT_PORT environment variable is required')
+  }
+
+  if (!env.SERVER_PORT) {
+    throw new Error('SERVER_PORT environment variable is required')
+  }
+
+  return {
+    css: {
+      preprocessorMaxWorkers: true,
     },
-  },
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, ''),
+    root: path.resolve(__dirname),
+    plugins: [tsconfigPaths, tailwindcss(), react()],
+    publicDir: resolve(__dirname, 'public'),
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
       },
     },
-  },
+    server: {
+      port: Number(env.CLIENT_PORT),
+      proxy: {
+        '/api': {
+          target: `http://localhost:${env.SERVER_PORT}`,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+      },
+    },
+  }
 })

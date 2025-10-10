@@ -1,10 +1,10 @@
 import { app } from './app'
 
-if (!process.env.PORT) {
-  throw new Error('PORT environment variable is required')
+if (!process.env.SERVER_PORT) {
+  throw new Error('SERVER_PORT environment variable is required')
 }
 
-const port = Number(process.env.PORT)
+const port = Number(process.env.SERVER_PORT)
 
 export const server = {
   port,

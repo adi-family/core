@@ -4,6 +4,7 @@ import { HomePage } from "./pages/HomePage"
 import { TasksPage } from "./pages/TasksPage"
 import { SessionsPage } from "./pages/SessionsPage"
 import { MessagesPage } from "./pages/MessagesPage"
+import "./index.css"
 
 export function App() {
   return (
