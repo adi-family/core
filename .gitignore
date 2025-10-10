@@ -1,0 +1,12 @@
+*
+!.gitignore
+!CLAUDE.md
+!docker-compose.yaml
+!migrations
+!docs
+!backend
+!client
+!package.json
+!bun.lock
+!tsconfig.json
+!README.md

@@ -1,0 +1,24 @@
+hono-backend, functional-programming, typescript, bun-runtime
+
+- Pure functions over classes - all handlers and queries are pure functions
+- Dependency injection via closures - handlers receive `sql` through factory functions
+- No mutation - all data transformations return new values
+- Arrow functions only - consistent syntax throughout codebase
+- Explicit typing - no `any`, use `unknown` for flexible JSON data
+- Result type for errors - use `Result<T>` pattern instead of throwing exceptions
+- Max function length: 15 lines - keep functions focused and small
+- SQL stays in queries/ - handlers never contain SQL, only call query functions
+- One export per file - except handlers which group related operations
+- Composition in app.ts - create handler groups, wire to routes
+- Use `postgres` library tagged templates for SQL - automatic parameterization
+- JSONB for flexible data - `data`, `source_*` fields use JSONB, typed as `unknown`
+- Context from Hono - handlers receive `Context`, use `c.req` and `c.json()`
+- Status codes matter - 201 for create, 204 for delete, 404 for not found
+- Database connection in db.ts - single shared `sql` instance exported
+- Handler factory pattern - `createTaskHandlers(sql)` returns object of handlers
+- Query factory pattern - `findTaskById(sql)` returns async function
+- No default exports except app - use named exports for testability
+- Index route structure: `/resource` (list/create), `/resource/:id` (get/update/delete)
+- Nested routes for relations: `/sessions/:sessionId/messages`
+- Export AppType from app.ts - enables type-safe Hono RPC clients
+- Client documentation in `/docs/CLIENT_USAGE.md`

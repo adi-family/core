@@ -1,0 +1,11 @@
+*
+!handlers
+!handlers/***
+!queries
+!queries/***
+!app.ts
+!db.ts
+!index.ts
+!types.ts
+!.gitignore
+!CLAUDE.md
