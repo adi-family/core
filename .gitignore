@@ -9,4 +9,5 @@
 !package.json
 !bun.lock
 !tsconfig.json
+!eslint.config.js
 !README.md

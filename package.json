@@ -8,8 +8,9 @@
     "backend:dev": "bun --watch backend/index.ts",
     "client:dev": "vite --config client/vite.config.ts",
     "client:build": "tsc -b client && vite build --config client/vite.config.ts",
-    "client:lint": "eslint client",
-    "client:preview": "vite preview --config client/vite.config.ts"
+    "client:preview": "vite preview --config client/vite.config.ts",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

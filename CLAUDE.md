@@ -10,3 +10,5 @@ mono-repository, submodules, database-infrastructure, migration-management, git-
 - No default exports - use named exports for better refactoring and tree-shaking
 - No inline default values - avoid || and ?? operators, use explicit conditionals or separate declarations
 - Throw exceptions over defaults - prefer explicit errors for missing required values rather than silent fallbacks
+- ESLint configured at root with TypeScript and React support
+- Pre-push hook runs ESLint to prevent pushing code with lint errors
