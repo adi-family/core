@@ -25,6 +25,7 @@ app.delete('/sessions/:id', sessionHandlers.delete)
 app.get('/tasks/:taskId/sessions', sessionHandlers.listByTask)
 
 // Messages
+app.get('/messages', messageHandlers.list)
 app.post('/messages', messageHandlers.create)
 app.get('/messages/:id', messageHandlers.get)
 app.delete('/messages/:id', messageHandlers.delete)

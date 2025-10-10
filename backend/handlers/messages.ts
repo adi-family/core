@@ -3,6 +3,11 @@ import type { Sql } from 'postgres'
 import * as queries from '../queries/messages'
 
 export const createMessageHandlers = (sql: Sql) => ({
+  list: async (c: Context) => {
+    const messages = await queries.findAllMessages(sql)()
+    return c.json(messages)
+  },
+
   listBySession: async (c: Context) => {
     const sessionId = c.req.param('sessionId')
     const messages = await queries.findMessagesBySessionId(sql)(sessionId)

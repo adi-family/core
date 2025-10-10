@@ -1,6 +1,9 @@
 import type { Sql } from 'postgres'
 import type { Message, CreateMessageInput, Result } from '../types'
 
+export const findAllMessages = (sql: Sql) => async (): Promise<Message[]> =>
+  await sql<Message[]>`SELECT * FROM messages ORDER BY created_at DESC`
+
 export const findMessagesBySessionId = (sql: Sql) => async (sessionId: string): Promise<Message[]> =>
   await sql<Message[]>`SELECT * FROM messages WHERE session_id = ${sessionId} ORDER BY created_at ASC`
 
