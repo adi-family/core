@@ -14,30 +14,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
-interface Session {
-  id: string
-  task_id: string | null
-  runner: string
-  created_at: string
-  updated_at: string
-}
+import { client } from "@/lib/client"
+import type { Session } from "../../../backend/types"
 
 export function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/api/sessions")
-      .then((res) => res.json())
-      .then((data) => {
-        setSessions(data)
+    const fetchSessions = async () => {
+      const res = await client.sessions.$get()
+      if (!res.ok) {
+        console.error("Error fetching sessions:", await res.text())
         setLoading(false)
-      })
-      .catch((error) => {
-        console.error("Error fetching sessions:", error)
-        setLoading(false)
-      })
+        return
+      }
+      const data = await res.json()
+      setSessions(data)
+      setLoading(false)
+    }
+
+    fetchSessions().catch((error) => {
+      console.error("Error fetching sessions:", error)
+      setLoading(false)
+    })
   }, [])
 
   return (

@@ -25,6 +25,7 @@ export default defineConfig(({ mode }) => {
       preprocessorMaxWorkers: true,
     },
     root: path.resolve(__dirname),
+    envDir: path.resolve(__dirname, '..'),
     plugins: [tsconfigPaths, react()],
     publicDir: resolve(__dirname, 'public'),
     resolve: {

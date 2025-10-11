@@ -6,7 +6,7 @@ if (!process.env.SERVER_PORT) {
 
 const port = Number(process.env.SERVER_PORT)
 
-export const server = {
+export default {
   port,
   fetch: app.fetch,
 }

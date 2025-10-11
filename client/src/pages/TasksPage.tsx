@@ -14,34 +14,30 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
-interface Task {
-  id: string
-  title: string
-  description: string | null
-  status: string
-  source_gitlab_issue: Record<string, unknown> | null
-  source_github_issue: Record<string, unknown> | null
-  source_jira_issue: Record<string, unknown> | null
-  created_at: string
-  updated_at: string
-}
+import { client } from "@/lib/client"
+import type { Task } from "../../../backend/types"
 
 export function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetch("/api/tasks")
-      .then((res) => res.json())
-      .then((data) => {
-        setTasks(data)
+    const fetchTasks = async () => {
+      const res = await client.tasks.$get()
+      if (!res.ok) {
+        console.error("Error fetching tasks:", await res.text())
         setLoading(false)
-      })
-      .catch((error) => {
-        console.error("Error fetching tasks:", error)
-        setLoading(false)
-      })
+        return
+      }
+      const data = await res.json()
+      setTasks(data)
+      setLoading(false)
+    }
+
+    fetchTasks().catch((error) => {
+      console.error("Error fetching tasks:", error)
+      setLoading(false)
+    })
   }, [])
 
   return (
