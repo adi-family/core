@@ -1,5 +1,7 @@
 mono-repository, submodules, database-infrastructure, migration-management, git-workflow, code-style
 
+PROJECT STAGE - CAN EDIT EVERYTHING, NO NEED TO MAINTAIN
+
 - Mono repository containing multiple submodules
 - Migration submodule uses golang-migrate as primary migration tool
 - Docker Compose configuration includes Postgres database
