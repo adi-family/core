@@ -1,3 +1,0 @@
-@import "tailwindcss";
-@plugin "@tailwindcss/typography";
-@source "./src/**/*.{js,jsx,ts,tsx}";

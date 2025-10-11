@@ -4,16 +4,19 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"bun run backend:dev\" \"bun run client:dev\"",
+    "dev": "concurrently \"bun run backend:dev\" \"bun run client:dev\" \"bun run tailwind:dev\"",
     "backend:dev": "bun --watch backend/index.ts",
     "client:dev": "vite --config client/vite.config.ts",
     "client:build": "tsc -b client && vite build --config client/vite.config.ts",
     "client:preview": "vite preview --config client/vite.config.ts",
     "lint": "eslint .",
-    "lint:fix": "eslint . --fix"
+    "lint:fix": "eslint . --fix",
+    "tailwind:dev": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --cwd=./client --watch",
+    "tailwind:build": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.c --cwd=./client --minify"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
+    "@tailwindcss/cli": "^4.1.14",
     "@types/bun": "latest",
     "@types/node": "^24.7.1",
     "@types/react": "^19.1.16",
