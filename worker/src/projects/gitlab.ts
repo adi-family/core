@@ -23,6 +23,16 @@ export class GitlabProjectProcessor extends BaseProjectProcessor {
     this.config = context.project.config as GitlabConfig;
   }
 
+  async processIssues(): Promise<void> {
+    for await (const issue of this.getIssues()) {
+      await this.processLegacyIssue(issue);
+    }
+  }
+
+  async processIssue(_issue: import('../task-sources/base').TaskSourceIssue, _fileSpace: import('../file-spaces/base').BaseFileSpace): Promise<void> {
+    throw new Error('GitlabProjectProcessor is deprecated. Use GenericProjectProcessor instead.');
+  }
+
   async *getIssues(): AsyncIterable<Issue> {
     const issues = getGitlabIssueList(this.config.repo, this.config.labels);
     for (const issue of issues) {
@@ -56,7 +66,7 @@ export class GitlabProjectProcessor extends BaseProjectProcessor {
     return workspaceDir;
   }
 
-  async processIssue(issue: Issue): Promise<void> {
+  async processLegacyIssue(issue: Issue): Promise<void> {
     const signaler = initTrafficLight(this.context.project.id);
 
     console.log(chalk.blue.bold(`[${this.config.repo}] New or updated issue:`), issue.title());

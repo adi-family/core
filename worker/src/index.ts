@@ -40,6 +40,9 @@ console.log(chalk.blue.bold(`Available runners: ${RUNNER_TYPES.join(', ')}`));
 let currentRunnerIndex = 0;
 const selectRunner = (): RunnerType => {
   const runner = RUNNER_TYPES[currentRunnerIndex];
+  if (!runner) {
+    throw new Error('No runners available');
+  }
   currentRunnerIndex = (currentRunnerIndex + 1) % RUNNER_TYPES.length;
   return runner;
 };

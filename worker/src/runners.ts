@@ -31,9 +31,9 @@ const claudeRunner: Runner = {
     const iterator = claudeQuery({
       prompt,
       options: {
-        permissionMode: options.permissionMode || 'bypassPermissions',
-        env: options.env,
-        executable: options.executable,
+        permissionMode: (options.permissionMode || 'bypassPermissions') as any,
+        env: options.env as any,
+        executable: options.executable as any,
         cwd: options.cwd,
         stderr: options.stderr,
         allowedTools: options.allowedTools,

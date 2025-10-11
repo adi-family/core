@@ -59,6 +59,16 @@ export class JiraProjectProcessor extends BaseProjectProcessor {
     this.config = context.project.config as JiraConfig;
   }
 
+  async processIssues(): Promise<void> {
+    for await (const issue of this.getIssues()) {
+      await this.processLegacyIssue(issue);
+    }
+  }
+
+  async processIssue(_issue: import('../task-sources/base').TaskSourceIssue, _fileSpace: import('../file-spaces/base').BaseFileSpace): Promise<void> {
+    throw new Error('JiraProjectProcessor is deprecated. Use GenericProjectProcessor instead.');
+  }
+
   async *getIssues(): AsyncIterable<Issue> {
     const jqlQuery = this.config.jql_filter || `project = ${this.config.project_key} AND status = "To Do"`;
 
@@ -110,7 +120,7 @@ export class JiraProjectProcessor extends BaseProjectProcessor {
     return workspaceDir;
   }
 
-  async processIssue(issue: Issue): Promise<void> {
+  async processLegacyIssue(issue: Issue): Promise<void> {
     const jiraIssue = issue as JiraIssue;
     const signaler = initTrafficLight(this.context.project.id);
 

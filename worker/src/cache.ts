@@ -9,11 +9,12 @@ export function initTrafficLight(projectId: string) {
         WHERE issue_id = ${issueId} AND project_id = ${projectId}
       `;
 
-      if (result.length === 0) {
+      const row = result[0];
+      if (!row) {
         return false;
       }
 
-      const lastProcessed = new Date(result[0].last_processed_at);
+      const lastProcessed = new Date(row.last_processed_at);
       return lastProcessed >= date;
     },
     tryAcquireLock: async (issueId: string, workerId: string, lockTimeoutSeconds: number = 3600): Promise<boolean> => {
@@ -64,11 +65,12 @@ export function initTrafficLight(projectId: string) {
         WHERE issue_id = ${issueId} AND project_id = ${projectId}
       `;
 
-      if (result.length === 0) {
+      const row = result[0];
+      if (!row) {
         return null;
       }
 
-      return result[0].task_id;
+      return row.task_id;
     }
   };
 }

@@ -15,6 +15,14 @@ export class ParentProjectProcessor extends BaseProjectProcessor {
     this.config = context.project.config as ParentConfig;
   }
 
+  async processIssues(): Promise<void> {
+    throw new Error('ParentProjectProcessor.processIssues is not implemented. Parent projects aggregate issues but do not process them directly.');
+  }
+
+  async processIssue(_issue: import('../task-sources/base').TaskSourceIssue, _fileSpace: import('../file-spaces/base').BaseFileSpace): Promise<void> {
+    throw new Error('ParentProjectProcessor.processIssue should not be called directly. Issues should be processed by child processors.');
+  }
+
   async *getIssues(): AsyncIterable<Issue> {
     for (const childProjectId of this.config.child_project_ids) {
       const childProject = await getProjectById(this.context.sql, childProjectId);
@@ -38,17 +46,9 @@ export class ParentProjectProcessor extends BaseProjectProcessor {
 
       const processor = createProjectProcessor(childContext);
 
-      for await (const issue of processor.getIssues()) {
+      for await (const issue of (processor as any).getIssues()) {
         yield issue;
       }
     }
-  }
-
-  async processIssue(_issue: Issue): Promise<void> {
-    throw new Error('ParentProjectProcessor.processIssue should not be called directly. Issues should be processed by child processors.');
-  }
-
-  setupWorkspace(_issue: Issue): string {
-    throw new Error('ParentProjectProcessor.setupWorkspace should not be called directly. Workspace should be set up by child processors.');
   }
 }

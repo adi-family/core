@@ -2,6 +2,7 @@ import type {Sql} from 'postgres';
 import type {Project} from '../queries';
 import type {BaseFileSpace} from '../file-spaces/base';
 import type {BaseTaskSource, TaskSourceIssue} from '../task-sources/base';
+import type {RunnerType} from '../runners';
 
 export type Issue = {
   id: () => string;
@@ -22,7 +23,7 @@ export type ProcessorContext = {
     threadId?: string;
   };
   workerId: string;
-  selectRunner: () => string;
+  selectRunner: () => RunnerType;
   appsDir: string;
 };
 
@@ -45,9 +46,10 @@ export abstract class BaseProjectProcessor implements ProjectProcessor {
   abstract processIssue(issue: TaskSourceIssue, fileSpace: BaseFileSpace): Promise<void>;
 
   protected selectFileSpace(): BaseFileSpace {
-    if (this.fileSpaces.length === 0) {
+    const fileSpace = this.fileSpaces[0];
+    if (!fileSpace) {
       throw new Error('No file spaces available for this project');
     }
-    return this.fileSpaces[0];
+    return fileSpace;
   }
 }
