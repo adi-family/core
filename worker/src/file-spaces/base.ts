@@ -24,9 +24,9 @@ export abstract class BaseFileSpace {
   }
 
   abstract clone(workDir: string): Promise<string>;
-  abstract createBranch(workDir: string, branchName: string): Promise<void>;
-  abstract checkoutBranch(workDir: string, branchName: string): Promise<void>;
-  abstract branchExists(workDir: string, branchName: string): Promise<boolean>;
+  abstract createWorkspace(workDir: string, workspaceName: string): Promise<void>;
+  abstract switchToWorkspace(workDir: string, workspaceName: string): Promise<void>;
+  abstract workspaceExists(workDir: string, workspaceName: string): Promise<boolean>;
 
   getConfig(): FileSpaceConfig {
     return this.config;

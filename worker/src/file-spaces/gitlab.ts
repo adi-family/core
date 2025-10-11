@@ -17,21 +17,21 @@ export class GitlabFileSpace extends BaseFileSpace {
     return workDir;
   }
 
-  async branchExists(workDir: string, branchName: string): Promise<boolean> {
+  async workspaceExists(workDir: string, workspaceName: string): Promise<boolean> {
     const result = execSync(
-      `git -C ${workDir} rev-parse --verify ${branchName} 2>/dev/null || echo ""`,
+      `git -C ${workDir} rev-parse --verify ${workspaceName} 2>/dev/null || echo ""`,
       {encoding: 'utf-8'}
     ).trim();
     return result !== '';
   }
 
-  async checkoutBranch(workDir: string, branchName: string): Promise<void> {
-    console.log(chalk.green(`Checking out branch ${branchName}...`));
-    execSync(`git -C ${workDir} checkout ${branchName}`, {stdio: 'inherit'});
+  async switchToWorkspace(workDir: string, workspaceName: string): Promise<void> {
+    console.log(chalk.green(`Checking out branch ${workspaceName}...`));
+    execSync(`git -C ${workDir} checkout ${workspaceName}`, {stdio: 'inherit'});
   }
 
-  async createBranch(workDir: string, branchName: string): Promise<void> {
-    console.log(chalk.green(`Creating and checking out new branch ${branchName}...`));
-    execSync(`git -C ${workDir} checkout -b ${branchName}`, {stdio: 'inherit'});
+  async createWorkspace(workDir: string, workspaceName: string): Promise<void> {
+    console.log(chalk.green(`Creating and checking out new branch ${workspaceName}...`));
+    execSync(`git -C ${workDir} checkout -b ${workspaceName}`, {stdio: 'inherit'});
   }
 }

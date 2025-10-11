@@ -77,11 +77,11 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
 
       await fileSpace.clone(workspaceDir);
 
-      const branchExists = await fileSpace.branchExists(workspaceDir, branchName);
+      const branchExists = await fileSpace.workspaceExists(workspaceDir, branchName);
       if (branchExists) {
-        await fileSpace.checkoutBranch(workspaceDir, branchName);
+        await fileSpace.switchToWorkspace(workspaceDir, branchName);
       } else {
-        await fileSpace.createBranch(workspaceDir, branchName);
+        await fileSpace.createWorkspace(workspaceDir, branchName);
       }
 
       const provider = (issue.metadata.provider as string) || 'unknown';
