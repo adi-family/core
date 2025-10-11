@@ -113,7 +113,7 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
           env: process.env as Record<string, string>,
           executable: 'bun',
           cwd: workspaceDir,
-          stderr: data => {
+          stderr: _data => {
             // Append to file
           },
           allowedTools: ['Bash(npm: *)', 'Bash(glab: *)', 'Bash(gh: *)', 'Bash(git: *)', 'Read', 'Write', 'Edit', 'Glob']

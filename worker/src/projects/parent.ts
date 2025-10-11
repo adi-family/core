@@ -44,11 +44,11 @@ export class ParentProjectProcessor extends BaseProjectProcessor {
     }
   }
 
-  async processIssue(issue: Issue): Promise<void> {
+  async processIssue(_issue: Issue): Promise<void> {
     throw new Error('ParentProjectProcessor.processIssue should not be called directly. Issues should be processed by child processors.');
   }
 
-  setupWorkspace(issue: Issue): string {
+  setupWorkspace(_issue: Issue): string {
     throw new Error('ParentProjectProcessor.setupWorkspace should not be called directly. Workspace should be set up by child processors.');
   }
 }

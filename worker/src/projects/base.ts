@@ -1,5 +1,5 @@
 import type {Sql} from 'postgres';
-import type {Project, FileSpace, TaskSource} from '../queries';
+import type {Project} from '../queries';
 import type {BaseFileSpace} from '../file-spaces/base';
 import type {BaseTaskSource, TaskSourceIssue} from '../task-sources/base';
 

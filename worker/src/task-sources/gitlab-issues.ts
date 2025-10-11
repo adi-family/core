@@ -33,7 +33,7 @@ export class GitlabIssuesTaskSource extends BaseTaskSource {
     }
   }
 
-  async getIssueDetails(issueId: string): Promise<TaskSourceIssue> {
+  async getIssueDetails(_issueId: string): Promise<TaskSourceIssue> {
     throw new Error('getIssueDetails not implemented for GitlabIssuesTaskSource');
   }
 }

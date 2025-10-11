@@ -2,11 +2,12 @@ import {getTelegramConfigFromEnv} from "./telegram";
 import {sql} from './db';
 import {getAllEnabledProjects, getFileSpacesByProjectId, getTaskSourcesByProjectId} from './queries';
 import {type RunnerType} from './runners';
-import {createProjectProcessor} from './projects/factory';
 import type {ProcessorContext} from './projects/base';
 import {GenericProjectProcessor} from './projects/generic';
 import {createFileSpace} from './file-spaces/factory';
+import type {FileSpace} from './file-spaces/base';
 import {createTaskSource} from './task-sources/factory';
+import type {TaskSource} from './task-sources/base';
 import chalk from 'chalk';
 import * as path from 'path';
 import 'dotenv/config';
@@ -76,13 +77,13 @@ async function run() {
         continue;
       }
 
-      const fileSpaces = fileSpacesData.map(fs => createFileSpace(fs as any));
+      const fileSpaces = fileSpacesData.map(fs => createFileSpace(fs as FileSpace));
 
       console.log(chalk.blue(`File spaces: ${fileSpaces.length}`));
       console.log(chalk.blue(`Task sources: ${taskSourcesData.length}`));
 
       for (const taskSourceData of taskSourcesData) {
-        const taskSource = createTaskSource(taskSourceData as any);
+        const taskSource = createTaskSource(taskSourceData as TaskSource);
 
         console.log(chalk.cyan(`Processing task source: ${taskSourceData.name} (${taskSourceData.type})`));
 

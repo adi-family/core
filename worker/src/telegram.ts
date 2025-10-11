@@ -9,6 +9,13 @@ export interface SendMessageOptions {
   parseMode?: 'HTML' | 'Markdown';
 }
 
+interface TelegramPayload {
+  chat_id: string;
+  text: string;
+  parse_mode: string;
+  message_thread_id?: number;
+}
+
 export async function sendTelegramMessage(
   config: TelegramConfig,
   options: SendMessageOptions
@@ -18,7 +25,7 @@ export async function sendTelegramMessage(
 
   const apiUrl = `https://api.telegram.org/bot${botToken}/sendMessage`;
 
-  const payload: any = {
+  const payload: TelegramPayload = {
     chat_id: chatId,
     text: text,
     parse_mode: parseMode,
