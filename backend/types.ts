@@ -1,10 +1,21 @@
 // Database types matching schema
 
+export type Project = {
+  id: string
+  name: string
+  type: 'gitlab' | 'jira' | 'parent'
+  config: unknown
+  enabled: boolean
+  created_at: Date
+  updated_at: Date
+}
+
 export type Task = {
   id: string
   title: string
   description: string | null
   status: string
+  project_id: string | null
   source_gitlab_issue: unknown | null
   source_github_issue: unknown | null
   source_jira_issue: unknown | null
@@ -29,10 +40,20 @@ export type Message = {
 
 // Request/Response types
 
+export type CreateProjectInput = {
+  name: string
+  type: 'gitlab' | 'jira' | 'parent'
+  config: unknown
+  enabled?: boolean
+}
+
+export type UpdateProjectInput = Partial<CreateProjectInput>
+
 export type CreateTaskInput = {
   title: string
   description?: string
   status: string
+  project_id?: string
   source_gitlab_issue?: unknown
   source_github_issue?: unknown
   source_jira_issue?: unknown

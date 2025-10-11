@@ -17,7 +17,7 @@ export const findTaskById = async (sql: Sql, id: string): Promise<Result<Task>> 
     : { ok: false, error: 'Task not found' }
 }
 
-const createTaskCols = ['title', 'description', 'status', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
+const createTaskCols = ['title', 'description', 'status', 'project_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
 export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
   const [task] = await get(sql<Task[]>`
     INSERT INTO tasks ${sql(input, createTaskCols)}
@@ -29,7 +29,7 @@ export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task
   return task
 }
 
-const updateTaskCols = ['title', 'description', 'status', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
+const updateTaskCols = ['title', 'description', 'status', 'project_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
 export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): Promise<Result<Task>> => {
   const tasks = await get(sql<Task[]>`
     UPDATE tasks

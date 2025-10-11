@@ -13,11 +13,27 @@ export function HomePage() {
       <div className="mb-8">
         <h1 className="text-4xl font-bold tracking-tight">ADI Simple</h1>
         <p className="text-muted-foreground mt-2">
-          Database entity viewer for tasks, sessions, and messages
+          Database entity viewer for projects, tasks, sessions, and messages
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Link to="/projects">
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50">
+            <CardHeader>
+              <CardTitle>Projects</CardTitle>
+              <CardDescription>
+                View and manage all projects in the system
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                GitLab, Jira, and Parent projects with dynamic configuration
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
         <Link to="/tasks">
           <Card className="cursor-pointer transition-colors hover:bg-muted/50">
             <CardHeader>

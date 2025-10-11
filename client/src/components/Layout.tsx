@@ -11,6 +11,12 @@ export function Layout() {
             </Link>
             <div className="flex gap-4">
               <Link
+                to="/projects"
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                Projects
+              </Link>
+              <Link
                 to="/tasks"
                 className="text-sm font-medium transition-colors hover:text-primary"
               >

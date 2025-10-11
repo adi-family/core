@@ -9,6 +9,7 @@ export type Task = {
   title: string;
   description: string | null;
   status: string;
+  project_id: string | null;
   source_gitlab_issue: unknown | null;
   source_github_issue: unknown | null;
   source_jira_issue: unknown | null;
@@ -31,10 +32,21 @@ export type Message = {
   created_at: Date;
 };
 
+export type Project = {
+  id: string;
+  name: string;
+  type: 'gitlab' | 'jira' | 'parent';
+  config: unknown;
+  enabled: boolean;
+  created_at: Date;
+  updated_at: Date;
+};
+
 export type CreateTaskInput = {
   title: string;
   description?: string;
   status: string;
+  project_id?: string;
   source_gitlab_issue?: unknown;
 };
 
@@ -49,7 +61,7 @@ export type CreateMessageInput = {
 };
 
 export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  const cols = ['title', 'description', 'status', 'source_gitlab_issue'] as const;
+  const cols = ['title', 'description', 'status', 'project_id', 'source_gitlab_issue'] as const;
   const [task] = await get(sql<Task[]>`
     INSERT INTO tasks ${sql(input, cols)}
     RETURNING *
@@ -95,4 +107,21 @@ export const createMessage = async (sql: Sql, input: CreateMessageInput): Promis
     throw new Error('Failed to create message');
   }
   return message;
+};
+
+export const getAllEnabledProjects = async (sql: Sql): Promise<Project[]> => {
+  const projects = await get(sql<Project[]>`
+    SELECT * FROM projects
+    WHERE enabled = true
+    ORDER BY created_at ASC
+  `);
+  return projects;
+};
+
+export const getProjectById = async (sql: Sql, id: string): Promise<Project | null> => {
+  const [project] = await get(sql<Project[]>`
+    SELECT * FROM projects
+    WHERE id = ${id}
+  `);
+  return project || null;
 };

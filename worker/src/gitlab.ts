@@ -36,7 +36,8 @@ export class GitlabIssueMinimalList extends Issue {
   }
 }
 
-export function getGitlabIssueList(repo: string): GitlabIssueMinimalList[] {
-  const res = execSync(`glab issue list -R ${repo} -O json -l DOIT -a @me --all`, { encoding: 'utf-8' });
+export function getGitlabIssueList(repo: string, labels: string[] = ['DOIT']): GitlabIssueMinimalList[] {
+  const labelArgs = labels.map(l => `-l ${l}`).join(' ');
+  const res = execSync(`glab issue list -R ${repo} -O json ${labelArgs} -a @me --all`, { encoding: 'utf-8' });
   return (JSON.parse(res) as GitlabIssueListMinimal[]).map(v => new GitlabIssueMinimalList(v));
 }
