@@ -39,6 +39,6 @@ export const createSessionHandlers = (sql: Sql) => ({
       return c.json({ error: result.error }, 404)
     }
 
-    return c.json({ success: true }, 204)
+    return c.json({ success: true })
   }
 })
