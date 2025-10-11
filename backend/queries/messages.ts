@@ -9,11 +9,11 @@ export const findAllMessages = async (sql: Sql): Promise<Message[]> => {
   return get(sql<Message[]>`SELECT * FROM messages ORDER BY created_at DESC`);
 }
 
-export const findMessagesBySessionId = (sql: Sql) => async (sessionId: string): Promise<Message[]> => {
+export const findMessagesBySessionId = async (sql: Sql, sessionId: string): Promise<Message[]> => {
   return get(sql<Message[]>`SELECT * FROM messages WHERE session_id = ${sessionId} ORDER BY created_at ASC`)
 }
 
-export const findMessageById = (sql: Sql) => async (id: string): Promise<Result<Message>> => {
+export const findMessageById = async (sql: Sql, id: string): Promise<Result<Message>> => {
   const messages = await get(sql<Message[]>`SELECT * FROM messages WHERE id = ${id}`)
   const [message] = messages
   return message
@@ -21,16 +21,19 @@ export const findMessageById = (sql: Sql) => async (id: string): Promise<Result<
     : { ok: false, error: 'Message not found' }
 }
 
-export const createMessage = (sql: Sql) => async (input: CreateMessageInput): Promise<Message> => {
-  const messages = await get(sql<Message[]>`
-    INSERT INTO messages ${sql(input, 'session_id', 'data')}
+const createMessageCols = ['session_id', 'data'] as const
+export const createMessage = async (sql: Sql, input: CreateMessageInput): Promise<Message> => {
+  const [message] = await get(sql<Message[]>`
+    INSERT INTO messages ${sql(input, createMessageCols)}
     RETURNING *
   `)
-  const [message] = messages
+  if (!message) {
+    throw new Error('Failed to create message')
+  }
   return message
 }
 
-export const deleteMessage = (sql: Sql) => async (id: string): Promise<Result<void>> => {
+export const deleteMessage = async (sql: Sql, id: string): Promise<Result<void>> => {
   const resultSet = await get(sql`DELETE FROM messages WHERE id = ${id}`)
   const deleted = resultSet.count > 0
   return deleted

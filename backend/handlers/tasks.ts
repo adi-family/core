@@ -4,13 +4,13 @@ import * as queries from '../queries/tasks'
 
 export const createTaskHandlers = (sql: Sql) => ({
   list: async (c: Context) => {
-    const tasks = await queries.findAllTasks(sql)()
+    const tasks = await queries.findAllTasks(sql)
     return c.json(tasks)
   },
 
   get: async (c: Context) => {
     const id = c.req.param('id')
-    const result = await queries.findTaskById(sql)(id)
+    const result = await queries.findTaskById(sql, id)
 
     if (!result.ok) {
       return c.json({ error: result.error }, 404)
@@ -21,14 +21,14 @@ export const createTaskHandlers = (sql: Sql) => ({
 
   create: async (c: Context) => {
     const body = await c.req.json()
-    const task = await queries.createTask(sql)(body)
+    const task = await queries.createTask(sql, body)
     return c.json(task, 201)
   },
 
   update: async (c: Context) => {
     const id = c.req.param('id')
     const body = await c.req.json()
-    const result = await queries.updateTask(sql)(id, body)
+    const result = await queries.updateTask(sql, id, body)
 
     if (!result.ok) {
       return c.json({ error: result.error }, 404)
@@ -39,7 +39,7 @@ export const createTaskHandlers = (sql: Sql) => ({
 
   delete: async (c: Context) => {
     const id = c.req.param('id')
-    const result = await queries.deleteTask(sql)(id)
+    const result = await queries.deleteTask(sql, id)
 
     if (!result.ok) {
       return c.json({ error: result.error }, 404)
