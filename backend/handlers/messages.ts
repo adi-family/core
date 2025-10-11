@@ -4,7 +4,7 @@ import * as queries from '../queries/messages'
 
 export const createMessageHandlers = (sql: Sql) => ({
   list: async (c: Context) => {
-    const messages = await queries.findAllMessages(sql)()
+    const messages = await queries.findAllMessages(sql)
     return c.json(messages)
   },
 
