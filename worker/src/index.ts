@@ -1,9 +1,12 @@
 import {getTelegramConfigFromEnv} from "./telegram";
 import {sql} from './db';
-import {getAllEnabledProjects} from './queries';
+import {getAllEnabledProjects, getFileSpacesByProjectId, getTaskSourcesByProjectId} from './queries';
 import {type RunnerType} from './runners';
 import {createProjectProcessor} from './projects/factory';
 import type {ProcessorContext} from './projects/base';
+import {GenericProjectProcessor} from './projects/generic';
+import {createFileSpace} from './file-spaces/factory';
+import {createTaskSource} from './task-sources/factory';
 import chalk from 'chalk';
 import * as path from 'path';
 import 'dotenv/config';
@@ -55,22 +58,51 @@ async function run() {
     for (const project of projects) {
       console.log(chalk.magenta.bold(`\nProcessing project: ${project.name} (${project.type})\n`));
 
-      const context: ProcessorContext = {
-        sql,
-        project,
-        telegramConfig,
-        workerId,
-        selectRunner,
-        appsDir: APPS_DIR
-      };
+      if (project.type === 'parent') {
+        console.log(chalk.gray(`Skipping parent project ${project.name} - parent projects are aggregators only`));
+        continue;
+      }
 
-      const processor = createProjectProcessor(context);
+      const fileSpacesData = await getFileSpacesByProjectId(sql, project.id);
+      const taskSourcesData = await getTaskSourcesByProjectId(sql, project.id);
 
-      for await (const issue of processor.getIssues()) {
+      if (fileSpacesData.length === 0) {
+        console.log(chalk.yellow(`No file spaces found for project ${project.name}, skipping`));
+        continue;
+      }
+
+      if (taskSourcesData.length === 0) {
+        console.log(chalk.yellow(`No task sources found for project ${project.name}, skipping`));
+        continue;
+      }
+
+      const fileSpaces = fileSpacesData.map(fs => createFileSpace(fs as any));
+
+      console.log(chalk.blue(`File spaces: ${fileSpaces.length}`));
+      console.log(chalk.blue(`Task sources: ${taskSourcesData.length}`));
+
+      for (const taskSourceData of taskSourcesData) {
+        const taskSource = createTaskSource(taskSourceData as any);
+
+        console.log(chalk.cyan(`Processing task source: ${taskSourceData.name} (${taskSourceData.type})`));
+
+        const context: ProcessorContext = {
+          sql,
+          project,
+          fileSpaces,
+          taskSource,
+          telegramConfig,
+          workerId,
+          selectRunner,
+          appsDir: APPS_DIR
+        };
+
+        const processor = new GenericProjectProcessor(context);
+
         try {
-          await processor.processIssue(issue);
+          await processor.processIssues();
         } catch (error) {
-          console.error(chalk.red(`[${project.name}] Error processing issue ${issue.id()}:`), error);
+          console.error(chalk.red(`[${project.name}] Error processing task source ${taskSourceData.name}:`), error);
         }
       }
     }

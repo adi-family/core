@@ -1,5 +1,7 @@
 import type {Sql} from 'postgres';
-import type {Project} from '../queries';
+import type {Project, FileSpace, TaskSource} from '../queries';
+import type {BaseFileSpace} from '../file-spaces/base';
+import type {BaseTaskSource, TaskSourceIssue} from '../task-sources/base';
 
 export type Issue = {
   id: () => string;
@@ -12,6 +14,8 @@ export type Issue = {
 export type ProcessorContext = {
   sql: Sql;
   project: Project;
+  fileSpaces: BaseFileSpace[];
+  taskSource: BaseTaskSource;
   telegramConfig: {
     botToken: string;
     chatId: string;
@@ -23,19 +27,27 @@ export type ProcessorContext = {
 };
 
 export type ProjectProcessor = {
-  getIssues: () => AsyncIterable<Issue>;
-  processIssue: (issue: Issue) => Promise<void>;
-  setupWorkspace: (issue: Issue) => string;
+  processIssues: () => Promise<void>;
 };
 
 export abstract class BaseProjectProcessor implements ProjectProcessor {
   protected context: ProcessorContext;
+  protected fileSpaces: BaseFileSpace[];
+  protected taskSource: BaseTaskSource;
 
   constructor(context: ProcessorContext) {
     this.context = context;
+    this.fileSpaces = context.fileSpaces;
+    this.taskSource = context.taskSource;
   }
 
-  abstract getIssues(): AsyncIterable<Issue>;
-  abstract processIssue(issue: Issue): Promise<void>;
-  abstract setupWorkspace(issue: Issue): string;
+  abstract processIssues(): Promise<void>;
+  abstract processIssue(issue: TaskSourceIssue, fileSpace: BaseFileSpace): Promise<void>;
+
+  protected selectFileSpace(): BaseFileSpace {
+    if (this.fileSpaces.length === 0) {
+      throw new Error('No file spaces available for this project');
+    }
+    return this.fileSpaces[0];
+  }
 }

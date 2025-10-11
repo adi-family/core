@@ -10,6 +10,8 @@ export type Task = {
   description: string | null;
   status: string;
   project_id: string | null;
+  task_source_id: string | null;
+  file_space_id: string | null;
   source_gitlab_issue: unknown | null;
   source_github_issue: unknown | null;
   source_jira_issue: unknown | null;
@@ -47,6 +49,8 @@ export type CreateTaskInput = {
   description?: string;
   status: string;
   project_id?: string;
+  task_source_id?: string;
+  file_space_id?: string;
   source_gitlab_issue?: unknown;
 };
 
@@ -61,7 +65,7 @@ export type CreateMessageInput = {
 };
 
 export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  const cols = ['title', 'description', 'status', 'project_id', 'source_gitlab_issue'] as const;
+  const cols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'file_space_id', 'source_gitlab_issue'] as const;
   const [task] = await get(sql<Task[]>`
     INSERT INTO tasks ${sql(input, cols)}
     RETURNING *
@@ -124,4 +128,60 @@ export const getProjectById = async (sql: Sql, id: string): Promise<Project | nu
     WHERE id = ${id}
   `);
   return project || null;
+};
+
+export type FileSpace = {
+  id: string;
+  project_id: string;
+  name: string;
+  type: string;
+  config: unknown;
+  enabled: boolean;
+  created_at: Date;
+  updated_at: Date;
+};
+
+export type TaskSource = {
+  id: string;
+  project_id: string;
+  name: string;
+  type: string;
+  config: unknown;
+  enabled: boolean;
+  created_at: Date;
+  updated_at: Date;
+};
+
+export const getFileSpacesByProjectId = async (sql: Sql, projectId: string): Promise<FileSpace[]> => {
+  const fileSpaces = await get(sql<FileSpace[]>`
+    SELECT * FROM file_spaces
+    WHERE project_id = ${projectId} AND enabled = true
+    ORDER BY created_at ASC
+  `);
+  return fileSpaces;
+};
+
+export const getTaskSourcesByProjectId = async (sql: Sql, projectId: string): Promise<TaskSource[]> => {
+  const taskSources = await get(sql<TaskSource[]>`
+    SELECT * FROM task_sources
+    WHERE project_id = ${projectId} AND enabled = true
+    ORDER BY created_at ASC
+  `);
+  return taskSources;
+};
+
+export const getFileSpaceById = async (sql: Sql, id: string): Promise<FileSpace | null> => {
+  const [fileSpace] = await get(sql<FileSpace[]>`
+    SELECT * FROM file_spaces
+    WHERE id = ${id}
+  `);
+  return fileSpace || null;
+};
+
+export const getTaskSourceById = async (sql: Sql, id: string): Promise<TaskSource | null> => {
+  const [taskSource] = await get(sql<TaskSource[]>`
+    SELECT * FROM task_sources
+    WHERE id = ${id}
+  `);
+  return taskSource || null;
 };
