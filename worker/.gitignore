@@ -1,6 +1,7 @@
 *
 !.gitignore
 !src
+!package.json
 !tsconfig.json
 !CLAUDE.md
 !src/***
