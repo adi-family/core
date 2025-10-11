@@ -162,6 +162,9 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
 
 async function run() {
   const telegramConfig = getTelegramConfigFromEnv();
+  const workerId = `${process.pid}-${Date.now()}`;
+
+  console.log(chalk.blue.bold(`Worker ID: ${workerId}`));
 
   while (true) {
     console.log(chalk.cyan.bold(`\n=== Starting new iteration at ${new Date().toISOString()} ===\n`));
@@ -178,7 +181,19 @@ async function run() {
           continue;
         }
 
-        await processIssue(issue, repo, telegramConfig, signaler);
+        // Try to acquire distributed lock
+        if (!(await signaler.tryAcquireLock(issue.uniqueId(), workerId, 3600))) {
+          console.log(chalk.yellow(`[${repo}] Issue ${issue.id()} is being processed by another worker`));
+          continue;
+        }
+
+        try {
+          await processIssue(issue, repo, telegramConfig, signaler);
+        } catch (error) {
+          console.error(chalk.red(`[${repo}] Error processing issue ${issue.id()}:`), error);
+          await signaler.releaseLock(issue.uniqueId());
+          throw error;
+        }
       }
     }
 

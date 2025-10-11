@@ -3,12 +3,14 @@ import { sql } from './db'
 import { createTaskHandlers } from './handlers/tasks'
 import { createSessionHandlers } from './handlers/sessions'
 import { createMessageHandlers } from './handlers/messages'
+import { createWorkerCacheHandlers } from './handlers/worker-cache'
 
 const app = new Hono()
 
 const taskHandlers = createTaskHandlers(sql)
 const sessionHandlers = createSessionHandlers(sql)
 const messageHandlers = createMessageHandlers(sql)
+const workerCacheHandlers = createWorkerCacheHandlers(sql)
 
 // Tasks
 app.get('/tasks', taskHandlers.list)
@@ -30,6 +32,9 @@ app.post('/messages', messageHandlers.create)
 app.get('/messages/:id', messageHandlers.get)
 app.delete('/messages/:id', messageHandlers.delete)
 app.get('/sessions/:sessionId/messages', messageHandlers.listBySession)
+
+// Worker Cache
+app.get('/worker-cache', workerCacheHandlers.list)
 
 export { app }
 export type AppType = typeof app

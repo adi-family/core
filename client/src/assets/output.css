@@ -234,9 +234,6 @@
   .h-16 {
     height: calc(var(--spacing) * 16);
   }
-  .h-\[200px\] {
-    height: 200px;
-  }
   .max-h-20 {
     max-height: calc(var(--spacing) * 20);
   }

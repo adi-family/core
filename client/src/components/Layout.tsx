@@ -28,6 +28,12 @@ export function Layout() {
               >
                 Messages
               </Link>
+              <Link
+                to="/worker-cache"
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                Worker Cache
+              </Link>
             </div>
           </div>
         </div>

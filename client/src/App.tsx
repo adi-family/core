@@ -4,6 +4,7 @@ import { HomePage } from "./pages/HomePage"
 import { TasksPage } from "./pages/TasksPage"
 import { SessionsPage } from "./pages/SessionsPage"
 import { MessagesPage } from "./pages/MessagesPage"
+import { WorkerCachePage } from "./pages/WorkerCachePage"
 
 export function App() {
   return (
@@ -14,6 +15,7 @@ export function App() {
           <Route path="tasks" element={<TasksPage />} />
           <Route path="sessions" element={<SessionsPage />} />
           <Route path="messages" element={<MessagesPage />} />
+          <Route path="worker-cache" element={<WorkerCachePage />} />
         </Route>
       </Routes>
     </BrowserRouter>
