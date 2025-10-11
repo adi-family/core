@@ -6,6 +6,7 @@
 !docs
 !backend
 !client
+!worker
 !package.json
 !bun.lock
 !tsconfig.json

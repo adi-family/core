@@ -4,11 +4,13 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "concurrently \"bun run backend:dev\" \"bun run client:dev\" \"bun run tailwind:dev\"",
+    "dev": "concurrently \"bun run backend:dev\" \"bun run client:dev\" \"bun run tailwind:dev\" \"bun run worker:dev\"",
     "backend:dev": "bun --watch backend/index.ts",
     "client:dev": "vite --config client/vite.config.ts",
     "client:build": "tsc -b client && vite build --config client/vite.config.ts",
     "client:preview": "vite preview --config client/vite.config.ts",
+    "worker:dev": "bun --watch worker/src/index.ts",
+    "worker:install": "cd worker && bun install",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "tailwind:dev": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --cwd=./client --watch",
@@ -38,8 +40,10 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.12",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.14",
+    "chalk": "^5.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "hono": "^4.9.10",
@@ -48,6 +52,7 @@
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.4",
     "tailwind-merge": "^3.3.1",
-    "vite-tsconfig-paths": "^5.1.4"
+    "vite-tsconfig-paths": "^5.1.4",
+    "zod": "^4.1.12"
   }
 }
