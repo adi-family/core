@@ -13,8 +13,16 @@ import 'dotenv/config';
 const REPOS = ['nakit-yok/backend', 'nakit-yok/frontend'];
 const SLEEP_INTERVAL_MS = 600000; // 10 minutes
 
+if (!process.env.APPS_DIR) {
+  throw new Error('APPS_DIR environment variable is required');
+}
+
+const APPS_DIR = process.env.APPS_DIR.startsWith('/')
+  ? process.env.APPS_DIR
+  : path.join(process.cwd(), process.env.APPS_DIR);
+
 function setupIssueWorkspace(issueId: string, repo: string): string {
-  const workspaceDir = path.join(__dirname, '.apps', `gitlab-${issueId}`);
+  const workspaceDir = path.join(APPS_DIR, `gitlab-${issueId}`);
   const branchName = `issue/gitlab-${issueId}`;
 
   // Create workspace directory if it doesn't exist

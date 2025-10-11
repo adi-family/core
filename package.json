@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "concurrently \"bun run backend:dev\" \"bun run client:dev\" \"bun run tailwind:dev\" \"bun run worker:dev\"",
+    "dev:no-worker": "concurrently \"bun run backend:dev\" \"bun run client:dev\" \"bun run tailwind:dev\"",
     "backend:dev": "bun --watch backend/index.ts",
     "client:dev": "vite --config client/vite.config.ts",
     "client:build": "tsc -b client && vite build --config client/vite.config.ts",
@@ -46,6 +47,7 @@
     "chalk": "^5.6.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
     "hono": "^4.9.10",
     "postgres": "^3.4.7",
     "react": "^19.1.1",

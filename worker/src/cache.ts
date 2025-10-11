@@ -27,7 +27,7 @@ export function initTrafficLight(repo: string) {
           status = 'processing',
           updated_at = NOW()
         WHERE worker_task_cache.processing_started_at IS NULL
-           OR worker_task_cache.processing_started_at < NOW() - INTERVAL '${lockTimeoutSeconds} seconds'
+           OR worker_task_cache.processing_started_at < NOW() - (INTERVAL '1 second' * ${lockTimeoutSeconds})
         RETURNING id
       `;
 
