@@ -38,10 +38,6 @@ export abstract class BaseFileSpace {
   abstract switchToWorkspace(location: WorkspaceLocation): Promise<void>;
   abstract workspaceExists(location: WorkspaceLocation): Promise<boolean>;
 
-  getConfig(): Readonly<FileSpaceConfig> {
-    return {...this.config};
-  }
-
   getId(): string {
     return this.fileSpace.id;
   }
