@@ -1,6 +1,5 @@
 import {BaseProjectProcessor, type ProcessorContext} from './base';
 import type {TaskSourceIssue} from '../task-sources/base';
-import type {BaseFileSpace} from '../file-spaces/base';
 import {initTrafficLight} from '../cache';
 import {createTask, createSession, createMessage, updateTaskStatus, addTaskFileSpaces} from '../queries';
 import {createRunner} from '../runners';
@@ -120,39 +119,13 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
         });
       }
 
-      const issueViewCommand = this.getIssueViewCommand(issue);
-
-      // Prepare repository information for the prompt
-      const repoInfo = fileSpaceInfos.length > 1
-        ? `\n\nREPOSITORIES:
-You have access to ${fileSpaceInfos.length} repositories:
-${fileSpaceInfos.map((info, idx) => `${idx + 1}. ${info.path}`).join('\n')}
-
-All repositories are on branch "${branchName}".`
-        : '';
-
       const runner = createRunner(selectedRunner);
-      const iterator = runner.query({
-        prompt: `You are working on issue #${issue.id}: ${issue.title}
-
-CRITICAL FIRST STEP:
-${issueViewCommand ? `- Your FIRST action must be: \`${issueViewCommand}\`` : '- Fetch and read the complete issue details'}
-- Read and understand the COMPLETE issue description and ALL comments before doing anything else
-- Do NOT proceed with any implementation until you've analyzed the full issue context
-${repoInfo}
-
-IMPORTANT INSTRUCTIONS:
-- Do ONLY what is explicitly asked in the issue - no extra features, improvements, or refactoring
-- You are currently on branch "${branchName}" - all your work should be done on this branch
-- Avoid installing dependencies (npm install) unless absolutely required for the task
-- Use npm for package management (no other package managers)
-- Be concise in your responses - focus on actions, not explanations
-
-COMPLETION REQUIREMENTS (you MUST complete ALL of these):
-1. Implement the required changes
-2. Commit your changes with a clear commit message
-3. Push the branch to remote: \`git push origin ${branchName}\`
-4. In your final result, return a simple summary of what was done (1-2 sentences max)`,
+      const iterator = runner.run({
+        issue,
+        branchName,
+        taskDir,
+        fileSpaceInfos,
+        issueViewCommand: this.getIssueViewCommand(issue),
         options: {
           permissionMode: 'bypassPermissions',
           env: process.env as Record<string, string>,
@@ -165,20 +138,13 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
         }
       });
 
-      let iterations = 0;
-      let finalCost = 0;
       for await (const chunk of iterator) {
-        iterations++;
-
         await createMessage(this.context.sql, {
           session_id: session.id,
           data: chunk
         });
 
         if (chunk.type === 'result') {
-          finalCost = chunk.total_cost_usd;
-          const resultText = chunk.result;
-
           await updateTaskStatus(this.context.sql, task.id, 'completed');
           await signaler.signal({
             issueId: issue.uniqueId,
@@ -210,5 +176,4 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
         return null;
     }
   }
-
 }
