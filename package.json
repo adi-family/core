@@ -10,7 +10,7 @@
     "client:dev": "vite --config client/vite.config.ts",
     "client:build": "tsc -b client && vite build --config client/vite.config.ts",
     "client:preview": "vite preview --config client/vite.config.ts",
-    "worker:dev": "bun --watch worker/src/index.ts",
+    "worker:dev": "bun --watch worker/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "tailwind:dev": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --cwd=./client --watch",
