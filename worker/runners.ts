@@ -124,7 +124,14 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
 
     yield* this.query({
       prompt,
-      options: ctx.options
+      options: {
+        permissionMode: 'bypassPermissions',
+        env: process.env as Record<string, string>,
+        executable: 'bun',
+        cwd: ctx.options.cwd,
+        stderr: ctx.options.stderr,
+        allowedTools: ['Bash(npm: *)', 'Bash(glab: *)', 'Bash(gh: *)', 'Bash(git: *)', 'Read', 'Write', 'Edit', 'Glob']
+      }
     });
   },
 };
