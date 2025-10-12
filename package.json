@@ -11,7 +11,6 @@
     "client:build": "tsc -b client && vite build --config client/vite.config.ts",
     "client:preview": "vite preview --config client/vite.config.ts",
     "worker:dev": "bun --watch worker/src/index.ts",
-    "worker:install": "cd worker && bun install",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "tailwind:dev": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --cwd=./client --watch",
@@ -42,6 +41,8 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.12",
+    "@google/gemini-cli": "^0.8.2",
+    "@openai/codex-sdk": "^0.46.0",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.14",
     "chalk": "^5.6.2",
