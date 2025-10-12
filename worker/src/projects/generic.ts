@@ -1,4 +1,4 @@
-import {BaseProjectProcessor, type ProcessorContext} from './base';
+import {BaseProjectProcessor, type ProcessorContext, selectFileSpace} from './base';
 import type {TaskSourceIssue} from '../task-sources/base';
 import {initTrafficLight} from '../cache';
 import {createTask, createSession, createMessage, updateTaskStatus} from '../queries';
@@ -23,7 +23,7 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
 
   async processIssues(): Promise<void> {
     for await (const issue of this.taskSource.getIssues()) {
-      const fileSpace = this.selectFileSpace();
+      const fileSpace = selectFileSpace(this.context);
       await this.processIssue(issue, fileSpace);
     }
   }

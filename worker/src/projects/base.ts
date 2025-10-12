@@ -76,16 +76,16 @@ export abstract class BaseProjectProcessor implements ProjectProcessor {
 
   abstract processIssues(): Promise<void>;
   abstract processIssue(issue: TaskSourceIssue, fileSpace: BaseFileSpace): Promise<void>;
+}
 
-  protected selectFileSpace(): BaseFileSpace {
-    // Design by Contract: Validate precondition with contextual error
-    const fileSpace = this.fileSpaces[0];
-    if (!fileSpace) {
-      throw new Error(
-        `No file spaces available for project '${this.context.project.name}' (${this.context.project.id}). ` +
-        'Ensure at least one enabled file space is configured for this project.'
-      );
-    }
-    return fileSpace;
+export function selectFileSpace(context: ProcessorContext): BaseFileSpace {
+  // Design by Contract: Validate precondition with contextual error
+  const fileSpace = context.fileSpaces[0];
+  if (!fileSpace) {
+    throw new Error(
+      `No file spaces available for project '${context.project.name}' (${context.project.id}). ` +
+      'Ensure at least one enabled file space is configured for this project.'
+    );
   }
+  return fileSpace;
 }
