@@ -6,38 +6,75 @@ const execAsync = promisify(exec);
 
 export type RunnerType = 'claude' | 'codex' | 'gemini';
 
-export type RunnerChunk = {
-  type: string;
-  total_cost_usd?: number;
-  result?: string;
-  [key: string]: unknown;
+export type StatusChunk = {
+  type: 'status';
+  status?: string;
+  runner?: string;
 };
+
+export type ProgressChunk = {
+  type: 'progress';
+  content: string;
+};
+
+export type ResultChunk = {
+  type: 'result';
+  result: string;
+  total_cost_usd: number;
+};
+
+export type ErrorChunk = {
+  type: 'error';
+  error: string;
+};
+
+export type RunnerChunk = StatusChunk | ProgressChunk | ResultChunk | ErrorChunk;
 
 export type RunnerOptions = {
   permissionMode?: 'bypassPermissions' | 'ask';
   env?: Record<string, string | undefined>;
-  executable?: string;
+  executable?: 'bun' | 'deno' | 'node';
   cwd?: string;
   stderr?: (data: string) => void;
   allowedTools?: string[];
 };
 
+export type QueryContext = {
+  prompt: string;
+  options: RunnerOptions;
+};
+
 export type Runner = {
-  query: (prompt: string, options: RunnerOptions) => AsyncIterable<RunnerChunk>;
+  query: (ctx: QueryContext) => AsyncIterable<RunnerChunk>;
 };
 
 const claudeRunner: Runner = {
-  query: async function* (prompt: string, options: RunnerOptions): AsyncIterable<RunnerChunk> {
+  query: async function* (ctx: QueryContext): AsyncIterable<RunnerChunk> {
+    // Design by Contract: Validate preconditions
+    if (!ctx.prompt || ctx.prompt.trim() === '') {
+      throw new Error('Runner query requires non-empty prompt');
+    }
+    if (ctx.options.executable) {
+      const validExecutables = ['bun', 'deno', 'node'];
+      if (!validExecutables.includes(ctx.options.executable)) {
+        throw new Error(`Invalid executable: ${ctx.options.executable}. Must be one of: ${validExecutables.join(', ')}`);
+      }
+    }
+
+    const permissionMode = ctx.options.permissionMode
+      ? ctx.options.permissionMode
+      : 'bypassPermissions';
+
     const iterator = claudeQuery({
-      prompt,
+      prompt: ctx.prompt,
       options: {
-        permissionMode: (options.permissionMode || 'bypassPermissions') as any,
-        env: options.env as any,
-        executable: options.executable as any,
-        cwd: options.cwd,
-        stderr: options.stderr,
-        allowedTools: options.allowedTools,
-      },
+        permissionMode,
+        env: ctx.options.env,
+        executable: ctx.options.executable,
+        cwd: ctx.options.cwd,
+        stderr: ctx.options.stderr,
+        allowedTools: ctx.options.allowedTools,
+      } as Parameters<typeof claudeQuery>[0]['options'],
     });
 
     for await (const chunk of iterator) {
@@ -47,12 +84,12 @@ const claudeRunner: Runner = {
 };
 
 const codexRunner: Runner = {
-  query: async function* (prompt: string, options: RunnerOptions): AsyncIterable<RunnerChunk> {
-    const cwd = options.cwd || process.cwd();
-    const env = {...process.env, ...options.env};
+  query: async function* (ctx: QueryContext): AsyncIterable<RunnerChunk> {
+    const cwd = ctx.options.cwd || process.cwd();
+    const env = {...process.env, ...ctx.options.env};
 
     // Build codex command with appropriate flags
-    const escapedPrompt = prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    const escapedPrompt = ctx.prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
     const command = [
       'npx @openai/codex exec',
       `"${escapedPrompt}"`,
@@ -74,8 +111,8 @@ const codexRunner: Runner = {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
       });
 
-      if (options.stderr && stderr) {
-        options.stderr(stderr);
+      if (ctx.options.stderr && stderr) {
+        ctx.options.stderr(stderr);
       }
 
       // Yield progress chunk
@@ -102,12 +139,12 @@ const codexRunner: Runner = {
 };
 
 const geminiRunner: Runner = {
-  query: async function* (prompt: string, options: RunnerOptions): AsyncIterable<RunnerChunk> {
-    const cwd = options.cwd || process.cwd();
-    const env = {...process.env, ...options.env};
+  query: async function* (ctx: QueryContext): AsyncIterable<RunnerChunk> {
+    const cwd = ctx.options.cwd || process.cwd();
+    const env = {...process.env, ...ctx.options.env};
 
     // Build gemini command with appropriate flags
-    const escapedPrompt = prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
+    const escapedPrompt = ctx.prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
     const command = [
       'npx @google/gemini-cli',
       `"${escapedPrompt}"`,
@@ -129,8 +166,8 @@ const geminiRunner: Runner = {
         maxBuffer: 10 * 1024 * 1024, // 10MB buffer
       });
 
-      if (options.stderr && stderr) {
-        options.stderr(stderr);
+      if (ctx.options.stderr && stderr) {
+        ctx.options.stderr(stderr);
       }
 
       // Try to parse as JSON first, fall back to text

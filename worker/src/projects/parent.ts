@@ -46,8 +46,10 @@ export class ParentProjectProcessor extends BaseProjectProcessor {
 
       const processor = createProjectProcessor(childContext);
 
-      for await (const issue of (processor as any).getIssues()) {
-        yield issue;
+      if ('getIssues' in processor && typeof processor.getIssues === 'function') {
+        for await (const issue of processor.getIssues()) {
+          yield issue;
+        }
       }
     }
   }

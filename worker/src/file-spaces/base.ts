@@ -3,6 +3,11 @@ export type FileSpaceConfig = {
   host?: string;
 };
 
+export type WorkspaceLocation = {
+  workDir: string;
+  workspaceName: string;
+};
+
 export type FileSpace = {
   id: string;
   project_id: string;
@@ -19,17 +24,22 @@ export abstract class BaseFileSpace {
   protected fileSpace: FileSpace;
 
   constructor(fileSpace: FileSpace) {
+    // Design by Contract: Validate preconditions
+    if (!fileSpace.config.repo || fileSpace.config.repo.trim() === '') {
+      throw new Error('File space requires non-empty repo in config');
+    }
+
     this.fileSpace = fileSpace;
     this.config = fileSpace.config;
   }
 
   abstract clone(workDir: string): Promise<string>;
-  abstract createWorkspace(workDir: string, workspaceName: string): Promise<void>;
-  abstract switchToWorkspace(workDir: string, workspaceName: string): Promise<void>;
-  abstract workspaceExists(workDir: string, workspaceName: string): Promise<boolean>;
+  abstract createWorkspace(location: WorkspaceLocation): Promise<void>;
+  abstract switchToWorkspace(location: WorkspaceLocation): Promise<void>;
+  abstract workspaceExists(location: WorkspaceLocation): Promise<boolean>;
 
-  getConfig(): FileSpaceConfig {
-    return this.config;
+  getConfig(): Readonly<FileSpaceConfig> {
+    return {...this.config};
   }
 
   getId(): string {

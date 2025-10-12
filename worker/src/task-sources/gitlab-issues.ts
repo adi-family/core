@@ -1,23 +1,26 @@
-import {BaseTaskSource, type TaskSource, type TaskSourceIssue} from './base';
+import {BaseTaskSource, type TaskSource, type TaskSourceIssue, type GitlabMetadata, type GitlabIssuesConfig} from './base';
 import {getGitlabIssueList} from '../gitlab';
-
-export type GitlabIssuesConfig = {
-  repo: string;
-  labels: string[];
-  host?: string;
-};
 
 export class GitlabIssuesTaskSource extends BaseTaskSource {
   private gitlabConfig: GitlabIssuesConfig;
 
   constructor(taskSource: TaskSource) {
     super(taskSource);
-    this.gitlabConfig = taskSource.config as GitlabIssuesConfig;
+    if (taskSource.type !== 'gitlab_issues') {
+      throw new Error('Invalid task source type for GitlabIssuesTaskSource');
+    }
+    this.gitlabConfig = taskSource.config;
   }
 
   async *getIssues(): AsyncIterable<TaskSourceIssue> {
     const issues = getGitlabIssueList(this.gitlabConfig.repo, this.gitlabConfig.labels);
     for (const issue of issues) {
+      const metadata: GitlabMetadata = {
+        provider: 'gitlab',
+        repo: this.gitlabConfig.repo,
+        host: this.gitlabConfig.host
+      };
+
       yield {
         id: issue.id(),
         iid: null,
@@ -25,10 +28,7 @@ export class GitlabIssuesTaskSource extends BaseTaskSource {
         description: undefined,
         updatedAt: issue.updatedAt(),
         uniqueId: issue.uniqueId(),
-        metadata: {
-          provider: issue.provider(),
-          repo: this.gitlabConfig.repo
-        }
+        metadata
       };
     }
   }

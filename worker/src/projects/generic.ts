@@ -4,8 +4,17 @@ import {initTrafficLight} from '../cache';
 import {createTask, createSession, createMessage, updateTaskStatus} from '../queries';
 import {createRunner} from '../runners';
 import {sendTelegramMessage} from '../telegram';
+import {assertNever} from '../utils/assert-never';
 import * as path from 'path';
 import chalk from 'chalk';
+
+export type CompletionInfo = {
+  issue: TaskSourceIssue;
+  branchName: string;
+  result: string;
+  cost: number;
+  iterations: number;
+};
 
 export class GenericProjectProcessor extends BaseProjectProcessor {
   constructor(context: ProcessorContext) {
@@ -36,7 +45,11 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
       return;
     }
 
-    if (!(await signaler.tryAcquireLock(issue.uniqueId, this.context.workerId, 3600))) {
+    if (!(await signaler.tryAcquireLock({
+      issueId: issue.uniqueId,
+      workerId: this.context.workerId,
+      lockTimeoutSeconds: 3600
+    }))) {
       console.log(
         chalk.yellow(
           `[${this.context.project.name}] Issue ${issue.id} is being processed by another worker`
@@ -73,23 +86,23 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
       console.log(chalk.green(`Created session ${session.id} with runner ${selectedRunner}`));
 
       const workspaceDir = path.join(this.context.appsDir, `task-${task.id}`);
-      const branchName = `issue/${issue.metadata.provider || 'unknown'}-${issue.id}`;
+      const branchName = `issue/${issue.metadata.provider}-${issue.id}`;
 
       await fileSpace.clone(workspaceDir);
 
-      const branchExists = await fileSpace.workspaceExists(workspaceDir, branchName);
+      const location = {workDir: workspaceDir, workspaceName: branchName};
+      const branchExists = await fileSpace.workspaceExists(location);
       if (branchExists) {
-        await fileSpace.switchToWorkspace(workspaceDir, branchName);
+        await fileSpace.switchToWorkspace(location);
       } else {
-        await fileSpace.createWorkspace(workspaceDir, branchName);
+        await fileSpace.createWorkspace(location);
       }
 
-      const provider = (issue.metadata.provider as string) || 'unknown';
-      const issueViewCommand = this.getIssueViewCommand(provider, issue);
+      const issueViewCommand = this.getIssueViewCommand(issue);
 
       const runner = createRunner(selectedRunner);
-      const iterator = runner.query(
-        `You are working on issue #${issue.id}: ${issue.title}
+      const iterator = runner.query({
+        prompt: `You are working on issue #${issue.id}: ${issue.title}
 
 CRITICAL FIRST STEP:
 ${issueViewCommand ? `- Your FIRST action must be: \`${issueViewCommand}\`` : '- Fetch and read the complete issue details'}
@@ -108,7 +121,7 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
 2. Commit your changes with a clear commit message
 3. Push the branch to remote: \`git push origin ${branchName}\`
 4. In your final result, return a simple summary of what was done (1-2 sentences max)`,
-        {
+        options: {
           permissionMode: 'bypassPermissions',
           env: process.env as Record<string, string>,
           executable: 'bun',
@@ -118,7 +131,7 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
           },
           allowedTools: ['Bash(npm: *)', 'Bash(glab: *)', 'Bash(gh: *)', 'Bash(git: *)', 'Read', 'Write', 'Edit', 'Glob']
         }
-      );
+      });
 
       let iterations = 0;
       let finalCost = 0;
@@ -131,22 +144,25 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
         });
 
         if (chunk.type === 'result') {
-          finalCost = chunk.total_cost_usd || 0;
-          const resultText =
-            ('result' in chunk ? chunk?.result : undefined) || 'No result available';
+          finalCost = chunk.total_cost_usd;
+          const resultText = chunk.result;
 
           await updateTaskStatus(this.context.sql, task.id, 'completed');
-          await signaler.signal(issue.uniqueId, new Date(), task.id);
+          await signaler.signal({
+            issueId: issue.uniqueId,
+            date: new Date(),
+            taskId: task.id
+          });
 
           try {
             console.log(chalk.yellow('Sending Telegram notification...'));
-            const message = this.generateTelegramMessage(
+            const message = this.generateTelegramMessage({
               issue,
               branchName,
-              resultText,
-              finalCost,
+              result: resultText,
+              cost: finalCost,
               iterations
-            );
+            });
             await sendTelegramMessage(this.context.telegramConfig, {text: message});
             console.log(chalk.green('Telegram notification sent!'));
           } catch (error) {
@@ -164,8 +180,8 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
     }
   }
 
-  private getIssueViewCommand(provider: string, issue: TaskSourceIssue): string | null {
-    switch (provider) {
+  private getIssueViewCommand(issue: TaskSourceIssue): string | null {
+    switch (issue.metadata.provider) {
       case 'gitlab':
         return `glab issue view ${issue.id}`;
       case 'github':
@@ -173,43 +189,39 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
       case 'jira':
         return null;
       default:
+        assertNever(issue.metadata);
         return null;
     }
   }
 
-  private generateTelegramMessage(
-    issue: TaskSourceIssue,
-    branchName: string,
-    result: string,
-    cost: number,
-    iterations: number
-  ): string {
-    const issueUrl = this.getIssueUrl(issue);
+  private generateTelegramMessage(info: CompletionInfo): string {
+    const issueUrl = this.getIssueUrl(info.issue);
 
     return `✅ <b>Issue Completed</b>
 
-<a href="${issueUrl}">${issue.title}</a>
+<a href="${issueUrl}">${info.issue.title}</a>
 
-Branch: <code>${branchName}</code>
-Iterations: ${iterations} | Cost: $${cost.toFixed(4)}
+Branch: <code>${info.branchName}</code>
+Iterations: ${info.iterations} | Cost: $${info.cost.toFixed(4)}
 
 <b>Result:</b>
-${result}`;
+${info.result}`;
   }
 
   private getIssueUrl(issue: TaskSourceIssue): string {
-    const provider = (issue.metadata.provider as string) || 'unknown';
-    const repo = issue.metadata.repo as string;
-    const host = issue.metadata.host as string;
-
-    switch (provider) {
-      case 'gitlab':
-        return `${host || 'https://gitlab.com'}/${repo}/-/issues/${issue.id}`;
-      case 'github':
-        return `${host || 'https://github.com'}/${repo}/issues/${issue.id}`;
+    switch (issue.metadata.provider) {
+      case 'gitlab': {
+        const gitlabHost = issue.metadata.host ? issue.metadata.host : 'https://gitlab.com';
+        return `${gitlabHost}/${issue.metadata.repo}/-/issues/${issue.id}`;
+      }
+      case 'github': {
+        const githubHost = issue.metadata.host ? issue.metadata.host : 'https://github.com';
+        return `${githubHost}/${issue.metadata.repo}/issues/${issue.id}`;
+      }
       case 'jira':
-        return `${host}/browse/${issue.metadata.key}`;
+        return `${issue.metadata.host}/browse/${issue.metadata.key}`;
       default:
+        assertNever(issue.metadata);
         return '#';
     }
   }

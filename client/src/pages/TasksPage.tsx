@@ -30,6 +30,14 @@ export function TasksPage() {
         return
       }
       const data = await res.json()
+
+      // Basic validation: ensure data is an array
+      if (!Array.isArray(data)) {
+        console.error("Invalid API response: expected array of tasks")
+        setLoading(false)
+        return
+      }
+
       setTasks(data)
       setLoading(false)
     }

@@ -1,6 +1,7 @@
 import {BaseTaskSource, type TaskSource} from './base';
 import {GitlabIssuesTaskSource} from './gitlab-issues';
 import {JiraTaskSource} from './jira';
+import {assertNever} from '../utils/assert-never';
 
 export function createTaskSource(taskSource: TaskSource): BaseTaskSource {
   switch (taskSource.type) {
@@ -11,6 +12,7 @@ export function createTaskSource(taskSource: TaskSource): BaseTaskSource {
     case 'github_issues':
       throw new Error('GithubIssuesTaskSource not yet implemented');
     default:
-      throw new Error(`Unknown task source type: ${taskSource.type}`);
+      assertNever(taskSource);
+      throw new Error('Unreachable');
   }
 }

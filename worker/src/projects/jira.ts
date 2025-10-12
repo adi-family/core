@@ -9,6 +9,13 @@ import {execSync} from 'child_process';
 import chalk from 'chalk';
 import {Issue as IssueBase} from '../issue';
 
+export type JiraCompletionInfo = {
+  issue: JiraIssue;
+  result: string;
+  cost: number;
+  iterations: number;
+};
+
 export type JiraConfig = {
   project_key: string;
   jql_filter?: string;
@@ -70,7 +77,9 @@ export class JiraProjectProcessor extends BaseProjectProcessor {
   }
 
   async *getIssues(): AsyncIterable<Issue> {
-    const jqlQuery = this.config.jql_filter || `project = ${this.config.project_key} AND status = "To Do"`;
+    const jqlQuery = this.config.jql_filter
+      ? this.config.jql_filter
+      : `project = ${this.config.project_key} AND status = "To Do"`;
 
     try {
       const result = execSync(
@@ -131,7 +140,11 @@ export class JiraProjectProcessor extends BaseProjectProcessor {
       return;
     }
 
-    if (!(await signaler.tryAcquireLock(issue.uniqueId(), this.context.workerId, 3600))) {
+    if (!(await signaler.tryAcquireLock({
+      issueId: issue.uniqueId(),
+      workerId: this.context.workerId,
+      lockTimeoutSeconds: 3600
+    }))) {
       console.log(chalk.yellow(`[Jira/${this.config.project_key}] Issue ${jiraIssue.key()} is being processed by another worker`));
       return;
     }
@@ -165,8 +178,8 @@ export class JiraProjectProcessor extends BaseProjectProcessor {
       const branchName = `issue/jira-${jiraIssue.key()}`;
 
       const runner = createRunner(selectedRunner);
-      const iterator = runner.query(
-        `You are working on Jira issue ${jiraIssue.key()}: ${issue.title()}
+      const iterator = runner.query({
+        prompt: `You are working on Jira issue ${jiraIssue.key()}: ${issue.title()}
 
 CRITICAL FIRST STEP:
 - Your FIRST action must be to fetch and read the complete issue details from Jira
@@ -184,7 +197,7 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
 2. Commit your changes with a clear commit message
 3. Push the branch to remote: \`git push origin ${branchName}\`
 4. In your final result, return a simple summary of what was done (1-2 sentences max)`,
-        {
+        options: {
           permissionMode: 'bypassPermissions',
           env: process.env as Record<string, string>,
           executable: 'bun',
@@ -194,7 +207,7 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
           },
           allowedTools: ['Bash(npm: *)', 'Bash(git: *)', 'Read', 'Write', 'Edit', 'Glob'],
         }
-      );
+      });
 
       let iterations = 0;
       let finalCost = 0;
@@ -207,15 +220,24 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
         });
 
         if (chunk.type === 'result') {
-          finalCost = chunk.total_cost_usd || 0;
-          const resultText = ('result' in chunk ? chunk?.result : undefined) || 'No result available';
+          finalCost = chunk.total_cost_usd;
+          const resultText = chunk.result;
 
           await updateTaskStatus(this.context.sql, task.id, 'completed');
-          await signaler.signal(issue.uniqueId(), new Date(), task.id);
+          await signaler.signal({
+            issueId: issue.uniqueId(),
+            date: new Date(),
+            taskId: task.id
+          });
 
           try {
             console.log(chalk.yellow('Sending Telegram notification...'));
-            const message = this.generateTelegramMessage(jiraIssue, resultText, finalCost, iterations);
+            const message = this.generateTelegramMessage({
+              issue: jiraIssue,
+              result: resultText,
+              cost: finalCost,
+              iterations
+            });
             await sendTelegramMessage(this.context.telegramConfig, {text: message});
             console.log(chalk.green('Telegram notification sent!'));
           } catch (error) {
@@ -230,18 +252,18 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
     }
   }
 
-  private generateTelegramMessage(issue: JiraIssue, result: string, cost: number, iterations: number): string {
-    const branchName = `issue/jira-${issue.key()}`;
-    const issueUrl = `${this.config.host}/browse/${issue.key()}`;
+  private generateTelegramMessage(info: JiraCompletionInfo): string {
+    const branchName = `issue/jira-${info.issue.key()}`;
+    const issueUrl = `${this.config.host}/browse/${info.issue.key()}`;
 
     return `✅ <b>Issue Completed</b>
 
-<a href="${issueUrl}">${issue.title()}</a>
+<a href="${issueUrl}">${info.issue.title()}</a>
 
 Branch: <code>${branchName}</code>
-Iterations: ${iterations} | Cost: $${cost.toFixed(4)}
+Iterations: ${info.iterations} | Cost: $${info.cost.toFixed(4)}
 
 <b>Result:</b>
-${result}`;
+${info.result}`;
   }
 }

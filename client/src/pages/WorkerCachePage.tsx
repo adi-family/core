@@ -33,6 +33,16 @@ export function WorkerCachePage() {
   const [cache, setCache] = useState<WorkerCache[]>([])
   const [loading, setLoading] = useState(true)
 
+  const getStatusBadgeClass = (status: string | null): string => {
+    if (status === "processing") {
+      return "bg-yellow-50 text-yellow-800 ring-yellow-600/20"
+    }
+    if (status === "completed") {
+      return "bg-green-50 text-green-800 ring-green-600/20"
+    }
+    return "bg-gray-50 text-gray-800 ring-gray-600/20"
+  }
+
   useEffect(() => {
     const fetchCache = async () => {
       const res = await client["worker-cache"].$get()
@@ -94,13 +104,7 @@ export function WorkerCachePage() {
                     <TableCell className="font-medium">{entry.repo}</TableCell>
                     <TableCell>
                       <span
-                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-                          entry.status === "processing"
-                            ? "bg-yellow-50 text-yellow-800 ring-yellow-600/20"
-                            : entry.status === "completed"
-                            ? "bg-green-50 text-green-800 ring-green-600/20"
-                            : "bg-gray-50 text-gray-800 ring-gray-600/20"
-                        }`}
+                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${getStatusBadgeClass(entry.status)}`}
                       >
                         {entry.status || "unknown"}
                       </span>

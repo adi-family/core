@@ -1,5 +1,17 @@
 import { sql } from './db';
 
+export type LockContext = {
+  issueId: string;
+  workerId: string;
+  lockTimeoutSeconds?: number;
+};
+
+export type SignalInfo = {
+  issueId: string;
+  date: Date;
+  taskId: string;
+};
+
 export function initTrafficLight(projectId: string) {
   return {
     isSignaledBefore: async (issueId: string, date: Date): Promise<boolean> => {
@@ -17,14 +29,31 @@ export function initTrafficLight(projectId: string) {
       const lastProcessed = new Date(row.last_processed_at);
       return lastProcessed >= date;
     },
-    tryAcquireLock: async (issueId: string, workerId: string, lockTimeoutSeconds: number = 3600): Promise<boolean> => {
+    /**
+     * Attempts to acquire a distributed lock for processing an issue.
+     *
+     * Lock acquisition succeeds if:
+     * 1. No cache entry exists (new issue) - creates entry with lock
+     * 2. Existing entry has no lock (processing_started_at IS NULL) - acquires lock
+     * 3. Existing lock has expired (older than lockTimeoutSeconds) - takes over lock
+     *
+     * Returns true if lock was successfully acquired, false otherwise.
+     *
+     * Implementation:
+     * - Uses INSERT...ON CONFLICT to atomically handle both new entries and updates
+     * - ON CONFLICT UPDATE only executes when WHERE clause is satisfied
+     * - RETURNING clause only returns rows when insert/update succeeds
+     * - Lock timeout prevents deadlocks from crashed workers
+     */
+    tryAcquireLock: async (ctx: LockContext): Promise<boolean> => {
+      const lockTimeoutSeconds = ctx.lockTimeoutSeconds !== undefined ? ctx.lockTimeoutSeconds : 3600;
       const result = await sql`
         INSERT INTO worker_task_cache (issue_id, project_id, processing_started_at, processing_worker_id, status)
-        VALUES (${issueId}, ${projectId}, NOW(), ${workerId}, 'processing')
+        VALUES (${ctx.issueId}, ${projectId}, NOW(), ${ctx.workerId}, 'processing')
         ON CONFLICT (issue_id, project_id)
         DO UPDATE SET
           processing_started_at = NOW(),
-          processing_worker_id = ${workerId},
+          processing_worker_id = ${ctx.workerId},
           status = 'processing',
           updated_at = NOW()
         WHERE worker_task_cache.processing_started_at IS NULL
@@ -44,15 +73,15 @@ export function initTrafficLight(projectId: string) {
         WHERE issue_id = ${issueId} AND project_id = ${projectId}
       `;
     },
-    signal: async (issueId: string, date: Date, taskId: string): Promise<void> => {
+    signal: async (info: SignalInfo): Promise<void> => {
       await sql`
         INSERT INTO worker_task_cache (issue_id, project_id, last_processed_at, status, task_id, processing_started_at, processing_worker_id)
-        VALUES (${issueId}, ${projectId}, ${date}, 'completed', ${taskId}, NULL, NULL)
+        VALUES (${info.issueId}, ${projectId}, ${info.date}, 'completed', ${info.taskId}, NULL, NULL)
         ON CONFLICT (issue_id, project_id)
         DO UPDATE SET
-          last_processed_at = ${date},
+          last_processed_at = ${info.date},
           status = 'completed',
-          task_id = ${taskId},
+          task_id = ${info.taskId},
           processing_started_at = NULL,
           processing_worker_id = NULL,
           updated_at = NOW()

@@ -37,6 +37,38 @@ export abstract class BaseProjectProcessor implements ProjectProcessor {
   protected taskSource: BaseTaskSource;
 
   constructor(context: ProcessorContext) {
+    // Design by Contract: Validate preconditions
+    if (!context.sql) {
+      throw new Error('ProcessorContext requires sql connection');
+    }
+    if (!context.project) {
+      throw new Error('ProcessorContext requires project');
+    }
+    if (!Array.isArray(context.fileSpaces)) {
+      throw new Error('ProcessorContext requires fileSpaces array');
+    }
+    if (!context.taskSource) {
+      throw new Error('ProcessorContext requires taskSource');
+    }
+    if (!context.telegramConfig) {
+      throw new Error('ProcessorContext requires telegramConfig');
+    }
+    if (!context.telegramConfig.botToken || context.telegramConfig.botToken.trim() === '') {
+      throw new Error('ProcessorContext requires non-empty telegramConfig.botToken');
+    }
+    if (!context.telegramConfig.chatId || context.telegramConfig.chatId.trim() === '') {
+      throw new Error('ProcessorContext requires non-empty telegramConfig.chatId');
+    }
+    if (!context.workerId || context.workerId.trim() === '') {
+      throw new Error('ProcessorContext requires non-empty workerId');
+    }
+    if (typeof context.selectRunner !== 'function') {
+      throw new Error('ProcessorContext requires selectRunner to be a function');
+    }
+    if (!context.appsDir || context.appsDir.trim() === '') {
+      throw new Error('ProcessorContext requires non-empty appsDir');
+    }
+
     this.context = context;
     this.fileSpaces = context.fileSpaces;
     this.taskSource = context.taskSource;
@@ -46,9 +78,13 @@ export abstract class BaseProjectProcessor implements ProjectProcessor {
   abstract processIssue(issue: TaskSourceIssue, fileSpace: BaseFileSpace): Promise<void>;
 
   protected selectFileSpace(): BaseFileSpace {
+    // Design by Contract: Validate precondition with contextual error
     const fileSpace = this.fileSpaces[0];
     if (!fileSpace) {
-      throw new Error('No file spaces available for this project');
+      throw new Error(
+        `No file spaces available for project '${this.context.project.name}' (${this.context.project.id}). ` +
+        'Ensure at least one enabled file space is configured for this project.'
+      );
     }
     return fileSpace;
   }

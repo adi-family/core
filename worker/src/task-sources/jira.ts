@@ -1,19 +1,16 @@
-import {BaseTaskSource, type TaskSource, type TaskSourceIssue} from './base';
+import {BaseTaskSource, type TaskSource, type TaskSourceIssue, type JiraMetadata, type TaskSourceJiraConfig} from './base';
 import {execSync} from 'child_process';
 import chalk from 'chalk';
 
-export type JiraConfig = {
-  project_key: string;
-  jql_filter?: string;
-  host: string;
-};
-
 export class JiraTaskSource extends BaseTaskSource {
-  private jiraConfig: JiraConfig;
+  private jiraConfig: TaskSourceJiraConfig;
 
   constructor(taskSource: TaskSource) {
     super(taskSource);
-    this.jiraConfig = taskSource.config as JiraConfig;
+    if (taskSource.type !== 'jira') {
+      throw new Error('Invalid task source type for JiraTaskSource');
+    }
+    this.jiraConfig = taskSource.config;
   }
 
   async *getIssues(): AsyncIterable<TaskSourceIssue> {
@@ -28,6 +25,13 @@ export class JiraTaskSource extends BaseTaskSource {
       const data = JSON.parse(result);
       if (data.issues) {
         for (const issue of data.issues) {
+          const metadata: JiraMetadata = {
+            provider: 'jira',
+            key: issue.key,
+            project_key: this.jiraConfig.project_key,
+            host: this.jiraConfig.host
+          };
+
           yield {
             id: issue.id,
             iid: null,
@@ -35,12 +39,7 @@ export class JiraTaskSource extends BaseTaskSource {
             description: issue.fields.description,
             updatedAt: new Date(issue.fields.updated),
             uniqueId: `jira-${issue.id}`,
-            metadata: {
-              provider: 'jira',
-              key: issue.key,
-              project_key: this.jiraConfig.project_key,
-              host: this.jiraConfig.host
-            }
+            metadata
           };
         }
       }

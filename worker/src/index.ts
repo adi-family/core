@@ -18,14 +18,39 @@ if (!process.env.APPS_DIR) {
   throw new Error('APPS_DIR environment variable is required');
 }
 
-const APPS_DIR = process.env.APPS_DIR.startsWith('/')
-  ? process.env.APPS_DIR
-  : path.join(process.cwd(), process.env.APPS_DIR);
+// Validate APPS_DIR is not empty and doesn't contain invalid characters
+if (process.env.APPS_DIR.trim() === '') {
+  throw new Error('APPS_DIR cannot be empty');
+}
+
+function resolveAppsDir(appsDir: string): string {
+  if (appsDir.startsWith('/')) {
+    return appsDir;
+  }
+  return path.join(process.cwd(), appsDir);
+}
+
+const APPS_DIR = resolveAppsDir(process.env.APPS_DIR);
 
 // Get runner types from environment, default to 'claude'
 // Can be comma-separated list: "claude,codex,gemini"
-const RUNNER_TYPES_STR = process.env.RUNNER_TYPES || process.env.RUNNER_TYPE || 'claude';
-const RUNNER_TYPES: RunnerType[] = RUNNER_TYPES_STR.split(',').map(r => r.trim() as RunnerType);
+let RUNNER_TYPES_STR = 'claude';
+if (process.env.RUNNER_TYPES) {
+  RUNNER_TYPES_STR = process.env.RUNNER_TYPES;
+} else if (process.env.RUNNER_TYPE) {
+  RUNNER_TYPES_STR = process.env.RUNNER_TYPE;
+}
+
+const RUNNER_TYPES: RunnerType[] = RUNNER_TYPES_STR
+  .split(',')
+  .map(r => r.trim())
+  .filter(r => r.length > 0) // Filter out empty strings
+  .map(r => r as RunnerType);
+
+// Ensure at least one runner type
+if (RUNNER_TYPES.length === 0) {
+  throw new Error('At least one RUNNER_TYPE must be specified');
+}
 
 // Validate all runner types
 for (const runnerType of RUNNER_TYPES) {

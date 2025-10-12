@@ -1,4 +1,7 @@
 import type { Sql, MaybeRow, PendingQuery } from 'postgres';
+import type {GitlabConfig} from './projects/gitlab';
+import type {JiraConfig} from './projects/jira';
+import type {ParentConfig} from './projects/parent';
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -37,12 +40,14 @@ export type Message = {
 export type Project = {
   id: string;
   name: string;
-  type: 'gitlab' | 'jira' | 'parent';
-  config: unknown;
   enabled: boolean;
   created_at: Date;
   updated_at: Date;
-};
+} & (
+  | { type: 'gitlab'; config: GitlabConfig }
+  | { type: 'jira'; config: JiraConfig }
+  | { type: 'parent'; config: ParentConfig }
+);
 
 export type CreateTaskInput = {
   title: string;
@@ -65,6 +70,16 @@ export type CreateMessageInput = {
 };
 
 export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
+  // Validate required fields
+  if (!input.title || input.title.trim() === '') {
+    throw new Error('Task title is required and cannot be empty');
+  }
+
+  const validStatuses = ['pending', 'processing', 'completed', 'failed'];
+  if (!validStatuses.includes(input.status)) {
+    throw new Error(`Invalid task status: ${input.status}. Must be one of: ${validStatuses.join(', ')}`);
+  }
+
   const cols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'file_space_id', 'source_gitlab_issue'] as const;
   const [task] = await get(sql<Task[]>`
     INSERT INTO tasks ${sql(input, cols)}
@@ -127,7 +142,10 @@ export const getProjectById = async (sql: Sql, id: string): Promise<Project | nu
     SELECT * FROM projects
     WHERE id = ${id}
   `);
-  return project || null;
+  if (!project) {
+    return null;
+  }
+  return project;
 };
 
 export type FileSpace = {
@@ -175,7 +193,10 @@ export const getFileSpaceById = async (sql: Sql, id: string): Promise<FileSpace 
     SELECT * FROM file_spaces
     WHERE id = ${id}
   `);
-  return fileSpace || null;
+  if (!fileSpace) {
+    return null;
+  }
+  return fileSpace;
 };
 
 export const getTaskSourceById = async (sql: Sql, id: string): Promise<TaskSource | null> => {
