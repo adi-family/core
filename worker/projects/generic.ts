@@ -4,18 +4,10 @@ import type {BaseFileSpace} from '../file-spaces/base';
 import {initTrafficLight} from '../cache';
 import {createTask, createSession, createMessage, updateTaskStatus, addTaskFileSpaces} from '../queries';
 import {createRunner} from '../runners';
-import {sendTelegramMessage} from '../telegram';
 import {assertNever} from '../utils/assert-never';
 import * as path from 'path';
 import chalk from 'chalk';
 
-export type CompletionInfo = {
-  issue: TaskSourceIssue;
-  branchName: string;
-  result: string;
-  cost: number;
-  iterations: number;
-};
 
 export class GenericProjectProcessor extends BaseProjectProcessor {
   constructor(context: ProcessorContext) {
@@ -193,21 +185,6 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
             date: new Date(),
             taskId: task.id
           });
-
-          try {
-            console.log(chalk.yellow('Sending Telegram notification...'));
-            const message = this.generateTelegramMessage({
-              issue,
-              branchName,
-              result: resultText,
-              cost: finalCost,
-              iterations
-            });
-            await sendTelegramMessage(this.context.telegramConfig, {text: message});
-            console.log(chalk.green('Telegram notification sent!'));
-          } catch (error) {
-            console.error(chalk.red('Failed to send Telegram notification:'), error);
-          }
         }
       }
     } catch (error) {
@@ -234,35 +211,4 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
     }
   }
 
-  private generateTelegramMessage(info: CompletionInfo): string {
-    const issueUrl = this.getIssueUrl(info.issue);
-
-    return `✅ <b>Issue Completed</b>
-
-<a href="${issueUrl}">${info.issue.title}</a>
-
-Branch: <code>${info.branchName}</code>
-Iterations: ${info.iterations} | Cost: $${info.cost.toFixed(4)}
-
-<b>Result:</b>
-${info.result}`;
-  }
-
-  private getIssueUrl(issue: TaskSourceIssue): string {
-    switch (issue.metadata.provider) {
-      case 'gitlab': {
-        const gitlabHost = issue.metadata.host ? issue.metadata.host : 'https://gitlab.com';
-        return `${gitlabHost}/${issue.metadata.repo}/-/issues/${issue.id}`;
-      }
-      case 'github': {
-        const githubHost = issue.metadata.host ? issue.metadata.host : 'https://github.com';
-        return `${githubHost}/${issue.metadata.repo}/issues/${issue.id}`;
-      }
-      case 'jira':
-        return `${issue.metadata.host}/browse/${issue.metadata.key}`;
-      default:
-        assertNever(issue.metadata);
-        return '#';
-    }
-  }
 }
