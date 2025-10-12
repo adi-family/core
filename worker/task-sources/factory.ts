@@ -1,7 +1,7 @@
 import {BaseTaskSource, type TaskSource} from './base';
 import {GitlabIssuesTaskSource} from './gitlab-issues';
 import {JiraTaskSource} from './jira';
-import {assertNever} from '../utils/assert-never';
+import {assertNever} from '../../utils/assert-never';
 
 export function createTaskSource(taskSource: TaskSource): BaseTaskSource {
   switch (taskSource.type) {
