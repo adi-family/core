@@ -72,7 +72,7 @@ export class JiraProjectProcessor extends BaseProjectProcessor {
     }
   }
 
-  async processIssue(_issue: import('../task-sources/base').TaskSourceIssue, _fileSpace: import('../file-spaces/base').BaseFileSpace): Promise<void> {
+  async processIssue(_issue: import('../task-sources/base').TaskSourceIssue): Promise<void> {
     throw new Error('JiraProjectProcessor is deprecated. Use GenericProjectProcessor instead.');
   }
 

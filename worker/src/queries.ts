@@ -14,7 +14,6 @@ export type Task = {
   status: string;
   project_id: string | null;
   task_source_id: string | null;
-  file_space_id: string | null;
   source_gitlab_issue: unknown | null;
   source_github_issue: unknown | null;
   source_jira_issue: unknown | null;
@@ -55,7 +54,6 @@ export type CreateTaskInput = {
   status: string;
   project_id?: string;
   task_source_id?: string;
-  file_space_id?: string;
   source_gitlab_issue?: unknown;
 };
 
@@ -80,7 +78,7 @@ export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task
     throw new Error(`Invalid task status: ${input.status}. Must be one of: ${validStatuses.join(', ')}`);
   }
 
-  const cols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'file_space_id', 'source_gitlab_issue'] as const;
+  const cols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'source_gitlab_issue'] as const;
   const [task] = await get(sql<Task[]>`
     INSERT INTO tasks ${sql(input, cols)}
     RETURNING *
@@ -89,6 +87,33 @@ export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task
     throw new Error('Failed to create task');
   }
   return task;
+};
+
+export const addTaskFileSpaces = async (sql: Sql, taskId: string, fileSpaceIds: string[]): Promise<void> => {
+  if (fileSpaceIds.length === 0) {
+    return;
+  }
+
+  const values = fileSpaceIds.map(fileSpaceId => ({
+    task_id: taskId,
+    file_space_id: fileSpaceId
+  }));
+
+  await get(sql`
+    INSERT INTO task_file_spaces ${sql(values, 'task_id', 'file_space_id')}
+    ON CONFLICT (task_id, file_space_id) DO NOTHING
+  `);
+};
+
+export const getFileSpacesByTaskId = async (sql: Sql, taskId: string): Promise<FileSpace[]> => {
+  const fileSpaces = await get(sql<FileSpace[]>`
+    SELECT fs.*
+    FROM file_spaces fs
+    INNER JOIN task_file_spaces tfs ON fs.id = tfs.file_space_id
+    WHERE tfs.task_id = ${taskId}
+    ORDER BY tfs.created_at ASC
+  `);
+  return fileSpaces;
 };
 
 export const updateTaskStatus = async (sql: Sql, id: string, status: string): Promise<Task> => {

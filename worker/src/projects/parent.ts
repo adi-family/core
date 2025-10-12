@@ -19,7 +19,7 @@ export class ParentProjectProcessor extends BaseProjectProcessor {
     throw new Error('ParentProjectProcessor.processIssues is not implemented. Parent projects aggregate issues but do not process them directly.');
   }
 
-  async processIssue(_issue: import('../task-sources/base').TaskSourceIssue, _fileSpace: import('../file-spaces/base').BaseFileSpace): Promise<void> {
+  async processIssue(_issue: import('../task-sources/base').TaskSourceIssue): Promise<void> {
     throw new Error('ParentProjectProcessor.processIssue should not be called directly. Issues should be processed by child processors.');
   }
 

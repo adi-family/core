@@ -75,7 +75,7 @@ export abstract class BaseProjectProcessor implements ProjectProcessor {
   }
 
   abstract processIssues(): Promise<void>;
-  abstract processIssue(issue: TaskSourceIssue, fileSpace: BaseFileSpace): Promise<void>;
+  abstract processIssue(issue: TaskSourceIssue): Promise<void>;
 }
 
 export function selectFileSpace(context: ProcessorContext): BaseFileSpace {
