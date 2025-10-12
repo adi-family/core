@@ -1,4 +1,3 @@
--- Initial database setup
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 CREATE TABLE IF NOT EXISTS schema_info (

@@ -12,13 +12,12 @@ import chalk from 'chalk';
 import * as path from 'path';
 import 'dotenv/config';
 
-const SLEEP_INTERVAL_MS = 600000; // 10 minutes
+const SLEEP_INTERVAL_MS = 600000;
 
 if (!process.env.APPS_DIR) {
   throw new Error('APPS_DIR environment variable is required');
 }
 
-// Validate APPS_DIR is not empty and doesn't contain invalid characters
 if (process.env.APPS_DIR.trim() === '') {
   throw new Error('APPS_DIR cannot be empty');
 }
@@ -32,8 +31,6 @@ function resolveAppsDir(appsDir: string): string {
 
 const APPS_DIR = resolveAppsDir(process.env.APPS_DIR);
 
-// Get runner types from environment, default to 'claude'
-// Can be comma-separated list: "claude,codex,gemini"
 let RUNNER_TYPES_STR = 'claude';
 if (process.env.RUNNER_TYPES) {
   RUNNER_TYPES_STR = process.env.RUNNER_TYPES;
@@ -44,15 +41,13 @@ if (process.env.RUNNER_TYPES) {
 const RUNNER_TYPES: RunnerType[] = RUNNER_TYPES_STR
   .split(',')
   .map(r => r.trim())
-  .filter(r => r.length > 0) // Filter out empty strings
+  .filter(r => r.length > 0)
   .map(r => r as RunnerType);
 
-// Ensure at least one runner type
 if (RUNNER_TYPES.length === 0) {
   throw new Error('At least one RUNNER_TYPE must be specified');
 }
 
-// Validate all runner types
 for (const runnerType of RUNNER_TYPES) {
   if (!['claude', 'codex', 'gemini'].includes(runnerType)) {
     throw new Error(`Invalid RUNNER_TYPE: ${runnerType}. Must be one of: claude, codex, gemini`);
@@ -61,7 +56,6 @@ for (const runnerType of RUNNER_TYPES) {
 
 console.log(chalk.blue.bold(`Available runners: ${RUNNER_TYPES.join(', ')}`));
 
-// Round-robin runner selection
 let currentRunnerIndex = 0;
 const selectRunner = (): RunnerType => {
   const runner = RUNNER_TYPES[currentRunnerIndex];

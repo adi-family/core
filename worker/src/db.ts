@@ -5,7 +5,6 @@ if (!DATABASE_URL) {
   throw new Error('DATABASE_URL environment variable is required');
 }
 
-// Validate DATABASE_URL format
 if (!DATABASE_URL.startsWith('postgres://') && !DATABASE_URL.startsWith('postgresql://')) {
   throw new Error('DATABASE_URL must be a valid PostgreSQL connection string (starting with postgres:// or postgresql://)');
 }

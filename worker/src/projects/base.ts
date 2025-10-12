@@ -37,7 +37,6 @@ export abstract class BaseProjectProcessor implements ProjectProcessor {
   protected taskSource: BaseTaskSource;
 
   constructor(context: ProcessorContext) {
-    // Design by Contract: Validate preconditions
     if (!context.sql) {
       throw new Error('ProcessorContext requires sql connection');
     }
@@ -79,7 +78,6 @@ export abstract class BaseProjectProcessor implements ProjectProcessor {
 }
 
 export function selectFileSpace(context: ProcessorContext): BaseFileSpace {
-  // Design by Contract: Validate precondition with contextual error
   const fileSpace = context.fileSpaces[0];
   if (!fileSpace) {
     throw new Error(

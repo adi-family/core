@@ -8,8 +8,6 @@ export interface GitlabIssueListMinimal {
   description: string;
   title: string;
   updated_at: string;
-
-  // There are more, but we only care about these fields for now
 }
 
 export class GitlabIssueMinimalList extends Issue {
@@ -37,11 +35,9 @@ export class GitlabIssueMinimalList extends Issue {
 }
 
 export function getGitlabIssueList(repo: string, labels: string[] = ['DOIT']): GitlabIssueMinimalList[] {
-  // Design by Contract: Validate preconditions
   if (!repo || repo.trim() === '') {
     throw new Error('GitLab repo is required and cannot be empty');
   }
-  // Validate repo format (should be owner/name or group/subgroup/name)
   if (!repo.includes('/')) {
     throw new Error('GitLab repo must be in format owner/name (e.g., gitlab-org/gitlab)');
   }

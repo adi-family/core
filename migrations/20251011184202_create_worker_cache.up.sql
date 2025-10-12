@@ -1,6 +1,3 @@
--- Migration: create_worker_cache
--- Created: 2025-10-11 18:42:02
-
 CREATE TABLE worker_task_cache (
     id SERIAL PRIMARY KEY,
     issue_id VARCHAR(255) NOT NULL,

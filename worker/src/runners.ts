@@ -50,7 +50,6 @@ export type Runner = {
 
 const claudeRunner: Runner = {
   query: async function* (ctx: QueryContext): AsyncIterable<RunnerChunk> {
-    // Design by Contract: Validate preconditions
     if (!ctx.prompt || ctx.prompt.trim() === '') {
       throw new Error('Runner query requires non-empty prompt');
     }
@@ -88,14 +87,13 @@ const codexRunner: Runner = {
     const cwd = ctx.options.cwd || process.cwd();
     const env = {...process.env, ...ctx.options.env};
 
-    // Build codex command with appropriate flags
     const escapedPrompt = ctx.prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
     const command = [
       'npx @openai/codex exec',
       `"${escapedPrompt}"`,
       `-C "${cwd}"`,
-      '--full-auto', // Automatic execution with workspace-write sandbox
-      '--dangerously-bypass-approvals-and-sandbox', // For automation (use with caution)
+      '--full-auto',
+      '--dangerously-bypass-approvals-and-sandbox',
     ].join(' ');
 
     yield {
@@ -108,24 +106,22 @@ const codexRunner: Runner = {
       const {stdout, stderr} = await execAsync(command, {
         env,
         cwd,
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+        maxBuffer: 10 * 1024 * 1024,
       });
 
       if (ctx.options.stderr && stderr) {
         ctx.options.stderr(stderr);
       }
 
-      // Yield progress chunk
       yield {
         type: 'progress',
         content: stdout,
       } as RunnerChunk;
 
-      // Yield final result
       yield {
         type: 'result',
         result: stdout,
-        total_cost_usd: 0, // Codex doesn't provide cost info through CLI
+        total_cost_usd: 0,
       } as RunnerChunk;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
@@ -143,14 +139,13 @@ const geminiRunner: Runner = {
     const cwd = ctx.options.cwd || process.cwd();
     const env = {...process.env, ...ctx.options.env};
 
-    // Build gemini command with appropriate flags
     const escapedPrompt = ctx.prompt.replace(/"/g, '\\"').replace(/\n/g, '\\n');
     const command = [
       'npx @google/gemini-cli',
       `"${escapedPrompt}"`,
-      '--yolo', // Auto-approve all actions
+      '--yolo',
       `--include-directories "${cwd}"`,
-      '--output-format json', // Request JSON output if available
+      '--output-format json',
     ].join(' ');
 
     yield {
@@ -161,35 +156,31 @@ const geminiRunner: Runner = {
 
     try {
       const {stdout, stderr} = await execAsync(command, {
-        env: {...env, PWD: cwd}, // Set PWD for gemini
+        env: {...env, PWD: cwd},
         cwd,
-        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+        maxBuffer: 10 * 1024 * 1024,
       });
 
       if (ctx.options.stderr && stderr) {
         ctx.options.stderr(stderr);
       }
 
-      // Try to parse as JSON first, fall back to text
       let result = stdout;
       try {
         const jsonResult = JSON.parse(stdout);
         result = jsonResult.response || jsonResult.content || stdout;
       } catch {
-        // Not JSON, use raw output
       }
 
-      // Yield progress chunk
       yield {
         type: 'progress',
         content: result,
       } as RunnerChunk;
 
-      // Yield final result
       yield {
         type: 'result',
         result,
-        total_cost_usd: 0, // Gemini free tier doesn't provide cost info
+        total_cost_usd: 0,
       } as RunnerChunk;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

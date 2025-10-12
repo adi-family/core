@@ -66,7 +66,6 @@ export abstract class BaseTaskSource {
   protected config: Record<string, unknown>;
 
   constructor(taskSource: TaskSource) {
-    // Design by Contract: Validate preconditions based on task source type
     if (taskSource.type === 'gitlab_issues') {
       if (!taskSource.config.repo || taskSource.config.repo.trim() === '') {
         throw new Error('GitLab task source requires non-empty repo in config');

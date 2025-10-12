@@ -1,5 +1,3 @@
-// Database types matching schema
-
 export type Project = {
   id: string
   name: string
@@ -38,8 +36,6 @@ export type Message = {
   created_at: Date
 }
 
-// Request/Response types
-
 export type CreateProjectInput = {
   name: string
   type: 'gitlab' | 'jira' | 'parent'
@@ -70,8 +66,6 @@ export type CreateMessageInput = {
   session_id: string
   data: unknown
 }
-
-// Result type for error handling
 
 export type Result<T> =
   | { ok: true; data: T }

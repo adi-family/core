@@ -68,7 +68,6 @@ export type CreateMessageInput = {
 };
 
 export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  // Validate required fields
   if (!input.title || input.title.trim() === '') {
     throw new Error('Task title is required and cannot be empty');
   }

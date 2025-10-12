@@ -1,7 +1,3 @@
--- Migration: create_file_spaces_task_sources
--- Created: 2025-10-11 21:56:51
-
--- Create file_spaces table
 CREATE TABLE file_spaces (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -17,7 +13,6 @@ CREATE INDEX idx_file_spaces_project_id ON file_spaces(project_id);
 CREATE INDEX idx_file_spaces_type ON file_spaces(type);
 CREATE INDEX idx_file_spaces_enabled ON file_spaces(enabled);
 
--- Create task_sources table
 CREATE TABLE task_sources (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
@@ -33,7 +28,6 @@ CREATE INDEX idx_task_sources_project_id ON task_sources(project_id);
 CREATE INDEX idx_task_sources_type ON task_sources(type);
 CREATE INDEX idx_task_sources_enabled ON task_sources(enabled);
 
--- Add columns to tasks table
 ALTER TABLE tasks
     ADD COLUMN task_source_id UUID REFERENCES task_sources(id) ON DELETE SET NULL,
     ADD COLUMN file_space_id UUID REFERENCES file_spaces(id) ON DELETE SET NULL;
@@ -41,7 +35,6 @@ ALTER TABLE tasks
 CREATE INDEX idx_tasks_task_source_id ON tasks(task_source_id);
 CREATE INDEX idx_tasks_file_space_id ON tasks(file_space_id);
 
--- Migrate existing GitLab projects to file_spaces and task_sources
 INSERT INTO file_spaces (project_id, name, type, config, enabled)
 SELECT
     id,
@@ -69,7 +62,6 @@ SELECT
 FROM projects
 WHERE type = 'gitlab';
 
--- Migrate existing Jira projects to task_sources and file_spaces
 INSERT INTO task_sources (project_id, name, type, config, enabled)
 SELECT
     id,
@@ -103,8 +95,6 @@ SELECT
 FROM projects
 WHERE type = 'jira' AND config ? 'repo';
 
--- Update existing tasks with task_source_id and file_space_id
--- For GitLab tasks
 UPDATE tasks t
 SET
     task_source_id = (
@@ -123,7 +113,6 @@ SET
     )
 WHERE t.source_gitlab_issue IS NOT NULL;
 
--- For Jira tasks
 UPDATE tasks t
 SET
     task_source_id = (

@@ -14,35 +14,30 @@ const sessionHandlers = createSessionHandlers(sql)
 const messageHandlers = createMessageHandlers(sql)
 const workerCacheHandlers = createWorkerCacheHandlers(sql)
 
-// Projects
 app.get('/projects', projectHandlers.list)
 app.post('/projects', projectHandlers.create)
 app.get('/projects/:id', projectHandlers.get)
 app.patch('/projects/:id', projectHandlers.update)
 app.delete('/projects/:id', projectHandlers.delete)
 
-// Tasks
 app.get('/tasks', taskHandlers.list)
 app.post('/tasks', taskHandlers.create)
 app.get('/tasks/:id', taskHandlers.get)
 app.patch('/tasks/:id', taskHandlers.update)
 app.delete('/tasks/:id', taskHandlers.delete)
 
-// Sessions
 app.get('/sessions', sessionHandlers.list)
 app.post('/sessions', sessionHandlers.create)
 app.get('/sessions/:id', sessionHandlers.get)
 app.delete('/sessions/:id', sessionHandlers.delete)
 app.get('/tasks/:taskId/sessions', sessionHandlers.listByTask)
 
-// Messages
 app.get('/messages', messageHandlers.list)
 app.post('/messages', messageHandlers.create)
 app.get('/messages/:id', messageHandlers.get)
 app.delete('/messages/:id', messageHandlers.delete)
 app.get('/sessions/:sessionId/messages', messageHandlers.listBySession)
 
-// Worker Cache
 app.get('/worker-cache', workerCacheHandlers.list)
 
 export { app }

@@ -20,7 +20,6 @@ export async function sendTelegramMessage(
   config: TelegramConfig,
   options: SendMessageOptions
 ): Promise<void> {
-  // Design by Contract: Validate preconditions at boundary
   if (!config.botToken || config.botToken.trim() === '') {
     throw new Error('Telegram botToken is required and cannot be empty');
   }
@@ -75,12 +74,10 @@ export function getTelegramConfigFromEnv(): TelegramConfig {
     throw new Error('TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID must be set in environment');
   }
 
-  // Validate bot token format (should contain :)
   if (!botToken.includes(':')) {
     throw new Error('TELEGRAM_BOT_TOKEN appears invalid (expected format: <bot_id>:<token>)');
   }
 
-  // Validate chat ID format (should be numeric or start with -)
   if (!/^-?\d+$/.test(chatId)) {
     throw new Error('TELEGRAM_CHAT_ID must be numeric (e.g., 123456789 or -123456789 for groups)');
   }

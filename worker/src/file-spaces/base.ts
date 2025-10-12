@@ -24,7 +24,6 @@ export abstract class BaseFileSpace {
   protected fileSpace: FileSpace;
 
   constructor(fileSpace: FileSpace) {
-    // Design by Contract: Validate preconditions
     if (!fileSpace.config.repo || fileSpace.config.repo.trim() === '') {
       throw new Error('File space requires non-empty repo in config');
     }

@@ -29,22 +29,6 @@ export function initTrafficLight(projectId: string) {
       const lastProcessed = new Date(row.last_processed_at);
       return lastProcessed >= date;
     },
-    /**
-     * Attempts to acquire a distributed lock for processing an issue.
-     *
-     * Lock acquisition succeeds if:
-     * 1. No cache entry exists (new issue) - creates entry with lock
-     * 2. Existing entry has no lock (processing_started_at IS NULL) - acquires lock
-     * 3. Existing lock has expired (older than lockTimeoutSeconds) - takes over lock
-     *
-     * Returns true if lock was successfully acquired, false otherwise.
-     *
-     * Implementation:
-     * - Uses INSERT...ON CONFLICT to atomically handle both new entries and updates
-     * - ON CONFLICT UPDATE only executes when WHERE clause is satisfied
-     * - RETURNING clause only returns rows when insert/update succeeds
-     * - Lock timeout prevents deadlocks from crashed workers
-     */
     tryAcquireLock: async (ctx: LockContext): Promise<boolean> => {
       const lockTimeoutSeconds = ctx.lockTimeoutSeconds !== undefined ? ctx.lockTimeoutSeconds : 3600;
       const result = await sql`

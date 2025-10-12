@@ -1,6 +1,3 @@
--- Migration: create_projects_table
--- Created: 2025-10-11 21:09:20
-
 CREATE TABLE projects (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     name TEXT NOT NULL,
