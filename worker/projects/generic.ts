@@ -20,7 +20,7 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
   }
 
   async processIssue(issue: TaskSourceIssue): Promise<void> {
-    const signaler = initTrafficLight(this.context.project.id);
+    const signaler = initTrafficLight(this.context.sql, this.context.project.id);
 
     console.log(
       chalk.blue.bold(`[${this.context.project.name}] New or updated issue:`),

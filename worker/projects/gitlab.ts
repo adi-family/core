@@ -74,7 +74,7 @@ export class GitlabProjectProcessor extends BaseProjectProcessor {
   }
 
   async processLegacyIssue(issue: Issue): Promise<void> {
-    const signaler = initTrafficLight(this.context.project.id);
+    const signaler = initTrafficLight(this.context.sql, this.context.project.id);
 
     console.log(chalk.blue.bold(`[${this.config.repo}] New or updated issue:`), issue.title());
 

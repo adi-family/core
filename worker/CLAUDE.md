@@ -44,7 +44,8 @@ gitlab-automation, jira-automation, multi-runner-support, issue-processor, teleg
 - **messages** - All agent messages/chunks (links to session via session_id)
 - **worker_task_cache** - Prevents reprocessing (tracks issue_id, project_id, task_id, last_processed_at)
 - **source data**: Task records include source_gitlab_issue/source_jira_issue JSONB fields
-- **Connection**: DATABASE_URL from root .env, shared schema with backend
+- **Database client**: Imported from `../db/client` (shared with backend)
+- **Worker cache operations**: Imported from `../db/worker-cache` (traffic light pattern)
 
 ## Environment Configuration
 - **DATABASE_URL** - Postgres connection string (required)

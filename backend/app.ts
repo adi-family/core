@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { sql } from './db'
+import { sql } from '../db/client'
 import { createProjectHandlers } from './handlers/projects'
 import { createTaskHandlers } from './handlers/tasks'
 import { createSessionHandlers } from './handlers/sessions'

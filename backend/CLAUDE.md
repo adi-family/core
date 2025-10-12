@@ -5,7 +5,7 @@ hono-web-framework, functional-programming, typescript, bun-runtime, dependency-
 - Functional programming style with pure functions throughout
 - Dependency injection via closures for database access
 - Factory pattern for handlers and queries
-- **db.ts** exports single shared `sql` instance for database connection
+- **Database client** imported from `../db/client` (shared with worker)
 - **app.ts** composes handler groups and wires routes
 
 ## Libraries
@@ -22,8 +22,8 @@ hono-web-framework, functional-programming, typescript, bun-runtime, dependency-
 - **Client documentation**: `/docs/CLIENT_USAGE.md`
 
 ## Code Organization
-- **queries/** directory contains all SQL query functions
 - **handlers/** directory contains HTTP request handlers
+- **Database queries** imported from `../db/` (shared with worker)
 - Handler factory pattern: `createTaskHandlers(sql)` returns object of handlers
-- Query factory pattern: `findTaskById(sql)` returns async function
 - Handlers receive Hono `Context`, use `c.req` and `c.json()`
+- Handlers import queries as namespace: `import * as queries from '../../db/tasks'`

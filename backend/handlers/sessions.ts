@@ -1,6 +1,6 @@
 import type { Context } from 'hono'
 import type { Sql } from 'postgres'
-import * as queries from '../queries/sessions'
+import * as queries from '../../db/sessions'
 
 export const createSessionHandlers = (sql: Sql) => ({
   list: async (c: Context) => {

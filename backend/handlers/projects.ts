@@ -1,6 +1,6 @@
 import type { Context } from 'hono'
 import type { Sql } from 'postgres'
-import * as queries from '../queries/projects'
+import * as queries from '../../db/projects'
 
 export const createProjectHandlers = (sql: Sql) => ({
   list: async (c: Context) => {

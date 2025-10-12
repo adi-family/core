@@ -1,5 +1,5 @@
 import {getTelegramConfigFromEnv} from "./telegram";
-import {sql} from './db';
+import {sql} from '../db/client';
 import {getAllEnabledProjects, getFileSpacesByProjectId, getTaskSourcesByProjectId} from './queries';
 import {type RunnerType} from './runners';
 import type {ProcessorContext} from './projects/base';

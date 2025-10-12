@@ -4,8 +4,9 @@ mono-repository, typescript, database-infrastructure, migration-management, git-
 PROJECT STAGE - CAN EDIT EVERYTHING, NO NEED TO MAINTAIN
 
 ## Project Overview
-- Mono repository containing migrations, backend, and worker submodules
+- Mono repository containing migrations, backend, worker, and db submodules
 - **.gitignore** follows ignore-all-allow-specific pattern (ignore everything, explicitly allow needed files)
+- **db/** directory contains shared database logic (client connection, queries) used by backend and worker
 
 ## Infrastructure
 - **Docker Compose** manages Postgres database and migrations

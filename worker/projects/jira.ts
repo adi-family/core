@@ -131,7 +131,7 @@ export class JiraProjectProcessor extends BaseProjectProcessor {
 
   async processLegacyIssue(issue: Issue): Promise<void> {
     const jiraIssue = issue as JiraIssue;
-    const signaler = initTrafficLight(this.context.project.id);
+    const signaler = initTrafficLight(this.context.sql, this.context.project.id);
 
     console.log(chalk.blue.bold(`[Jira/${this.config.project_key}] New or updated issue:`), issue.title());
 
