@@ -19,3 +19,4 @@ PROJECT STAGE - CAN EDIT EVERYTHING, NO NEED TO MAINTAIN
 - **ESLint** configured at root with TypeScript and React support
 - **package.json** at root includes ESLint configuration and dependencies
 - **Pre-push hook** runs ESLint to prevent pushing code with lint errors
+- use glab tool please with custom gitlab domain ( https://gitlab.the-ihor.com )
