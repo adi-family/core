@@ -54,6 +54,19 @@ services:
     command: sh -c "bun install && bun run src/index.ts"
     restart: unless-stopped
 
+  client:
+    image: oven/bun:latest
+    container_name: adi-simple-client
+    working_dir: /app
+    volumes:
+      - .:/app
+      - client_node_modules:/app/node_modules
+    environment:
+      - NODE_ENV=development
+    command: sh -c "bun install && bun run client:dev -- --host 0.0.0.0"
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   worker_node_modules:
+  client_node_modules:
