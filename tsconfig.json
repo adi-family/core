@@ -28,6 +28,6 @@
       "@worker/*": ["worker/*"]
     }
   },
-  "include": ["backend/**/*.ts", "worker/**/*.ts", "db/**/*.ts"],
+  "include": ["backend/**/*.ts", "worker/**/*.ts", "db/**/*.ts", "utils/**/*.ts"],
   "exclude": ["node_modules", "client"]
 }
