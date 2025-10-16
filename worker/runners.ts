@@ -238,6 +238,7 @@ const geminiRunner: Runner = {
         const jsonResult = JSON.parse(stdout);
         result = jsonResult.response || jsonResult.content || stdout;
       } catch {
+        // If JSON parsing fails, use stdout as-is
       }
 
       yield {

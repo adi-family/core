@@ -201,10 +201,10 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
         }
       });
 
-      let iterations = 0;
-      let finalCost = 0;
+      let _iterations = 0;
+      let _finalCost = 0;
       for await (const chunk of iterator) {
-        iterations++;
+        _iterations++;
 
         await createMessage(this.context.sql, {
           session_id: session.id,
@@ -212,8 +212,8 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
         });
 
         if (chunk.type === 'result') {
-          finalCost = chunk.total_cost_usd;
-          const resultText = chunk.result;
+          _finalCost = chunk.total_cost_usd;
+          const _resultText = chunk.result;
 
           await updateTaskStatus(this.context.sql, task.id, 'completed');
           await signaler.signal({
