@@ -13,6 +13,7 @@
     "worker:dev": "bun --watch worker/index.ts",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
+    "typecheck": "tsc --noEmit && tsc -b client --force",
     "tailwind:dev": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --cwd=./client --watch",
     "tailwind:build": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.c --cwd=./client --minify",
     "hooks:install": "sh hooks/install.sh"
