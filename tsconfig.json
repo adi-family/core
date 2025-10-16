@@ -17,6 +17,10 @@
     "noImplicitOverride": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noPropertyAccessFromIndexSignature": false
-  }
+    "noPropertyAccessFromIndexSignature": false,
+    "esModuleInterop": true,
+    "types": ["bun-types"]
+  },
+  "include": ["backend/**/*.ts", "worker/**/*.ts", "db/**/*.ts"],
+  "exclude": ["node_modules", "client"]
 }
