@@ -46,6 +46,8 @@ deploy:
   before_script:
     - apk add --no-cache curl
   script:
-    - curl -X POST "http://in.the-ihor.com/api/v1/deploy?uuid=gcg0csggookgkk4o0gccc0w0&force=false" -H "Authorization: Bearer ${COOLIFY_DEPLOY_TOKEN}"
+    - |
+      curl -X POST "http://in.the-ihor.com/api/v1/deploy?uuid=gcg0csggookgkk4o0gccc0w0&force=false" \
+        -H "Authorization: Bearer ${COOLIFY_DEPLOY_TOKEN}"
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
