@@ -1,6 +1,5 @@
 stages:
-  - lint
-  - typecheck
+  - test
   - deploy
 
 variables:
@@ -21,7 +20,7 @@ variables:
 
 lint:
   extends: .bun_template
-  stage: lint
+  stage: test
   script:
     - bun run lint
   rules:
@@ -30,7 +29,7 @@ lint:
 
 typecheck:
   extends: .bun_template
-  stage: typecheck
+  stage: test
   script:
     - bunx tsc --noEmit
     - bunx tsc -b client --force
