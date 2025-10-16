@@ -10,6 +10,7 @@
 !client
 !worker
 !db
+!utils
 !hooks
 !package.json
 !bun.lock
