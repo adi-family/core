@@ -1,6 +1,6 @@
 stages:
   - lint
-  - build
+  - typecheck
   - deploy
 
 variables:
@@ -26,16 +26,11 @@ lint:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
 
-build:
+typecheck:
   extends: .bun_template
-  stage: build
+  stage: typecheck
   script:
-    - bun run client:build
     - bunx tsc --noEmit
-  artifacts:
-    paths:
-      - client/dist/
-    expire_in: 1 week
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH
