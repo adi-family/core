@@ -1,0 +1,38 @@
+stages:
+  - lint
+  - build
+
+variables:
+  BUN_VERSION: "1.1.38"
+
+.bun_template:
+  image: oven/bun:${BUN_VERSION}
+  before_script:
+    - bun install --frozen-lockfile
+  cache:
+    key:
+      files:
+        - bun.lockb
+    paths:
+      - node_modules/
+
+lint:
+  extends: .bun_template
+  stage: lint
+  script:
+    - bun run lint
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+
+build:
+  extends: .bun_template
+  stage: build
+  script:
+    - bun run client:build
+    - bunx tsc --noEmit
+  artifacts:
+    paths:
+      - client/dist/
+    expire_in: 1 week
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
