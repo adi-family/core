@@ -10,6 +10,7 @@
 !client
 !worker
 !db
+!hooks
 !package.json
 !bun.lock
 !tsconfig.json

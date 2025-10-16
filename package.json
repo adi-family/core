@@ -14,7 +14,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "tailwind:dev": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --cwd=./client --watch",
-    "tailwind:build": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.c --cwd=./client --minify"
+    "tailwind:build": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.c --cwd=./client --minify",
+    "hooks:install": "sh hooks/install.sh"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",
