@@ -13,9 +13,11 @@ variables:
   cache:
     key:
       files:
-        - bun.lockb
+        - bun.lock
     paths:
       - node_modules/
+      - .bun/install/cache/
+    policy: pull-push
 
 lint:
   extends: .bun_template
