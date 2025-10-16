@@ -19,7 +19,14 @@
     "noUnusedParameters": false,
     "noPropertyAccessFromIndexSignature": false,
     "esModuleInterop": true,
-    "types": ["bun-types"]
+    "types": ["bun-types"],
+    "baseUrl": ".",
+    "paths": {
+      "@utils/*": ["utils/*"],
+      "@db/*": ["db/*"],
+      "@backend/*": ["backend/*"],
+      "@worker/*": ["worker/*"]
+    }
   },
   "include": ["backend/**/*.ts", "worker/**/*.ts", "db/**/*.ts"],
   "exclude": ["node_modules", "client"]

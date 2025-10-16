@@ -2,7 +2,7 @@ import type {ProcessorContext, ProjectProcessor} from './base';
 import {GitlabProjectProcessor} from './gitlab';
 import {JiraProjectProcessor} from './jira';
 import {ParentProjectProcessor} from './parent';
-import {assertNever} from '../../utils/assert-never';
+import {assertNever} from '@utils/assert-never';
 
 export const createProjectProcessor = (context: ProcessorContext): ProjectProcessor => {
   switch (context.project.type) {

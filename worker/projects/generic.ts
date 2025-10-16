@@ -3,7 +3,7 @@ import type {TaskSourceIssue} from '../task-sources/base';
 import {initTrafficLight} from '../cache';
 import {createTask, createSession, createMessage, updateTaskStatus, addTaskFileSpaces} from '../queries';
 import {createRunner} from '../runners';
-import {assertNever} from '../../utils/assert-never';
+import {assertNever} from '@utils/assert-never';
 import * as path from 'path';
 import chalk from 'chalk';
 
