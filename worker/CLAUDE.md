@@ -1,20 +1,19 @@
 # worker
-gitlab-automation, jira-automation, multi-runner-support, issue-processor, telegram-notifications, database-tracking
+gitlab-automation, jira-automation, multi-runner-support, issue-processor, database-tracking
 
 ## Overview
 - Automated issue processor with multi-runner AI support
-- Monitors GitLab/Jira projects, processes issues via AI runners, sends Telegram notifications
+- Monitors GitLab/Jira projects and processes issues via AI runners
 - **Polling interval**: 10 minutes (600000ms)
 - **Workspace isolation**: Clones repositories into APPS_DIR (not committed to git)
 - **Branch naming**: `issue/gitlab-{id}` or `issue/jira-{key}`
 - **CLI tools**: Uses `glab` for GitLab operations
 
 ## Runner Support
-- **RUNNER_TYPES**: Comma-separated list ("claude", "codex", "gemini")
-- **Distribution**: Round-robin assignment of issues across runners
-- **Claude runner**: @anthropic-ai/claude-agent-sdk with full tool access
-- **Codex runner**: @openai/codex CLI with exec mode and full-auto flags
-- **Gemini runner**: @google/gemini-cli with YOLO mode for auto-approval
+- **RUNNER_TYPES**: Comma-separated list of runner names (e.g., "claude", "codex", "gemini")
+- **Distribution**: Round-robin assignment of issues across configured runners
+- **Built-in runners**: claude (@anthropic-ai/claude-agent-sdk), codex (@openai/codex), gemini (@google/gemini-cli)
+- **Extensibility**: Worker is runner-agnostic; createRunner() validates supported types
 - Runner selection logged in `sessions.runner` field
 
 ## Project Types
@@ -50,10 +49,7 @@ gitlab-automation, jira-automation, multi-runner-support, issue-processor, teleg
 ## Environment Configuration
 - **DATABASE_URL** - Postgres connection string (required)
 - **APPS_DIR** - Directory for workspace clones (required)
-- **TELEGRAM_BOT_TOKEN** - Telegram bot token (required)
-- **TELEGRAM_CHAT_ID** - Telegram chat ID (required)
-- **TELEGRAM_THREAD_ID** - Optional thread ID for notifications
-- **RUNNER_TYPES** - Runners to use: "claude", "codex", "gemini", or comma-separated (default: "claude")
+- **RUNNER_TYPES** - Comma-separated list of runner names (default: "claude")
 - **GITLAB_TOKEN** - GitLab API token (required for GitLab projects)
 - **GITLAB_HOST** - GitLab host URL (default: https://gitlab.com)
 - **OPENAI_API_KEY** - Required when using codex runner

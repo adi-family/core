@@ -1,4 +1,3 @@
-import {getTelegramConfigFromEnv} from "./telegram";
 import {sql} from '../db/client';
 import {getAllEnabledProjects, getFileSpacesByProjectId, getTaskSourcesByProjectId} from './queries';
 import {type RunnerType} from './runners';
@@ -41,17 +40,10 @@ if (process.env.RUNNER_TYPES) {
 const RUNNER_TYPES: RunnerType[] = RUNNER_TYPES_STR
   .split(',')
   .map(r => r.trim())
-  .filter(r => r.length > 0)
-  .map(r => r as RunnerType);
+  .filter(r => r.length > 0);
 
 if (RUNNER_TYPES.length === 0) {
   throw new Error('At least one RUNNER_TYPE must be specified');
-}
-
-for (const runnerType of RUNNER_TYPES) {
-  if (!['claude', 'codex', 'gemini'].includes(runnerType)) {
-    throw new Error(`Invalid RUNNER_TYPE: ${runnerType}. Must be one of: claude, codex, gemini`);
-  }
 }
 
 console.log(chalk.blue.bold(`Available runners: ${RUNNER_TYPES.join(', ')}`));
@@ -68,7 +60,6 @@ const selectRunner = (): RunnerType => {
 
 
 async function run() {
-  const telegramConfig = getTelegramConfigFromEnv();
   const workerId = `${process.pid}-${Date.now()}`;
 
   console.log(chalk.blue.bold(`Worker ID: ${workerId}`));
@@ -114,7 +105,6 @@ async function run() {
           project,
           fileSpaces,
           taskSource,
-          telegramConfig,
           workerId,
           selectRunner,
           appsDir: APPS_DIR

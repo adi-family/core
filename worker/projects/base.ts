@@ -17,11 +17,6 @@ export type ProcessorContext = {
   project: Project;
   fileSpaces: BaseFileSpace[];
   taskSource: BaseTaskSource;
-  telegramConfig: {
-    botToken: string;
-    chatId: string;
-    threadId?: string;
-  };
   workerId: string;
   selectRunner: () => RunnerType;
   appsDir: string;
@@ -48,15 +43,6 @@ export abstract class BaseProjectProcessor implements ProjectProcessor {
     }
     if (!context.taskSource) {
       throw new Error('ProcessorContext requires taskSource');
-    }
-    if (!context.telegramConfig) {
-      throw new Error('ProcessorContext requires telegramConfig');
-    }
-    if (!context.telegramConfig.botToken || context.telegramConfig.botToken.trim() === '') {
-      throw new Error('ProcessorContext requires non-empty telegramConfig.botToken');
-    }
-    if (!context.telegramConfig.chatId || context.telegramConfig.chatId.trim() === '') {
-      throw new Error('ProcessorContext requires non-empty telegramConfig.chatId');
     }
     if (!context.workerId || context.workerId.trim() === '') {
       throw new Error('ProcessorContext requires non-empty workerId');

@@ -5,7 +5,7 @@ import type {TaskSourceIssue} from './task-sources/base';
 
 const execAsync = promisify(exec);
 
-export type RunnerType = 'claude' | 'codex' | 'gemini';
+export type RunnerType = string;
 
 export type StatusChunk = {
   type: 'status';

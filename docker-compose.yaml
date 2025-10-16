@@ -48,9 +48,6 @@ services:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
       - GITLAB_TOKEN=${GITLAB_TOKEN}
       - GITLAB_HOST=${GITLAB_HOST:-https://gitlab.com}
-      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN}
-      - TELEGRAM_CHAT_ID=${TELEGRAM_CHAT_ID}
-      - TELEGRAM_THREAD_ID=${TELEGRAM_THREAD_ID}
       - GLAB_SEND_TELEMETRY=0
       - GLAB_CHECK_UPDATE=0
       - NO_COLOR=1

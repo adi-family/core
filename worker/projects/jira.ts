@@ -2,19 +2,11 @@ import {BaseProjectProcessor, type Issue, type ProcessorContext} from './base';
 import {initTrafficLight} from '../cache';
 import {createTask, createSession, createMessage, updateTaskStatus} from '../queries';
 import {createRunner} from '../runners';
-import {sendTelegramMessage} from '../telegram';
 import * as fs from 'fs';
 import * as path from 'path';
 import {execSync} from 'child_process';
 import chalk from 'chalk';
 import {Issue as IssueBase} from '../issue';
-
-export type JiraCompletionInfo = {
-  issue: JiraIssue;
-  result: string;
-  cost: number;
-  iterations: number;
-};
 
 export type JiraConfig = {
   project_key: string;
@@ -229,20 +221,6 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
             date: new Date(),
             taskId: task.id
           });
-
-          try {
-            console.log(chalk.yellow('Sending Telegram notification...'));
-            const message = this.generateTelegramMessage({
-              issue: jiraIssue,
-              result: resultText,
-              cost: finalCost,
-              iterations
-            });
-            await sendTelegramMessage(this.context.telegramConfig, {text: message});
-            console.log(chalk.green('Telegram notification sent!'));
-          } catch (error) {
-            console.error(chalk.red('Failed to send Telegram notification:'), error);
-          }
         }
       }
     } catch (error) {
@@ -252,18 +230,4 @@ COMPLETION REQUIREMENTS (you MUST complete ALL of these):
     }
   }
 
-  private generateTelegramMessage(info: JiraCompletionInfo): string {
-    const branchName = `issue/jira-${info.issue.key()}`;
-    const issueUrl = `${this.config.host}/browse/${info.issue.key()}`;
-
-    return `✅ <b>Issue Completed</b>
-
-<a href="${issueUrl}">${info.issue.title()}</a>
-
-Branch: <code>${branchName}</code>
-Iterations: ${info.iterations} | Cost: $${info.cost.toFixed(4)}
-
-<b>Result:</b>
-${info.result}`;
-  }
 }
