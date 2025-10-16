@@ -9,4 +9,5 @@ const API_URL = import.meta.env.VITE_API_URL
   ? import.meta.env.VITE_API_URL
   : `http://localhost:${SERVER_PORT}`
 
-export const client = hc<AppType>(API_URL)
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const client = hc<AppType>(API_URL) as any
