@@ -23,6 +23,7 @@ lint:
     - bun run lint
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
 
 build:
   extends: .bun_template
@@ -36,3 +37,4 @@ build:
     expire_in: 1 week
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH
