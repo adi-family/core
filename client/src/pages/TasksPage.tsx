@@ -66,10 +66,12 @@ export function TasksPage() {
     ? tasks.filter(task => task.task_source_id === selectedTaskSourceId)
     : tasks
 
-  const getTaskSourceName = (taskSourceId: string | null): string => {
-    if (!taskSourceId) return "N/A"
+  const getTaskSourceInfo = (taskSourceId: string | null): { name: string; type?: string } => {
+    if (!taskSourceId) return { name: "-" }
     const taskSource = taskSources.find(ts => ts.id === taskSourceId)
-    return taskSource ? taskSource.name : "Unknown"
+    return taskSource
+      ? { name: taskSource.name, type: taskSource.type }
+      : { name: "Unknown" }
   }
 
   return (
@@ -133,7 +135,18 @@ export function TasksPage() {
                       </span>
                     </TableCell>
                     <TableCell className="text-sm">
-                      {getTaskSourceName(task.task_source_id)}
+                      {(() => {
+                        const info = getTaskSourceInfo(task.task_source_id)
+                        if (!info.type) return info.name
+                        return (
+                          <span>
+                            {info.name}
+                            <span className="ml-1 text-xs text-muted-foreground">
+                              ({info.type})
+                            </span>
+                          </span>
+                        )
+                      })()}
                     </TableCell>
                     <TableCell className="text-muted-foreground text-sm">
                       {new Date(task.created_at).toLocaleString()}
