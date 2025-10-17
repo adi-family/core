@@ -58,6 +58,7 @@ services:
       - worker_apps:/app/.apps
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
+      - APPS_DIR=/app/.apps
       - GITLAB_TOKEN=${GITLAB_TOKEN}
       - GITLAB_HOST=${GITLAB_HOST:-https://gitlab.com}
       - GLAB_SEND_TELEMETRY=0
