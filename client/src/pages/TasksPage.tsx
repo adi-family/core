@@ -6,14 +6,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { PresenterTable } from "@/components/PresenterTable"
+import { TaskPresenter } from "@/presenters"
 import { client } from "@/lib/client"
 import type { Task, TaskSource } from "../../../backend/types"
 
@@ -66,13 +60,6 @@ export function TasksPage() {
     ? tasks.filter(task => task.task_source_id === selectedTaskSourceId)
     : tasks
 
-  const getTaskSourceInfo = (taskSourceId: string): { name: string; type: string } => {
-    const taskSource = taskSources.find(ts => ts.id === taskSourceId)
-    return taskSource
-      ? { name: taskSource.name, type: taskSource.type }
-      : { name: "Unknown", type: "" }
-  }
-
   return (
     <div className="container mx-auto py-10">
       <Card>
@@ -99,66 +86,13 @@ export function TasksPage() {
               ))}
             </select>
           </div>
-          {loading ? (
-            <div className="text-center py-4">Loading...</div>
-          ) : filteredTasks.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">
-              No tasks found
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>ID</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead>Description</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Task Source</TableHead>
-                  <TableHead>Created At</TableHead>
-                  <TableHead>Updated At</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTasks.map((task) => (
-                  <TableRow key={task.id}>
-                    <TableCell className="font-mono text-xs">
-                      {task.id.substring(0, 8)}...
-                    </TableCell>
-                    <TableCell className="font-medium">{task.title}</TableCell>
-                    <TableCell className="max-w-md truncate">
-                      {task.description || "-"}
-                    </TableCell>
-                    <TableCell>
-                      <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ring-gray-500/10">
-                        {task.status}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {(() => {
-                        const info = getTaskSourceInfo(task.task_source_id)
-                        return (
-                          <span>
-                            {info.name}
-                            {info.type && (
-                              <span className="ml-1 text-xs text-muted-foreground">
-                                ({info.type})
-                              </span>
-                            )}
-                          </span>
-                        )
-                      })()}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {new Date(task.created_at).toLocaleString()}
-                    </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
-                      {new Date(task.updated_at).toLocaleString()}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <PresenterTable
+            presenter={TaskPresenter}
+            items={filteredTasks}
+            loading={loading}
+            emptyMessage="No tasks found"
+            buildPresenter={(task) => new TaskPresenter(task, taskSources)}
+          />
         </CardContent>
       </Card>
     </div>
