@@ -88,7 +88,11 @@ export function ProjectsPage() {
               </TableHeader>
               <TableBody>
                 {projects.map((project) => (
-                  <TableRow key={project.id}>
+                  <TableRow
+                    key={project.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => window.location.href = `/projects/${project.id}`}
+                  >
                     <TableCell className="font-medium">{project.name}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${getProjectTypeBadgeClass(project.type)}`}>
