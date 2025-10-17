@@ -42,5 +42,8 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    preview: {
+      allowedHosts: ['adi-client.the-ihor.com'],
+    },
   }
 })
