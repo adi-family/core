@@ -6,6 +6,7 @@ import { createSessionHandlers } from './handlers/sessions'
 import { createMessageHandlers } from './handlers/messages'
 import { createWorkerCacheHandlers } from './handlers/worker-cache'
 import { createFileSpaceHandlers } from './handlers/file-spaces'
+import { createTaskSourceHandlers } from './handlers/task-sources'
 
 const app = new Hono()
 
@@ -15,6 +16,7 @@ const sessionHandlers = createSessionHandlers(sql)
 const messageHandlers = createMessageHandlers(sql)
 const workerCacheHandlers = createWorkerCacheHandlers(sql)
 const fileSpaceHandlers = createFileSpaceHandlers(sql)
+const taskSourceHandlers = createTaskSourceHandlers(sql)
 
 app.get('/projects', projectHandlers.list)
 app.post('/projects', projectHandlers.create)
@@ -47,6 +49,12 @@ app.post('/file-spaces', fileSpaceHandlers.create)
 app.get('/file-spaces/:id', fileSpaceHandlers.get)
 app.patch('/file-spaces/:id', fileSpaceHandlers.update)
 app.delete('/file-spaces/:id', fileSpaceHandlers.delete)
+
+app.get('/task-sources', taskSourceHandlers.list)
+app.post('/task-sources', taskSourceHandlers.create)
+app.get('/task-sources/:id', taskSourceHandlers.get)
+app.patch('/task-sources/:id', taskSourceHandlers.update)
+app.delete('/task-sources/:id', taskSourceHandlers.delete)
 
 export { app }
 export type AppType = typeof app

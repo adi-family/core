@@ -84,6 +84,27 @@ export type CreateFileSpaceInput = {
 
 export type UpdateFileSpaceInput = Partial<CreateFileSpaceInput>
 
+export type TaskSource = {
+  id: string
+  project_id: string
+  name: string
+  type: 'gitlab_issues' | 'jira' | 'github_issues'
+  config: unknown
+  enabled: boolean
+  created_at: Date
+  updated_at: Date
+}
+
+export type CreateTaskSourceInput = {
+  project_id: string
+  name: string
+  type: 'gitlab_issues' | 'jira' | 'github_issues'
+  config: unknown
+  enabled?: boolean
+}
+
+export type UpdateTaskSourceInput = Partial<CreateTaskSourceInput>
+
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: string }

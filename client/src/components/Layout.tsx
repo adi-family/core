@@ -46,6 +46,12 @@ export function Layout() {
               >
                 File Spaces
               </Link>
+              <Link
+                to="/task-sources"
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                Task Sources
+              </Link>
             </div>
           </div>
         </div>
