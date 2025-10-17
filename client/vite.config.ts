@@ -20,6 +20,12 @@ export default defineConfig(({ mode, command }) => {
     throw new Error('SERVER_PORT environment variable is required')
   }
 
+  // Use Docker internal hostname in production, localhost in dev
+  const isProduction = env.NODE_ENV === 'production'
+  const backendTarget = isProduction
+    ? 'http://backend:3000'
+    : `http://localhost:${env.SERVER_PORT}`
+
   return {
     css: {
       preprocessorMaxWorkers: true,
@@ -38,7 +44,7 @@ export default defineConfig(({ mode, command }) => {
       allowedHosts: ['adi-client.the-ihor.com'],
       proxy: {
         '/api': {
-          target: `http://localhost:${env.SERVER_PORT}`,
+          target: backendTarget,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
@@ -46,6 +52,13 @@ export default defineConfig(({ mode, command }) => {
     },
     preview: {
       allowedHosts: ['adi-client.the-ihor.com'],
+      proxy: {
+        '/api': {
+          target: backendTarget,
+          changeOrigin: true,
+          rewrite: (path) => path.replace(/^\/api/, ''),
+        },
+      },
     },
   }
 })
