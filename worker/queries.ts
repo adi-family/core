@@ -1,7 +1,4 @@
 import type { Sql, MaybeRow, PendingQuery } from 'postgres';
-import type {GitlabConfig} from './projects/gitlab';
-import type {JiraConfig} from './projects/jira';
-import type {ParentConfig} from './projects/parent';
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -42,11 +39,7 @@ export type Project = {
   enabled: boolean;
   created_at: Date;
   updated_at: Date;
-} & (
-  | { type: 'gitlab'; config: GitlabConfig }
-  | { type: 'jira'; config: JiraConfig }
-  | { type: 'parent'; config: ParentConfig }
-);
+};
 
 export type CreateTaskInput = {
   title: string;

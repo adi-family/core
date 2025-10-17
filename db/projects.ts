@@ -17,7 +17,7 @@ export const findProjectById = async (sql: Sql, id: string): Promise<Result<Proj
     : { ok: false, error: 'Project not found' }
 }
 
-const createProjectCols = ['name', 'type', 'config', 'enabled'] as const
+const createProjectCols = ['name', 'enabled'] as const
 export const createProject = async (sql: Sql, input: CreateProjectInput): Promise<Project> => {
   const [project] = await get(sql<Project[]>`
     INSERT INTO projects ${sql(input, createProjectCols)}
@@ -29,7 +29,7 @@ export const createProject = async (sql: Sql, input: CreateProjectInput): Promis
   return project
 }
 
-const updateProjectCols = ['name', 'type', 'config', 'enabled'] as const
+const updateProjectCols = ['name', 'enabled'] as const
 export const updateProject = async (sql: Sql, id: string, input: UpdateProjectInput): Promise<Result<Project>> => {
   const projects = await get(sql<Project[]>`
     UPDATE projects

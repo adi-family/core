@@ -1,8 +1,6 @@
 export type Project = {
   id: string
   name: string
-  type: 'gitlab' | 'jira' | 'parent'
-  config: unknown
   enabled: boolean
   created_at: Date
   updated_at: Date
@@ -38,8 +36,6 @@ export type Message = {
 
 export type CreateProjectInput = {
   name: string
-  type: 'gitlab' | 'jira' | 'parent'
-  config: unknown
   enabled?: boolean
 }
 

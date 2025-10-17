@@ -18,8 +18,6 @@ export function SetupProjectPage() {
 
   const [formData, setFormData] = useState<CreateProjectInput>({
     name: "",
-    type: "parent",
-    config: {},
     enabled: true,
   })
 
@@ -110,52 +108,6 @@ export function SetupProjectPage() {
                 onChange={(e) => handleInputChange("name", e.target.value)}
                 className="w-full px-3 py-2 border rounded-md"
                 required
-              />
-            </div>
-
-            <div>
-              <label
-                htmlFor="type"
-                className="block text-sm font-medium mb-2"
-              >
-                Project Type
-              </label>
-              <select
-                id="type"
-                value={formData.type}
-                onChange={(e) =>
-                  handleInputChange(
-                    "type",
-                    e.target.value as "gitlab" | "jira" | "parent"
-                  )
-                }
-                className="w-full px-3 py-2 border rounded-md"
-              >
-                <option value="parent">Parent</option>
-                <option value="gitlab">GitLab</option>
-                <option value="jira">Jira</option>
-              </select>
-            </div>
-
-            <div>
-              <label
-                htmlFor="config"
-                className="block text-sm font-medium mb-2"
-              >
-                Configuration (JSON)
-              </label>
-              <textarea
-                id="config"
-                value={JSON.stringify(formData.config, null, 2)}
-                onChange={(e) => {
-                  try {
-                    const config = JSON.parse(e.target.value)
-                    handleInputChange("config", config)
-                  } catch {
-                    // Invalid JSON, don't update
-                  }
-                }}
-                className="w-full px-3 py-2 border rounded-md font-mono text-sm min-h-[120px]"
               />
             </div>
 

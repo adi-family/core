@@ -1,1 +1,1 @@
-DELETE FROM projects WHERE type = 'gitlab' AND name IN ('nakit-yok/backend', 'nakit-yok/frontend');
+DELETE FROM projects WHERE name IN ('nakit-yok/backend', 'nakit-yok/frontend');

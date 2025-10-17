@@ -190,25 +190,6 @@ export function ProjectPage() {
 
           <div>
             <label className="text-sm font-medium text-muted-foreground">
-              Type
-            </label>
-            <div className="mt-1">
-              <span
-                className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ring-1 ring-inset ${
-                  project.type === "gitlab"
-                    ? "bg-orange-100 text-orange-800 ring-orange-500/10"
-                    : project.type === "jira"
-                      ? "bg-blue-100 text-blue-800 ring-blue-500/10"
-                      : "bg-purple-100 text-purple-800 ring-purple-500/10"
-                }`}
-              >
-                {project.type}
-              </span>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">
               Status
             </label>
             <div className="mt-1">
@@ -222,15 +203,6 @@ export function ProjectPage() {
                 {project.enabled ? "Enabled" : "Disabled"}
               </span>
             </div>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-muted-foreground">
-              Configuration
-            </label>
-            <pre className="mt-1 text-sm overflow-auto bg-muted p-4 rounded border">
-              {JSON.stringify(project.config, null, 2)}
-            </pre>
           </div>
 
           <div>

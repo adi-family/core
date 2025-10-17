@@ -70,12 +70,7 @@ async function run() {
     const projects = await getAllEnabledProjects(sql);
 
     for (const project of projects) {
-      console.log(chalk.magenta.bold(`\nProcessing project: ${project.name} (${project.type})\n`));
-
-      if (project.type === 'parent') {
-        console.log(chalk.gray(`Skipping parent project ${project.name} - parent projects are aggregators only`));
-        continue;
-      }
+      console.log(chalk.magenta.bold(`\nProcessing project: ${project.name}\n`));
 
       const fileSpacesData = await getFileSpacesByProjectId(sql, project.id);
       const taskSourcesData = await getTaskSourcesByProjectId(sql, project.id);

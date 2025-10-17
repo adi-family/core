@@ -40,26 +40,6 @@ export function ProjectsPage() {
     })
   }, [])
 
-  const formatConfig = (config: unknown): string => {
-    try {
-      return JSON.stringify(config, null, 2)
-    } catch {
-      return String(config)
-    }
-  }
-
-  const getProjectTypeBadgeClass = (type: string): string => {
-    switch (type) {
-      case 'gitlab':
-        return 'bg-orange-100 text-orange-800 ring-orange-500/10'
-      case 'jira':
-        return 'bg-blue-100 text-blue-800 ring-blue-500/10'
-      case 'parent':
-        return 'bg-purple-100 text-purple-800 ring-purple-500/10'
-      default:
-        return 'bg-gray-100 text-gray-800 ring-gray-500/10'
-    }
-  }
 
   return (
     <div className="container mx-auto py-10">
@@ -80,8 +60,6 @@ export function ProjectsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Name</TableHead>
-                  <TableHead>Type</TableHead>
-                  <TableHead>Config</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created At</TableHead>
                 </TableRow>
@@ -94,16 +72,6 @@ export function ProjectsPage() {
                     onClick={() => window.location.href = `/projects/${project.id}`}
                   >
                     <TableCell className="font-medium">{project.name}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${getProjectTypeBadgeClass(project.type)}`}>
-                        {project.type}
-                      </span>
-                    </TableCell>
-                    <TableCell className="max-w-xs">
-                      <pre className="text-xs overflow-auto bg-muted p-2 rounded">
-                        {formatConfig(project.config)}
-                      </pre>
-                    </TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
                         project.enabled

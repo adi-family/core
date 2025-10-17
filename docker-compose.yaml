@@ -18,5 +18,18 @@ services:
       timeout: 5s
       retries: 5
 
+  migrations:
+    build:
+      context: ./migrations
+      dockerfile: Dockerfile
+    container_name: adi-simple-migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
+    command: ["postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable", "up"]
+    restart: "no"
+
 volumes:
   postgres_data:

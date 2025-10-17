@@ -16,28 +16,30 @@ gitlab-automation, jira-automation, multi-runner-support, issue-processor, datab
 - **Extensibility**: Worker is runner-agnostic; createRunner() validates supported types
 - Runner selection logged in `sessions.runner` field
 
-## Project Types
+## Task Sources
+- Projects can have multiple task sources attached via `file_spaces_task_sources` junction table
+- Each task source pulls issues from a specific provider (GitLab, Jira, GitHub)
+- Task sources are independent - one project can aggregate issues from multiple providers
 
-### GitLab Project
-- **Type**: `gitlab`
+### GitLab Issues Task Source
+- **Type**: `gitlab_issues`
 - **Config**: `{"repo": "owner/repo", "labels": ["DOIT"], "host": "https://gitlab.com"}`
 - **Requirements**: GITLAB_TOKEN environment variable
 - Monitors repositories with configurable labels (default: "DOIT")
 
-### Jira Project
+### Jira Task Source
 - **Type**: `jira`
-- **Config**: `{"project_key": "PROJ", "jql_filter": "status = 'To Do'", "host": "https://jira.example.com", "repo": "git@github.com:org/repo.git"}`
-- **Requirements**: Jira credentials in environment or config, repo field for cloning
+- **Config**: `{"project_key": "PROJ", "jql_filter": "status = 'To Do'", "host": "https://jira.example.com"}`
+- **Requirements**: Jira credentials in environment or config
 - Queries issues via JQL filter
 
-### Parent Project
-- **Type**: `parent`
-- **Config**: `{"child_project_ids": ["uuid1", "uuid2"]}`
-- Aggregates issues from multiple child projects recursively
-- Does not directly process issues
+### GitHub Issues Task Source
+- **Type**: `github_issues`
+- **Config**: `{"repo": "owner/repo", "labels": ["enhancement"], "host": "https://github.com"}`
+- **Status**: Not yet implemented (factory.ts:12)
 
 ## Database Schema
-- **projects** - Project definitions (type, config, enabled status)
+- **projects** - Project definitions (name, enabled status)
 - **tasks** - One record per issue (status: processing → completed, links to project_id)
 - **sessions** - One record per agent run (links to task via task_id, stores runner type)
 - **messages** - All agent messages/chunks (links to session via session_id)
