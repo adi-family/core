@@ -33,6 +33,7 @@ export abstract class BasePresenter<T> {
     onClick: (model: T) => void | Promise<void>
     variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
     disabled?: boolean
+    loading?: boolean
   }>
 
   /**

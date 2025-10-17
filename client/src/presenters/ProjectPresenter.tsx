@@ -5,6 +5,19 @@ import type { Project } from '../../../backend/types'
  * Presenter for Project model
  */
 export class ProjectPresenter extends BasePresenter<Project> {
+  private onToggleEnabled?: (project: Project) => Promise<void>
+  private togglingProjectId?: string | null
+
+  constructor(
+    model: Project,
+    onToggleEnabled?: (project: Project) => Promise<void>,
+    togglingProjectId?: string | null
+  ) {
+    super(model)
+    this.onToggleEnabled = onToggleEnabled
+    this.togglingProjectId = togglingProjectId
+  }
+
   getId(): string {
     return this.model.id
   }
@@ -51,6 +64,8 @@ export class ProjectPresenter extends BasePresenter<Project> {
   }
 
   getActions() {
+    const isToggling = this.togglingProjectId === this.model.id
+
     return [
       {
         label: 'View Details',
@@ -62,10 +77,12 @@ export class ProjectPresenter extends BasePresenter<Project> {
       {
         label: this.model.enabled ? 'Disable' : 'Enable',
         onClick: async (project: Project) => {
-          // TODO: Implement toggle enabled status
-          console.log(`Toggle project ${project.id} status`)
+          if (this.onToggleEnabled) {
+            await this.onToggleEnabled(project)
+          }
         },
         variant: 'outline' as const,
+        loading: isToggling,
       },
       {
         label: 'Delete',

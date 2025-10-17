@@ -81,12 +81,12 @@ export function PresenterTable<T, P extends BasePresenter<T>>({
                         e.stopPropagation()
                         action.onClick(item)
                       }}
-                      disabled={action.disabled}
+                      disabled={action.disabled || action.loading}
                       className={`px-3 py-1 text-sm rounded-md ${getActionButtonClass(action.variant)} ${
-                        action.disabled ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
+                        action.disabled || action.loading ? 'opacity-50 cursor-not-allowed' : ''
+                      } ${action.loading ? 'animate-pulse' : ''}`}
                     >
-                      {action.label}
+                      {action.loading ? '...' : action.label}
                     </button>
                   ))}
                 </div>

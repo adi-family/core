@@ -14,6 +14,7 @@ import type { Project } from "../../../backend/types"
 export function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  const [togglingProjectId, setTogglingProjectId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -34,6 +35,44 @@ export function ProjectsPage() {
     })
   }, [])
 
+  const handleToggleEnabled = async (project: Project) => {
+    setTogglingProjectId(project.id)
+
+    // Optimistic update
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === project.id ? { ...p, enabled: !p.enabled } : p
+      )
+    )
+
+    try {
+      const res = await client.projects[":id"].$patch({
+        param: { id: project.id },
+        json: { enabled: !project.enabled },
+      })
+
+      if (!res.ok) {
+        // Revert on error
+        setProjects((prev) =>
+          prev.map((p) =>
+            p.id === project.id ? { ...p, enabled: project.enabled } : p
+          )
+        )
+        console.error("Error toggling project:", await res.text())
+      }
+    } catch (error) {
+      // Revert on error
+      setProjects((prev) =>
+        prev.map((p) =>
+          p.id === project.id ? { ...p, enabled: project.enabled } : p
+        )
+      )
+      console.error("Error toggling project:", error)
+    } finally {
+      setTogglingProjectId(null)
+    }
+  }
+
   return (
     <div className="container mx-auto py-10">
       <Card>
@@ -47,6 +86,9 @@ export function ProjectsPage() {
             items={projects}
             loading={loading}
             emptyMessage="No projects found"
+            buildPresenter={(project) =>
+              new ProjectPresenter(project, handleToggleEnabled, togglingProjectId)
+            }
           />
         </CardContent>
       </Card>
