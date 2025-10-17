@@ -12,7 +12,7 @@ export type Task = {
   description: string | null
   status: string
   project_id: string | null
-  task_source_id: string | null
+  task_source_id: string
   source_gitlab_issue: unknown | null
   source_github_issue: unknown | null
   source_jira_issue: unknown | null
