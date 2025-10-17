@@ -32,6 +32,8 @@ RUN bun add vite @vitejs/plugin-react vite-tsconfig-paths
 
 # Set environment
 ENV NODE_ENV=production
+ENV CLIENT_PORT=4173
+ENV SERVER_PORT=3000
 
 # Run preview server directly pointing to dist
 CMD ["bunx", "vite", "preview", "--outDir", "dist", "--host", "0.0.0.0", "--port", "4173"]
