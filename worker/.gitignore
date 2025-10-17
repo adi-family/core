@@ -11,3 +11,4 @@
 !task-sources/**
 !utils
 !utils/**
+!Dockerfile
