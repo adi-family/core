@@ -34,6 +34,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: Number(env.CLIENT_PORT),
+      allowedHosts: ['adi-client.the-ihor.com'],
       proxy: {
         '/api': {
           target: `http://localhost:${env.SERVER_PORT}`,
