@@ -17,7 +17,7 @@ export function HomePage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="max-w-md mx-auto">
         <Link to="/setup-project">
           <Card className="cursor-pointer transition-colors hover:bg-muted/50 border-primary">
             <CardHeader>
@@ -29,71 +29,6 @@ export function HomePage() {
             <CardContent>
               <p className="text-sm text-muted-foreground">
                 Create GitLab, Jira, or Parent projects with custom configuration
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/projects">
-          <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-            <CardHeader>
-              <CardTitle>Projects</CardTitle>
-              <CardDescription>
-                View and manage all projects in the system
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                GitLab, Jira, and Parent projects with dynamic configuration
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/tasks">
-          <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-            <CardHeader>
-              <CardTitle>Tasks</CardTitle>
-              <CardDescription>
-                View and manage all tasks in the system
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Track tasks with titles, descriptions, status, and source
-                integrations
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/sessions">
-          <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-            <CardHeader>
-              <CardTitle>Sessions</CardTitle>
-              <CardDescription>
-                Browse all sessions linked to tasks
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                View session details including runner information and timestamps
-              </p>
-            </CardContent>
-          </Card>
-        </Link>
-
-        <Link to="/messages">
-          <Card className="cursor-pointer transition-colors hover:bg-muted/50">
-            <CardHeader>
-              <CardTitle>Messages</CardTitle>
-              <CardDescription>
-                Explore messages within sessions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Review message data and timestamps for each session
               </p>
             </CardContent>
           </Card>
