@@ -22,11 +22,13 @@ RUN bun run client:build
 FROM oven/bun:latest
 WORKDIR /app
 
-# Copy built files
+# Copy built files and config
 COPY --from=builder /app/client/dist ./dist
+COPY --from=builder /app/client/vite.config.ts ./vite.config.ts
+COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
-# Install vite for preview server
-RUN bun add vite
+# Install vite and dependencies for preview server
+RUN bun add vite @vitejs/plugin-react vite-tsconfig-paths
 
 # Set environment
 ENV NODE_ENV=production
