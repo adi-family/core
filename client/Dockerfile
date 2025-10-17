@@ -9,9 +9,13 @@ RUN bun install --frozen-lockfile
 
 # Copy source code
 COPY client ./client
+COPY backend ./backend
+COPY db ./db
 COPY tsconfig.json ./
 
 # Build the client
+ENV CLIENT_PORT=4173
+ENV SERVER_PORT=3000
 RUN bun run client:build
 
 # Production stage

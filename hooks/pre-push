@@ -1,0 +1,56 @@
+#!/bin/sh
+
+# Pre-push hook to build Dockerfiles, run ESLint and TypeScript typecheck
+echo "Building Docker images..."
+
+# Build backend
+docker build -f backend/Dockerfile -t adi-simple-backend:test . > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo "❌ Backend Docker build failed. Push aborted."
+  echo "Run 'docker build -f backend/Dockerfile -t adi-simple-backend:test .' to see the error."
+  exit 1
+fi
+echo "✅ Backend Docker build passed."
+
+# Build worker
+docker build -f worker/Dockerfile -t adi-simple-worker:test . > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo "❌ Worker Docker build failed. Push aborted."
+  echo "Run 'docker build -f worker/Dockerfile -t adi-simple-worker:test .' to see the error."
+  exit 1
+fi
+echo "✅ Worker Docker build passed."
+
+# Build client
+docker build -f client/Dockerfile -t adi-simple-client:test . > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+  echo "❌ Client Docker build failed. Push aborted."
+  echo "Run 'docker build -f client/Dockerfile -t adi-simple-client:test .' to see the error."
+  exit 1
+fi
+echo "✅ Client Docker build passed."
+
+echo "Running ESLint before push..."
+
+bun run lint
+
+if [ $? -ne 0 ]; then
+  echo "❌ ESLint check failed. Push aborted."
+  echo "Run 'bun run lint:fix' to automatically fix issues, or fix them manually."
+  exit 1
+fi
+
+echo "✅ ESLint check passed."
+
+echo "Running TypeScript typecheck..."
+
+bunx tsc --noEmit && bunx tsc -b client --force
+
+if [ $? -ne 0 ]; then
+  echo "❌ TypeScript typecheck failed. Push aborted."
+  echo "Fix the type errors before pushing."
+  exit 1
+fi
+
+echo "✅ TypeScript typecheck passed."
+exit 0
