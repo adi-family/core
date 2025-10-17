@@ -22,15 +22,14 @@ RUN bun run client:build
 FROM oven/bun:latest
 WORKDIR /app
 
-# Copy built files and package.json
+# Copy built files
 COPY --from=builder /app/client/dist ./dist
-COPY --from=builder /app/package.json ./
 
 # Install vite for preview server
-RUN bun install vite --production
+RUN bun add vite
 
 # Set environment
 ENV NODE_ENV=production
 
-# Run preview server
-CMD ["bun", "run", "client:preview", "--", "--host", "0.0.0.0"]
+# Run preview server directly pointing to dist
+CMD ["bunx", "vite", "preview", "--outDir", "dist", "--host", "0.0.0.0", "--port", "4173"]
