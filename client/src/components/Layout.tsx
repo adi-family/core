@@ -40,6 +40,12 @@ export function Layout() {
               >
                 Worker Cache
               </Link>
+              <Link
+                to="/file-spaces"
+                className="text-sm font-medium transition-colors hover:text-primary"
+              >
+                File Spaces
+              </Link>
             </div>
           </div>
         </div>

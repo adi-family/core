@@ -6,6 +6,7 @@ import { TasksPage } from "./pages/TasksPage"
 import { SessionsPage } from "./pages/SessionsPage"
 import { MessagesPage } from "./pages/MessagesPage"
 import { WorkerCachePage } from "./pages/WorkerCachePage"
+import { FileSpacesPage } from "./pages/FileSpacesPage"
 
 export function App() {
   return (
@@ -18,6 +19,7 @@ export function App() {
           <Route path="sessions" element={<SessionsPage />} />
           <Route path="messages" element={<MessagesPage />} />
           <Route path="worker-cache" element={<WorkerCachePage />} />
+          <Route path="file-spaces" element={<FileSpacesPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

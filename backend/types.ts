@@ -67,6 +67,27 @@ export type CreateMessageInput = {
   data: unknown
 }
 
+export type FileSpace = {
+  id: string
+  project_id: string
+  name: string
+  type: 'gitlab' | 'github'
+  config: unknown
+  enabled: boolean
+  created_at: Date
+  updated_at: Date
+}
+
+export type CreateFileSpaceInput = {
+  project_id: string
+  name: string
+  type: 'gitlab' | 'github'
+  config: unknown
+  enabled?: boolean
+}
+
+export type UpdateFileSpaceInput = Partial<CreateFileSpaceInput>
+
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: string }
