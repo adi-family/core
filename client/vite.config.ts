@@ -8,14 +8,15 @@ const tsconfigPaths = tsconfigPathsPlugin({
   projects: [resolve('tsconfig.json')],
 })
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(({ mode, command }) => {
   const env = loadEnv(mode, path.resolve(__dirname, '..'), '')
 
   if (!env.CLIENT_PORT) {
     throw new Error('CLIENT_PORT environment variable is required')
   }
 
-  if (!env.SERVER_PORT) {
+  // SERVER_PORT only needed for dev server proxy
+  if (command === 'serve' && !env.SERVER_PORT) {
     throw new Error('SERVER_PORT environment variable is required')
   }
 
