@@ -16,6 +16,7 @@ COPY tsconfig.json ./
 # Build the client
 ENV CLIENT_PORT=4173
 ENV BACKEND_URL=http://backend:3000
+ENV VITE_API_URL=/api
 RUN bun run client:build
 
 # Production stage
