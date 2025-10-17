@@ -8,23 +8,16 @@ const tsconfigPaths = tsconfigPathsPlugin({
   projects: [resolve('tsconfig.json')],
 })
 
-export default defineConfig(({ mode, command }) => {
+export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, path.resolve(__dirname, '..'), '')
 
   if (!env.CLIENT_PORT) {
     throw new Error('CLIENT_PORT environment variable is required')
   }
 
-  // SERVER_PORT only needed for dev server proxy
-  if (command === 'serve' && !env.SERVER_PORT) {
-    throw new Error('SERVER_PORT environment variable is required')
+  if (!env.BACKEND_URL) {
+    throw new Error('BACKEND_URL environment variable is required')
   }
-
-  // Use Docker internal hostname in production, localhost in dev
-  const isProduction = env.NODE_ENV === 'production'
-  const backendTarget = isProduction
-    ? 'http://backend:3000'
-    : `http://localhost:${env.SERVER_PORT}`
 
   return {
     css: {
@@ -44,7 +37,7 @@ export default defineConfig(({ mode, command }) => {
       allowedHosts: ['adi-client.the-ihor.com'],
       proxy: {
         '/api': {
-          target: backendTarget,
+          target: env.BACKEND_URL,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },
@@ -54,7 +47,7 @@ export default defineConfig(({ mode, command }) => {
       allowedHosts: ['adi-client.the-ihor.com'],
       proxy: {
         '/api': {
-          target: backendTarget,
+          target: env.BACKEND_URL,
           changeOrigin: true,
           rewrite: (path) => path.replace(/^\/api/, ''),
         },

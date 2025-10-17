@@ -76,6 +76,7 @@ services:
         condition: service_completed_successfully
     environment:
       - NODE_ENV=production
+      - BACKEND_URL=http://backend:3000
     restart: unless-stopped
 
 volumes:
