@@ -18,6 +18,22 @@ export function HomePage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Link to="/setup-project">
+          <Card className="cursor-pointer transition-colors hover:bg-muted/50 border-primary">
+            <CardHeader>
+              <CardTitle>Setup Project</CardTitle>
+              <CardDescription>
+                Create a new project in the system
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Create GitLab, Jira, or Parent projects with custom configuration
+              </p>
+            </CardContent>
+          </Card>
+        </Link>
+
         <Link to="/projects">
           <Card className="cursor-pointer transition-colors hover:bg-muted/50">
             <CardHeader>
