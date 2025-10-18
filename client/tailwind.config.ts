@@ -22,6 +22,11 @@ export default {
     ...dirs.map(dir => `${dir}/*.{js,jsx,ts,tsx}`)
   ],
   theme: {
-    extend: {},
+    extend: {
+      borderRadius: {
+        none: '0',
+        DEFAULT: '0',
+      },
+    },
   },
 } satisfies Config

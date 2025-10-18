@@ -6,6 +6,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Select } from "@/components/ui/select"
+import { Label } from "@/components/ui/label"
 import { PresenterTable } from "@/components/PresenterTable"
 import { TaskPresenter } from "@/presenters"
 import { client } from "@/lib/client"
@@ -62,7 +65,7 @@ export function TasksPage() {
     : tasks
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="mx-auto p-6 max-w-7xl">
       <Card>
         <CardHeader>
           <div className="flex justify-between items-start">
@@ -70,25 +73,24 @@ export function TasksPage() {
               <CardTitle>Tasks</CardTitle>
               <CardDescription>View all tasks in the system</CardDescription>
             </div>
-            <button
+            <Button
               onClick={() => fetchData()}
               disabled={loading}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Syncing..." : "Sync"}
-            </button>
+            </Button>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="mb-4">
-            <label htmlFor="taskSourceFilter" className="block text-sm font-medium mb-2">
+          <div className="mb-6">
+            <Label htmlFor="taskSourceFilter" className="block mb-2">
               Filter by Task Source
-            </label>
-            <select
+            </Label>
+            <Select
               id="taskSourceFilter"
               value={selectedTaskSourceId}
               onChange={(e) => setSelectedTaskSourceId(e.target.value)}
-              className="w-full max-w-xs px-3 py-2 border rounded-md"
+              className="max-w-xs"
             >
               <option value="">All Task Sources</option>
               {taskSources.map((taskSource) => (
@@ -96,7 +98,7 @@ export function TasksPage() {
                   {taskSource.name} ({taskSource.type})
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
           <PresenterTable
             presenter={TaskPresenter}

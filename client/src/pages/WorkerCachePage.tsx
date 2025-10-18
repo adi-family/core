@@ -14,7 +14,10 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
 import { client } from "@/lib/client"
+import { Loader2, CheckCircle2, Circle } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 type WorkerCache = {
   id: number
@@ -33,14 +36,24 @@ export function WorkerCachePage() {
   const [cache, setCache] = useState<WorkerCache[]>([])
   const [loading, setLoading] = useState(true)
 
-  const getStatusBadgeClass = (status: string | null): string => {
+  const getStatusBadgeVariant = (status: string | null): 'warning' | 'success' | 'gray' => {
     if (status === "processing") {
-      return "bg-yellow-50 text-yellow-800 ring-yellow-600/20"
+      return "warning"
     }
     if (status === "completed") {
-      return "bg-green-50 text-green-800 ring-green-600/20"
+      return "success"
     }
-    return "bg-gray-50 text-gray-800 ring-gray-600/20"
+    return "gray"
+  }
+
+  const getStatusBadgeIcon = (status: string | null): LucideIcon => {
+    if (status === "processing") {
+      return Loader2
+    }
+    if (status === "completed") {
+      return CheckCircle2
+    }
+    return Circle
   }
 
   useEffect(() => {
@@ -69,7 +82,7 @@ export function WorkerCachePage() {
   }, [])
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="mx-auto p-6 max-w-7xl">
       <Card>
         <CardHeader>
           <CardTitle>Worker Cache</CardTitle>
@@ -77,9 +90,9 @@ export function WorkerCachePage() {
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-4">Loading...</div>
+            <div className="text-center py-8 text-sm uppercase tracking-wide text-gray-500">Loading...</div>
           ) : cache.length === 0 ? (
-            <div className="text-center py-4 text-muted-foreground">
+            <div className="text-center py-8 text-sm uppercase tracking-wide text-gray-500">
               No cache entries found
             </div>
           ) : (
@@ -103,11 +116,12 @@ export function WorkerCachePage() {
                     </TableCell>
                     <TableCell className="font-medium">{entry.repo}</TableCell>
                     <TableCell>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${getStatusBadgeClass(entry.status)}`}
+                      <Badge
+                        variant={getStatusBadgeVariant(entry.status)}
+                        icon={getStatusBadgeIcon(entry.status)}
                       >
                         {entry.status || "unknown"}
-                      </span>
+                      </Badge>
                     </TableCell>
                     <TableCell className="font-mono text-xs">
                       {entry.processing_worker_id || "-"}

@@ -1,5 +1,8 @@
 import { BasePresenter } from './base'
 import type { TaskSource } from '../../../backend/types'
+import { Badge } from '@/components/ui/badge'
+import { GitBranch, Github, CheckCircle2, XCircle } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
 
 /**
  * Presenter for TaskSource model
@@ -33,9 +36,12 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
         key: 'type',
         label: 'Type',
         render: (taskSource: TaskSource) => (
-          <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${this.getTypeBadgeClass(taskSource.type)}`}>
+          <Badge
+            variant={this.getTypeBadgeVariant(taskSource.type)}
+            icon={this.getTypeBadgeIcon(taskSource.type)}
+          >
             {taskSource.type}
-          </span>
+          </Badge>
         ),
         sortable: true,
       },
@@ -43,15 +49,12 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
         key: 'status',
         label: 'Status',
         render: (taskSource: TaskSource) => (
-          <span
-            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-              taskSource.enabled
-                ? 'bg-green-100 text-green-800 ring-green-500/10'
-                : 'bg-gray-100 text-gray-800 ring-gray-500/10'
-            }`}
+          <Badge
+            variant={taskSource.enabled ? 'success' : 'gray'}
+            icon={taskSource.enabled ? CheckCircle2 : XCircle}
           >
             {taskSource.enabled ? 'Enabled' : 'Disabled'}
-          </span>
+          </Badge>
         ),
         sortable: true,
       },
@@ -145,20 +148,56 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
   }
 
   /**
-   * Get type badge class based on task source type
+   * Get type badge variant based on task source type
+   */
+  getTypeBadgeVariant(type?: 'gitlab_issues' | 'jira' | 'github_issues'): 'orange' | 'purple' | 'blue' | 'gray' {
+    const sourceType = type ?? this.model.type
+
+    switch (sourceType) {
+      case 'gitlab_issues':
+        return 'orange'
+      case 'github_issues':
+        return 'purple'
+      case 'jira':
+        return 'blue'
+      default:
+        return 'gray'
+    }
+  }
+
+  /**
+   * Get type badge icon based on task source type
+   */
+  getTypeBadgeIcon(type?: 'gitlab_issues' | 'jira' | 'github_issues'): LucideIcon {
+    const sourceType = type ?? this.model.type
+
+    switch (sourceType) {
+      case 'gitlab_issues':
+        return GitBranch
+      case 'github_issues':
+        return Github
+      case 'jira':
+        return GitBranch
+      default:
+        return GitBranch
+    }
+  }
+
+  /**
+   * Get type badge class based on task source type (legacy - use getTypeBadgeVariant)
    */
   getTypeBadgeClass(type?: 'gitlab_issues' | 'jira' | 'github_issues'): string {
     const sourceType = type ?? this.model.type
 
     switch (sourceType) {
       case 'gitlab_issues':
-        return 'bg-orange-50 text-orange-700 ring-orange-500/10'
+        return 'bg-orange-50/80 text-orange-700 border-orange-300 hover:bg-orange-100/80'
       case 'github_issues':
-        return 'bg-purple-50 text-purple-700 ring-purple-500/10'
+        return 'bg-purple-50/80 text-purple-700 border-purple-300 hover:bg-purple-100/80'
       case 'jira':
-        return 'bg-blue-50 text-blue-700 ring-blue-500/10'
+        return 'bg-blue-50/80 text-blue-700 border-blue-300 hover:bg-blue-100/80'
       default:
-        return 'bg-gray-50 text-gray-700 ring-gray-500/10'
+        return 'bg-gray-100/80 text-gray-700 border-gray-300 hover:bg-gray-200/80'
     }
   }
 
@@ -167,8 +206,8 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
    */
   getStatusBadgeClass(): string {
     return this.model.enabled
-      ? 'bg-green-100 text-green-800 ring-green-500/10'
-      : 'bg-gray-100 text-gray-800 ring-gray-500/10'
+      ? 'bg-green-50/80 text-green-700 border-green-300 shadow-sm backdrop-blur-sm'
+      : 'bg-gray-100/80 text-gray-700 border-gray-300 shadow-sm backdrop-blur-sm'
   }
 
   /**

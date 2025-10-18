@@ -1,5 +1,7 @@
 import { BasePresenter } from './base'
 import type { FileSpace } from '../../../backend/types'
+import { Badge } from '@/components/ui/badge'
+import { FolderGit2, CheckCircle2, XCircle } from 'lucide-react'
 
 /**
  * Presenter for FileSpace model
@@ -33,9 +35,9 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
         key: 'type',
         label: 'Type',
         render: (fileSpace: FileSpace) => (
-          <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ring-blue-500/10 bg-blue-50 text-blue-700">
+          <Badge variant="blue" icon={FolderGit2}>
             {fileSpace.type}
-          </span>
+          </Badge>
         ),
         sortable: true,
       },
@@ -43,15 +45,12 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
         key: 'status',
         label: 'Status',
         render: (fileSpace: FileSpace) => (
-          <span
-            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-              fileSpace.enabled
-                ? 'bg-green-100 text-green-800 ring-green-500/10'
-                : 'bg-gray-100 text-gray-800 ring-gray-500/10'
-            }`}
+          <Badge
+            variant={fileSpace.enabled ? 'success' : 'gray'}
+            icon={fileSpace.enabled ? CheckCircle2 : XCircle}
           >
             {fileSpace.enabled ? 'Enabled' : 'Disabled'}
-          </span>
+          </Badge>
         ),
         sortable: true,
       },
@@ -127,7 +126,7 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
    * Get type badge class based on file space type
    */
   getTypeBadgeClass(): string {
-    return 'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ring-blue-500/10 bg-blue-50 text-blue-700'
+    return 'inline-flex items-center px-3 py-1.5 text-xs font-medium uppercase tracking-wide border border-blue-300 bg-blue-50/80 text-blue-700 backdrop-blur-sm shadow-sm transition-all duration-200'
   }
 
   /**
@@ -135,8 +134,8 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
    */
   getStatusBadgeClass(): string {
     return this.model.enabled
-      ? 'bg-green-100 text-green-800 ring-green-500/10'
-      : 'bg-gray-100 text-gray-800 ring-gray-500/10'
+      ? 'bg-green-50/80 text-green-700 border-green-300 shadow-sm backdrop-blur-sm'
+      : 'bg-gray-100/80 text-gray-700 border-gray-300 shadow-sm backdrop-blur-sm'
   }
 
   /**

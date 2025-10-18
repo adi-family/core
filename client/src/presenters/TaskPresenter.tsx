@@ -1,5 +1,7 @@
 import { BasePresenter } from './base'
 import type { Task, TaskSource } from '../../../backend/types'
+import { Badge } from '@/components/ui/badge'
+import { Circle } from 'lucide-react'
 
 /**
  * Presenter for Task model
@@ -48,9 +50,9 @@ export class TaskPresenter extends BasePresenter<Task> {
         key: 'status',
         label: 'Status',
         render: (task: Task) => (
-          <span className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ring-gray-500/10">
+          <Badge variant="default" icon={Circle}>
             {task.status}
-          </span>
+          </Badge>
         ),
         sortable: true,
       },
@@ -135,7 +137,7 @@ export class TaskPresenter extends BasePresenter<Task> {
    * Get status badge class
    */
   getStatusBadgeClass(): string {
-    return 'inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ring-gray-500/10'
+    return 'inline-flex items-center px-3 py-1.5 text-xs font-medium uppercase tracking-wide border border-gray-300 bg-gray-100/80 text-gray-700 backdrop-blur-sm shadow-sm transition-all duration-200'
   }
 
   /**

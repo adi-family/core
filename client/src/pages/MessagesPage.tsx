@@ -35,7 +35,7 @@ export function MessagesPage() {
   }, [])
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="mx-auto p-6 max-w-7xl">
       <Card>
         <CardHeader>
           <CardTitle>Messages</CardTitle>

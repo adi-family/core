@@ -1,5 +1,7 @@
 import { BasePresenter } from './base'
 import type { Project } from '../../../backend/types'
+import { Badge } from '@/components/ui/badge'
+import { CheckCircle2, XCircle } from 'lucide-react'
 
 /**
  * Presenter for Project model
@@ -38,15 +40,12 @@ export class ProjectPresenter extends BasePresenter<Project> {
         key: 'status',
         label: 'Status',
         render: (project: Project) => (
-          <span
-            className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ring-1 ring-inset ${
-              project.enabled
-                ? 'bg-green-100 text-green-800 ring-green-500/10'
-                : 'bg-gray-100 text-gray-800 ring-gray-500/10'
-            }`}
+          <Badge
+            variant={project.enabled ? 'success' : 'gray'}
+            icon={project.enabled ? CheckCircle2 : XCircle}
           >
             {project.enabled ? 'Enabled' : 'Disabled'}
-          </span>
+          </Badge>
         ),
         sortable: true,
       },
@@ -102,8 +101,8 @@ export class ProjectPresenter extends BasePresenter<Project> {
    */
   getStatusBadgeClass(): string {
     return this.model.enabled
-      ? 'bg-green-100 text-green-800 ring-green-500/10'
-      : 'bg-gray-100 text-gray-800 ring-gray-500/10'
+      ? 'bg-green-50/80 text-green-700 border-green-300 shadow-sm backdrop-blur-sm'
+      : 'bg-gray-100/80 text-gray-700 border-gray-300 shadow-sm backdrop-blur-sm'
   }
 
   /**
