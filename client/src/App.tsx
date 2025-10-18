@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom"
+import { Toaster } from "sonner"
 import { Layout } from "./components/Layout"
 import { HomePage } from "./pages/HomePage"
 import { ProjectsPage } from "./pages/ProjectsPage"
@@ -14,6 +15,7 @@ import { TaskSourcesPage } from "./pages/TaskSourcesPage"
 export function App() {
   return (
     <BrowserRouter>
+      <Toaster />
       <Routes>
         <Route path="/" element={<Layout />}>
           <Route index element={<HomePage />} />

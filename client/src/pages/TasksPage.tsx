@@ -17,39 +17,40 @@ export function TasksPage() {
   const [loading, setLoading] = useState(true)
   const [selectedTaskSourceId, setSelectedTaskSourceId] = useState<string>("")
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const [tasksRes, taskSourcesRes] = await Promise.all([
-        client.tasks.$get(),
-        client["task-sources"].$get()
-      ])
+  const fetchData = async () => {
+    setLoading(true)
+    const [tasksRes, taskSourcesRes] = await Promise.all([
+      client.tasks.$get(),
+      client["task-sources"].$get()
+    ])
 
-      if (!tasksRes.ok) {
-        console.error("Error fetching tasks:", await tasksRes.text())
-        setLoading(false)
-        return
-      }
-
-      if (!taskSourcesRes.ok) {
-        console.error("Error fetching task sources:", await taskSourcesRes.text())
-        setLoading(false)
-        return
-      }
-
-      const tasksData = await tasksRes.json()
-      const taskSourcesData = await taskSourcesRes.json()
-
-      if (!Array.isArray(tasksData)) {
-        console.error("Invalid API response: expected array of tasks")
-        setLoading(false)
-        return
-      }
-
-      setTasks(tasksData)
-      setTaskSources(taskSourcesData)
+    if (!tasksRes.ok) {
+      console.error("Error fetching tasks:", await tasksRes.text())
       setLoading(false)
+      return
     }
 
+    if (!taskSourcesRes.ok) {
+      console.error("Error fetching task sources:", await taskSourcesRes.text())
+      setLoading(false)
+      return
+    }
+
+    const tasksData = await tasksRes.json()
+    const taskSourcesData = await taskSourcesRes.json()
+
+    if (!Array.isArray(tasksData)) {
+      console.error("Invalid API response: expected array of tasks")
+      setLoading(false)
+      return
+    }
+
+    setTasks(tasksData)
+    setTaskSources(taskSourcesData)
+    setLoading(false)
+  }
+
+  useEffect(() => {
     fetchData().catch((error) => {
       console.error("Error fetching data:", error)
       setLoading(false)
@@ -64,8 +65,19 @@ export function TasksPage() {
     <div className="container mx-auto py-10">
       <Card>
         <CardHeader>
-          <CardTitle>Tasks</CardTitle>
-          <CardDescription>View all tasks in the system</CardDescription>
+          <div className="flex justify-between items-start">
+            <div>
+              <CardTitle>Tasks</CardTitle>
+              <CardDescription>View all tasks in the system</CardDescription>
+            </div>
+            <button
+              onClick={() => fetchData()}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {loading ? "Syncing..." : "Sync"}
+            </button>
+          </div>
         </CardHeader>
         <CardContent>
           <div className="mb-4">

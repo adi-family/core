@@ -55,6 +55,7 @@ app.post('/task-sources', taskSourceHandlers.create)
 app.get('/task-sources/:id', taskSourceHandlers.get)
 app.patch('/task-sources/:id', taskSourceHandlers.update)
 app.delete('/task-sources/:id', taskSourceHandlers.delete)
+app.post('/task-sources/:id/sync', taskSourceHandlers.sync)
 
 export { app }
 export type AppType = typeof app

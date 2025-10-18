@@ -53,5 +53,20 @@ export const createTaskSourceHandlers = (sql: Sql) => ({
     }
 
     return c.json({ success: true })
+  },
+
+  sync: async (c: Context) => {
+    const id = c.req.param('id')
+    const result = await queries.findTaskSourceById(sql, id)
+
+    if (!result.ok) {
+      return c.json({ error: result.error }, 404)
+    }
+
+    // TODO: Implement actual task source sync logic
+    // This would trigger the worker to fetch and process issues from this task source
+    console.log(`Sync requested for task source ${id}`)
+
+    return c.json({ success: true, message: 'Sync triggered' })
   }
 })

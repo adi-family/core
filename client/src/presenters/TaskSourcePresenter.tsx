@@ -89,6 +89,27 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
   getActions() {
     return [
       {
+        label: 'Sync',
+        onClick: async (taskSource: TaskSource) => {
+          const { client } = await import('@/lib/client')
+          const { toast } = await import('sonner')
+          try {
+            const res = await client['task-sources'][':id']['sync'].$post({
+              param: { id: taskSource.id }
+            })
+            if (res.ok) {
+              toast.success('Sync triggered successfully')
+            } else {
+              toast.error('Failed to trigger sync')
+            }
+          } catch (error) {
+            console.error('Error syncing task source:', error)
+            toast.error('Error syncing task source')
+          }
+        },
+        variant: 'outline' as const,
+      },
+      {
         label: 'View Details',
         onClick: (taskSource: TaskSource) => {
           window.location.href = `/task-sources/${taskSource.id}`
