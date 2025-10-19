@@ -3,6 +3,7 @@ import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/projects'
 import { idParamSchema, createProjectSchema, updateProjectSchema } from '../schemas'
+import { authMiddleware } from '../middleware/auth'
 
 export const createProjectRoutes = (sql: Sql) => {
   return new Hono()
@@ -20,12 +21,12 @@ export const createProjectRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .post('/', zValidator('json', createProjectSchema), async (c) => {
+    .post('/', zValidator('json', createProjectSchema), authMiddleware, async (c) => {
       const body = c.req.valid('json')
       const project = await queries.createProject(sql, body)
       return c.json(project, 201)
     })
-    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateProjectSchema), async (c) => {
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateProjectSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
       const result = await queries.updateProject(sql, id, body)
@@ -36,7 +37,7 @@ export const createProjectRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const result = await queries.deleteProject(sql, id)
 

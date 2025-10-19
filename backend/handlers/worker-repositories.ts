@@ -6,6 +6,7 @@ import * as projectQueries from '../../db/projects'
 import { CIRepositoryManager } from '../../worker/ci-repository-manager'
 import { createLogger } from '../../utils/logger'
 import { idParamSchema, projectIdParamSchema, createWorkerRepositorySchema, updateWorkerRepositorySchema, setupWorkerRepositorySchema, updateVersionSchema } from '../schemas'
+import { authMiddleware } from '../middleware/auth'
 
 const logger = createLogger({ namespace: 'worker-repositories-handler' })
 
@@ -25,12 +26,12 @@ export const createWorkerRepositoryRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .post('/', zValidator('json', createWorkerRepositorySchema), async (c) => {
+    .post('/', zValidator('json', createWorkerRepositorySchema), authMiddleware, async (c) => {
       const body = c.req.valid('json')
       const repo = await queries.createWorkerRepository(sql, body)
       return c.json(repo, 201)
     })
-    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateWorkerRepositorySchema), async (c) => {
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateWorkerRepositorySchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
       const result = await queries.updateWorkerRepository(sql, id, body)
@@ -41,7 +42,7 @@ export const createWorkerRepositoryRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const result = await queries.deleteWorkerRepository(sql, id)
 
@@ -156,7 +157,7 @@ export const createWorkerRepositoryRoutes = (sql: Sql) => {
       )
     }
     })
-    .post('/:id/update-version', zValidator('param', idParamSchema), zValidator('json', updateVersionSchema), async (c) => {
+    .post('/:id/update-version', zValidator('param', idParamSchema), zValidator('json', updateVersionSchema), authMiddleware, async (c) => {
     const { id } = c.req.valid('param')
     const body = c.req.valid('json')
 

@@ -97,7 +97,7 @@ const app = new Hono()
     }
     return c.json(result.data)
   })
-  .post('/projects/:projectId/worker-repository/setup', zValidator('param', projectIdParamSchema), zValidator('json', setupWorkerRepositorySchema), async (c) => {
+  .post('/projects/:projectId/worker-repository/setup', zValidator('param', projectIdParamSchema), zValidator('json', setupWorkerRepositorySchema), authMiddleware, async (c) => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
 
@@ -193,28 +193,28 @@ const app = new Hono()
     }
   })
   // Projects -> Worker Cache (traffic light API)
-  .post('/projects/:projectId/worker-cache/is-signaled', zValidator('param', projectIdParamSchema), zValidator('json', isSignaledBodySchema), async (c) => {
+  .post('/projects/:projectId/worker-cache/is-signaled', zValidator('param', projectIdParamSchema), zValidator('json', isSignaledBodySchema), authMiddleware, async (c) => {
     const { projectId } = c.req.valid('param')
     const { issueId, date } = c.req.valid('json')
     const trafficLight = initTrafficLight(sql, projectId)
     const result = await trafficLight.isSignaledBefore(issueId, new Date(date))
     return c.json({ signaled: result })
   })
-  .post('/projects/:projectId/worker-cache/try-acquire-lock', zValidator('param', projectIdParamSchema), zValidator('json', lockContextSchema), async (c) => {
+  .post('/projects/:projectId/worker-cache/try-acquire-lock', zValidator('param', projectIdParamSchema), zValidator('json', lockContextSchema), authMiddleware, async (c) => {
     const { projectId } = c.req.valid('param')
     const lockContext = c.req.valid('json')
     const trafficLight = initTrafficLight(sql, projectId)
     const acquired = await trafficLight.tryAcquireLock(lockContext)
     return c.json({ acquired })
   })
-  .post('/projects/:projectId/worker-cache/release-lock', zValidator('param', projectIdParamSchema), zValidator('json', releaseLockBodySchema), async (c) => {
+  .post('/projects/:projectId/worker-cache/release-lock', zValidator('param', projectIdParamSchema), zValidator('json', releaseLockBodySchema), authMiddleware, async (c) => {
     const { projectId } = c.req.valid('param')
     const { issueId } = c.req.valid('json')
     const trafficLight = initTrafficLight(sql, projectId)
     await trafficLight.releaseLock(issueId)
     return c.json({ success: true })
   })
-  .post('/projects/:projectId/worker-cache/signal', zValidator('param', projectIdParamSchema), zValidator('json', signalInfoSchema), async (c) => {
+  .post('/projects/:projectId/worker-cache/signal', zValidator('param', projectIdParamSchema), zValidator('json', signalInfoSchema), authMiddleware, async (c) => {
     const { projectId } = c.req.valid('param')
     const signalInfo = c.req.valid('json')
     const trafficLight = initTrafficLight(sql, projectId)
@@ -230,7 +230,6 @@ const app = new Hono()
     const taskId = await trafficLight.getTaskId(issueId)
     return c.json({ taskId })
   })
-  // Apply auth middleware to specific routes
   .patch('/pipeline-executions/:id', zValidator('param', idParamSchema), zValidator('json', updatePipelineExecutionSchema), authMiddleware, async (c) => {
     const { id } = c.req.valid('param')
     const body = c.req.valid('json')

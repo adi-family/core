@@ -3,6 +3,7 @@ import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/file-spaces'
 import { idParamSchema, createFileSpaceSchema, updateFileSpaceSchema, projectIdQuerySchema } from '../schemas'
+import { authMiddleware } from '../middleware/auth'
 
 export const createFileSpaceRoutes = (sql: Sql) => {
   return new Hono()
@@ -27,12 +28,12 @@ export const createFileSpaceRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .post('/', zValidator('json', createFileSpaceSchema), async (c) => {
+    .post('/', zValidator('json', createFileSpaceSchema), authMiddleware, async (c) => {
       const body = c.req.valid('json')
       const fileSpace = await queries.createFileSpace(sql, body)
       return c.json(fileSpace, 201)
     })
-    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateFileSpaceSchema), async (c) => {
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateFileSpaceSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
       const result = await queries.updateFileSpace(sql, id, body)
@@ -43,7 +44,7 @@ export const createFileSpaceRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const result = await queries.deleteFileSpace(sql, id)
 

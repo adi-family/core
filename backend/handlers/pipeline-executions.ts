@@ -3,6 +3,7 @@ import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/pipeline-executions'
 import { idParamSchema, sessionIdParamSchema, createPipelineExecutionSchema, updatePipelineExecutionSchema, timeoutQuerySchema } from '../schemas'
+import { authMiddleware } from '../middleware/auth'
 
 export const createPipelineExecutionRoutes = (sql: Sql) => {
   return new Hono()
@@ -26,12 +27,12 @@ export const createPipelineExecutionRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .post('/', zValidator('json', createPipelineExecutionSchema), async (c) => {
+    .post('/', zValidator('json', createPipelineExecutionSchema), authMiddleware, async (c) => {
       const body = c.req.valid('json')
       const execution = await queries.createPipelineExecution(sql, body)
       return c.json(execution, 201)
     })
-    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updatePipelineExecutionSchema), async (c) => {
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updatePipelineExecutionSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
       const result = await queries.updatePipelineExecution(sql, id, body)
@@ -42,7 +43,7 @@ export const createPipelineExecutionRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const result = await queries.deletePipelineExecution(sql, id)
 

@@ -5,6 +5,7 @@ import * as queries from '../../db/task-sources'
 import { createLogger } from '@utils/logger.ts'
 import { processTaskSource } from '../services/orchestrator'
 import { idParamSchema, createTaskSourceSchema, updateTaskSourceSchema, projectIdQuerySchema } from '../schemas'
+import { authMiddleware } from '../middleware/auth'
 
 const logger = createLogger({ namespace: 'task-sources' })
 
@@ -31,12 +32,12 @@ export const createTaskSourceRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .post('/', zValidator('json', createTaskSourceSchema), async (c) => {
+    .post('/', zValidator('json', createTaskSourceSchema), authMiddleware, async (c) => {
       const body = c.req.valid('json')
       const taskSource = await queries.createTaskSource(sql, body)
       return c.json(taskSource, 201)
     })
-    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateTaskSourceSchema), async (c) => {
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateTaskSourceSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
       const result = await queries.updateTaskSource(sql, id, body)
@@ -47,7 +48,7 @@ export const createTaskSourceRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const result = await queries.deleteTaskSource(sql, id)
 
@@ -57,7 +58,7 @@ export const createTaskSourceRoutes = (sql: Sql) => {
 
       return c.json({ success: true })
     })
-    .post('/:id/sync', zValidator('param', idParamSchema), async (c) => {
+    .post('/:id/sync', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const result = await queries.findTaskSourceById(sql, id)
 

@@ -3,6 +3,7 @@ import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/secrets'
 import { z } from 'zod'
+import { authMiddleware } from '../middleware/auth'
 
 const idParamSchema = z.object({
   id: z.string()
@@ -45,12 +46,12 @@ export const createSecretRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .post('/', zValidator('json', createSecretSchema), async (c) => {
+    .post('/', zValidator('json', createSecretSchema), authMiddleware, async (c) => {
       const body = c.req.valid('json')
       const secret = await queries.createSecret(sql, body)
       return c.json(secret, 201)
     })
-    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateSecretSchema), async (c) => {
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateSecretSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
       const result = await queries.updateSecret(sql, id, body)
@@ -61,7 +62,7 @@ export const createSecretRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const result = await queries.deleteSecret(sql, id)
 
