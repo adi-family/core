@@ -1,5 +1,7 @@
 import {BaseTaskSource, type TaskSource, type TaskSourceIssue, type GitlabMetadata, type GitlabIssuesConfig} from './base';
 import {getGitlabIssueList} from '../../gitlab';
+import {sql} from '../../db/client';
+import {findSecretById} from '../../db/secrets';
 
 export class GitlabIssuesTaskSource extends BaseTaskSource {
   private gitlabConfig: GitlabIssuesConfig;
@@ -13,11 +15,20 @@ export class GitlabIssuesTaskSource extends BaseTaskSource {
   }
 
   async *getIssues(): AsyncIterable<TaskSourceIssue> {
+    let accessToken: string | undefined;
+
+    if (this.gitlabConfig.access_token_secret_id) {
+      const secretResult = await findSecretById(sql, this.gitlabConfig.access_token_secret_id);
+      if (secretResult.ok) {
+        accessToken = secretResult.data.value;
+      }
+    }
+
     const issues = await getGitlabIssueList(
       this.gitlabConfig.repo,
       this.gitlabConfig.labels,
       this.gitlabConfig.host,
-      this.gitlabConfig.access_token
+      accessToken
     );
     for (const issue of issues) {
       const metadata: GitlabMetadata = {

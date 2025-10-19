@@ -1,6 +1,8 @@
 import {BaseTaskSource, type TaskSource, type TaskSourceIssue, type JiraMetadata, type TaskSourceJiraConfig} from './base';
 import {execSync} from 'child_process';
 import {createLogger} from '@utils/logger.ts';
+import {sql} from '../../db/client';
+import {findSecretById} from '../../db/secrets';
 
 export class JiraTaskSource extends BaseTaskSource {
   private jiraConfig: TaskSourceJiraConfig;
@@ -17,9 +19,18 @@ export class JiraTaskSource extends BaseTaskSource {
   async *getIssues(): AsyncIterable<TaskSourceIssue> {
     const jqlQuery = this.jiraConfig.jql_filter || `project = ${this.jiraConfig.project_key} AND status = "To Do"`;
 
+    let accessToken: string | undefined;
+    if (this.jiraConfig.access_token_secret_id) {
+      const secretResult = await findSecretById(sql, this.jiraConfig.access_token_secret_id);
+      if (secretResult.ok) {
+        accessToken = secretResult.data.value;
+      }
+    }
+
     try {
+      const authHeader = accessToken ? `-H "Authorization: Bearer ${accessToken}"` : '';
       const result = execSync(
-        `curl -s -X GET -H "Content-Type: application/json" "${this.jiraConfig.host}/rest/api/2/search?jql=${encodeURIComponent(jqlQuery)}"`,
+        `curl -s -X GET ${authHeader} -H "Content-Type: application/json" "${this.jiraConfig.host}/rest/api/2/search?jql=${encodeURIComponent(jqlQuery)}"`,
         {encoding: 'utf-8'}
       );
 

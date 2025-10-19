@@ -238,3 +238,25 @@ export type SignalInfo = {
   date: Date
   taskId: string
 }
+
+export type Secret = {
+  id: string
+  project_id: string
+  name: string
+  value: string
+  description: string | null
+  created_at: Date
+  updated_at: Date
+}
+
+export type CreateSecretInput = {
+  project_id: string
+  name: string
+  value: string
+  description?: string
+}
+
+export type UpdateSecretInput = {
+  value?: string
+  description?: string
+}

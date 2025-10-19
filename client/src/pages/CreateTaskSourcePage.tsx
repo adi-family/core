@@ -1,4 +1,4 @@
-import { type FormEvent, useState, useEffect } from "react"
+import { type FormEvent, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import {
   Card,
@@ -11,8 +11,10 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
+import { ProjectSelect } from "@/components/ProjectSelect"
+import { SecretSelect } from "@/components/SecretSelect"
 import { client } from "@/lib/client"
-import type { CreateTaskSourceInput, Project } from "../../../types"
+import type { CreateTaskSourceInput } from "../../../types"
 
 type TaskSourceType = 'gitlab_issues' | 'jira' | 'github_issues'
 
@@ -20,21 +22,21 @@ type GitlabIssuesConfig = {
   repo: string
   labels: string[]
   host?: string
-  access_token?: string
+  access_token_secret_id?: string
 }
 
 type GithubIssuesConfig = {
   repo: string
   labels?: string[]
   host?: string
-  access_token?: string
+  access_token_secret_id?: string
 }
 
 type JiraConfig = {
   project_key: string
   jql_filter?: string
   host: string
-  access_token?: string
+  access_token_secret_id?: string
 }
 
 export function CreateTaskSourcePage() {
@@ -42,8 +44,6 @@ export function CreateTaskSourcePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loadingProjects, setLoadingProjects] = useState(true)
 
   const [formData, setFormData] = useState({
     project_id: "",
@@ -56,46 +56,22 @@ export function CreateTaskSourcePage() {
     repo: "",
     labels: ["DOIT"],
     host: "https://gitlab.com",
-    access_token: "",
+    access_token_secret_id: "",
   })
 
   const [githubConfig, setGithubConfig] = useState<GithubIssuesConfig>({
     repo: "",
     labels: [],
     host: "https://github.com",
-    access_token: "",
+    access_token_secret_id: "",
   })
 
   const [jiraConfig, setJiraConfig] = useState<JiraConfig>({
     project_key: "",
     jql_filter: "",
     host: "",
-    access_token: "",
+    access_token_secret_id: "",
   })
-
-  useEffect(() => {
-    const fetchProjects = async () => {
-      try {
-        const res = await client.projects.$get()
-        if (!res.ok) {
-          console.error("Error fetching projects:", await res.text())
-          setLoadingProjects(false)
-          return
-        }
-        const data = await res.json()
-        setProjects(data)
-        setLoadingProjects(false)
-      } catch (error) {
-        console.error("Error fetching projects:", error)
-        setLoadingProjects(false)
-      }
-    }
-
-    fetchProjects().catch((error) => {
-      console.error("Error fetching projects:", error)
-      setLoadingProjects(false)
-    })
-  }, [])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -209,29 +185,11 @@ export function CreateTaskSourcePage() {
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="project_id" className="text-xs uppercase tracking-wide">
-                PROJECT
-              </Label>
-              {loadingProjects ? (
-                <div className="text-sm text-gray-600">Loading projects...</div>
-              ) : (
-                <Select
-                  id="project_id"
-                  value={formData.project_id}
-                  onChange={(e) => handleInputChange("project_id", e.target.value)}
-                  className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                  required
-                >
-                  <option value="">Select a project</option>
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </Select>
-              )}
-            </div>
+            <ProjectSelect
+              value={formData.project_id}
+              onChange={(projectId) => handleInputChange("project_id", projectId)}
+              required
+            />
 
             <div className="space-y-2">
               <Label htmlFor="name" className="text-xs uppercase tracking-wide">
@@ -313,26 +271,14 @@ export function CreateTaskSourcePage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="gitlab_access_token" className="text-xs uppercase tracking-wide">
-                    ACCESS TOKEN {(gitlabConfig.host && gitlabConfig.host !== "https://gitlab.com") ? "(REQUIRED)" : "(OPTIONAL)"}
-                  </Label>
-                  <Input
-                    id="gitlab_access_token"
-                    type="password"
-                    value={gitlabConfig.access_token || ""}
-                    onChange={(e) => handleGitlabConfigChange("access_token", e.target.value)}
-                    className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 font-mono"
-                    placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
-                    required={gitlabConfig.host !== "" && gitlabConfig.host !== "https://gitlab.com"}
-                  />
-                  <p className="text-xs text-gray-600">
-                    {(gitlabConfig.host && gitlabConfig.host !== "https://gitlab.com")
-                      ? "Access token is required for self-hosted GitLab instances"
-                      : "If not provided, gitlab.com/artificial-developer must be added to the project with read access to issues and ability to make changes"
-                    }
-                  </p>
-                </div>
+                <SecretSelect
+                  projectId={formData.project_id}
+                  value={gitlabConfig.access_token_secret_id || ""}
+                  onChange={(secretId) => handleGitlabConfigChange("access_token_secret_id", secretId)}
+                  label={`ACCESS TOKEN SECRET ${(gitlabConfig.host && gitlabConfig.host !== "https://gitlab.com") ? "(REQUIRED)" : "(OPTIONAL)"}`}
+                  placeholder="Select access token secret"
+                  required={gitlabConfig.host !== "" && gitlabConfig.host !== "https://gitlab.com"}
+                />
               </div>
             )}
 
@@ -384,22 +330,14 @@ export function CreateTaskSourcePage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="github_access_token" className="text-xs uppercase tracking-wide">
-                    ACCESS TOKEN (OPTIONAL)
-                  </Label>
-                  <Input
-                    id="github_access_token"
-                    type="password"
-                    value={githubConfig.access_token || ""}
-                    onChange={(e) => handleGithubConfigChange("access_token", e.target.value)}
-                    className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 font-mono"
-                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                  />
-                  <p className="text-xs text-gray-600">
-                    If not provided, uses GITHUB_TOKEN environment variable
-                  </p>
-                </div>
+                <SecretSelect
+                  projectId={formData.project_id}
+                  value={githubConfig.access_token_secret_id || ""}
+                  onChange={(secretId) => handleGithubConfigChange("access_token_secret_id", secretId)}
+                  label="ACCESS TOKEN SECRET (OPTIONAL)"
+                  placeholder="Select access token secret"
+                  required={false}
+                />
               </div>
             )}
 
@@ -452,22 +390,14 @@ export function CreateTaskSourcePage() {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="jira_access_token" className="text-xs uppercase tracking-wide">
-                    ACCESS TOKEN (OPTIONAL)
-                  </Label>
-                  <Input
-                    id="jira_access_token"
-                    type="password"
-                    value={jiraConfig.access_token || ""}
-                    onChange={(e) => handleJiraConfigChange("access_token", e.target.value)}
-                    className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 font-mono"
-                    placeholder="API token or PAT"
-                  />
-                  <p className="text-xs text-gray-600">
-                    If not provided, uses JIRA_TOKEN environment variable
-                  </p>
-                </div>
+                <SecretSelect
+                  projectId={formData.project_id}
+                  value={jiraConfig.access_token_secret_id || ""}
+                  onChange={(secretId) => handleJiraConfigChange("access_token_secret_id", secretId)}
+                  label="ACCESS TOKEN SECRET (OPTIONAL)"
+                  placeholder="Select access token secret"
+                  required={false}
+                />
               </div>
             )}
 

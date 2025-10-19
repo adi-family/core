@@ -12,6 +12,7 @@ import { createWorkerRepositoryRoutes } from './handlers/worker-repositories'
 import { createPipelineExecutionRoutes } from './handlers/pipeline-executions'
 import { createPipelineArtifactRoutes } from './handlers/pipeline-artifacts'
 import { createWebhookRoutes } from './handlers/webhooks'
+import { createSecretRoutes } from './handlers/secrets'
 import { authMiddleware } from './middleware/auth'
 import * as sessionQueries from '../db/sessions'
 import * as messageQueries from '../db/messages'
@@ -51,6 +52,7 @@ const app = new Hono()
   .route('/pipeline-executions', createPipelineExecutionRoutes(sql))
   .route('/pipeline-artifacts', createPipelineArtifactRoutes(sql))
   .route('/webhooks', createWebhookRoutes(sql))
+  .route('/secrets', createSecretRoutes(sql))
   // Nested routes that need special handling
   // Tasks -> Sessions
   .get('/tasks/:taskId/sessions', zValidator('param', taskIdParamSchema), async (c) => {
