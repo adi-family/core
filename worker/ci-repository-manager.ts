@@ -6,7 +6,7 @@
 import { GitLabApiClient } from '../shared/gitlab-api-client'
 import { readFile, readdir } from 'fs/promises'
 import { join, relative } from 'path'
-import { encrypt, decrypt } from './crypto-utils'
+import { encrypt, decrypt } from '../shared/crypto-utils'
 import { createLogger } from '../utils/logger'
 
 const logger = createLogger({ namespace: 'ci-repository-manager' })
