@@ -83,7 +83,7 @@ export class GitLabApiClient {
       )
     }
 
-    return response.json() as Promise<T>
+    return await response.json() as Promise<T>
   }
 
   /**

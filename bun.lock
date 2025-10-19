@@ -19,6 +19,7 @@
         "react": "^19.1.1",
         "react-dom": "^19.1.1",
         "react-router-dom": "^7.9.4",
+        "simple-icons": "^15.16.1",
         "sonner": "^2.0.7",
         "tailwind-merge": "^3.3.1",
         "vite-tsconfig-paths": "^5.1.4",
@@ -1355,6 +1356,8 @@
     "signal-exit": ["signal-exit@3.0.7", "", {}, "sha512-wnD2ZE+l+SPC/uoS0vXeE9L1+0wuaMqKlfz9AMUo38JsyLSBWSFcHR1Rri62LZc12vLr1gb3jl7iwQhgwpAbGQ=="],
 
     "simple-git": ["simple-git@3.28.0", "", { "dependencies": { "@kwsites/file-exists": "^1.1.1", "@kwsites/promise-deferred": "^1.1.1", "debug": "^4.4.0" } }, "sha512-Rs/vQRwsn1ILH1oBUy8NucJlXmnnLeLCfcvbSehkPzbv3wwoFWIdtfd6Ndo6ZPhlPsCZ60CPI4rxurnwAa+a2w=="],
+
+    "simple-icons": ["simple-icons@15.16.1", "", {}, "sha512-UpT6dslPDUfl+9xAjxHAh4ralefkrAqBe8o4cN+HtBOa2HjYZnEAiQsUkAdkaMfW05rU/rc/MWaKxF/cpUllCg=="],
 
     "slice-ansi": ["slice-ansi@7.1.2", "", { "dependencies": { "ansi-styles": "^6.2.1", "is-fullwidth-code-point": "^5.0.0" } }, "sha512-iOBWFgUX7caIZiuutICxVgX1SdxwAVFFKwt1EvMYYec/NWO5meOJ6K5uQxhrYBdQJne4KxiqZc+KptFOWFSI9w=="],
 

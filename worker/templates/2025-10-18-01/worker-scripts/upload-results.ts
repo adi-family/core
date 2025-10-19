@@ -131,7 +131,7 @@ async function main() {
           completed: results.completionCheck.isComplete,
           needs_clarification: results.clarificationCheck.needsClarification,
           exit_code: results.agentResults.exitCode,
-          has_changes: !!(results.agentResults.changes && Object.keys(results.agentResults.changes).length > 0),
+          has_changes: Boolean(results.agentResults.changes && Object.keys(results.agentResults.changes).length > 0),
         },
       })
 

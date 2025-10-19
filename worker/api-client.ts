@@ -46,7 +46,7 @@ export class BackendApiClient {
       throw new Error(`API request failed: ${response.status} ${error}`)
     }
 
-    return response.json() as Promise<T>
+    return await response.json() as Promise<T>
   }
 
   // Projects

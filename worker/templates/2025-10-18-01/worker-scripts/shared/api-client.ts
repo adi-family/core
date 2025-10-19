@@ -86,7 +86,7 @@ export class ApiClient {
       )
     }
 
-    return response.json() as Promise<T>
+    return await response.json() as Promise<T>
   }
 
   async getSession(sessionId: string): Promise<Session> {

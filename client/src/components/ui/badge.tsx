@@ -5,7 +5,7 @@ import type { LucideIcon } from "lucide-react"
 export interface BadgeProps
   extends React.HTMLAttributes<HTMLSpanElement> {
   variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'blue' | 'orange' | 'purple' | 'green' | 'gray'
-  icon?: LucideIcon
+  icon?: LucideIcon | React.ComponentType<{ className?: string }>
 }
 
 const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(

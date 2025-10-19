@@ -26,12 +26,11 @@ export type SignalInfo = {
 };
 
 export const findAllWorkerCache = async (sql: Sql): Promise<WorkerCache[]> => {
-  const rows = await sql<WorkerCache[]>`
+  return await sql<WorkerCache[]>`
     SELECT *
     FROM worker_task_cache
     ORDER BY updated_at DESC
   `;
-  return rows;
 };
 
 export function initTrafficLight(sql: Sql, projectId: string) {

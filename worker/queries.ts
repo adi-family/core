@@ -144,17 +144,6 @@ export const addTaskFileSpaces = async (sql: Sql, taskId: string, fileSpaceIds: 
   `);
 };
 
-export const getFileSpacesByTaskId = async (sql: Sql, taskId: string): Promise<FileSpace[]> => {
-  const fileSpaces = await get(sql<FileSpace[]>`
-    SELECT fs.*
-    FROM file_spaces fs
-    INNER JOIN task_file_spaces tfs ON fs.id = tfs.file_space_id
-    WHERE tfs.task_id = ${taskId}
-    ORDER BY tfs.created_at ASC
-  `);
-  return fileSpaces;
-};
-
 export const updateTaskStatus = async (sql: Sql, id: string, status: string): Promise<Task> => {
   const [task] = await get(sql<Task[]>`
     UPDATE tasks
@@ -193,12 +182,11 @@ export const createMessage = async (sql: Sql, input: CreateMessageInput): Promis
 };
 
 export const getAllEnabledProjects = async (sql: Sql): Promise<Project[]> => {
-  const projects = await get(sql<Project[]>`
+  return await get(sql<Project[]>`
     SELECT * FROM projects
     WHERE enabled = true
     ORDER BY created_at ASC
   `);
-  return projects;
 };
 
 export const getProjectById = async (sql: Sql, id: string): Promise<Project | null> => {
@@ -235,21 +223,19 @@ export type TaskSource = {
 };
 
 export const getFileSpacesByProjectId = async (sql: Sql, projectId: string): Promise<FileSpace[]> => {
-  const fileSpaces = await get(sql<FileSpace[]>`
+  return await get(sql<FileSpace[]>`
     SELECT * FROM file_spaces
     WHERE project_id = ${projectId} AND enabled = true
     ORDER BY created_at ASC
   `);
-  return fileSpaces;
 };
 
 export const getTaskSourcesByProjectId = async (sql: Sql, projectId: string): Promise<TaskSource[]> => {
-  const taskSources = await get(sql<TaskSource[]>`
+  return await get(sql<TaskSource[]>`
     SELECT * FROM task_sources
     WHERE project_id = ${projectId} AND enabled = true
     ORDER BY created_at ASC
   `);
-  return taskSources;
 };
 
 export const getFileSpaceById = async (sql: Sql, id: string): Promise<FileSpace | null> => {

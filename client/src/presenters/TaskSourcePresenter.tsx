@@ -1,8 +1,9 @@
 import { BasePresenter } from './base'
 import type { TaskSource } from '../../../backend/types'
 import { Badge } from '@/components/ui/badge'
-import { GitBranch, Github, CheckCircle2, XCircle } from 'lucide-react'
+import { GitBranch, CheckCircle2, XCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { GithubIcon } from '@/components/icons/GithubIcon'
 
 /**
  * Presenter for TaskSource model
@@ -168,14 +169,14 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
   /**
    * Get type badge icon based on task source type
    */
-  getTypeBadgeIcon(type?: 'gitlab_issues' | 'jira' | 'github_issues'): LucideIcon {
+  getTypeBadgeIcon(type?: 'gitlab_issues' | 'jira' | 'github_issues'): LucideIcon | typeof GithubIcon {
     const sourceType = type ?? this.model.type
 
     switch (sourceType) {
       case 'gitlab_issues':
         return GitBranch
       case 'github_issues':
-        return Github
+        return GithubIcon
       case 'jira':
         return GitBranch
       default:
