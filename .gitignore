@@ -12,7 +12,6 @@
 !db
 !utils
 !hooks
-!task-sources
 !shared
 !gitlab.ts
 !issue.ts

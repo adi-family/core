@@ -8,7 +8,7 @@ import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger.ts'
 import { processTaskSource } from '../services/orchestrator'
 import * as taskSourceQueries from '../../db/task-sources'
-import type { GitlabIssuesConfig, GithubIssuesConfig, TaskSourceJiraConfig } from '../../task-sources/base'
+import type { GitlabIssuesConfig, GithubIssuesConfig, TaskSourceJiraConfig } from '../task-sources/base'
 
 const logger = createLogger({ namespace: 'webhooks' })
 

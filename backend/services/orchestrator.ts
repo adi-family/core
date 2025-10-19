@@ -15,8 +15,8 @@ import * as workerCacheDb from '../../db/worker-cache'
 import { triggerPipeline } from '../worker-orchestration/pipeline-executor'
 import { createBackendApiClient } from '../api-client'
 import type { TaskSource as TaskSourceDb } from '../../types'
-import type { TaskSource, TaskSourceIssue } from '../../task-sources/base'
-import { createTaskSource } from '../../task-sources/factory'
+import type { TaskSource, TaskSourceIssue } from '../task-sources/base'
+import { createTaskSource } from '../task-sources/factory'
 
 const logger = createLogger({ namespace: 'orchestrator' })
 

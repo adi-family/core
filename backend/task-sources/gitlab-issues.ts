@@ -1,5 +1,5 @@
 import {BaseTaskSource, type TaskSource, type TaskSourceIssue, type GitlabMetadata, type GitlabIssuesConfig} from './base';
-import {getGitlabIssueList} from '../gitlab';
+import {getGitlabIssueList} from '../../gitlab';
 
 export class GitlabIssuesTaskSource extends BaseTaskSource {
   private gitlabConfig: GitlabIssuesConfig;

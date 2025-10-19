@@ -19,8 +19,10 @@ flowchart
         db/pipeline//executions.ts["pipeline-executions.ts"]
         db/pipeline//artifacts.ts["pipeline-artifacts.ts"]
     end
+    subgraph types["types"]
+        types/index.ts["index.ts"]
+    end
     subgraph backend_["backend"]
-        backend_/types.ts["types.ts"]
         backend_/schemas.ts["schemas.ts"]
         backend_/api//client.ts["api-client.ts"]
         backend_/app.ts["app.ts"]
@@ -74,26 +76,26 @@ flowchart
             end
         end
     end
-    db/projects.ts-->backend_/types.ts
+    db/projects.ts-->types/index.ts
     backend_/handlers/projects.ts-->db/projects.ts
     backend_/handlers/projects.ts-->backend_/schemas.ts
-    db/tasks.ts-->backend_/types.ts
+    db/tasks.ts-->types/index.ts
     backend_/handlers/tasks.ts-->db/tasks.ts
     backend_/handlers/tasks.ts-->backend_/schemas.ts
-    db/sessions.ts-->backend_/types.ts
+    db/sessions.ts-->types/index.ts
     backend_/handlers/sessions.ts-->db/sessions.ts
     backend_/handlers/sessions.ts-->backend_/schemas.ts
-    db/messages.ts-->backend_/types.ts
+    db/messages.ts-->types/index.ts
     backend_/handlers/messages.ts-->db/messages.ts
     backend_/handlers/messages.ts-->backend_/schemas.ts
-    db/worker//cache.ts-->backend_/types.ts
+    db/worker//cache.ts-->types/index.ts
     backend_/handlers/worker//cache.ts-->db/worker//cache.ts
-    db/file//spaces.ts-->backend_/types.ts
+    db/file//spaces.ts-->types/index.ts
     backend_/handlers/file//spaces.ts-->db/file//spaces.ts
     backend_/handlers/file//spaces.ts-->backend_/schemas.ts
-    db/task//sources.ts-->backend_/types.ts
-    db/worker//repositories.ts-->backend_/types.ts
-    backend_/worker//orchestration/pipeline//executor.ts-->backend_/types.ts
+    db/task//sources.ts-->types/index.ts
+    db/worker//repositories.ts-->types/index.ts
+    backend_/worker//orchestration/pipeline//executor.ts-->types/index.ts
     backend_/worker//orchestration/pipeline//executor.ts-->backend_/api//client.ts
     backend_/worker//orchestration/pipeline//executor.ts-->shared/gitlab//api//client.ts
     gitlab.ts-->issue.ts
@@ -112,7 +114,7 @@ flowchart
     backend_/services/orchestrator.ts-->db/worker//cache.ts
     backend_/services/orchestrator.ts-->backend_/worker//orchestration/pipeline//executor.ts
     backend_/services/orchestrator.ts-->backend_/api//client.ts
-    backend_/services/orchestrator.ts-->backend_/types.ts
+    backend_/services/orchestrator.ts-->types/index.ts
     backend_/services/orchestrator.ts-->task//sources/base.ts
     backend_/services/orchestrator.ts-->task//sources/factory.ts
     backend_/handlers/task//sources.ts-->db/task//sources.ts
@@ -123,10 +125,10 @@ flowchart
     backend_/handlers/worker//repositories.ts-->db/projects.ts
     backend_/handlers/worker//repositories.ts-->worker/ci//repository//manager.ts
     backend_/handlers/worker//repositories.ts-->backend_/schemas.ts
-    db/pipeline//executions.ts-->backend_/types.ts
+    db/pipeline//executions.ts-->types/index.ts
     backend_/handlers/pipeline//executions.ts-->db/pipeline//executions.ts
     backend_/handlers/pipeline//executions.ts-->backend_/schemas.ts
-    db/pipeline//artifacts.ts-->backend_/types.ts
+    db/pipeline//artifacts.ts-->types/index.ts
     backend_/handlers/pipeline//artifacts.ts-->db/pipeline//artifacts.ts
     backend_/handlers/pipeline//artifacts.ts-->backend_/schemas.ts
     backend_/handlers/webhooks.ts-->backend_/services/orchestrator.ts
@@ -162,7 +164,7 @@ flowchart
     backend_/worker//orchestration/pipeline//monitor.ts-->backend_/api//client.ts
     backend_/worker//orchestration/pipeline//monitor.ts-->shared/gitlab//api//client.ts
     worker/templates/2025//10//18//01/worker//scripts/shared/api//client.ts-->backend_/app.ts
-    worker/templates/2025//10//18//01/worker//scripts/shared/api//client.ts-->backend_/types.ts
+    worker/templates/2025//10//18//01/worker//scripts/shared/api//client.ts-->types/index.ts
     worker/templates/2025//10//18//01/worker//scripts/shared/traffic//check.ts-->worker/templates/2025//10//18//01/worker//scripts/shared/api//client.ts
     worker/templates/2025//10//18//01/worker//scripts/claude//pipeline.ts-->worker/templates/2025//10//18//01/worker//scripts/shared/api//client.ts
     worker/templates/2025//10//18//01/worker//scripts/claude//pipeline.ts-->worker/templates/2025//10//18//01/worker//scripts/shared/traffic//check.ts
