@@ -9,6 +9,8 @@
 !projects/**
 !task-sources
 !task-sources/**
+!templates
+!templates/**
 !utils
 !utils/**
 !Dockerfile
