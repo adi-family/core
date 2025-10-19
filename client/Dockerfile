@@ -14,7 +14,6 @@ COPY backend ./backend
 COPY db ./db
 COPY worker ./worker
 COPY utils ./utils
-COPY task-sources ./task-sources
 COPY shared ./shared
 COPY gitlab.ts issue.ts ./
 COPY tsconfig.json ./
