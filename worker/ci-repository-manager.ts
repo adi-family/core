@@ -3,7 +3,7 @@
  * Source-agnostic service for creating and managing worker repositories
  */
 
-import { GitLabApiClient } from './gitlab-api-client'
+import { GitLabApiClient } from '../shared/gitlab-api-client'
 import { readFile, readdir } from 'fs/promises'
 import { join, relative } from 'path'
 import { encrypt, decrypt } from './crypto-utils'

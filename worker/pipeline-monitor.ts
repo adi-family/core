@@ -4,7 +4,7 @@
  */
 
 import type { BackendClient } from '../backend/api-client'
-import { GitLabApiClient } from './gitlab-api-client'
+import { GitLabApiClient } from '../shared/gitlab-api-client'
 import { decrypt } from './crypto-utils'
 import { retry, isRetryableError } from '../utils/retry'
 import { createLogger } from '../utils/logger'

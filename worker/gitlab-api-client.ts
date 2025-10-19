@@ -1,6 +1,0 @@
-/**
- * GitLab API Client (Worker)
- * Re-exports from shared to avoid duplication
- */
-
-export * from '../shared/gitlab-api-client'
