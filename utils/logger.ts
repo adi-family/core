@@ -24,17 +24,31 @@ interface ChalkInstance {
   dim: (text: string) => string
 }
 
-let chalk: ChalkInstance | null = null
-if (!isBrowser) {
+/**
+ * Get chalk instance for Node.js environment
+ * Returns null if in browser or if chalk is not available
+ */
+function getChalk(): ChalkInstance | null {
+  if (isBrowser) return null
+
   try {
     // Use require for synchronous import in Node.js
     // eslint-disable-next-line @typescript-eslint/no-require-imports
-    chalk = require('chalk') as ChalkInstance
+    const chalkModule = require('chalk')
+    // Handle ESM default export
+    const chalkInstance = chalkModule.default ?? chalkModule
+    // Verify chalk has the methods we need
+    if (chalkInstance && typeof chalkInstance.gray === 'function') {
+      return chalkInstance as ChalkInstance
+    }
+    return null
   } catch {
     // Chalk not available, fallback to no colors
-    chalk = null
+    return null
   }
 }
+
+const chalk = getChalk()
 
 /**
  * Log levels
