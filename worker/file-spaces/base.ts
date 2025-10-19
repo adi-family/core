@@ -12,7 +12,7 @@ export type FileSpace = {
   id: string;
   project_id: string;
   name: string;
-  type: string;
+  type: 'gitlab' | 'github';
   config: FileSpaceConfig;
   enabled: boolean;
   created_at: Date;

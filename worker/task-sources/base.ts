@@ -1,3 +1,5 @@
+import {assertNever} from '@utils/assert-never';
+
 export type GitlabMetadata = {
   provider: 'gitlab';
   repo: string;
@@ -81,6 +83,8 @@ export abstract class BaseTaskSource {
       if (!taskSource.config.repo || taskSource.config.repo.trim() === '') {
         throw new Error('GitHub task source requires non-empty repo in config');
       }
+    } else {
+      assertNever(taskSource);
     }
 
     this.taskSource = taskSource;
