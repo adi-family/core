@@ -11,10 +11,11 @@ export interface GitlabIssueListMinimal {
 }
 
 export class GitlabIssueMinimalList extends Issue {
-  constructor(
-    private issue: GitlabIssueListMinimal,
-  ) {
+  private issue: GitlabIssueListMinimal;
+
+  constructor(issue: GitlabIssueListMinimal) {
     super();
+    this.issue = issue;
   }
 
   public provider(): string {

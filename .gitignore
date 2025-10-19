@@ -12,6 +12,9 @@
 !db
 !utils
 !hooks
+!task-sources
+!gitlab.ts
+!issue.ts
 !package.json
 !bun.lock
 !tsconfig.json

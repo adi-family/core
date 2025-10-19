@@ -12,6 +12,8 @@ COPY tsconfig.json ./
 COPY backend ./backend
 COPY db ./db
 COPY utils ./utils
+COPY task-sources ./task-sources
+COPY gitlab.ts issue.ts ./
 
 # Set environment
 ENV NODE_ENV=production

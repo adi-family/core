@@ -5,6 +5,8 @@
 !middleware/***
 !queries
 !queries/***
+!services
+!services/***
 !app.ts
 !db.ts
 !index.ts

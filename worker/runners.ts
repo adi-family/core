@@ -1,7 +1,7 @@
 import {query as claudeQuery} from '@anthropic-ai/claude-agent-sdk';
 import {exec} from 'child_process';
 import {promisify} from 'util';
-import type {TaskSourceIssue} from './task-sources/base';
+import type {TaskSourceIssue} from '../task-sources/base';
 
 const execAsync = promisify(exec);
 

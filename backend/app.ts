@@ -14,6 +14,14 @@ import { createPipelineArtifactRoutes } from './handlers/pipeline-artifacts'
 import { createWebhookRoutes } from './handlers/webhooks'
 import { authMiddleware } from './middleware/auth'
 import * as sessionQueries from '../db/sessions'
+import * as messageQueries from '../db/messages'
+import * as pipelineExecutionQueries from '../db/pipeline-executions'
+import * as pipelineArtifactQueries from '../db/pipeline-artifacts'
+import * as workerRepoQueries from '../db/worker-repositories'
+import * as projectQueries from '../db/projects'
+import { initTrafficLight } from '../db/worker-cache'
+import { CIRepositoryManager } from '../worker/ci-repository-manager'
+import { createLogger } from '../utils/logger'
 import {
   idParamSchema,
   taskIdParamSchema,
@@ -53,19 +61,19 @@ const app = new Hono()
   // Sessions -> Messages
   .get('/sessions/:sessionId/messages', zValidator('param', sessionIdParamSchema), async (c) => {
     const { sessionId } = c.req.valid('param')
-    const messages = await (await import('../db/messages')).findMessagesBySessionId(sql, sessionId)
+    const messages = await messageQueries.findMessagesBySessionId(sql, sessionId)
     return c.json(messages)
   })
   // Sessions -> Pipeline Executions
   .get('/sessions/:sessionId/pipeline-executions', zValidator('param', sessionIdParamSchema), async (c) => {
     const { sessionId } = c.req.valid('param')
-    const executions = await (await import('../db/pipeline-executions')).findPipelineExecutionsBySessionId(sql, sessionId)
+    const executions = await pipelineExecutionQueries.findPipelineExecutionsBySessionId(sql, sessionId)
     return c.json(executions)
   })
   // Pipeline Executions -> Artifacts
   .get('/pipeline-executions/:executionId/artifacts', zValidator('param', executionIdParamSchema), async (c) => {
     const { executionId } = c.req.valid('param')
-    const artifacts = await (await import('../db/pipeline-artifacts')).findPipelineArtifactsByExecutionId(sql, executionId)
+    const artifacts = await pipelineArtifactQueries.findPipelineArtifactsByExecutionId(sql, executionId)
     return c.json(artifacts)
   })
   .post('/pipeline-executions/:executionId/artifacts', zValidator('param', executionIdParamSchema), zValidator('json', createPipelineArtifactSchema), authMiddleware, async (c) => {
@@ -75,13 +83,13 @@ const app = new Hono()
       ...body,
       pipeline_execution_id: executionId
     }
-    const artifact = await (await import('../db/pipeline-artifacts')).createPipelineArtifact(sql, artifactData)
+    const artifact = await pipelineArtifactQueries.createPipelineArtifact(sql, artifactData)
     return c.json(artifact, 201)
   })
   // Projects -> Worker Repository
   .get('/projects/:projectId/worker-repository', zValidator('param', projectIdParamSchema), async (c) => {
     const { projectId } = c.req.valid('param')
-    const result = await (await import('../db/worker-repositories')).findWorkerRepositoryByProjectId(sql, projectId)
+    const result = await workerRepoQueries.findWorkerRepositoryByProjectId(sql, projectId)
     if (!result.ok) {
       return c.json({ error: result.error }, 404)
     }
@@ -101,11 +109,6 @@ const app = new Hono()
         500
       )
     }
-
-    const workerRepoQueries = await import('../db/worker-repositories')
-    const projectQueries = await import('../db/projects')
-    const { CIRepositoryManager } = await import('../worker/ci-repository-manager')
-    const { createLogger } = await import('../utils/logger')
 
     const logger = createLogger({ namespace: 'worker-repositories-handler' })
 
@@ -191,7 +194,6 @@ const app = new Hono()
   .post('/projects/:projectId/worker-cache/is-signaled', zValidator('param', projectIdParamSchema), zValidator('json', isSignaledBodySchema), async (c) => {
     const { projectId } = c.req.valid('param')
     const { issueId, date } = c.req.valid('json')
-    const { initTrafficLight } = await import('../db/worker-cache')
     const trafficLight = initTrafficLight(sql, projectId)
     const result = await trafficLight.isSignaledBefore(issueId, new Date(date))
     return c.json({ signaled: result })
@@ -199,7 +201,6 @@ const app = new Hono()
   .post('/projects/:projectId/worker-cache/try-acquire-lock', zValidator('param', projectIdParamSchema), zValidator('json', lockContextSchema), async (c) => {
     const { projectId } = c.req.valid('param')
     const lockContext = c.req.valid('json')
-    const { initTrafficLight } = await import('../db/worker-cache')
     const trafficLight = initTrafficLight(sql, projectId)
     const acquired = await trafficLight.tryAcquireLock(lockContext)
     return c.json({ acquired })
@@ -207,7 +208,6 @@ const app = new Hono()
   .post('/projects/:projectId/worker-cache/release-lock', zValidator('param', projectIdParamSchema), zValidator('json', releaseLockBodySchema), async (c) => {
     const { projectId } = c.req.valid('param')
     const { issueId } = c.req.valid('json')
-    const { initTrafficLight } = await import('../db/worker-cache')
     const trafficLight = initTrafficLight(sql, projectId)
     await trafficLight.releaseLock(issueId)
     return c.json({ success: true })
@@ -215,7 +215,6 @@ const app = new Hono()
   .post('/projects/:projectId/worker-cache/signal', zValidator('param', projectIdParamSchema), zValidator('json', signalInfoSchema), async (c) => {
     const { projectId } = c.req.valid('param')
     const signalInfo = c.req.valid('json')
-    const { initTrafficLight } = await import('../db/worker-cache')
     const trafficLight = initTrafficLight(sql, projectId)
     await trafficLight.signal({
       ...signalInfo,
@@ -225,7 +224,6 @@ const app = new Hono()
   })
   .get('/projects/:projectId/worker-cache/:issueId/task-id', zValidator('param', projectIdParamSchema.merge(issueIdParamSchema)), async (c) => {
     const { projectId, issueId } = c.req.valid('param')
-    const { initTrafficLight } = await import('../db/worker-cache')
     const trafficLight = initTrafficLight(sql, projectId)
     const taskId = await trafficLight.getTaskId(issueId)
     return c.json({ taskId })
@@ -234,7 +232,7 @@ const app = new Hono()
   .patch('/pipeline-executions/:id', zValidator('param', idParamSchema), zValidator('json', updatePipelineExecutionSchema), authMiddleware, async (c) => {
     const { id } = c.req.valid('param')
     const body = c.req.valid('json')
-    const result = await (await import('../db/pipeline-executions')).updatePipelineExecution(sql, id, body)
+    const result = await pipelineExecutionQueries.updatePipelineExecution(sql, id, body)
     if (!result.ok) {
       return c.json({ error: result.error }, 404)
     }
