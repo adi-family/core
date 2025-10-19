@@ -1,7 +1,10 @@
 /**
  * GitLab API Client
  * Handles GitLab repository management, file operations, and pipeline triggers
+ * Uses @gitbeaker/rest for API interactions
  */
+
+import { Gitlab } from '@gitbeaker/rest'
 
 export interface GitLabProjectCreateInput {
   name: string
@@ -46,51 +49,28 @@ export interface GitLabPipeline {
 }
 
 export class GitLabApiClient {
-  private baseUrl: string
-  private token: string
+  private client: InstanceType<typeof Gitlab>
 
   constructor(host: string, token: string) {
-    this.baseUrl = host.replace(/\/$/, '') // Remove trailing slash
-    this.token = token
-  }
-
-  private async request<T>(
-    method: string,
-    path: string,
-    body?: unknown
-  ): Promise<T> {
-    const url = `${this.baseUrl}/api/v4${path}`
-    const headers: Record<string, string> = {
-      'PRIVATE-TOKEN': this.token,
-      'Content-Type': 'application/json',
-    }
-
-    const options: RequestInit = {
-      method,
-      headers,
-    }
-
-    if (body) {
-      options.body = JSON.stringify(body)
-    }
-
-    const response = await fetch(url, options)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(
-        `GitLab API request failed: ${response.status} ${response.statusText}\n${errorText}`
-      )
-    }
-
-    return await response.json() as Promise<T>
+    this.client = new Gitlab({
+      host,
+      token
+    })
   }
 
   /**
    * Create a new GitLab project
    */
   async createProject(input: GitLabProjectCreateInput): Promise<GitLabProject> {
-    return this.request<GitLabProject>('POST', '/projects', input)
+    const project = await this.client.Projects.create({
+      name: input.name,
+      path: input.path,
+      namespaceId: input.namespace_id,
+      visibility: input.visibility,
+      description: input.description
+    }) as unknown as GitLabProject
+
+    return project
   }
 
   /**
@@ -101,12 +81,15 @@ export class GitLabApiClient {
     filePath: string,
     input: GitLabFileCreateInput
   ): Promise<void> {
-    const encodedProjectId = encodeURIComponent(projectId)
-    const encodedFilePath = encodeURIComponent(filePath)
-    await this.request(
-      'POST',
-      `/projects/${encodedProjectId}/repository/files/${encodedFilePath}`,
-      input
+    await this.client.RepositoryFiles.create(
+      projectId,
+      filePath,
+      input.branch,
+      input.content,
+      input.commit_message,
+      {
+        encoding: input.encoding || 'text'
+      }
     )
   }
 
@@ -118,12 +101,15 @@ export class GitLabApiClient {
     filePath: string,
     input: GitLabFileCreateInput
   ): Promise<void> {
-    const encodedProjectId = encodeURIComponent(projectId)
-    const encodedFilePath = encodeURIComponent(filePath)
-    await this.request(
-      'PUT',
-      `/projects/${encodedProjectId}/repository/files/${encodedFilePath}`,
-      input
+    await this.client.RepositoryFiles.edit(
+      projectId,
+      filePath,
+      input.branch,
+      input.content,
+      input.commit_message,
+      {
+        encoding: input.encoding || 'text'
+      }
     )
   }
 
@@ -163,12 +149,15 @@ export class GitLabApiClient {
     projectId: string,
     input: GitLabPipelineTriggerInput
   ): Promise<GitLabPipeline> {
-    const encodedProjectId = encodeURIComponent(projectId)
-    return this.request<GitLabPipeline>(
-      'POST',
-      `/projects/${encodedProjectId}/pipeline`,
-      input
-    )
+    const pipeline = await this.client.Pipelines.create(projectId, input.ref, {
+      variables: Object.entries(input.variables).map(([key, value]) => ({
+        key,
+        value,
+        variable_type: 'env_var' as const
+      }))
+    }) as unknown as GitLabPipeline
+
+    return pipeline
   }
 
   /**
@@ -178,21 +167,16 @@ export class GitLabApiClient {
     projectId: string,
     pipelineId: string
   ): Promise<GitLabPipeline> {
-    const encodedProjectId = encodeURIComponent(projectId)
-    return this.request<GitLabPipeline>(
-      'GET',
-      `/projects/${encodedProjectId}/pipelines/${pipelineId}`
-    )
+    const pipeline = await this.client.Pipelines.show(projectId, Number(pipelineId)) as unknown as GitLabPipeline
+
+    return pipeline
   }
 
   /**
    * Get current user's namespace ID
    */
   async getCurrentUserNamespaceId(): Promise<number> {
-    const user = await this.request<{ id: number; namespace_id: number }>(
-      'GET',
-      '/user'
-    )
+    const user = await this.client.Users.current() as unknown as { namespace_id: number }
     return user.namespace_id
   }
 }

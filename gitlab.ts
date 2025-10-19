@@ -1,5 +1,5 @@
-import {execSync} from "child_process";
-import {Issue} from "./issue";
+import { Gitlab } from '@gitbeaker/rest';
+import { Issue } from "./issue";
 
 export interface GitlabIssueListMinimal {
   id: number;
@@ -35,7 +35,11 @@ export class GitlabIssueMinimalList extends Issue {
   }
 }
 
-export function getGitlabIssueList(repo: string, labels: string[] = ['DOIT']): GitlabIssueMinimalList[] {
+export async function getGitlabIssueList(
+  repo: string,
+  labels: string[] = ['DOIT'],
+  host?: string
+): Promise<GitlabIssueMinimalList[]> {
   if (!repo || repo.trim() === '') {
     throw new Error('GitLab repo is required and cannot be empty');
   }
@@ -46,7 +50,32 @@ export function getGitlabIssueList(repo: string, labels: string[] = ['DOIT']): G
     throw new Error('GitLab labels must be a non-empty array');
   }
 
-  const labelArgs = labels.map(l => `-l ${l}`).join(' ');
-  const res = execSync(`glab issue list -R ${repo} -O json ${labelArgs} -a @me --all`, { encoding: 'utf-8' });
-  return (JSON.parse(res) as GitlabIssueListMinimal[]).map(v => new GitlabIssueMinimalList(v));
+  const token = process.env.GITLAB_TOKEN;
+  if (!token) {
+    throw new Error('GITLAB_TOKEN environment variable is required');
+  }
+
+  const gitlab = new Gitlab({
+    token,
+    host: host || 'https://gitlab.com'
+  });
+
+  const issues = await gitlab.Issues.all({
+    projectId: repo,
+    labels: labels.join(','),
+    scope: 'assigned_to_me',
+    state: 'opened'
+  });
+
+  return issues.map((issue: unknown) => {
+    const i = issue as GitlabIssueListMinimal;
+    return new GitlabIssueMinimalList({
+      id: i.id,
+      iid: i.iid,
+      state: i.state,
+      description: i.description || '',
+      title: i.title,
+      updated_at: i.updated_at
+    });
+  });
 }

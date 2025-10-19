@@ -13,7 +13,7 @@ export class GitlabIssuesTaskSource extends BaseTaskSource {
   }
 
   async *getIssues(): AsyncIterable<TaskSourceIssue> {
-    const issues = getGitlabIssueList(this.gitlabConfig.repo, this.gitlabConfig.labels);
+    const issues = await getGitlabIssueList(this.gitlabConfig.repo, this.gitlabConfig.labels, this.gitlabConfig.host);
     for (const issue of issues) {
       const metadata: GitlabMetadata = {
         provider: 'gitlab',
