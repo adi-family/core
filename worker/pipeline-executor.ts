@@ -4,7 +4,7 @@
  */
 
 import type { PipelineExecution } from '../backend/types'
-import type { BackendClient } from './api-client'
+import type { BackendClient } from '../backend/api-client'
 import { GitLabApiClient } from './gitlab-api-client'
 import { decrypt } from './crypto-utils'
 import { retry, isRetryableError } from '../utils/retry'

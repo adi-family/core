@@ -3,7 +3,7 @@
  * Monitors running GitLab pipelines and syncs status to database
  */
 
-import type { BackendClient } from './api-client'
+import type { BackendClient } from '../backend/api-client'
 import { GitLabApiClient } from './gitlab-api-client'
 import { decrypt } from './crypto-utils'
 import { retry, isRetryableError } from '../utils/retry'
