@@ -1,5 +1,5 @@
 /**
- * GitLab API Client (Worker)
+ * GitLab API Client (Backend)
  * Re-exports from shared to avoid duplication
  */
 
