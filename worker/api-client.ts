@@ -11,9 +11,10 @@ import type {
   PipelineExecution,
   CreatePipelineExecutionInput,
   UpdatePipelineExecutionInput,
-  Result
+  Result,
+  LockContext,
+  SignalInfo
 } from '@backend/types'
-import type { LockContext, SignalInfo } from '@db/worker-cache'
 
 export class BackendApiClient {
   private baseUrl: string

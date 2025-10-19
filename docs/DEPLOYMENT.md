@@ -142,16 +142,22 @@ cd migrations
 
 ### 1. Create Worker Repository
 
+Create a worker repository via the backend API:
+
 ```bash
-bun run backend/index.ts
-# Then via API or UI, create worker repository
+# Setup worker repository for a project
+curl -X POST http://localhost:3000/projects/<project-id>/worker-repository/setup \
+  -H "Content-Type: application/json" \
+  -d '{
+    "version": "2025-10-18-01",
+    "customPath": "adi-worker-my-project"
+  }'
 ```
 
-Or use CLI tool:
-```bash
-DATABASE_URL=<url> GITLAB_TOKEN=<token> \
-  bun run worker/utils/create-worker-repo.ts
-```
+This will:
+- Create a GitLab repository
+- Upload CI pipeline templates
+- Save configuration to database
 
 ### 2. Set CI/CD Variables
 
@@ -171,6 +177,20 @@ Push to worker repo triggers pipeline. Check:
 - Pipeline status in GitLab
 - Backend logs for webhook/scheduler activity
 - Tasks created in database
+
+### 4. Update Worker Repository Version
+
+To update the CI pipeline templates to a new version:
+
+```bash
+# List all worker repositories
+curl http://localhost:3000/worker-repositories
+
+# Update to new version
+curl -X POST http://localhost:3000/worker-repositories/<repo-id>/update-version \
+  -H "Content-Type: application/json" \
+  -d '{"version": "2025-10-18-02"}'
+```
 
 ## Production Deployment
 

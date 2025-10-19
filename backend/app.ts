@@ -77,6 +77,8 @@ app.get('/worker-repositories/:id', workerRepositoryHandlers.get)
 app.get('/projects/:projectId/worker-repository', workerRepositoryHandlers.getByProjectId)
 app.patch('/worker-repositories/:id', workerRepositoryHandlers.update)
 app.delete('/worker-repositories/:id', workerRepositoryHandlers.delete)
+app.post('/projects/:projectId/worker-repository/setup', workerRepositoryHandlers.setup)
+app.post('/worker-repositories/:id/update-version', workerRepositoryHandlers.updateVersion)
 
 app.get('/pipeline-executions', pipelineExecutionHandlers.list)
 app.get('/pipeline-executions/stale', pipelineExecutionHandlers.listStale)
