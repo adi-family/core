@@ -7,10 +7,7 @@
 !queries/***
 !services
 !services/***
-!app.ts
-!db.ts
-!index.ts
-!types.ts
 !.gitignore
 !CLAUDE.md
 !Dockerfile
+!*.ts
