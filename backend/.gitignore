@@ -9,6 +9,8 @@
 !services/***
 !task-sources
 !task-sources/***
+!worker-orchestration
+!worker-orchestration/***
 !.gitignore
 !CLAUDE.md
 !Dockerfile

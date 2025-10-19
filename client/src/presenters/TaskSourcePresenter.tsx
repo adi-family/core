@@ -135,8 +135,22 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
         label: 'Delete',
         onClick: async (taskSource: TaskSource) => {
           if (confirm(`Are you sure you want to delete "${taskSource.name}"?`)) {
-            // TODO: Implement delete action
-            console.log(`Delete task source ${taskSource.id}`)
+            const { client } = await import('@/lib/client')
+            const { toast } = await import('sonner')
+            try {
+              const res = await client['task-sources'][':id'].$delete({
+                param: { id: taskSource.id }
+              })
+              if (res.ok) {
+                toast.success('Task source deleted successfully')
+                window.location.reload()
+              } else {
+                toast.error('Failed to delete task source')
+              }
+            } catch (error) {
+              console.error('Error deleting task source:', error)
+              toast.error('Error deleting task source')
+            }
           }
         },
         variant: 'destructive' as const,

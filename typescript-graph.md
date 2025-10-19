@@ -44,6 +44,12 @@ flowchart
             backend_/worker//orchestration/pipeline//executor.ts["pipeline-executor.ts"]
             backend_/worker//orchestration/pipeline//monitor.ts["pipeline-monitor.ts"]
         end
+        subgraph backend_/task//sources["/task-sources"]
+            backend_/task//sources/base.ts["base.ts"]
+            backend_/task//sources/gitlab//issues.ts["gitlab-issues.ts"]
+            backend_/task//sources/jira.ts["jira.ts"]
+            backend_/task//sources/factory.ts["factory.ts"]
+        end
         subgraph backend_/services["/services"]
             backend_/services/orchestrator.ts["orchestrator.ts"]
             backend_/services/scheduler.ts["scheduler.ts"]
@@ -54,12 +60,6 @@ flowchart
     end
     subgraph shared["shared"]
         shared/gitlab//api//client.ts["gitlab-api-client.ts"]
-    end
-    subgraph task//sources["task-sources"]
-        task//sources/base.ts["base.ts"]
-        task//sources/gitlab//issues.ts["gitlab-issues.ts"]
-        task//sources/jira.ts["jira.ts"]
-        task//sources/factory.ts["factory.ts"]
     end
     subgraph worker["worker"]
         worker/ci//repository//manager.ts["ci-repository-manager.ts"]
@@ -99,12 +99,12 @@ flowchart
     backend_/worker//orchestration/pipeline//executor.ts-->backend_/api//client.ts
     backend_/worker//orchestration/pipeline//executor.ts-->shared/gitlab//api//client.ts
     gitlab.ts-->issue.ts
-    task//sources/gitlab//issues.ts-->task//sources/base.ts
-    task//sources/gitlab//issues.ts-->gitlab.ts
-    task//sources/jira.ts-->task//sources/base.ts
-    task//sources/factory.ts-->task//sources/base.ts
-    task//sources/factory.ts-->task//sources/gitlab//issues.ts
-    task//sources/factory.ts-->task//sources/jira.ts
+    backend_/task//sources/gitlab//issues.ts-->backend_/task//sources/base.ts
+    backend_/task//sources/gitlab//issues.ts-->gitlab.ts
+    backend_/task//sources/jira.ts-->backend_/task//sources/base.ts
+    backend_/task//sources/factory.ts-->backend_/task//sources/base.ts
+    backend_/task//sources/factory.ts-->backend_/task//sources/gitlab//issues.ts
+    backend_/task//sources/factory.ts-->backend_/task//sources/jira.ts
     backend_/services/orchestrator.ts-->db/tasks.ts
     backend_/services/orchestrator.ts-->db/projects.ts
     backend_/services/orchestrator.ts-->db/task//sources.ts
@@ -115,8 +115,8 @@ flowchart
     backend_/services/orchestrator.ts-->backend_/worker//orchestration/pipeline//executor.ts
     backend_/services/orchestrator.ts-->backend_/api//client.ts
     backend_/services/orchestrator.ts-->types/index.ts
-    backend_/services/orchestrator.ts-->task//sources/base.ts
-    backend_/services/orchestrator.ts-->task//sources/factory.ts
+    backend_/services/orchestrator.ts-->backend_/task//sources/base.ts
+    backend_/services/orchestrator.ts-->backend_/task//sources/factory.ts
     backend_/handlers/task//sources.ts-->db/task//sources.ts
     backend_/handlers/task//sources.ts-->backend_/services/orchestrator.ts
     backend_/handlers/task//sources.ts-->backend_/schemas.ts
@@ -133,7 +133,7 @@ flowchart
     backend_/handlers/pipeline//artifacts.ts-->backend_/schemas.ts
     backend_/handlers/webhooks.ts-->backend_/services/orchestrator.ts
     backend_/handlers/webhooks.ts-->db/task//sources.ts
-    backend_/handlers/webhooks.ts-->task//sources/base.ts
+    backend_/handlers/webhooks.ts-->backend_/task//sources/base.ts
     backend_/app.ts-->db/client.ts
     backend_/app.ts-->backend_/handlers/projects.ts
     backend_/app.ts-->backend_/handlers/tasks.ts

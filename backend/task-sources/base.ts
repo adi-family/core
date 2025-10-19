@@ -36,18 +36,21 @@ export type GitlabIssuesConfig = {
   repo: string;
   labels: string[];
   host?: string;
+  access_token?: string;
 };
 
 export type GithubIssuesConfig = {
   repo: string;
   labels?: string[];
   host?: string;
+  access_token?: string;
 };
 
 export type TaskSourceJiraConfig = {
   project_key: string;
   jql_filter?: string;
   host: string;
+  access_token?: string;
 };
 
 export type TaskSource = {

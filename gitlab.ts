@@ -38,7 +38,8 @@ export class GitlabIssueMinimalList extends Issue {
 export async function getGitlabIssueList(
   repo: string,
   labels: string[] = ['DOIT'],
-  host?: string
+  host?: string,
+  accessToken?: string
 ): Promise<GitlabIssueMinimalList[]> {
   if (!repo || repo.trim() === '') {
     throw new Error('GitLab repo is required and cannot be empty');
@@ -50,9 +51,9 @@ export async function getGitlabIssueList(
     throw new Error('GitLab labels must be a non-empty array');
   }
 
-  const token = process.env.GITLAB_TOKEN;
+  const token = accessToken || process.env.GITLAB_TOKEN;
   if (!token) {
-    throw new Error('GITLAB_TOKEN environment variable is required');
+    throw new Error('GitLab access token is required. Either provide it in the task source config or set GITLAB_TOKEN environment variable.');
   }
 
   const gitlab = new Gitlab({
