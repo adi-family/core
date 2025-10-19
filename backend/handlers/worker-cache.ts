@@ -1,6 +1,6 @@
 import type { Context } from 'hono'
 import type { Sql } from 'postgres'
-import { findAllWorkerCache, initTrafficLight, type LockContext, type SignalInfo } from '../../db/worker-cache'
+import { findAllWorkerCache, initTrafficLight, type LockContext, type SignalInfo } from '@db/worker-cache.ts'
 
 export const createWorkerCacheHandlers = (sql: Sql) => ({
   list: async (c: Context) => {

@@ -1,23 +1,11 @@
 #!/usr/bin/env bun
-/**
- * Utility script to create a worker repository for a project
- *
- * Usage:
- *   bun run worker/utils/create-worker-repo.ts <project-id>
- *
- * Environment variables required:
- *   - DATABASE_URL
- *   - GITLAB_HOST
- *   - GITLAB_TOKEN
- *   - ENCRYPTION_KEY
- */
 
-import { sql } from '../../db/client'
+import { sql } from '@db/client.ts'
 import * as projectQueries from '../../db/projects'
 import * as workerRepoQueries from '../../db/worker-repositories'
 import { CIRepositoryManager } from '../ci-repository-manager'
-import { printHeader, printError, printSuccess, printSection, printSummary, printNumberedItem, printListItem } from '../../utils/print'
-import { createLogger } from '../../utils/logger'
+import { printHeader, printError, printSuccess, printSection, printSummary, printNumberedItem, printListItem } from '@utils/print.ts'
+import { createLogger } from '@utils/logger.ts'
 
 const logger = createLogger({ namespace: 'create-worker-repo' })
 

@@ -1,3 +1,5 @@
+import type {ReactNode} from "react";
+
 /**
  * Base presenter abstract class for type-safe model presentation
  */
@@ -9,19 +11,12 @@ export abstract class BasePresenter<T> {
   }
 
   /**
-   * Get raw model data
-   */
-  getRawModel(): T {
-    return this.model
-  }
-
-  /**
    * Get table columns configuration
    */
   abstract getTableColumns(): Array<{
     key: string
     label: string
-    render: (model: T) => React.ReactNode
+    render: (model: T) => ReactNode
     sortable?: boolean
   }>
 
@@ -40,11 +35,6 @@ export abstract class BasePresenter<T> {
    * Get model identifier
    */
   abstract getId(): string
-
-  /**
-   * Get display title for the model
-   */
-  abstract getDisplayTitle(): string
 
   /**
    * Format date to locale string

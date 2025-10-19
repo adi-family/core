@@ -69,18 +69,6 @@ export class BackendApiClient {
     }
   }
 
-  async updateTask(id: string, data: Partial<Task>): Promise<Result<Task>> {
-    try {
-      const task = await this.request<Task>(`/tasks/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      })
-      return { ok: true, data: task }
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) }
-    }
-  }
-
   // Sessions
   async getSession(id: string): Promise<Result<Session>> {
     try {
@@ -89,10 +77,6 @@ export class BackendApiClient {
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : String(error) }
     }
-  }
-
-  async getSessionsByTask(taskId: string): Promise<Session[]> {
-    return this.request<Session[]>(`/tasks/${taskId}/sessions`)
   }
 
   // Worker Repositories
@@ -134,15 +118,6 @@ export class BackendApiClient {
     }
   }
 
-  async getPipelineExecutionBySessionId(sessionId: string): Promise<Result<PipelineExecution>> {
-    try {
-      const execution = await this.request<PipelineExecution>(`/sessions/${sessionId}/pipeline-executions`)
-      return { ok: true, data: execution }
-    } catch (error) {
-      return { ok: false, error: error instanceof Error ? error.message : String(error) }
-    }
-  }
-
   async getStalePipelineExecutions(timeoutMinutes: number): Promise<PipelineExecution[]> {
     return this.request<PipelineExecution[]>(`/pipeline-executions/stale?timeoutMinutes=${timeoutMinutes}`)
   }
@@ -154,14 +129,6 @@ export class BackendApiClient {
     } catch (error) {
       return { ok: false, error: error instanceof Error ? error.message : String(error) }
     }
-  }
-
-  // Pipeline Artifacts
-  async createPipelineArtifact(executionId: string, data: Omit<CreatePipelineArtifactInput, 'pipeline_execution_id'>): Promise<PipelineArtifact> {
-    return this.request<PipelineArtifact>(`/pipeline-executions/${executionId}/artifacts`, {
-      method: 'POST',
-      body: JSON.stringify(data),
-    })
   }
 
   // Worker Cache (Traffic Light)

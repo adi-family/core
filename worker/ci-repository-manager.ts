@@ -172,20 +172,4 @@ export class CIRepositoryManager {
 
     logger.info(`✅ Worker repository updated to version ${newVersion}`)
   }
-
-  /**
-   * Delete worker repository
-   */
-  async deleteWorkerRepository(
-    source: WorkerRepositorySource
-  ): Promise<void> {
-    if (source.type !== 'gitlab') {
-      throw new Error(`Unsupported source type: ${source.type}`)
-    }
-
-    // TODO: Implement project deletion via GitLab API (requires admin/owner permissions)
-    throw new Error(
-      `Delete operation not implemented. Please manually delete the GitLab project: ${source.host}/${source.project_path}`
-    )
-  }
 }

@@ -84,21 +84,3 @@ export function isRetryableError(error: Error): boolean {
 
   return false
 }
-
-/**
- * Retry only if error is retryable
- */
-export async function retryIfRetryable<T>(
-  operation: () => Promise<T>,
-  options: RetryOptions = {}
-): Promise<T> {
-  return retry(operation, {
-    ...options,
-    onRetry: (error, attempt) => {
-      if (!isRetryableError(error)) {
-        throw error
-      }
-      options.onRetry?.(error, attempt)
-    },
-  })
-}

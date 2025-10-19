@@ -24,10 +24,6 @@ export class ProjectPresenter extends BasePresenter<Project> {
     return this.model.id
   }
 
-  getDisplayTitle(): string {
-    return this.model.name
-  }
-
   getTableColumns() {
     return [
       {
@@ -94,21 +90,5 @@ export class ProjectPresenter extends BasePresenter<Project> {
         variant: 'destructive' as const,
       },
     ]
-  }
-
-  /**
-   * Get status badge class
-   */
-  getStatusBadgeClass(): string {
-    return this.model.enabled
-      ? 'bg-green-50/80 text-green-700 border-green-300 shadow-sm backdrop-blur-sm'
-      : 'bg-gray-100/80 text-gray-700 border-gray-300 shadow-sm backdrop-blur-sm'
-  }
-
-  /**
-   * Get status text
-   */
-  getStatusText(): string {
-    return this.model.enabled ? 'Enabled' : 'Disabled'
   }
 }

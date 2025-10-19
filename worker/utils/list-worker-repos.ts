@@ -1,18 +1,9 @@
 #!/usr/bin/env bun
-/**
- * Utility script to list all worker repositories
- *
- * Usage:
- *   bun run worker/utils/list-worker-repos.ts
- *
- * Environment variables required:
- *   - DATABASE_URL
- */
 
-import { sql } from '../../db/client'
+import { sql } from '@db/client.ts'
 import * as workerRepoQueries from '../../db/worker-repositories'
 import * as projectQueries from '../../db/projects'
-import { createLogger } from '../../utils/logger'
+import { createLogger } from '@utils/logger.ts'
 
 const logger = createLogger({ namespace: 'list-worker-repos' })
 

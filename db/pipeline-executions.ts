@@ -25,14 +25,6 @@ export const findPipelineExecutionsBySessionId = async (sql: Sql, sessionId: str
   `)
 }
 
-export const findPipelineExecutionsByStatus = async (sql: Sql, status: string): Promise<PipelineExecution[]> => {
-  return get(sql<PipelineExecution[]>`
-    SELECT * FROM pipeline_executions
-    WHERE status = ${status}
-    ORDER BY created_at DESC
-  `)
-}
-
 export const findStalePipelineExecutions = async (sql: Sql, timeoutMinutes: number): Promise<PipelineExecution[]> => {
   return get(sql<PipelineExecution[]>`
     SELECT * FROM pipeline_executions

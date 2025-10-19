@@ -94,14 +94,6 @@ export class GitLabApiClient {
   }
 
   /**
-   * Get project by ID or path
-   */
-  async getProject(projectIdOrPath: string): Promise<GitLabProject> {
-    const encodedPath = encodeURIComponent(projectIdOrPath)
-    return this.request<GitLabProject>('GET', `/projects/${encodedPath}`)
-  }
-
-  /**
    * Upload a file to a repository
    */
   async createFile(
@@ -191,27 +183,6 @@ export class GitLabApiClient {
       'GET',
       `/projects/${encodedProjectId}/pipelines/${pipelineId}`
     )
-  }
-
-  /**
-   * Create a CI/CD variable
-   */
-  async createVariable(
-    projectId: string,
-    key: string,
-    value: string,
-    options: {
-      protected?: boolean
-      masked?: boolean
-    } = {}
-  ): Promise<void> {
-    const encodedProjectId = encodeURIComponent(projectId)
-    await this.request('POST', `/projects/${encodedProjectId}/variables`, {
-      key,
-      value,
-      protected: options.protected ?? false,
-      masked: options.masked ?? false,
-    })
   }
 
   /**

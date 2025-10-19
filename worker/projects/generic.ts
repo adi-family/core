@@ -6,7 +6,7 @@ import {createRunner} from '../runners';
 import {triggerPipeline} from '../pipeline-executor';
 import {assertNever} from '@utils/assert-never';
 import * as path from 'path';
-import {createLogger} from '../../utils/logger';
+import {createLogger} from '@utils/logger.ts';
 
 
 export class GenericProjectProcessor extends BaseProjectProcessor {

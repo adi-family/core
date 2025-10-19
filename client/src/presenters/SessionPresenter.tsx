@@ -9,10 +9,6 @@ export class SessionPresenter extends BasePresenter<Session> {
     return this.model.id
   }
 
-  getDisplayTitle(): string {
-    return `Session ${this.truncateId(this.model.id)}`
-  }
-
   getTableColumns() {
     return [
       {
@@ -92,26 +88,5 @@ export class SessionPresenter extends BasePresenter<Session> {
         variant: 'destructive' as const,
       },
     ]
-  }
-
-  /**
-   * Check if session has a task
-   */
-  hasTask(): boolean {
-    return this.model.task_id !== null
-  }
-
-  /**
-   * Get task ID if exists
-   */
-  getTaskId(): string | null {
-    return this.model.task_id
-  }
-
-  /**
-   * Get runner name
-   */
-  getRunnerName(): string {
-    return this.model.runner
   }
 }

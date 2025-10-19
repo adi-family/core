@@ -1,6 +1,6 @@
 import {BaseTaskSource, type TaskSource, type TaskSourceIssue, type JiraMetadata, type TaskSourceJiraConfig} from './base';
 import {execSync} from 'child_process';
-import {createLogger} from '../../utils/logger';
+import {createLogger} from '@utils/logger.ts';
 
 export class JiraTaskSource extends BaseTaskSource {
   private jiraConfig: TaskSourceJiraConfig;

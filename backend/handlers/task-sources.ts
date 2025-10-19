@@ -1,7 +1,7 @@
 import type { Context } from 'hono'
 import type { Sql } from 'postgres'
 import * as queries from '../../db/task-sources'
-import { createLogger } from '../../utils/logger'
+import { createLogger } from '@utils/logger.ts'
 
 const logger = createLogger({ namespace: 'task-sources' })
 

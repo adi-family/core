@@ -25,15 +25,6 @@ export const findPipelineArtifactsByExecutionId = async (sql: Sql, executionId: 
   `)
 }
 
-export const findPipelineArtifactsByType = async (sql: Sql, executionId: string, artifactType: string): Promise<PipelineArtifact[]> => {
-  return get(sql<PipelineArtifact[]>`
-    SELECT * FROM pipeline_artifacts
-    WHERE pipeline_execution_id = ${executionId}
-    AND artifact_type = ${artifactType}
-    ORDER BY created_at DESC
-  `)
-}
-
 const createPipelineArtifactCols = ['pipeline_execution_id', 'artifact_type', 'reference_url', 'metadata'] as const
 export const createPipelineArtifact = async (sql: Sql, input: CreatePipelineArtifactInput): Promise<PipelineArtifact> => {
   const data = {

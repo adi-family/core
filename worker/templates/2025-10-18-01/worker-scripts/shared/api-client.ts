@@ -37,17 +37,6 @@ export interface FileSpace {
   updated_at: string
 }
 
-export interface PipelineExecution {
-  id: string
-  session_id: string
-  worker_repository_id: string
-  pipeline_id: string
-  status: 'pending' | 'running' | 'success' | 'failed' | 'canceled'
-  last_status_update: string | null
-  created_at: string
-  updated_at: string
-}
-
 export class ApiClient {
   private baseUrl: string
   private token: string
@@ -99,13 +88,6 @@ export class ApiClient {
 
   async getFileSpace(fileSpaceId: string): Promise<FileSpace> {
     return this.request<FileSpace>('GET', `/file-spaces/${fileSpaceId}`)
-  }
-
-  async updatePipelineExecution(
-    executionId: string,
-    data: { status?: string; pipeline_id?: string }
-  ): Promise<void> {
-    await this.request('PATCH', `/pipeline-executions/${executionId}`, data)
   }
 
   async createPipelineArtifact(

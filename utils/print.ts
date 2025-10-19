@@ -34,20 +34,6 @@ export function printError(message: string): void {
 }
 
 /**
- * Print a warning message
- */
-export function printWarning(message: string): void {
-  console.log(`⚠️  ${message}`)
-}
-
-/**
- * Print an info message
- */
-export function printInfo(message: string): void {
-  console.log(`ℹ️  ${message}`)
-}
-
-/**
  * Print a list item
  */
 export function printListItem(text: string, indent = 3): void {
@@ -59,13 +45,6 @@ export function printListItem(text: string, indent = 3): void {
  */
 export function printNumberedItem(number: number, text: string): void {
   console.log(`${number}. ${text}`)
-}
-
-/**
- * Print a separator line
- */
-export function printSeparator(width = 50, char = '━'): void {
-  console.log(char.repeat(width))
 }
 
 /**

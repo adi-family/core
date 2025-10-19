@@ -10,11 +10,11 @@
  *   - ENCRYPTION_KEY
  */
 
-import { sql } from '../../db/client'
+import { sql } from '@db/client.ts'
 import * as projectQueries from '../../db/projects'
 import * as workerRepoQueries from '../../db/worker-repositories'
 import { CIRepositoryManager } from '../ci-repository-manager'
-import { createLogger } from '../../utils/logger'
+import { createLogger } from '@utils/logger.ts'
 
 const logger = createLogger({ namespace: 'update-worker-repo-version' })
 

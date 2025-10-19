@@ -24,8 +24,6 @@ export type JiraMetadata = {
   project_key: string;
 };
 
-export type IssueMetadata = GitlabMetadata | GithubMetadata | JiraMetadata;
-
 export type GitlabIssue = {
   id: string;
   iid?: number | null;
@@ -189,17 +187,6 @@ export const getAllEnabledProjects = async (sql: Sql): Promise<Project[]> => {
   `);
 };
 
-export const getProjectById = async (sql: Sql, id: string): Promise<Project | null> => {
-  const [project] = await get(sql<Project[]>`
-    SELECT * FROM projects
-    WHERE id = ${id}
-  `);
-  if (!project) {
-    return null;
-  }
-  return project;
-};
-
 export type FileSpace = {
   id: string;
   project_id: string;
@@ -236,23 +223,4 @@ export const getTaskSourcesByProjectId = async (sql: Sql, projectId: string): Pr
     WHERE project_id = ${projectId} AND enabled = true
     ORDER BY created_at ASC
   `);
-};
-
-export const getFileSpaceById = async (sql: Sql, id: string): Promise<FileSpace | null> => {
-  const [fileSpace] = await get(sql<FileSpace[]>`
-    SELECT * FROM file_spaces
-    WHERE id = ${id}
-  `);
-  if (!fileSpace) {
-    return null;
-  }
-  return fileSpace;
-};
-
-export const getTaskSourceById = async (sql: Sql, id: string): Promise<TaskSource | null> => {
-  const [taskSource] = await get(sql<TaskSource[]>`
-    SELECT * FROM task_sources
-    WHERE id = ${id}
-  `);
-  return taskSource || null;
 };

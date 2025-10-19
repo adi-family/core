@@ -13,10 +13,6 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
     return this.model.id
   }
 
-  getDisplayTitle(): string {
-    return this.model.name
-  }
-
   getTableColumns() {
     return [
       {
@@ -181,72 +177,6 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
         return GitBranch
       default:
         return GitBranch
-    }
-  }
-
-  /**
-   * Get type badge class based on task source type (legacy - use getTypeBadgeVariant)
-   */
-  getTypeBadgeClass(type?: 'gitlab_issues' | 'jira' | 'github_issues'): string {
-    const sourceType = type ?? this.model.type
-
-    switch (sourceType) {
-      case 'gitlab_issues':
-        return 'bg-orange-50/80 text-orange-700 border-orange-300 hover:bg-orange-100/80'
-      case 'github_issues':
-        return 'bg-purple-50/80 text-purple-700 border-purple-300 hover:bg-purple-100/80'
-      case 'jira':
-        return 'bg-blue-50/80 text-blue-700 border-blue-300 hover:bg-blue-100/80'
-      default:
-        return 'bg-gray-100/80 text-gray-700 border-gray-300 hover:bg-gray-200/80'
-    }
-  }
-
-  /**
-   * Get status badge class
-   */
-  getStatusBadgeClass(): string {
-    return this.model.enabled
-      ? 'bg-green-50/80 text-green-700 border-green-300 shadow-sm backdrop-blur-sm'
-      : 'bg-gray-100/80 text-gray-700 border-gray-300 shadow-sm backdrop-blur-sm'
-  }
-
-  /**
-   * Get status text
-   */
-  getStatusText(): string {
-    return this.model.enabled ? 'Enabled' : 'Disabled'
-  }
-
-  /**
-   * Get task source type
-   */
-  getType(): 'gitlab_issues' | 'jira' | 'github_issues' {
-    return this.model.type
-  }
-
-  /**
-   * Get project ID
-   */
-  getProjectId(): string {
-    return this.model.project_id
-  }
-
-  /**
-   * Get config
-   */
-  getConfig(): unknown {
-    return this.model.config
-  }
-
-  /**
-   * Get formatted config
-   */
-  getFormattedConfig(): string {
-    try {
-      return JSON.stringify(this.model.config, null, 2)
-    } catch {
-      return 'Invalid config'
     }
   }
 }

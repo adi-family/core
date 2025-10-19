@@ -11,10 +11,6 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
     return this.model.id
   }
 
-  getDisplayTitle(): string {
-    return this.model.name
-  }
-
   getTableColumns() {
     return [
       {
@@ -120,60 +116,5 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
         variant: 'destructive' as const,
       },
     ]
-  }
-
-  /**
-   * Get type badge class based on file space type
-   */
-  getTypeBadgeClass(): string {
-    return 'inline-flex items-center px-3 py-1.5 text-xs font-medium uppercase tracking-wide border border-blue-300 bg-blue-50/80 text-blue-700 backdrop-blur-sm shadow-sm transition-all duration-200'
-  }
-
-  /**
-   * Get status badge class
-   */
-  getStatusBadgeClass(): string {
-    return this.model.enabled
-      ? 'bg-green-50/80 text-green-700 border-green-300 shadow-sm backdrop-blur-sm'
-      : 'bg-gray-100/80 text-gray-700 border-gray-300 shadow-sm backdrop-blur-sm'
-  }
-
-  /**
-   * Get status text
-   */
-  getStatusText(): string {
-    return this.model.enabled ? 'Enabled' : 'Disabled'
-  }
-
-  /**
-   * Get file space type
-   */
-  getType(): 'gitlab' | 'github' {
-    return this.model.type
-  }
-
-  /**
-   * Get project ID
-   */
-  getProjectId(): string {
-    return this.model.project_id
-  }
-
-  /**
-   * Get config
-   */
-  getConfig(): unknown {
-    return this.model.config
-  }
-
-  /**
-   * Get formatted config
-   */
-  getFormattedConfig(): string {
-    try {
-      return JSON.stringify(this.model.config, null, 2)
-    } catch {
-      return 'Invalid config'
-    }
   }
 }

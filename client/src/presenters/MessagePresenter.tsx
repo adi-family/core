@@ -9,10 +9,6 @@ export class MessagePresenter extends BasePresenter<Message> {
     return this.model.id
   }
 
-  getDisplayTitle(): string {
-    return `Message ${this.truncateId(this.model.id)}`
-  }
-
   getTableColumns() {
     return [
       {
@@ -97,30 +93,5 @@ export class MessagePresenter extends BasePresenter<Message> {
     } catch {
       return 'Invalid data'
     }
-  }
-
-  /**
-   * Get formatted JSON data
-   */
-  getFormattedData(): string {
-    try {
-      return JSON.stringify(this.model.data, null, 2)
-    } catch {
-      return 'Invalid JSON data'
-    }
-  }
-
-  /**
-   * Get session ID
-   */
-  getSessionId(): string {
-    return this.model.session_id
-  }
-
-  /**
-   * Get raw data
-   */
-  getData(): unknown {
-    return this.model.data
   }
 }

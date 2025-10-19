@@ -1,5 +1,5 @@
 import type { Context, Next } from 'hono'
-import { createLogger } from '../../utils/logger'
+import { createLogger } from '@utils/logger.ts'
 
 const logger = createLogger({ namespace: 'auth' })
 

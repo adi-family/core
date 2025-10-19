@@ -18,10 +18,6 @@ export class TaskPresenter extends BasePresenter<Task> {
     return this.model.id
   }
 
-  getDisplayTitle(): string {
-    return this.model.title
-  }
-
   getTableColumns() {
     return [
       {
@@ -131,26 +127,5 @@ export class TaskPresenter extends BasePresenter<Task> {
   getTaskSourceInfo(taskSourceId: string): { name: string; type: string } {
     const taskSource = this.taskSources?.find((ts) => ts.id === taskSourceId)
     return taskSource ? { name: taskSource.name, type: taskSource.type } : { name: 'Unknown', type: '' }
-  }
-
-  /**
-   * Get status badge class
-   */
-  getStatusBadgeClass(): string {
-    return 'inline-flex items-center px-3 py-1.5 text-xs font-medium uppercase tracking-wide border border-gray-300 bg-gray-100/80 text-gray-700 backdrop-blur-sm shadow-sm transition-all duration-200'
-  }
-
-  /**
-   * Check if task has a project
-   */
-  hasProject(): boolean {
-    return this.model.project_id !== null
-  }
-
-  /**
-   * Get project ID if exists
-   */
-  getProjectId(): string | null {
-    return this.model.project_id
   }
 }

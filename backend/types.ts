@@ -18,8 +18,6 @@ export type JiraMetadata = {
   project_key: string
 }
 
-export type IssueMetadata = GitlabMetadata | GithubMetadata | JiraMetadata
-
 export type GitlabIssue = {
   id: string
   iid?: number | null

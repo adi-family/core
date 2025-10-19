@@ -1,7 +1,7 @@
 import {BaseFileSpace, type FileSpace, type WorkspaceLocation} from './base';
 import * as fs from 'fs';
 import {execSync} from 'child_process';
-import {createLogger} from '../../utils/logger';
+import {createLogger} from '@utils/logger.ts';
 
 export class GitlabFileSpace extends BaseFileSpace {
   private logger = createLogger({ namespace: 'GitlabFileSpace' });
