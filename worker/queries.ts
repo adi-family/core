@@ -217,10 +217,52 @@ export const getFileSpacesByProjectId = async (sql: Sql, projectId: string): Pro
   `);
 };
 
+export const getFileSpacesByProjectIds = async (sql: Sql, projectIds: string[]): Promise<Map<string, FileSpace[]>> => {
+  if (projectIds.length === 0) {
+    return new Map()
+  }
+
+  const fileSpaces = await get(sql<FileSpace[]>`
+    SELECT * FROM file_spaces
+    WHERE project_id = ANY(${projectIds}) AND enabled = true
+    ORDER BY created_at ASC
+  `)
+
+  const grouped = new Map<string, FileSpace[]>()
+  for (const fs of fileSpaces) {
+    const existing = grouped.get(fs.project_id) || []
+    existing.push(fs)
+    grouped.set(fs.project_id, existing)
+  }
+
+  return grouped
+};
+
 export const getTaskSourcesByProjectId = async (sql: Sql, projectId: string): Promise<TaskSource[]> => {
   return await get(sql<TaskSource[]>`
     SELECT * FROM task_sources
     WHERE project_id = ${projectId} AND enabled = true
     ORDER BY created_at ASC
   `);
+};
+
+export const getTaskSourcesByProjectIds = async (sql: Sql, projectIds: string[]): Promise<Map<string, TaskSource[]>> => {
+  if (projectIds.length === 0) {
+    return new Map()
+  }
+
+  const taskSources = await get(sql<TaskSource[]>`
+    SELECT * FROM task_sources
+    WHERE project_id = ANY(${projectIds}) AND enabled = true
+    ORDER BY created_at ASC
+  `)
+
+  const grouped = new Map<string, TaskSource[]>()
+  for (const ts of taskSources) {
+    const existing = grouped.get(ts.project_id) || []
+    existing.push(ts)
+    grouped.set(ts.project_id, existing)
+  }
+
+  return grouped
 };

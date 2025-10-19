@@ -21,6 +21,27 @@ export const findTaskSourcesByProjectId = async (sql: Sql, projectId: string): P
   return get(sql<TaskSource[]>`SELECT * FROM task_sources WHERE project_id = ${projectId} ORDER BY created_at DESC`)
 }
 
+export const findTaskSourcesByProjectIds = async (sql: Sql, projectIds: string[]): Promise<Map<string, TaskSource[]>> => {
+  if (projectIds.length === 0) {
+    return new Map()
+  }
+
+  const taskSources = await get(sql<TaskSource[]>`
+    SELECT * FROM task_sources
+    WHERE project_id = ANY(${projectIds}) AND enabled = true
+    ORDER BY created_at ASC
+  `)
+
+  const grouped = new Map<string, TaskSource[]>()
+  for (const ts of taskSources) {
+    const existing = grouped.get(ts.project_id) || []
+    existing.push(ts)
+    grouped.set(ts.project_id, existing)
+  }
+
+  return grouped
+}
+
 const createTaskSourceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
 export const createTaskSource = async (sql: Sql, input: CreateTaskSourceInput): Promise<TaskSource> => {
   const [taskSource] = await get(sql<TaskSource[]>`

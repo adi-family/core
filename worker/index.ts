@@ -1,5 +1,5 @@
 import {sql} from '../db/client';
-import {getAllEnabledProjects, getFileSpacesByProjectId, getTaskSourcesByProjectId} from './queries';
+import {getAllEnabledProjects, getFileSpacesByProjectIds, getTaskSourcesByProjectIds} from './queries';
 import {type RunnerType} from './runners';
 import type {ProcessorContext} from './projects/base';
 import {GenericProjectProcessor} from './projects/generic';
@@ -89,48 +89,59 @@ async function run() {
 
     const projects = await getAllEnabledProjects(sql);
 
-    for (const project of projects) {
-      logger.info(`\nProcessing project: ${project.name}\n`);
+    if (projects.length === 0) {
+      logger.warn('No enabled projects found');
+    } else {
+      // Batch fetch file spaces and task sources for all projects (fixes N+1 query problem)
+      const projectIds = projects.map(p => p.id);
+      const [fileSpacesMap, taskSourcesMap] = await Promise.all([
+        getFileSpacesByProjectIds(sql, projectIds),
+        getTaskSourcesByProjectIds(sql, projectIds)
+      ]);
 
-      const fileSpacesData = await getFileSpacesByProjectId(sql, project.id);
-      const taskSourcesData = await getTaskSourcesByProjectId(sql, project.id);
+      for (const project of projects) {
+        logger.info(`\nProcessing project: ${project.name}\n`);
 
-      if (fileSpacesData.length === 0) {
-        logger.warn(`No file spaces found for project ${project.name}, skipping`);
-        continue;
-      }
+        const fileSpacesData = fileSpacesMap.get(project.id) || [];
+        const taskSourcesData = taskSourcesMap.get(project.id) || [];
 
-      if (taskSourcesData.length === 0) {
-        logger.warn(`No task sources found for project ${project.name}, skipping`);
-        continue;
-      }
+        if (fileSpacesData.length === 0) {
+          logger.warn(`No file spaces found for project ${project.name}, skipping`);
+          continue;
+        }
 
-      const fileSpaces = fileSpacesData.map(fs => createFileSpace(fs as FileSpace));
+        if (taskSourcesData.length === 0) {
+          logger.warn(`No task sources found for project ${project.name}, skipping`);
+          continue;
+        }
 
-      logger.info(`File spaces: ${fileSpaces.length}`);
-      logger.info(`Task sources: ${taskSourcesData.length}`);
+        const fileSpaces = fileSpacesData.map(fs => createFileSpace(fs as FileSpace));
 
-      for (const taskSourceData of taskSourcesData) {
-        const taskSource = createTaskSource(taskSourceData as TaskSource);
+        logger.info(`File spaces: ${fileSpaces.length}`);
+        logger.info(`Task sources: ${taskSourcesData.length}`);
 
-        logger.info(`Processing task source: ${taskSourceData.name} (${taskSourceData.type})`);
+        for (const taskSourceData of taskSourcesData) {
+          const taskSource = createTaskSource(taskSourceData as TaskSource);
 
-        const context: ProcessorContext = {
-          sql,
-          project,
-          fileSpaces,
-          taskSource,
-          workerId,
-          selectRunner,
-          appsDir: APPS_DIR
-        };
+          logger.info(`Processing task source: ${taskSourceData.name} (${taskSourceData.type})`);
 
-        const processor = new GenericProjectProcessor(context);
+          const context: ProcessorContext = {
+            sql,
+            project,
+            fileSpaces,
+            taskSource,
+            workerId,
+            selectRunner,
+            appsDir: APPS_DIR
+          };
 
-        try {
-          await processor.processIssues();
-        } catch (error) {
-          logger.error(`[${project.name}] Error processing task source ${taskSourceData.name}:`, error);
+          const processor = new GenericProjectProcessor(context);
+
+          try {
+            await processor.processIssues();
+          } catch (error) {
+            logger.error(`[${project.name}] Error processing task source ${taskSourceData.name}:`, error);
+          }
         }
       }
     }

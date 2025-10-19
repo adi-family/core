@@ -1,7 +1,10 @@
 import {BaseFileSpace, type FileSpace, type WorkspaceLocation} from './base';
 import * as fs from 'fs';
-import {execSync} from 'child_process';
+import {exec} from 'child_process';
+import {promisify} from 'util';
 import {createLogger} from '@utils/logger.ts';
+
+const execAsync = promisify(exec);
 
 export class GitlabFileSpace extends BaseFileSpace {
   private logger = createLogger({ namespace: 'GitlabFileSpace' });
@@ -14,26 +17,30 @@ export class GitlabFileSpace extends BaseFileSpace {
     if (!fs.existsSync(workDir)) {
       fs.mkdirSync(workDir, {recursive: true});
       this.logger.warn(`Cloning GitLab repository ${this.config.repo} into ${workDir}...`);
-      execSync(`glab repo clone ${this.config.repo} ${workDir}`, {stdio: 'inherit'});
+      await execAsync(`glab repo clone ${this.config.repo} ${workDir}`);
     }
     return workDir;
   }
 
   async workspaceExists(location: WorkspaceLocation): Promise<boolean> {
-    const result = execSync(
-      `git -C ${location.workDir} rev-parse --verify ${location.workspaceName} 2>/dev/null || echo ""`,
-      {encoding: 'utf-8'}
-    ).trim();
-    return result !== '';
+    try {
+      const {stdout} = await execAsync(
+        `git -C ${location.workDir} rev-parse --verify ${location.workspaceName}`,
+        {encoding: 'utf-8'}
+      );
+      return stdout.trim() !== '';
+    } catch {
+      return false;
+    }
   }
 
   async switchToWorkspace(location: WorkspaceLocation): Promise<void> {
     this.logger.success(`Checking out branch ${location.workspaceName}...`);
-    execSync(`git -C ${location.workDir} checkout ${location.workspaceName}`, {stdio: 'inherit'});
+    await execAsync(`git -C ${location.workDir} checkout ${location.workspaceName}`);
   }
 
   async createWorkspace(location: WorkspaceLocation): Promise<void> {
     this.logger.success(`Creating and checking out new branch ${location.workspaceName}...`);
-    execSync(`git -C ${location.workDir} checkout -b ${location.workspaceName}`, {stdio: 'inherit'});
+    await execAsync(`git -C ${location.workDir} checkout -b ${location.workspaceName}`);
   }
 }

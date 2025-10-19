@@ -275,9 +275,45 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
   }
 
   async processIssues(): Promise<void> {
+    const concurrencyLimit = parseInt(process.env.ISSUE_CONCURRENCY_LIMIT || '3');
+    const issues: TaskSourceIssue[] = [];
+
+    // Collect all issues
     for await (const issue of this.taskSource.getIssues()) {
-      await this.processIssue(issue);
+      issues.push(issue);
     }
+
+    if (issues.length === 0) {
+      this.logger.info(`[${this.context.project.name}] No issues to process`);
+      return;
+    }
+
+    this.logger.info(`[${this.context.project.name}] Processing ${issues.length} issue(s) with concurrency limit of ${concurrencyLimit}`);
+
+    // Process issues with controlled concurrency
+    const processWithLimit = async (issuesChunk: TaskSourceIssue[]) => {
+      const results = await Promise.allSettled(
+        issuesChunk.map(issue => this.processIssue(issue))
+      );
+
+      // Log any rejected promises
+      results.forEach((result, idx) => {
+        if (result.status === 'rejected') {
+          this.logger.error(
+            `[${this.context.project.name}] Failed to process issue ${issuesChunk[idx]?.id}:`,
+            result.reason
+          );
+        }
+      });
+    };
+
+    // Process in chunks based on concurrency limit
+    for (let i = 0; i < issues.length; i += concurrencyLimit) {
+      const chunk = issues.slice(i, i + concurrencyLimit);
+      await processWithLimit(chunk);
+    }
+
+    this.logger.info(`[${this.context.project.name}] Finished processing all issues`);
   }
 
   async processIssue(issue: TaskSourceIssue): Promise<void> {
