@@ -7,6 +7,9 @@ import type { BackendApiClient } from './api-client'
 import { GitLabApiClient } from './gitlab-api-client'
 import { decrypt } from './crypto-utils'
 import { retry, isRetryableError } from '../utils/retry'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger({ namespace: 'pipeline-monitor' })
 
 export interface PipelineMonitorConfig {
   timeoutMinutes?: number
@@ -40,7 +43,7 @@ function mapGitLabStatus(
     case 'manual':
       return 'canceled'
     default:
-      console.warn(`Unknown GitLab pipeline status: ${gitlabStatus}`)
+      logger.warn(`Unknown GitLab pipeline status: ${gitlabStatus}`)
       return 'failed'
   }
 }
@@ -57,7 +60,7 @@ export async function checkStalePipelines(
     parseInt(process.env.PIPELINE_STATUS_TIMEOUT_MINUTES || '') ||
     DEFAULT_TIMEOUT_MINUTES
 
-  console.log(`🔍 Checking for stale pipelines (timeout: ${timeoutMinutes} minutes)`)
+  logger.info(`🔍 Checking for stale pipelines (timeout: ${timeoutMinutes} minutes)`)
 
   if (!config.apiClient) {
     throw new Error('API client is required for checking stale pipelines')
@@ -67,31 +70,31 @@ export async function checkStalePipelines(
   const stalePipelines = await config.apiClient.getStalePipelineExecutions(timeoutMinutes)
 
   if (stalePipelines.length === 0) {
-    console.log('✓ No stale pipelines found')
+    logger.info('✓ No stale pipelines found')
     return
   }
 
-  console.log(`⚠️  Found ${stalePipelines.length} stale pipeline(s)`)
+  logger.warn(`⚠️  Found ${stalePipelines.length} stale pipeline(s)`)
 
   for (const execution of stalePipelines) {
     try {
       await updatePipelineStatus(execution.id, config.apiClient)
     } catch (error) {
-      console.error(
+      logger.error(
         `Failed to update stale pipeline ${execution.id}:`,
         error
       )
     }
   }
 
-  console.log(`✅ Finished checking stale pipelines`)
+  logger.info(`✅ Finished checking stale pipelines`)
 }
 
 /**
  * Update pipeline status from GitLab
  */
 export async function updatePipelineStatus(executionId: string, apiClient: BackendApiClient): Promise<void> {
-  console.log(`📊 Updating status for pipeline execution ${executionId}`)
+  logger.info(`📊 Updating status for pipeline execution ${executionId}`)
 
   try {
     // Fetch pipeline execution
@@ -103,7 +106,7 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
 
     // Validate execution has pipeline_id
     if (!execution.pipeline_id) {
-      console.warn(
+      logger.warn(
         `⚠️  Pipeline execution ${executionId} has no pipeline_id, skipping status update`
       )
       return
@@ -168,11 +171,11 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
         initialDelayMs: 1000,
         onRetry: (error, attempt) => {
           if (isRetryableError(error)) {
-            console.log(
+            logger.warn(
               `⚠️  Failed to fetch pipeline status (attempt ${attempt}/3): ${error.message}. Retrying...`
             )
           } else {
-            console.error(
+            logger.error(
               `❌ Non-retryable error: ${error.message}. Aborting.`
             )
             throw error
@@ -181,7 +184,7 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
       }
     )
 
-    console.log(
+    logger.info(
       `✓ GitLab pipeline ${pipeline.id} status: ${pipeline.status}`
     )
 
@@ -190,7 +193,7 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
 
     // Update if status changed
     if (newStatus !== execution.status) {
-      console.log(
+      logger.info(
         `  Status changed: ${execution.status} → ${newStatus}`
       )
 
@@ -205,9 +208,9 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
         )
       }
 
-      console.log(`✓ Updated pipeline execution status to: ${newStatus}`)
+      logger.info(`✓ Updated pipeline execution status to: ${newStatus}`)
     } else {
-      console.log(`  No status change (still ${execution.status})`)
+      logger.info(`  No status change (still ${execution.status})`)
 
       // Update last_status_update timestamp even if status didn't change
       await apiClient.updatePipelineExecution(execution.id, {
@@ -216,7 +219,7 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    console.error(
+    logger.error(
       `❌ Failed to update pipeline status for execution ${executionId}: ${errorMessage}`
     )
     throw error
@@ -234,7 +237,7 @@ export function startPipelineMonitor(
     parseInt(process.env.PIPELINE_POLL_INTERVAL_MS || '') ||
     DEFAULT_POLL_INTERVAL_MS
 
-  console.log(
+  logger.info(
     `🔄 Starting pipeline monitor (interval: ${pollIntervalMs / 1000}s)`
   )
 
@@ -242,13 +245,13 @@ export function startPipelineMonitor(
     try {
       await checkStalePipelines(config)
     } catch (error) {
-      console.error('Pipeline monitor error:', error)
+      logger.error('Pipeline monitor error:', error)
     }
   }, pollIntervalMs)
 
   // Run immediately on start
   checkStalePipelines(config).catch((error) => {
-    console.error('Pipeline monitor initial run error:', error)
+    logger.error('Pipeline monitor initial run error:', error)
   })
 
   return intervalId
@@ -259,5 +262,5 @@ export function startPipelineMonitor(
  */
 export function stopPipelineMonitor(intervalId: NodeJS.Timeout): void {
   clearInterval(intervalId)
-  console.log('⏹️  Pipeline monitor stopped')
+  logger.info('⏹️  Pipeline monitor stopped')
 }

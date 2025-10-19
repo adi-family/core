@@ -7,6 +7,9 @@ import { GitLabApiClient } from './gitlab-api-client'
 import { readFile, readdir } from 'fs/promises'
 import { join, relative } from 'path'
 import { encrypt, decrypt } from './crypto-utils'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger({ namespace: 'ci-repository-manager' })
 
 export interface WorkerRepositorySource {
   type: 'gitlab'
@@ -66,7 +69,7 @@ export class CIRepositoryManager {
       description: `ADI Worker Repository for ${config.projectName}`,
     })
 
-    console.log(`✓ Created GitLab project: ${project.path_with_namespace}`)
+    logger.info(`✓ Created GitLab project: ${project.path_with_namespace}`)
 
     return {
       type: 'gitlab',
@@ -119,7 +122,7 @@ export class CIRepositoryManager {
     const basePath = config.templateBasePath || this.templateBasePath
     const versionDir = join(basePath, versionPath)
 
-    console.log(`📤 Uploading CI files for version ${versionPath}...`)
+    logger.info(`📤 Uploading CI files for version ${versionPath}...`)
 
     // Get all files recursively from version directory
     const allFiles = await this.getAllFiles(versionDir)
@@ -147,10 +150,10 @@ export class CIRepositoryManager {
         'main'
       )
 
-      console.log(`  ✓ Uploaded ${remotePath}`)
+      logger.info(`  ✓ Uploaded ${remotePath}`)
     }
 
-    console.log(`✅ Successfully uploaded ${allFiles.length} files for version ${versionPath}`)
+    logger.info(`✅ Successfully uploaded ${allFiles.length} files for version ${versionPath}`)
   }
 
   /**
@@ -160,14 +163,14 @@ export class CIRepositoryManager {
     source: WorkerRepositorySource,
     newVersion: string
   ): Promise<void> {
-    console.log(`🔄 Updating worker repository to version ${newVersion}...`)
+    logger.info(`🔄 Updating worker repository to version ${newVersion}...`)
 
     await this.uploadCIFiles({
       source,
       version: newVersion,
     })
 
-    console.log(`✅ Worker repository updated to version ${newVersion}`)
+    logger.info(`✅ Worker repository updated to version ${newVersion}`)
   }
 
   /**

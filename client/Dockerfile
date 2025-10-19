@@ -11,6 +11,7 @@ RUN bun install --frozen-lockfile
 COPY client ./client
 COPY backend ./backend
 COPY db ./db
+COPY utils ./utils
 COPY tsconfig.json ./
 
 # Build the client

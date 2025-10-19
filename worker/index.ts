@@ -8,9 +8,11 @@ import type {FileSpace} from './file-spaces/base';
 import {createTaskSource} from './task-sources/factory';
 import type {TaskSource} from './task-sources/base';
 import { startPipelineMonitor, stopPipelineMonitor } from './pipeline-monitor';
-import chalk from 'chalk';
+import { createLogger } from '../utils/logger';
 import * as path from 'path';
 import 'dotenv/config';
+
+const logger = createLogger({ namespace: 'worker' });
 
 const SLEEP_INTERVAL_MS = 600000;
 
@@ -47,7 +49,7 @@ if (RUNNER_TYPES.length === 0) {
   throw new Error('At least one RUNNER_TYPE must be specified');
 }
 
-console.log(chalk.blue.bold(`Available runners: ${RUNNER_TYPES.join(', ')}`));
+logger.info(`Available runners: ${RUNNER_TYPES.join(', ')}`);
 
 let currentRunnerIndex = 0;
 const selectRunner = (): RunnerType => {
@@ -63,55 +65,55 @@ const selectRunner = (): RunnerType => {
 async function run() {
   const workerId = `${process.pid}-${Date.now()}`;
 
-  console.log(chalk.blue.bold(`Worker ID: ${workerId}`));
+  logger.info(`Worker ID: ${workerId}`);
 
   // Start pipeline monitor for stale pipeline detection
-  console.log(chalk.blue.bold('Starting pipeline monitor...'));
+  logger.info('Starting pipeline monitor...');
   const monitorIntervalId = startPipelineMonitor();
 
   // Handle graceful shutdown
   process.on('SIGINT', () => {
-    console.log(chalk.yellow('\nShutting down...'));
+    logger.warn('\nShutting down...');
     stopPipelineMonitor(monitorIntervalId);
     process.exit(0);
   });
 
   process.on('SIGTERM', () => {
-    console.log(chalk.yellow('\nShutting down...'));
+    logger.warn('\nShutting down...');
     stopPipelineMonitor(monitorIntervalId);
     process.exit(0);
   });
 
   while (true) {
-    console.log(chalk.cyan.bold(`\n=== Starting new iteration at ${new Date().toISOString()} ===\n`));
+    logger.info(`\n=== Starting new iteration at ${new Date().toISOString()} ===\n`);
 
     const projects = await getAllEnabledProjects(sql);
 
     for (const project of projects) {
-      console.log(chalk.magenta.bold(`\nProcessing project: ${project.name}\n`));
+      logger.info(`\nProcessing project: ${project.name}\n`);
 
       const fileSpacesData = await getFileSpacesByProjectId(sql, project.id);
       const taskSourcesData = await getTaskSourcesByProjectId(sql, project.id);
 
       if (fileSpacesData.length === 0) {
-        console.log(chalk.yellow(`No file spaces found for project ${project.name}, skipping`));
+        logger.warn(`No file spaces found for project ${project.name}, skipping`);
         continue;
       }
 
       if (taskSourcesData.length === 0) {
-        console.log(chalk.yellow(`No task sources found for project ${project.name}, skipping`));
+        logger.warn(`No task sources found for project ${project.name}, skipping`);
         continue;
       }
 
       const fileSpaces = fileSpacesData.map(fs => createFileSpace(fs as FileSpace));
 
-      console.log(chalk.blue(`File spaces: ${fileSpaces.length}`));
-      console.log(chalk.blue(`Task sources: ${taskSourcesData.length}`));
+      logger.info(`File spaces: ${fileSpaces.length}`);
+      logger.info(`Task sources: ${taskSourcesData.length}`);
 
       for (const taskSourceData of taskSourcesData) {
         const taskSource = createTaskSource(taskSourceData as TaskSource);
 
-        console.log(chalk.cyan(`Processing task source: ${taskSourceData.name} (${taskSourceData.type})`));
+        logger.info(`Processing task source: ${taskSourceData.name} (${taskSourceData.type})`);
 
         const context: ProcessorContext = {
           sql,
@@ -128,12 +130,12 @@ async function run() {
         try {
           await processor.processIssues();
         } catch (error) {
-          console.error(chalk.red(`[${project.name}] Error processing task source ${taskSourceData.name}:`), error);
+          logger.error(`[${project.name}] Error processing task source ${taskSourceData.name}:`, error);
         }
       }
     }
 
-    console.log(chalk.cyan.bold(`\n=== Iteration complete. Sleeping for ${SLEEP_INTERVAL_MS / 1000} seconds ===\n`));
+    logger.info(`\n=== Iteration complete. Sleeping for ${SLEEP_INTERVAL_MS / 1000} seconds ===\n`);
     await new Promise(resolve => setTimeout(resolve, SLEEP_INTERVAL_MS));
   }
 }

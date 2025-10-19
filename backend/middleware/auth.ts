@@ -1,4 +1,7 @@
 import type { Context, Next } from 'hono'
+import { createLogger } from '../../utils/logger'
+
+const logger = createLogger({ namespace: 'auth' })
 
 /**
  * Authentication middleware for API endpoints
@@ -15,7 +18,7 @@ export const authMiddleware = async (c: Context, next: Next) => {
   const apiToken = process.env.API_TOKEN
 
   if (!apiToken) {
-    console.error('API_TOKEN environment variable not set')
+    logger.error('API_TOKEN environment variable not set')
     return c.json({ error: 'Server configuration error' }, 500)
   }
 

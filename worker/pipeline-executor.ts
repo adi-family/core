@@ -8,6 +8,9 @@ import type { BackendApiClient } from './api-client'
 import { GitLabApiClient } from './gitlab-api-client'
 import { decrypt } from './crypto-utils'
 import { retry, isRetryableError } from '../utils/retry'
+import { createLogger } from '../utils/logger'
+
+const logger = createLogger({ namespace: 'pipeline-executor' })
 
 export interface TriggerPipelineInput {
   sessionId: string
@@ -40,7 +43,7 @@ export function buildPipelineVariables(
 export async function triggerPipeline(
   input: TriggerPipelineInput
 ): Promise<TriggerPipelineResult> {
-  console.log(`🚀 Triggering pipeline for session ${input.sessionId}`)
+  logger.info(`🚀 Triggering pipeline for session ${input.sessionId}`)
 
   try {
     // Fetch session
@@ -135,13 +138,13 @@ export async function triggerPipeline(
       status: 'pending',
     })
 
-    console.log(`✓ Created pipeline execution record: ${execution.id}`)
+    logger.info(`✓ Created pipeline execution record: ${execution.id}`)
 
     // Determine CI file based on runner type
     const runnerType = session.runner
     const ciConfigPath = `${workerRepo.current_version}/.gitlab-ci-${runnerType}.yml`
 
-    console.log(`✓ Using CI config: ${ciConfigPath}`)
+    logger.info(`✓ Using CI config: ${ciConfigPath}`)
 
     // Build pipeline variables
     const variables = buildPipelineVariables(
@@ -150,7 +153,7 @@ export async function triggerPipeline(
       ciConfigPath
     )
 
-    console.log(`✓ Pipeline variables prepared`)
+    logger.info(`✓ Pipeline variables prepared`)
 
     // Decrypt access token
     let accessToken: string
@@ -168,7 +171,7 @@ export async function triggerPipeline(
     try {
       const pipeline = await retry(
         async () => {
-          console.log(`📡 Attempting to trigger pipeline...`)
+          logger.info(`📡 Attempting to trigger pipeline...`)
           return await gitlabClient.triggerPipeline(source.project_id!, {
             ref: 'main',
             variables,
@@ -179,11 +182,11 @@ export async function triggerPipeline(
           initialDelayMs: 2000,
           onRetry: (error, attempt) => {
             if (isRetryableError(error)) {
-              console.log(
+              logger.warn(
                 `⚠️  Pipeline trigger failed (attempt ${attempt}/3): ${error.message}. Retrying...`
               )
             } else {
-              console.error(
+              logger.error(
                 `❌ Non-retryable error: ${error.message}. Aborting.`
               )
               throw error
@@ -192,7 +195,7 @@ export async function triggerPipeline(
         }
       )
 
-      console.log(`✓ GitLab pipeline triggered: ${pipeline.id}`)
+      logger.info(`✓ GitLab pipeline triggered: ${pipeline.id}`)
 
       // Update execution with GitLab pipeline ID
       const updateResult = await input.apiClient.updatePipelineExecution(execution.id, {
@@ -209,7 +212,7 @@ export async function triggerPipeline(
 
       const pipelineUrl = `${source.host}/${source.project_path}/-/pipelines/${pipeline.id}`
 
-      console.log(`✅ Pipeline triggered successfully: ${pipelineUrl}`)
+      logger.info(`✅ Pipeline triggered successfully: ${pipelineUrl}`)
 
       return {
         execution: updateResult.data,
@@ -218,7 +221,7 @@ export async function triggerPipeline(
     } catch (error) {
       // If pipeline trigger fails, update execution status to failed
       const errorMessage = error instanceof Error ? error.message : String(error)
-      console.error(`❌ Pipeline trigger failed: ${errorMessage}`)
+      logger.error(`❌ Pipeline trigger failed: ${errorMessage}`)
 
       await input.apiClient.updatePipelineExecution(execution.id, {
         status: 'failed',
@@ -232,7 +235,7 @@ export async function triggerPipeline(
   } catch (error) {
     // Log error with context
     const errorMessage = error instanceof Error ? error.message : String(error)
-    console.error(
+    logger.error(
       `❌ Pipeline execution failed for session ${input.sessionId}: ${errorMessage}`
     )
     throw error

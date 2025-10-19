@@ -8,8 +8,10 @@ import { ApiClient } from './shared/api-client'
 import { readFile } from 'fs/promises'
 import { promisify } from 'util'
 import { exec as execCallback } from 'child_process'
+import { createLogger } from '../../../../utils/logger'
 
 const exec = promisify(execCallback)
+const logger = createLogger({ namespace: 'upload-results' })
 
 const apiClient = new ApiClient(
   process.env.API_BASE_URL!,
@@ -19,18 +21,18 @@ const apiClient = new ApiClient(
 async function main() {
   const executionId = process.env.PIPELINE_EXECUTION_ID!
 
-  console.log('📤 Upload Results Started')
-  console.log(`Execution ID: ${executionId}`)
+  logger.info('📤 Upload Results Started')
+  logger.info(`Execution ID: ${executionId}`)
 
   try {
     // Read results from previous stage
-    console.log('📥 Reading results from execute stage...')
+    logger.info('📥 Reading results from execute stage...')
     const resultsText = await readFile('../results/output.json', 'utf-8')
     const results = JSON.parse(resultsText)
 
-    console.log('✓ Results loaded')
+    logger.info('✓ Results loaded')
 
-    console.log('📝 Creating pipeline artifacts...')
+    logger.info('📝 Creating pipeline artifacts...')
 
     // Create merge request in target repository if changes were made
     let mrUrl = null
@@ -48,7 +50,7 @@ async function main() {
       const workspacePath = `/tmp/workspace-${sessionId}`
       branchName = `issue/task-${results.task.id.slice(0, 8)}`
 
-      console.log('📤 Creating merge request...')
+      logger.info('📤 Creating merge request...')
 
       try {
         // Build MR description
@@ -89,19 +91,19 @@ async function main() {
         const urlMatch = stdout.match(/https:\/\/[^\s]+\/merge_requests\/\d+/)
         if (urlMatch) {
           mrUrl = urlMatch[0]
-          console.log(`✓ Merge request created: ${mrUrl}`)
+          logger.info(`✓ Merge request created: ${mrUrl}`)
         } else {
-          console.log('⚠️  MR created but could not parse URL from output')
-          console.log(stdout)
+          logger.warn('⚠️  MR created but could not parse URL from output')
+          logger.info(stdout)
         }
       } catch (error) {
-        console.error('❌ Failed to create merge request:', error)
-        console.error(error instanceof Error ? error.message : String(error))
+        logger.error('❌ Failed to create merge request:', error)
+        logger.error(error instanceof Error ? error.message : String(error))
 
         // Continue even if MR creation fails - we'll create artifact without MR URL
       }
     } else {
-      console.log('⚠️  No changes to create merge request for')
+      logger.warn('⚠️  No changes to create merge request for')
     }
 
     // Create artifact record
@@ -118,7 +120,7 @@ async function main() {
         },
       })
 
-      console.log(`✓ Created artifact: merge_request → ${mrUrl}`)
+      logger.info(`✓ Created artifact: merge_request → ${mrUrl}`)
     } else if (results.agentResults.exitCode === 0) {
       // Create artifact with execution results even without MR (use issue type as fallback)
       await apiClient.createPipelineArtifact(executionId, {
@@ -133,22 +135,22 @@ async function main() {
         },
       })
 
-      console.log(`✓ Created artifact: execution result`)
+      logger.info(`✓ Created artifact: execution result`)
     }
 
     // Update task status
-    console.log('📝 Updating task status...')
+    logger.info('📝 Updating task status...')
     const newStatus = results.completionCheck.isComplete
       ? 'completed'
       : 'needs_clarification'
 
     await apiClient.updateTaskStatus(results.task.id, newStatus)
-    console.log(`✓ Task status updated to: ${newStatus}`)
+    logger.info(`✓ Task status updated to: ${newStatus}`)
 
-    console.log('✅ Upload results completed successfully')
+    logger.info('✅ Upload results completed successfully')
     process.exit(0)
   } catch (error) {
-    console.error('❌ Upload results failed:', error)
+    logger.error('❌ Upload results failed:', error)
     process.exit(1)
   }
 }

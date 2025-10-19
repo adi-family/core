@@ -17,6 +17,9 @@ import * as projectQueries from '../../db/projects'
 import * as workerRepoQueries from '../../db/worker-repositories'
 import { CIRepositoryManager } from '../ci-repository-manager'
 import { printHeader, printError, printSuccess, printSection, printSummary, printNumberedItem, printListItem } from '../../utils/print'
+import { createLogger } from '../../utils/logger'
+
+const logger = createLogger({ namespace: 'create-worker-repo' })
 
 async function main() {
   printHeader('🚀 Worker Repository Creator')
@@ -45,7 +48,7 @@ async function main() {
 
   try {
     // Fetch project
-    console.log(`\n📋 Fetching project ${projectId}...`)
+    logger.info(`\n📋 Fetching project ${projectId}...`)
     const projectResult = await projectQueries.findProjectById(sql, projectId)
 
     if (!projectResult.ok) {
@@ -60,9 +63,9 @@ async function main() {
     const existingRepo = await workerRepoQueries.findWorkerRepositoryByProjectId(sql, projectId)
 
     if (existingRepo.ok) {
-      console.log('\n⚠️  Worker repository already exists for this project!')
-      console.log(`   Repository ID: ${existingRepo.data.id}`)
-      console.log(`   Current version: ${existingRepo.data.current_version}`)
+      logger.warn('\n⚠️  Worker repository already exists for this project!')
+      logger.info(`   Repository ID: ${existingRepo.data.id}`)
+      logger.info(`   Current version: ${existingRepo.data.current_version}`)
 
       const source = existingRepo.data.source_gitlab as {
         type: string
@@ -71,15 +74,15 @@ async function main() {
       }
 
       if (source.project_path) {
-        console.log(`   GitLab project: ${source.host}/${source.project_path}`)
+        logger.info(`   GitLab project: ${source.host}/${source.project_path}`)
       }
 
-      console.log('\nTo update the worker repository, use the update script instead.')
+      logger.info('\nTo update the worker repository, use the update script instead.')
       process.exit(0)
     }
 
     // Create worker repository
-    console.log('\n🔧 Creating GitLab worker repository...')
+    logger.info('\n🔧 Creating GitLab worker repository...')
     const manager = new CIRepositoryManager()
 
     const source = await manager.createWorkerRepository({
@@ -139,7 +142,7 @@ async function main() {
     printError(error instanceof Error ? error.message : String(error))
     if (error instanceof Error && error.stack) {
       printSection('Stack trace:')
-      console.error(error.stack)
+      logger.error(error.stack)
     }
     process.exit(1)
   } finally {

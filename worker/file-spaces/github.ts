@@ -1,9 +1,11 @@
 import {BaseFileSpace, type FileSpace, type WorkspaceLocation} from './base';
 import * as fs from 'fs';
 import {execSync} from 'child_process';
-import chalk from 'chalk';
+import {createLogger} from '../../utils/logger';
 
 export class GithubFileSpace extends BaseFileSpace {
+  private logger = createLogger({ namespace: 'GithubFileSpace' });
+
   constructor(fileSpace: FileSpace) {
     super(fileSpace);
   }
@@ -11,7 +13,7 @@ export class GithubFileSpace extends BaseFileSpace {
   async clone(workDir: string): Promise<string> {
     if (!fs.existsSync(workDir)) {
       fs.mkdirSync(workDir, {recursive: true});
-      console.log(chalk.yellow(`Cloning GitHub repository ${this.config.repo} into ${workDir}...`));
+      this.logger.warn(`Cloning GitHub repository ${this.config.repo} into ${workDir}...`);
       execSync(`gh repo clone ${this.config.repo} ${workDir}`, {stdio: 'inherit'});
     }
     return workDir;
@@ -26,12 +28,12 @@ export class GithubFileSpace extends BaseFileSpace {
   }
 
   async switchToWorkspace(location: WorkspaceLocation): Promise<void> {
-    console.log(chalk.green(`Checking out branch ${location.workspaceName}...`));
+    this.logger.success(`Checking out branch ${location.workspaceName}...`);
     execSync(`git -C ${location.workDir} checkout ${location.workspaceName}`, {stdio: 'inherit'});
   }
 
   async createWorkspace(location: WorkspaceLocation): Promise<void> {
-    console.log(chalk.green(`Creating and checking out new branch ${location.workspaceName}...`));
+    this.logger.success(`Creating and checking out new branch ${location.workspaceName}...`);
     execSync(`git -C ${location.workDir} checkout -b ${location.workspaceName}`, {stdio: 'inherit'});
   }
 }
