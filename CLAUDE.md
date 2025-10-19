@@ -21,6 +21,12 @@ PROJECT STAGE - CAN EDIT EVERYTHING, NO NEED TO MAINTAIN
 - **Pre-push hook** runs ESLint to prevent pushing code with lint errors
 - use glab tool please with custom gitlab domain ( https://gitlab.the-ihor.com )
 
+## Code Style
+- **Hono method chaining** - Always use chaining pattern for Hono routes (important for TypeScript type inference)
+  - CORRECT: `return new Hono().get(...).post(...).patch(...)`
+  - INCORRECT: `const app = new Hono(); app.get(...); app.post(...); return app`
+  - INCORRECT: `let app = new Hono(); app = app.get(...); app = app.post(...); return app`
+
 ## UI Design Guidelines
 - **Design philosophy** - Apple-inspired fluid design with minimalistic brutalist foundation
 - **Zero rounded corners** - maintaining sharp square aesthetic while adding fluidity

@@ -1,77 +1,71 @@
-import type { Context } from 'hono'
+import { Hono } from 'hono'
 import type { Sql } from 'postgres'
+import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/worker-repositories'
 import * as projectQueries from '../../db/projects'
 import { CIRepositoryManager } from '../../worker/ci-repository-manager'
 import { createLogger } from '../../utils/logger'
+import { idParamSchema, projectIdParamSchema, createWorkerRepositorySchema, updateWorkerRepositorySchema, setupWorkerRepositorySchema, updateVersionSchema } from '../schemas'
 
 const logger = createLogger({ namespace: 'worker-repositories-handler' })
 
-export const createWorkerRepositoryHandlers = (sql: Sql) => ({
-  list: async (c: Context) => {
-    const repos = await queries.findAllWorkerRepositories(sql)
-    return c.json(repos)
-  },
+export const createWorkerRepositoryRoutes = (sql: Sql) => {
+  return new Hono()
+    .get('/', async (c) => {
+      const repos = await queries.findAllWorkerRepositories(sql)
+      return c.json(repos)
+    })
+    .get('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.findWorkerRepositoryById(sql, id)
 
-  get: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.findWorkerRepositoryById(sql, id)
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
+      return c.json(result.data)
+    })
+    .post('/', zValidator('json', createWorkerRepositorySchema), async (c) => {
+      const body = c.req.valid('json')
+      const repo = await queries.createWorkerRepository(sql, body)
+      return c.json(repo, 201)
+    })
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateWorkerRepositorySchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const body = c.req.valid('json')
+      const result = await queries.updateWorkerRepository(sql, id, body)
 
-    return c.json(result.data)
-  },
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-  getByProjectId: async (c: Context) => {
-    const projectId = c.req.param('projectId')
-    const result = await queries.findWorkerRepositoryByProjectId(sql, projectId)
+      return c.json(result.data)
+    })
+    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.deleteWorkerRepository(sql, id)
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-    return c.json(result.data)
-  },
+      return c.json({ success: true })
+    })
+    // Note: This route needs special handling in app.ts since it uses /projects/:projectId prefix
+    .get('/by-project/:projectId', zValidator('param', projectIdParamSchema), async (c) => {
+      const { projectId } = c.req.valid('param')
+      const result = await queries.findWorkerRepositoryByProjectId(sql, projectId)
 
-  create: async (c: Context) => {
-    const body = await c.req.json()
-    const repo = await queries.createWorkerRepository(sql, body)
-    return c.json(repo, 201)
-  },
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-  update: async (c: Context) => {
-    const id = c.req.param('id')
-    const body = await c.req.json()
-    const result = await queries.updateWorkerRepository(sql, id, body)
-
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-
-    return c.json(result.data)
-  },
-
-  delete: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.deleteWorkerRepository(sql, id)
-
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-
-    return c.json({ success: true })
-  },
-
-  /**
-   * Setup a new worker repository for a project
-   * POST /projects/:projectId/worker-repository/setup
-   * Body: { version?: string, customPath?: string }
-   */
-  setup: async (c: Context) => {
-    const projectId = c.req.param('projectId')
-    const body = await c.req.json<{ version?: string; customPath?: string }>()
+      return c.json(result.data)
+    })
+    // Note: This route needs special handling in app.ts since it uses /projects/:projectId prefix
+    .post('/setup/:projectId', zValidator('param', projectIdParamSchema), zValidator('json', setupWorkerRepositorySchema), async (c) => {
+    const { projectId } = c.req.valid('param')
+    const body = c.req.valid('json')
 
     // Validate environment
     const requiredEnv = ['GITLAB_HOST', 'GITLAB_TOKEN', 'GITLAB_USER', 'ENCRYPTION_KEY']
@@ -161,20 +155,10 @@ export const createWorkerRepositoryHandlers = (sql: Sql) => ({
         500
       )
     }
-  },
-
-  /**
-   * Update worker repository to a new version
-   * POST /worker-repositories/:id/update-version
-   * Body: { version: string }
-   */
-  updateVersion: async (c: Context) => {
-    const id = c.req.param('id')
-    const body = await c.req.json<{ version: string }>()
-
-    if (!body.version) {
-      return c.json({ error: 'version is required' }, 400)
-    }
+    })
+    .post('/:id/update-version', zValidator('param', idParamSchema), zValidator('json', updateVersionSchema), async (c) => {
+    const { id } = c.req.valid('param')
+    const body = c.req.valid('json')
 
     try {
       // Fetch worker repository
@@ -227,5 +211,5 @@ export const createWorkerRepositoryHandlers = (sql: Sql) => ({
         500
       )
     }
-  },
-})
+    })
+}

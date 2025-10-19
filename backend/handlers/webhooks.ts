@@ -3,7 +3,7 @@
  * Receive events from GitLab, Jira, and other sources
  */
 
-import type { Context } from 'hono'
+import { Hono } from 'hono'
 import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger.ts'
 import { processTaskSource } from '../services/orchestrator'
@@ -12,12 +12,13 @@ import type { GitlabIssuesConfig, GithubIssuesConfig, TaskSourceJiraConfig } fro
 
 const logger = createLogger({ namespace: 'webhooks' })
 
-export const createWebhookHandlers = (sql: Sql) => ({
-  /**
-   * GitLab webhook handler
-   * Handles issue events from GitLab
-   */
-  gitlab: async (c: Context) => {
+export const createWebhookRoutes = (sql: Sql) => {
+  return new Hono()
+    /**
+     * GitLab webhook handler
+     * Handles issue events from GitLab
+     */
+    .post('/gitlab', async (c) => {
     try {
       const event = c.req.header('X-Gitlab-Event')
       const token = c.req.header('X-Gitlab-Token')
@@ -88,13 +89,12 @@ export const createWebhookHandlers = (sql: Sql) => ({
       logger.error('GitLab webhook error:', error)
       return c.json({ error: error instanceof Error ? error.message : 'Internal error' }, 500)
     }
-  },
-
-  /**
-   * Jira webhook handler
-   * Handles issue events from Jira
-   */
-  jira: async (c: Context) => {
+    })
+    /**
+     * Jira webhook handler
+     * Handles issue events from Jira
+     */
+    .post('/jira', async (c) => {
     try {
       const payload = await c.req.json()
       const webhookEvent = payload.webhookEvent
@@ -151,13 +151,12 @@ export const createWebhookHandlers = (sql: Sql) => ({
       logger.error('Jira webhook error:', error)
       return c.json({ error: error instanceof Error ? error.message : 'Internal error' }, 500)
     }
-  },
-
-  /**
-   * GitHub webhook handler
-   * Handles issue events from GitHub
-   */
-  github: async (c: Context) => {
+    })
+    /**
+     * GitHub webhook handler
+     * Handles issue events from GitHub
+     */
+    .post('/github', async (c) => {
     try {
       const event = c.req.header('X-GitHub-Event')
       // const signature = c.req.header('X-Hub-Signature-256')
@@ -219,5 +218,5 @@ export const createWebhookHandlers = (sql: Sql) => ({
       logger.error('GitHub webhook error:', error)
       return c.json({ error: error instanceof Error ? error.message : 'Internal error' }, 500)
     }
-  }
-})
+    })
+}

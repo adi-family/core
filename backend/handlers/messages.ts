@@ -1,44 +1,38 @@
-import type { Context } from 'hono'
+import { Hono } from 'hono'
 import type { Sql } from 'postgres'
+import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/messages'
+import { idParamSchema, createMessageSchema } from '../schemas'
 
-export const createMessageHandlers = (sql: Sql) => ({
-  list: async (c: Context) => {
-    const messages = await queries.findAllMessages(sql)
-    return c.json(messages)
-  },
+export const createMessageRoutes = (sql: Sql) => {
+  return new Hono()
+    .get('/', async (c) => {
+      const messages = await queries.findAllMessages(sql)
+      return c.json(messages)
+    })
+    .get('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.findMessageById(sql, id)
 
-  listBySession: async (c: Context) => {
-    const sessionId = c.req.param('sessionId')
-    const messages = await queries.findMessagesBySessionId(sql, sessionId)
-    return c.json(messages)
-  },
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-  get: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.findMessageById(sql, id)
+      return c.json(result.data)
+    })
+    .post('/', zValidator('json', createMessageSchema), async (c) => {
+      const body = c.req.valid('json')
+      const message = await queries.createMessage(sql, body)
+      return c.json(message, 201)
+    })
+    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.deleteMessage(sql, id)
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-    return c.json(result.data)
-  },
-
-  create: async (c: Context) => {
-    const body = await c.req.json()
-    const message = await queries.createMessage(sql, body)
-    return c.json(message, 201)
-  },
-
-  delete: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.deleteMessage(sql, id)
-
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-
-    return c.json({ success: true })
-  }
-})
+      return c.json({ success: true })
+    })
+}

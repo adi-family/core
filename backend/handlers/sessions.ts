@@ -1,44 +1,38 @@
-import type { Context } from 'hono'
+import { Hono } from 'hono'
 import type { Sql } from 'postgres'
+import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/sessions'
+import { idParamSchema, createSessionSchema } from '../schemas'
 
-export const createSessionHandlers = (sql: Sql) => ({
-  list: async (c: Context) => {
-    const sessions = await queries.findAllSessions(sql)
-    return c.json(sessions)
-  },
+export const createSessionRoutes = (sql: Sql) => {
+  return new Hono()
+    .get('/', async (c) => {
+      const sessions = await queries.findAllSessions(sql)
+      return c.json(sessions)
+    })
+    .get('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.findSessionById(sql, id)
 
-  get: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.findSessionById(sql, id)
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
+      return c.json(result.data)
+    })
+    .post('/', zValidator('json', createSessionSchema), async (c) => {
+      const body = c.req.valid('json')
+      const session = await queries.createSession(sql, body)
+      return c.json(session, 201)
+    })
+    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.deleteSession(sql, id)
 
-    return c.json(result.data)
-  },
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-  listByTask: async (c: Context) => {
-    const taskId = c.req.param('taskId')
-    const sessions = await queries.findSessionsByTaskId(sql, taskId)
-    return c.json(sessions)
-  },
-
-  create: async (c: Context) => {
-    const body = await c.req.json()
-    const session = await queries.createSession(sql, body)
-    return c.json(session, 201)
-  },
-
-  delete: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.deleteSession(sql, id)
-
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-
-    return c.json({ success: true })
-  }
-})
+      return c.json({ success: true })
+    })
+}

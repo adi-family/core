@@ -1,52 +1,53 @@
-import type { Context } from 'hono'
+import { Hono } from 'hono'
 import type { Sql } from 'postgres'
+import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/pipeline-artifacts'
+import { idParamSchema, executionIdParamSchema, createPipelineArtifactSchema } from '../schemas'
 
-export const createPipelineArtifactHandlers = (sql: Sql) => ({
-  list: async (c: Context) => {
-    const artifacts = await queries.findAllPipelineArtifacts(sql)
-    return c.json(artifacts)
-  },
+export const createPipelineArtifactRoutes = (sql: Sql) => {
+  return new Hono()
+    .get('/', async (c) => {
+      const artifacts = await queries.findAllPipelineArtifacts(sql)
+      return c.json(artifacts)
+    })
+    .get('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.findPipelineArtifactById(sql, id)
 
-  get: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.findPipelineArtifactById(sql, id)
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
+      return c.json(result.data)
+    })
+    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.deletePipelineArtifact(sql, id)
 
-    return c.json(result.data)
-  },
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-  getByExecutionId: async (c: Context) => {
-    const executionId = c.req.param('executionId')
-    const artifacts = await queries.findPipelineArtifactsByExecutionId(sql, executionId)
-    return c.json(artifacts)
-  },
+      return c.json({ success: true })
+    })
+    // Note: This route needs special handling in app.ts since it uses /pipeline-executions/:executionId prefix
+    .get('/by-execution/:executionId', zValidator('param', executionIdParamSchema), async (c) => {
+      const { executionId } = c.req.valid('param')
+      const artifacts = await queries.findPipelineArtifactsByExecutionId(sql, executionId)
+      return c.json(artifacts)
+    })
+    // Note: This route needs special handling in app.ts since it uses /pipeline-executions/:executionId prefix
+    .post('/by-execution/:executionId', zValidator('param', executionIdParamSchema), zValidator('json', createPipelineArtifactSchema), async (c) => {
+      const { executionId } = c.req.valid('param')
+      const body = c.req.valid('json')
 
-  create: async (c: Context) => {
-    const executionId = c.req.param('executionId')
-    const body = await c.req.json()
+      // Ensure execution ID from URL is used
+      const artifactData = {
+        ...body,
+        pipeline_execution_id: executionId
+      }
 
-    // Ensure execution ID from URL is used
-    const artifactData = {
-      ...body,
-      pipeline_execution_id: executionId
-    }
-
-    const artifact = await queries.createPipelineArtifact(sql, artifactData)
-    return c.json(artifact, 201)
-  },
-
-  delete: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.deletePipelineArtifact(sql, id)
-
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-
-    return c.json({ success: true })
-  }
-})
+      const artifact = await queries.createPipelineArtifact(sql, artifactData)
+      return c.json(artifact, 201)
+    })
+}

@@ -1,103 +1,245 @@
 import { Hono } from 'hono'
+import { zValidator } from '@hono/zod-validator'
 import { sql } from '../db/client'
-import { createProjectHandlers } from './handlers/projects'
-import { createTaskHandlers } from './handlers/tasks'
-import { createSessionHandlers } from './handlers/sessions'
-import { createMessageHandlers } from './handlers/messages'
-import { createWorkerCacheHandlers } from './handlers/worker-cache'
-import { createFileSpaceHandlers } from './handlers/file-spaces'
-import { createTaskSourceHandlers } from './handlers/task-sources'
-import { createWorkerRepositoryHandlers } from './handlers/worker-repositories'
-import { createPipelineExecutionHandlers } from './handlers/pipeline-executions'
-import { createPipelineArtifactHandlers } from './handlers/pipeline-artifacts'
-import { createWebhookHandlers } from './handlers/webhooks'
+import { createProjectRoutes } from './handlers/projects'
+import { createTaskRoutes } from './handlers/tasks'
+import { createSessionRoutes } from './handlers/sessions'
+import { createMessageRoutes } from './handlers/messages'
+import { createWorkerCacheRoutes } from './handlers/worker-cache'
+import { createFileSpaceRoutes } from './handlers/file-spaces'
+import { createTaskSourceRoutes } from './handlers/task-sources'
+import { createWorkerRepositoryRoutes } from './handlers/worker-repositories'
+import { createPipelineExecutionRoutes } from './handlers/pipeline-executions'
+import { createPipelineArtifactRoutes } from './handlers/pipeline-artifacts'
+import { createWebhookRoutes } from './handlers/webhooks'
 import { authMiddleware } from './middleware/auth'
+import * as sessionQueries from '../db/sessions'
+import {
+  idParamSchema,
+  taskIdParamSchema,
+  sessionIdParamSchema,
+  executionIdParamSchema,
+  projectIdParamSchema,
+  issueIdParamSchema,
+  setupWorkerRepositorySchema,
+  lockContextSchema,
+  signalInfoSchema,
+  isSignaledBodySchema,
+  releaseLockBodySchema,
+  createPipelineArtifactSchema,
+  updatePipelineExecutionSchema
+} from './schemas'
 
 const app = new Hono()
+  // Mount main routes
+  .route('/projects', createProjectRoutes(sql))
+  .route('/tasks', createTaskRoutes(sql))
+  .route('/sessions', createSessionRoutes(sql))
+  .route('/messages', createMessageRoutes(sql))
+  .route('/worker-cache', createWorkerCacheRoutes(sql))
+  .route('/file-spaces', createFileSpaceRoutes(sql))
+  .route('/task-sources', createTaskSourceRoutes(sql))
+  .route('/worker-repositories', createWorkerRepositoryRoutes(sql))
+  .route('/pipeline-executions', createPipelineExecutionRoutes(sql))
+  .route('/pipeline-artifacts', createPipelineArtifactRoutes(sql))
+  .route('/webhooks', createWebhookRoutes(sql))
+  // Nested routes that need special handling
+  // Tasks -> Sessions
+  .get('/tasks/:taskId/sessions', zValidator('param', taskIdParamSchema), async (c) => {
+    const { taskId } = c.req.valid('param')
+    const sessions = await sessionQueries.findSessionsByTaskId(sql, taskId)
+    return c.json(sessions)
+  })
+  // Sessions -> Messages
+  .get('/sessions/:sessionId/messages', zValidator('param', sessionIdParamSchema), async (c) => {
+    const { sessionId } = c.req.valid('param')
+    const messages = await (await import('../db/messages')).findMessagesBySessionId(sql, sessionId)
+    return c.json(messages)
+  })
+  // Sessions -> Pipeline Executions
+  .get('/sessions/:sessionId/pipeline-executions', zValidator('param', sessionIdParamSchema), async (c) => {
+    const { sessionId } = c.req.valid('param')
+    const executions = await (await import('../db/pipeline-executions')).findPipelineExecutionsBySessionId(sql, sessionId)
+    return c.json(executions)
+  })
+  // Pipeline Executions -> Artifacts
+  .get('/pipeline-executions/:executionId/artifacts', zValidator('param', executionIdParamSchema), async (c) => {
+    const { executionId } = c.req.valid('param')
+    const artifacts = await (await import('../db/pipeline-artifacts')).findPipelineArtifactsByExecutionId(sql, executionId)
+    return c.json(artifacts)
+  })
+  .post('/pipeline-executions/:executionId/artifacts', zValidator('param', executionIdParamSchema), zValidator('json', createPipelineArtifactSchema), authMiddleware, async (c) => {
+    const { executionId } = c.req.valid('param')
+    const body = c.req.valid('json')
+    const artifactData = {
+      ...body,
+      pipeline_execution_id: executionId
+    }
+    const artifact = await (await import('../db/pipeline-artifacts')).createPipelineArtifact(sql, artifactData)
+    return c.json(artifact, 201)
+  })
+  // Projects -> Worker Repository
+  .get('/projects/:projectId/worker-repository', zValidator('param', projectIdParamSchema), async (c) => {
+    const { projectId } = c.req.valid('param')
+    const result = await (await import('../db/worker-repositories')).findWorkerRepositoryByProjectId(sql, projectId)
+    if (!result.ok) {
+      return c.json({ error: result.error }, 404)
+    }
+    return c.json(result.data)
+  })
+  .post('/projects/:projectId/worker-repository/setup', zValidator('param', projectIdParamSchema), zValidator('json', setupWorkerRepositorySchema), async (c) => {
+    const { projectId } = c.req.valid('param')
+    const body = c.req.valid('json')
 
-const projectHandlers = createProjectHandlers(sql)
-const taskHandlers = createTaskHandlers(sql)
-const sessionHandlers = createSessionHandlers(sql)
-const messageHandlers = createMessageHandlers(sql)
-const workerCacheHandlers = createWorkerCacheHandlers(sql)
-const fileSpaceHandlers = createFileSpaceHandlers(sql)
-const taskSourceHandlers = createTaskSourceHandlers(sql)
-const workerRepositoryHandlers = createWorkerRepositoryHandlers(sql)
-const pipelineExecutionHandlers = createPipelineExecutionHandlers(sql)
-const pipelineArtifactHandlers = createPipelineArtifactHandlers(sql)
-const webhookHandlers = createWebhookHandlers(sql)
+    // Validate environment
+    const requiredEnv = ['GITLAB_HOST', 'GITLAB_TOKEN', 'GITLAB_USER', 'ENCRYPTION_KEY']
+    const missing = requiredEnv.filter((key) => !process.env[key])
 
-app.get('/projects', projectHandlers.list)
-app.post('/projects', projectHandlers.create)
-app.get('/projects/:id', projectHandlers.get)
-app.patch('/projects/:id', projectHandlers.update)
-app.delete('/projects/:id', projectHandlers.delete)
+    if (missing.length > 0) {
+      return c.json(
+        { error: `Missing required environment variables: ${missing.join(', ')}` },
+        500
+      )
+    }
 
-app.get('/tasks', taskHandlers.list)
-app.post('/tasks', taskHandlers.create)
-app.get('/tasks/:id', taskHandlers.get)
-app.patch('/tasks/:id', taskHandlers.update)
-app.delete('/tasks/:id', taskHandlers.delete)
+    const workerRepoQueries = await import('../db/worker-repositories')
+    const projectQueries = await import('../db/projects')
+    const { CIRepositoryManager } = await import('../worker/ci-repository-manager')
+    const { createLogger } = await import('../utils/logger')
 
-app.get('/sessions', sessionHandlers.list)
-app.post('/sessions', sessionHandlers.create)
-app.get('/sessions/:id', sessionHandlers.get)
-app.delete('/sessions/:id', sessionHandlers.delete)
-app.get('/tasks/:taskId/sessions', sessionHandlers.listByTask)
+    const logger = createLogger({ namespace: 'worker-repositories-handler' })
 
-app.get('/messages', messageHandlers.list)
-app.post('/messages', messageHandlers.create)
-app.get('/messages/:id', messageHandlers.get)
-app.delete('/messages/:id', messageHandlers.delete)
-app.get('/sessions/:sessionId/messages', messageHandlers.listBySession)
+    try {
+      // Check if worker repository already exists
+      const existingRepo = await workerRepoQueries.findWorkerRepositoryByProjectId(sql, projectId)
 
-app.get('/worker-cache', workerCacheHandlers.list)
-app.post('/projects/:projectId/worker-cache/is-signaled', workerCacheHandlers.isSignaledBefore)
-app.post('/projects/:projectId/worker-cache/try-acquire-lock', workerCacheHandlers.tryAcquireLock)
-app.post('/projects/:projectId/worker-cache/release-lock', workerCacheHandlers.releaseLock)
-app.post('/projects/:projectId/worker-cache/signal', workerCacheHandlers.signal)
-app.get('/projects/:projectId/worker-cache/:issueId/task-id', workerCacheHandlers.getTaskId)
+      if (existingRepo.ok) {
+        return c.json(
+          {
+            error: 'Worker repository already exists for this project',
+            repository: existingRepo.data,
+          },
+          409
+        )
+      }
 
-app.get('/file-spaces', fileSpaceHandlers.list)
-app.post('/file-spaces', fileSpaceHandlers.create)
-app.get('/file-spaces/:id', fileSpaceHandlers.get)
-app.patch('/file-spaces/:id', fileSpaceHandlers.update)
-app.delete('/file-spaces/:id', fileSpaceHandlers.delete)
+      // Fetch project
+      const projectResult = await projectQueries.findProjectById(sql, projectId)
 
-app.get('/task-sources', taskSourceHandlers.list)
-app.post('/task-sources', taskSourceHandlers.create)
-app.get('/task-sources/:id', taskSourceHandlers.get)
-app.patch('/task-sources/:id', taskSourceHandlers.update)
-app.delete('/task-sources/:id', taskSourceHandlers.delete)
-app.post('/task-sources/:id/sync', taskSourceHandlers.sync)
+      if (!projectResult.ok) {
+        return c.json({ error: 'Project not found' }, 404)
+      }
 
-app.get('/worker-repositories', workerRepositoryHandlers.list)
-app.post('/worker-repositories', workerRepositoryHandlers.create)
-app.get('/worker-repositories/:id', workerRepositoryHandlers.get)
-app.get('/projects/:projectId/worker-repository', workerRepositoryHandlers.getByProjectId)
-app.patch('/worker-repositories/:id', workerRepositoryHandlers.update)
-app.delete('/worker-repositories/:id', workerRepositoryHandlers.delete)
-app.post('/projects/:projectId/worker-repository/setup', workerRepositoryHandlers.setup)
-app.post('/worker-repositories/:id/update-version', workerRepositoryHandlers.updateVersion)
+      const project = projectResult.data
+      logger.info(`Setting up worker repository for project: ${project.name}`)
 
-app.get('/pipeline-executions', pipelineExecutionHandlers.list)
-app.get('/pipeline-executions/stale', pipelineExecutionHandlers.listStale)
-app.post('/pipeline-executions', pipelineExecutionHandlers.create)
-app.get('/pipeline-executions/:id', pipelineExecutionHandlers.get)
-app.patch('/pipeline-executions/:id', authMiddleware, pipelineExecutionHandlers.update)
-app.delete('/pipeline-executions/:id', pipelineExecutionHandlers.delete)
-app.get('/sessions/:sessionId/pipeline-executions', pipelineExecutionHandlers.getBySessionId)
+      // Create worker repository in GitLab
+      const manager = new CIRepositoryManager()
+      const version = body.version || '2025-10-18-01'
+      const customPath = body.customPath || `adi-worker-${project.name.toLowerCase()}`
 
-app.get('/pipeline-artifacts', pipelineArtifactHandlers.list)
-app.get('/pipeline-artifacts/:id', pipelineArtifactHandlers.get)
-app.delete('/pipeline-artifacts/:id', pipelineArtifactHandlers.delete)
-app.get('/pipeline-executions/:executionId/artifacts', pipelineArtifactHandlers.getByExecutionId)
-app.post('/pipeline-executions/:executionId/artifacts', authMiddleware, pipelineArtifactHandlers.create)
+      const source = await manager.createWorkerRepository({
+        projectName: project.name,
+        sourceType: 'gitlab',
+        host: process.env.GITLAB_HOST!,
+        accessToken: process.env.GITLAB_TOKEN!,
+        user: process.env.GITLAB_USER!,
+        customPath,
+      })
 
-// Webhooks (no auth middleware - verified via webhook tokens)
-app.post('/webhooks/gitlab', webhookHandlers.gitlab)
-app.post('/webhooks/jira', webhookHandlers.jira)
-app.post('/webhooks/github', webhookHandlers.github)
+      logger.info(`Created GitLab repository: ${source.project_path}`)
+
+      // Upload CI files
+      await manager.uploadCIFiles({
+        source,
+        version,
+      })
+
+      logger.info(`Uploaded CI files (version: ${version})`)
+
+      // Save to database
+      const workerRepo = await workerRepoQueries.createWorkerRepository(sql, {
+        project_id: projectId,
+        source_gitlab: source as unknown,
+        current_version: version,
+      })
+
+      logger.info(`Worker repository saved (ID: ${workerRepo.id})`)
+
+      return c.json(
+        {
+          repository: workerRepo,
+          gitlab_url: `${source.host}/${source.project_path}`,
+          next_steps: {
+            configure_ci_variables: `${source.host}/${source.project_path}/-/settings/ci_cd`,
+            required_variables: ['API_BASE_URL', 'API_TOKEN', 'ANTHROPIC_API_KEY'],
+          },
+        },
+        201
+      )
+    } catch (error) {
+      logger.error('Failed to setup worker repository:', error)
+      return c.json(
+        {
+          error: error instanceof Error ? error.message : 'Failed to setup worker repository',
+        },
+        500
+      )
+    }
+  })
+  // Projects -> Worker Cache (traffic light API)
+  .post('/projects/:projectId/worker-cache/is-signaled', zValidator('param', projectIdParamSchema), zValidator('json', isSignaledBodySchema), async (c) => {
+    const { projectId } = c.req.valid('param')
+    const { issueId, date } = c.req.valid('json')
+    const { initTrafficLight } = await import('../db/worker-cache')
+    const trafficLight = initTrafficLight(sql, projectId)
+    const result = await trafficLight.isSignaledBefore(issueId, new Date(date))
+    return c.json({ signaled: result })
+  })
+  .post('/projects/:projectId/worker-cache/try-acquire-lock', zValidator('param', projectIdParamSchema), zValidator('json', lockContextSchema), async (c) => {
+    const { projectId } = c.req.valid('param')
+    const lockContext = c.req.valid('json')
+    const { initTrafficLight } = await import('../db/worker-cache')
+    const trafficLight = initTrafficLight(sql, projectId)
+    const acquired = await trafficLight.tryAcquireLock(lockContext)
+    return c.json({ acquired })
+  })
+  .post('/projects/:projectId/worker-cache/release-lock', zValidator('param', projectIdParamSchema), zValidator('json', releaseLockBodySchema), async (c) => {
+    const { projectId } = c.req.valid('param')
+    const { issueId } = c.req.valid('json')
+    const { initTrafficLight } = await import('../db/worker-cache')
+    const trafficLight = initTrafficLight(sql, projectId)
+    await trafficLight.releaseLock(issueId)
+    return c.json({ success: true })
+  })
+  .post('/projects/:projectId/worker-cache/signal', zValidator('param', projectIdParamSchema), zValidator('json', signalInfoSchema), async (c) => {
+    const { projectId } = c.req.valid('param')
+    const signalInfo = c.req.valid('json')
+    const { initTrafficLight } = await import('../db/worker-cache')
+    const trafficLight = initTrafficLight(sql, projectId)
+    await trafficLight.signal({
+      ...signalInfo,
+      date: new Date(signalInfo.date)
+    })
+    return c.json({ success: true })
+  })
+  .get('/projects/:projectId/worker-cache/:issueId/task-id', zValidator('param', projectIdParamSchema.merge(issueIdParamSchema)), async (c) => {
+    const { projectId, issueId } = c.req.valid('param')
+    const { initTrafficLight } = await import('../db/worker-cache')
+    const trafficLight = initTrafficLight(sql, projectId)
+    const taskId = await trafficLight.getTaskId(issueId)
+    return c.json({ taskId })
+  })
+  // Apply auth middleware to specific routes
+  .patch('/pipeline-executions/:id', zValidator('param', idParamSchema), zValidator('json', updatePipelineExecutionSchema), authMiddleware, async (c) => {
+    const { id } = c.req.valid('param')
+    const body = c.req.valid('json')
+    const result = await (await import('../db/pipeline-executions')).updatePipelineExecution(sql, id, body)
+    if (!result.ok) {
+      return c.json({ error: result.error }, 404)
+    }
+    return c.json(result.data)
+  })
 
 export { app }
 export type AppType = typeof app

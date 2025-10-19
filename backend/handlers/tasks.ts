@@ -1,50 +1,49 @@
-import type { Context } from 'hono'
+import { Hono } from 'hono'
 import type { Sql } from 'postgres'
+import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/tasks'
+import { idParamSchema, createTaskSchema, updateTaskSchema } from '../schemas'
 
-export const createTaskHandlers = (sql: Sql) => ({
-  list: async (c: Context) => {
-    const tasks = await queries.findAllTasks(sql)
-    return c.json(tasks)
-  },
+export const createTaskRoutes = (sql: Sql) => {
+  return new Hono()
+    .get('/', async (c) => {
+      const tasks = await queries.findAllTasks(sql)
+      return c.json(tasks)
+    })
+    .get('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.findTaskById(sql, id)
 
-  get: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.findTaskById(sql, id)
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
+      return c.json(result.data)
+    })
+    .post('/', zValidator('json', createTaskSchema), async (c) => {
+      const body = c.req.valid('json')
+      const task = await queries.createTask(sql, body)
+      return c.json(task, 201)
+    })
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateTaskSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const body = c.req.valid('json')
+      const result = await queries.updateTask(sql, id, body)
 
-    return c.json(result.data)
-  },
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-  create: async (c: Context) => {
-    const body = await c.req.json()
-    const task = await queries.createTask(sql, body)
-    return c.json(task, 201)
-  },
+      return c.json(result.data)
+    })
+    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.deleteTask(sql, id)
 
-  update: async (c: Context) => {
-    const id = c.req.param('id')
-    const body = await c.req.json()
-    const result = await queries.updateTask(sql, id, body)
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-
-    return c.json(result.data)
-  },
-
-  delete: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.deleteTask(sql, id)
-
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-
-    return c.json({ success: true })
-  }
-})
+      return c.json({ success: true })
+    })
+}

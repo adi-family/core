@@ -1,90 +1,88 @@
-import type { Context } from 'hono'
+import { Hono } from 'hono'
 import type { Sql } from 'postgres'
+import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/task-sources'
 import { createLogger } from '@utils/logger.ts'
 import { processTaskSource } from '../services/orchestrator'
+import { idParamSchema, createTaskSourceSchema, updateTaskSourceSchema, projectIdQuerySchema } from '../schemas'
 
 const logger = createLogger({ namespace: 'task-sources' })
 
-export const createTaskSourceHandlers = (sql: Sql) => ({
-  list: async (c: Context) => {
-    const projectId = c.req.query('project_id')
+export const createTaskSourceRoutes = (sql: Sql) => {
+  return new Hono()
+    .get('/', zValidator('query', projectIdQuerySchema), async (c) => {
+      const { project_id } = c.req.valid('query')
 
-    if (projectId) {
-      const taskSources = await queries.findTaskSourcesByProjectId(sql, projectId)
+      if (project_id) {
+        const taskSources = await queries.findTaskSourcesByProjectId(sql, project_id)
+        return c.json(taskSources)
+      }
+
+      const taskSources = await queries.findAllTaskSources(sql)
       return c.json(taskSources)
-    }
+    })
+    .get('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.findTaskSourceById(sql, id)
 
-    const taskSources = await queries.findAllTaskSources(sql)
-    return c.json(taskSources)
-  },
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-  get: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.findTaskSourceById(sql, id)
+      return c.json(result.data)
+    })
+    .post('/', zValidator('json', createTaskSourceSchema), async (c) => {
+      const body = c.req.valid('json')
+      const taskSource = await queries.createTaskSource(sql, body)
+      return c.json(taskSource, 201)
+    })
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateTaskSourceSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const body = c.req.valid('json')
+      const result = await queries.updateTaskSource(sql, id, body)
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-    return c.json(result.data)
-  },
+      return c.json(result.data)
+    })
+    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.deleteTaskSource(sql, id)
 
-  create: async (c: Context) => {
-    const body = await c.req.json()
-    const taskSource = await queries.createTaskSource(sql, body)
-    return c.json(taskSource, 201)
-  },
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-  update: async (c: Context) => {
-    const id = c.req.param('id')
-    const body = await c.req.json()
-    const result = await queries.updateTaskSource(sql, id, body)
+      return c.json({ success: true })
+    })
+    .post('/:id/sync', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+      const result = await queries.findTaskSourceById(sql, id)
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
 
-    return c.json(result.data)
-  },
+      // Trigger orchestrator to fetch and process issues from this task source
+      logger.info(`Sync requested for task source ${id}`)
 
-  delete: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.deleteTaskSource(sql, id)
+      try {
+        const syncResult = await processTaskSource(sql, {
+          taskSourceId: id,
+          runner: 'claude' // TODO: Make configurable via query param or body
+        })
 
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-
-    return c.json({ success: true })
-  },
-
-  sync: async (c: Context) => {
-    const id = c.req.param('id')
-    const result = await queries.findTaskSourceById(sql, id)
-
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-
-    // Trigger orchestrator to fetch and process issues from this task source
-    logger.info(`Sync requested for task source ${id}`)
-
-    try {
-      const syncResult = await processTaskSource(sql, {
-        taskSourceId: id,
-        runner: 'claude' // TODO: Make configurable via query param or body
-      })
-
-      return c.json({
-        success: true,
-        ...syncResult
-      })
-    } catch (error) {
-      logger.error(`Sync failed for task source ${id}:`, error)
-      return c.json({
-        error: error instanceof Error ? error.message : 'Sync failed'
-      }, 500)
-    }
-  }
-})
+        return c.json({
+          success: true,
+          ...syncResult
+        })
+      } catch (error) {
+        logger.error(`Sync failed for task source ${id}:`, error)
+        return c.json({
+          error: error instanceof Error ? error.message : 'Sync failed'
+        }, 500)
+      }
+    })
+}
