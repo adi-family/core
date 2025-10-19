@@ -2,6 +2,7 @@ import type { Context } from 'hono'
 import type { Sql } from 'postgres'
 import * as queries from '../../db/task-sources'
 import { createLogger } from '@utils/logger.ts'
+import { processTaskSource } from '../services/orchestrator'
 
 const logger = createLogger({ namespace: 'task-sources' })
 
@@ -66,10 +67,24 @@ export const createTaskSourceHandlers = (sql: Sql) => ({
       return c.json({ error: result.error }, 404)
     }
 
-    // TODO: Implement actual task source sync logic
-    // This would trigger the worker to fetch and process issues from this task source
+    // Trigger orchestrator to fetch and process issues from this task source
     logger.info(`Sync requested for task source ${id}`)
 
-    return c.json({ success: true, message: 'Sync triggered' })
+    try {
+      const syncResult = await processTaskSource(sql, {
+        taskSourceId: id,
+        runner: 'claude' // TODO: Make configurable via query param or body
+      })
+
+      return c.json({
+        success: true,
+        ...syncResult
+      })
+    } catch (error) {
+      logger.error(`Sync failed for task source ${id}:`, error)
+      return c.json({
+        error: error instanceof Error ? error.message : 'Sync failed'
+      }, 500)
+    }
   }
 })

@@ -90,6 +90,7 @@ export type CreateTaskInput = {
   description?: string
   status: string
   project_id?: string
+  task_source_id?: string
   source_gitlab_issue?: GitlabIssue
   source_github_issue?: GithubIssue
   source_jira_issue?: JiraIssue

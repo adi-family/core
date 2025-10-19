@@ -10,6 +10,7 @@ import { createTaskSourceHandlers } from './handlers/task-sources'
 import { createWorkerRepositoryHandlers } from './handlers/worker-repositories'
 import { createPipelineExecutionHandlers } from './handlers/pipeline-executions'
 import { createPipelineArtifactHandlers } from './handlers/pipeline-artifacts'
+import { createWebhookHandlers } from './handlers/webhooks'
 import { authMiddleware } from './middleware/auth'
 
 const app = new Hono()
@@ -24,6 +25,7 @@ const taskSourceHandlers = createTaskSourceHandlers(sql)
 const workerRepositoryHandlers = createWorkerRepositoryHandlers(sql)
 const pipelineExecutionHandlers = createPipelineExecutionHandlers(sql)
 const pipelineArtifactHandlers = createPipelineArtifactHandlers(sql)
+const webhookHandlers = createWebhookHandlers(sql)
 
 app.get('/projects', projectHandlers.list)
 app.post('/projects', projectHandlers.create)
@@ -89,6 +91,11 @@ app.get('/pipeline-artifacts/:id', pipelineArtifactHandlers.get)
 app.delete('/pipeline-artifacts/:id', pipelineArtifactHandlers.delete)
 app.get('/pipeline-executions/:executionId/artifacts', pipelineArtifactHandlers.getByExecutionId)
 app.post('/pipeline-executions/:executionId/artifacts', authMiddleware, pipelineArtifactHandlers.create)
+
+// Webhooks (no auth middleware - verified via webhook tokens)
+app.post('/webhooks/gitlab', webhookHandlers.gitlab)
+app.post('/webhooks/jira', webhookHandlers.jira)
+app.post('/webhooks/github', webhookHandlers.github)
 
 export { app }
 export type AppType = typeof app

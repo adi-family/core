@@ -597,7 +597,7 @@ curl http://localhost:3000/pipeline-executions/<execution-id>/artifacts
 2. Run services locally:
 ```bash
 bun run backend/index.ts
-bun run worker/index.ts
+bun run backend/index.ts
 ```
 
 3. Set breakpoints in code

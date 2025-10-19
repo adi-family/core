@@ -42,28 +42,18 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
       - SERVER_PORT=3000
-    restart: unless-stopped
-
-  worker:
-    build:
-      context: .
-      dockerfile: worker/Dockerfile
-    container_name: adi-simple-worker
-    depends_on:
-      postgres:
-        condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
-    volumes:
-      - worker_apps:/app/.apps
-    environment:
-      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
-      - APPS_DIR=/app/.apps
+      - BACKEND_URL=http://backend:3000
+      - ENABLE_SCHEDULER=${ENABLE_SCHEDULER:-false}
+      - SCHEDULER_INTERVAL_MS=${SCHEDULER_INTERVAL_MS:-600000}
+      - DEFAULT_RUNNER=${DEFAULT_RUNNER:-claude}
+      - GITLAB_WEBHOOK_SECRET=${GITLAB_WEBHOOK_SECRET}
+      - JIRA_WEBHOOK_SECRET=${JIRA_WEBHOOK_SECRET}
+      - GITHUB_WEBHOOK_SECRET=${GITHUB_WEBHOOK_SECRET}
       - GITLAB_TOKEN=${GITLAB_TOKEN}
       - GITLAB_HOST=${GITLAB_HOST:-https://gitlab.com}
-      - GLAB_SEND_TELEMETRY=0
-      - GLAB_CHECK_UPDATE=0
-      - NO_COLOR=1
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
+      - API_TOKEN=${API_TOKEN}
+      - USE_PIPELINE_EXECUTION=${USE_PIPELINE_EXECUTION:-false}
     restart: unless-stopped
 
   client:
@@ -82,4 +72,3 @@ services:
 
 volumes:
   postgres_data:
-  worker_apps:

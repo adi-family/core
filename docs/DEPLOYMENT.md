@@ -1,371 +1,328 @@
 # Deployment Guide
 
-This document provides step-by-step instructions for deploying the ADI worker system with GitLab pipeline integration.
+Backend Orchestrator deployment with webhook/scheduler support.
+
+## Architecture
+
+**Single Service:** Backend handles API + orchestration + webhooks + optional scheduler
+
+**Execution:** GitLab CI pipelines run AI agents (not local services)
 
 ## Prerequisites
 
-- Docker and Docker Compose installed
-- PostgreSQL database (managed by Docker Compose)
+- Docker and Docker Compose
+- PostgreSQL database
 - GitLab account with API access
-- Bun runtime installed (for local development)
-- glab CLI installed (for GitLab operations)
+- Bun runtime (for local development)
 
-## 1. Environment Setup
+## Quick Start
 
-### 1.1 Clone the Repository
+### 1. Clone Repository
 
 ```bash
 git clone <repository-url>
 cd adi-simple
 ```
 
-### 1.2 Configure Environment Variables
-
-Copy the example environment file and configure it:
+### 2. Configure Environment
 
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` and set the following variables:
+Edit `.env`:
 
 ```bash
 # Database
 DATABASE_URL=postgres://postgres:postgres@localhost:5436/postgres?sslmode=disable
 
-# Worker Configuration
-APPS_DIR=.apps
-RUNNER_TYPES=claude,codex,gemini
+# Backend
+SERVER_PORT=3000
+BACKEND_URL=http://localhost:3000
 
-# Security (REQUIRED)
-ENCRYPTION_KEY=your-secure-encryption-key-min-32-characters-long
-API_TOKEN=your-secure-api-token-for-pipeline-authentication
+# Choose orchestration method:
+# Option A: Enable scheduler (periodic polling)
+ENABLE_SCHEDULER=true
+SCHEDULER_INTERVAL_MS=600000  # 10 minutes
+DEFAULT_RUNNER=claude
+
+# Option B: Webhooks (configure in GitLab/Jira)
+GITLAB_WEBHOOK_SECRET=your-secret-token
+JIRA_WEBHOOK_SECRET=your-secret-token
+
+# Security (REQUIRED for pipeline mode)
+ENCRYPTION_KEY=$(openssl rand -hex 32)
+API_TOKEN=$(openssl rand -hex 32)
 
 # GitLab Configuration
-GITLAB_HOST=https://gitlab.the-ihor.com
-GITLAB_TOKEN=your-gitlab-personal-access-token
+GITLAB_HOST=https://gitlab.com
+GITLAB_TOKEN=your-gitlab-token
+GITLAB_USER=your-username
 
-# Agent API Keys
-ANTHROPIC_API_KEY=your-anthropic-api-key
-OPENAI_API_KEY=your-openai-api-key  # if using codex
-GOOGLE_API_KEY=your-google-api-key  # if using gemini
-
-# Pipeline Execution Mode
+# Pipeline Mode
 USE_PIPELINE_EXECUTION=true
 
-# Pipeline Monitoring (optional)
-PIPELINE_STATUS_TIMEOUT_MINUTES=30
-PIPELINE_POLL_INTERVAL_MS=600000
+# Agent API Keys (for CI/CD variables)
+ANTHROPIC_API_KEY=your-key
+OPENAI_API_KEY=your-key
+GOOGLE_API_KEY=your-key
 ```
 
-**Important Security Notes:**
-- `ENCRYPTION_KEY`: Generate a secure random string (minimum 32 characters)
-- `API_TOKEN`: Generate a secure random token for API authentication
-- Never commit `.env` files to version control
+### 3. Start Services
 
-### 1.3 Generate Secure Keys
+**Development:**
+```bash
+# Start database
+docker compose up -d postgres migrations
+
+# Start backend (includes orchestrator)
+bun run dev
+```
+
+**Production:**
+```bash
+docker compose -f docker-compose.prod.yaml up -d
+```
+
+## Orchestration Setup
+
+Choose one or more trigger methods:
+
+### Option 1: Webhooks (Recommended)
+
+#### GitLab Webhook
+1. Go to GitLab project → Settings → Webhooks
+2. URL: `https://your-backend.com/webhooks/gitlab`
+3. Secret token: Match `GITLAB_WEBHOOK_SECRET`
+4. Trigger: ✅ Issues events
+5. Save webhook
+
+#### Jira Webhook
+1. Go to Jira → System → WebHooks
+2. URL: `https://your-backend.com/webhooks/jira`
+3. Events: ✅ Issue created, ✅ Issue updated
+4. Save webhook
+
+**Benefits:** Instant processing, no polling overhead
+
+### Option 2: Scheduler
+
+Set in `.env`:
+```bash
+ENABLE_SCHEDULER=true
+SCHEDULER_INTERVAL_MS=600000  # 10 minutes
+DEFAULT_RUNNER=claude
+```
+
+**Benefits:** Works behind firewalls, no external config
+
+### Option 3: Hybrid (Production Recommended)
 
 ```bash
-# Generate ENCRYPTION_KEY (64 characters recommended)
-openssl rand -hex 32
+# Webhooks for instant processing
+GITLAB_WEBHOOK_SECRET=your-secret
 
-# Generate API_TOKEN
-openssl rand -hex 32
+# Scheduler as backup (slower interval)
+ENABLE_SCHEDULER=true
+SCHEDULER_INTERVAL_MS=3600000  # 1 hour backup
 ```
 
-## 2. Database Setup
+**Benefits:** Best reliability - instant + fallback
 
-### 2.1 Start PostgreSQL
+## Database Setup
+
+Migrations run automatically on startup. Manual run:
 
 ```bash
 cd migrations
-docker compose up -d postgres
+./create_migration.sh migration_name
 ```
 
-### 2.2 Run Migrations
+## GitLab CI/CD Setup
+
+### 1. Create Worker Repository
 
 ```bash
-docker compose up migrations
+bun run backend/index.ts
+# Then via API or UI, create worker repository
 ```
 
-Verify migrations:
+Or use CLI tool:
+```bash
+DATABASE_URL=<url> GITLAB_TOKEN=<token> \
+  bun run worker/utils/create-worker-repo.ts
+```
+
+### 2. Set CI/CD Variables
+
+In GitLab worker repository → Settings → CI/CD → Variables:
 
 ```bash
-docker compose run --rm migrations version
+ANTHROPIC_API_KEY=your-key
+OPENAI_API_KEY=your-key
+GOOGLE_API_KEY=your-key
+API_TOKEN=<same as backend .env>
+BACKEND_URL=https://your-backend.com
 ```
 
-You should see version 3 (or latest) with all migrations applied.
+### 3. Verify Pipeline
 
-## 3. GitLab Worker Repository Setup
+Push to worker repo triggers pipeline. Check:
+- Pipeline status in GitLab
+- Backend logs for webhook/scheduler activity
+- Tasks created in database
 
-### 3.1 Create Worker Repository
+## Production Deployment
 
-For each project that needs automated issue processing, create a worker repository:
-
-```typescript
-import { CIRepositoryManager } from './worker/ci-repository-manager'
-import { createWorkerRepository } from './db/worker-repositories'
-import { sql } from './db/client'
-
-const manager = new CIRepositoryManager()
-
-// Create GitLab worker repository
-const source = await manager.createWorkerRepository({
-  projectName: 'my-project',
-  sourceType: 'gitlab',
-  host: process.env.GITLAB_HOST!,
-  accessToken: process.env.GITLAB_TOKEN!,
-})
-
-// Upload CI files
-await manager.uploadCIFiles({
-  source,
-  version: '2025-10-18-01',
-})
-
-// Save to database
-await createWorkerRepository(sql, {
-  project_id: '<your-project-id>',
-  source: source,
-  current_version: '2025-10-18-01',
-})
-```
-
-### 3.2 Configure GitLab CI/CD Variables
-
-In the created worker repository, configure the following CI/CD variables (Settings → CI/CD → Variables):
-
-**Required Variables:**
-- `API_BASE_URL`: Your backend API URL (e.g., `http://your-server:3000`)
-- `API_TOKEN`: The same token you set in your `.env` file
-- `ANTHROPIC_API_KEY`: Your Claude API key
-- `DATABASE_URL`: Database connection string (if workers need direct DB access)
-
-**Optional Variables (for other runners):**
-- `OPENAI_API_KEY`: For Codex runner
-- `GOOGLE_API_KEY`: For Gemini runner
-
-**Important:** Mark all API keys as "Masked" and "Protected" in GitLab.
-
-## 4. Backend Deployment
-
-### 4.1 Local Development
+### Docker Compose
 
 ```bash
-# Install dependencies
-bun install
+# Configure production .env
+cp .env.example .env
+# Edit .env with production values
 
-# Run backend
-cd backend
-bun run index.ts
+# Deploy
+docker compose -f docker-compose.prod.yaml up -d
+
+# View logs
+docker compose -f docker-compose.prod.yaml logs -f backend
+
+# Scale backend if needed
+docker compose -f docker-compose.prod.yaml up -d --scale backend=3
 ```
 
-Backend will start on port 3000 by default.
+### Environment Variables
 
-### 4.2 Production Deployment (Docker)
+**Required:**
+- `DATABASE_URL` - PostgreSQL connection
+- `SERVER_PORT` - Backend port (default: 3000)
+- `ENCRYPTION_KEY` - 32+ character key
+- `API_TOKEN` - Pipeline authentication
 
-```bash
-# Build backend image
-docker build -t adi-backend -f backend/Dockerfile .
+**Optional:**
+- `ENABLE_SCHEDULER` - Enable polling (true/false)
+- `SCHEDULER_INTERVAL_MS` - Poll interval (ms)
+- `DEFAULT_RUNNER` - claude/codex/gemini
+- `GITLAB_WEBHOOK_SECRET` - Webhook verification
+- `BACKEND_URL` - Self-call URL
 
-# Run backend container
-docker run -d \
-  --name adi-backend \
-  -p 3000:3000 \
-  --env-file .env \
-  adi-backend
-```
+## Monitoring
 
-Or use docker-compose:
-
-```bash
-docker compose -f docker-compose.prod.yaml up -d backend
-```
-
-## 5. Worker Deployment
-
-### 5.1 Local Development
+### Health Checks
 
 ```bash
-cd worker
-bun run index.ts
-```
-
-### 5.2 Production Deployment (Docker)
-
-```bash
-# Build worker image
-docker build -t adi-worker -f worker/Dockerfile .
-
-# Run worker container
-docker run -d \
-  --name adi-worker \
-  --env-file .env \
-  -v $(pwd)/.apps:/app/.apps \
-  adi-worker
-```
-
-Or use docker-compose:
-
-```bash
-docker compose -f docker-compose.prod.yaml up -d worker
-```
-
-## 6. Verification
-
-### 6.1 Check Backend Health
-
-```bash
+# Backend API
 curl http://localhost:3000/projects
+
+# Database connection
+psql $DATABASE_URL -c "SELECT 1"
 ```
 
-Should return a list of projects.
-
-### 6.2 Check Database
+### Logs
 
 ```bash
-psql $DATABASE_URL -c "\dt"
+# Backend logs
+docker logs -f adi-simple-backend
+
+# Database logs
+docker logs -f adi-simple-postgres
 ```
 
-Should show all tables including:
-- projects
-- tasks
-- sessions
-- messages
-- worker_repositories
-- pipeline_executions
-- pipeline_artifacts
+### Metrics
 
-### 6.3 Check Worker Logs
-
-```bash
-docker logs -f adi-worker
-```
-
-Should show polling activity every 10 minutes.
-
-### 6.4 Test Pipeline Execution
-
-1. Create a test project and task source in the database
-2. Create an issue in your configured GitLab repository with the "DOIT" label
-3. Wait for the worker to poll (or restart it)
-4. Check that:
-   - Task is created in database
-   - Session is created
-   - Pipeline is triggered in the worker repository
-   - Pipeline execution record exists
-   - Pipeline runs successfully
-   - Merge request is created
-   - Artifact is uploaded
-
-## 7. Monitoring
-
-### 7.1 Pipeline Status
-
-Check pipeline executions:
-
-```bash
-curl http://localhost:3000/pipeline-executions
-```
-
-### 7.2 Pipeline Artifacts
-
-Check created artifacts (MRs):
-
-```bash
-curl http://localhost:3000/pipeline-artifacts
-```
-
-### 7.3 GitLab Pipelines
-
-Visit your worker repository's Pipelines page to see running pipelines.
-
-## 8. Scaling
-
-### 8.1 Multiple Workers
-
-You can run multiple worker instances for load distribution:
-
-```bash
-# Worker 1 - handles Claude tasks
-docker run -d --name adi-worker-1 \
-  --env-file .env \
-  -e RUNNER_TYPES=claude \
-  adi-worker
-
-# Worker 2 - handles Codex tasks
-docker run -d --name adi-worker-2 \
-  --env-file .env \
-  -e RUNNER_TYPES=codex \
-  adi-worker
-```
-
-### 8.2 Backend Scaling
-
-Run multiple backend instances behind a load balancer:
-
-```bash
-docker run -d --name adi-backend-1 -p 3001:3000 --env-file .env adi-backend
-docker run -d --name adi-backend-2 -p 3002:3000 --env-file .env adi-backend
-```
-
-Use nginx or HAProxy for load balancing.
-
-## 9. Backup and Recovery
-
-### 9.1 Database Backup
-
-```bash
-pg_dump $DATABASE_URL > backup-$(date +%Y%m%d).sql
-```
-
-### 9.2 Database Restore
-
-```bash
-psql $DATABASE_URL < backup-20251018.sql
-```
-
-### 9.3 Migration Rollback
-
-```bash
-cd migrations
-docker compose run --rm migrations down 1
-```
-
-## 10. Upgrading
-
-### 10.1 Update Code
-
-```bash
-git pull origin main
-bun install
-```
-
-### 10.2 Run New Migrations
-
-```bash
-cd migrations
-docker compose up migrations
-```
-
-### 10.3 Rebuild and Restart Services
-
-```bash
-docker compose -f docker-compose.prod.yaml up -d --build
-```
+Monitor:
+- Tasks created per day
+- Pipeline success rate
+- Webhook delivery success
+- Scheduler execution times
 
 ## Troubleshooting
 
-See [TROUBLESHOOTING.md](./TROUBLESHOOTING.md) for common issues and solutions.
+### No tasks being created
 
-## Security Checklist
+**Check:**
+- Backend is running and accessible
+- Webhooks configured with correct URL and secret
+- Or scheduler enabled: `ENABLE_SCHEDULER=true`
+- Task sources enabled in database
+- Backend logs for errors
 
-- [ ] `.env` file is not committed to version control
-- [ ] `ENCRYPTION_KEY` is strong and unique
-- [ ] `API_TOKEN` is strong and unique
-- [ ] GitLab CI/CD variables are masked and protected
-- [ ] Database is not exposed to public internet
-- [ ] Backend API has authentication enabled
-- [ ] TLS/SSL is configured for production
-- [ ] Regular backups are configured
-- [ ] Logs are monitored for security events
+### Webhooks not working
+
+**Check:**
+- Webhook URL publicly accessible
+- Secret matches environment variable
+- GitLab/Jira webhook delivery logs
+- Backend logs for webhook requests
+
+### Pipeline failures
+
+**Check:**
+- CI/CD variables set correctly
+- `API_TOKEN` matches backend
+- `BACKEND_URL` points to backend
+- Worker repository has templates
+- Agent API keys valid
+
+## Security
+
+### Production Checklist
+
+- [ ] Strong `ENCRYPTION_KEY` (64+ characters)
+- [ ] Strong `API_TOKEN` (64+ characters)
+- [ ] Webhook secrets configured
+- [ ] HTTPS enabled for backend
+- [ ] Database uses SSL
+- [ ] GitLab tokens scoped minimally
+- [ ] Environment variables not committed to git
+
+### Rotating Keys
+
+**ENCRYPTION_KEY:**
+⚠️ **DO NOT ROTATE** after encrypting data - encrypted tokens will become inaccessible
+
+**API_TOKEN:**
+1. Generate new token
+2. Update backend `.env`
+3. Update GitLab CI/CD variables
+4. Restart backend
+5. Verify pipelines work
+
+## Backup & Recovery
+
+### Database Backup
+
+```bash
+# Backup
+docker exec adi-simple-postgres \
+  pg_dump -U postgres postgres > backup.sql
+
+# Restore
+cat backup.sql | docker exec -i adi-simple-postgres \
+  psql -U postgres postgres
+```
+
+### Configuration Backup
+
+```bash
+# Backup environment (remove secrets before committing!)
+cp .env .env.backup
+```
+
+## Migration from Worker Polling
+
+See [MIGRATION.md](../MIGRATION.md) for complete migration guide.
+
+**Quick steps:**
+1. Stop old worker service
+2. Update `.env` with backend vars
+3. Configure webhooks or enable scheduler
+4. Start backend
+5. Verify tasks being created
+
+## References
+
+- [Migration Guide](../MIGRATION.md)
+- [Architecture Documentation](../discussion-results.md)
+- [Environment Variables](./ENVIRONMENT.md)
+- [Troubleshooting](./TROUBLESHOOTING.md)
