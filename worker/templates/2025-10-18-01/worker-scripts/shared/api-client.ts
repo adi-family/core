@@ -1,93 +1,54 @@
 /**
  * API Client for communicating with our backend
- * Handles authentication and common API operations
+ * Uses Hono RPC for type-safe API calls
  */
 
-export interface Session {
-  id: string
-  task_id: string | null
-  runner: string
-  created_at: string
-  updated_at: string
+import { hc } from 'hono/client'
+import type { AppType } from '../../../../../backend/app'
+import type { Session, Task, FileSpace } from '../../../../../backend/types'
+
+export type { Session, Task, FileSpace }
+
+export const createApiClient = (baseUrl: string, token: string) => {
+  return hc<AppType>(baseUrl, {
+    headers: {
+      Authorization: `Bearer ${token}`
+    }
+  })
 }
 
-export interface Task {
-  id: string
-  title: string
-  description: string | null
-  status: string
-  project_id: string | null
-  task_source_id: string
-  file_space_id: string | null
-  source_gitlab_issue: unknown | null
-  source_github_issue: unknown | null
-  source_jira_issue: unknown | null
-  created_at: string
-  updated_at: string
+export type BackendClient = ReturnType<typeof createApiClient>
+
+// Helper to unwrap API responses and throw on error
+async function unwrap<T>(response: { ok: boolean; status: number; statusText: string; text: () => Promise<string>; json: () => Promise<unknown> }): Promise<T> {
+  if (!response.ok) {
+    const errorText = await response.text()
+    throw new Error(`API request failed: ${response.status} ${response.statusText}\n${errorText}`)
+  }
+  return await response.json() as T
 }
 
-export interface FileSpace {
-  id: string
-  project_id: string
-  name: string
-  type: 'gitlab' | 'github'
-  config: unknown
-  enabled: boolean
-  created_at: string
-  updated_at: string
-}
-
+// API Client wrapper class
 export class ApiClient {
-  private baseUrl: string
-  private token: string
+  private client: BackendClient
 
   constructor(baseUrl: string, token: string) {
-    this.baseUrl = baseUrl.replace(/\/$/, '') // Remove trailing slash
-    this.token = token
-  }
-
-  private async request<T>(
-    method: string,
-    path: string,
-    body?: unknown
-  ): Promise<T> {
-    const url = `${this.baseUrl}${path}`
-    const headers: Record<string, string> = {
-      'Authorization': `Bearer ${this.token}`,
-      'Content-Type': 'application/json',
-    }
-
-    const options: RequestInit = {
-      method,
-      headers,
-    }
-
-    if (body) {
-      options.body = JSON.stringify(body)
-    }
-
-    const response = await fetch(url, options)
-
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(
-        `API request failed: ${response.status} ${response.statusText}\n${errorText}`
-      )
-    }
-
-    return await response.json() as Promise<T>
+    this.client = createApiClient(baseUrl, token)
   }
 
   async getSession(sessionId: string): Promise<Session> {
-    return this.request<Session>('GET', `/sessions/${sessionId}`)
+    const res = await this.client.sessions[':id'].$get({ param: { id: sessionId } })
+    return unwrap<Session>(res)
   }
 
   async getTask(taskId: string): Promise<Task> {
-    return this.request<Task>('GET', `/tasks/${taskId}`)
+    const res = await this.client.tasks[':id'].$get({ param: { id: taskId } })
+    return unwrap<Task>(res)
   }
 
   async getFileSpace(fileSpaceId: string): Promise<FileSpace> {
-    return this.request<FileSpace>('GET', `/file-spaces/${fileSpaceId}`)
+    const res = await this.client['file-spaces'][':id'].$get({ param: { id: fileSpaceId } })
+    return unwrap<FileSpace>(res)
   }
 
   async createPipelineArtifact(
@@ -98,14 +59,21 @@ export class ApiClient {
       metadata?: unknown
     }
   ): Promise<void> {
-    await this.request(
-      'POST',
-      `/pipeline-executions/${executionId}/artifacts`,
-      data
-    )
+    const res = await this.client['pipeline-executions'][':executionId'].artifacts.$post({
+      param: { executionId },
+      json: {
+        pipeline_execution_id: executionId,
+        ...data
+      }
+    })
+    await unwrap<void>(res)
   }
 
   async updateTaskStatus(taskId: string, status: string): Promise<void> {
-    await this.request('PATCH', `/tasks/${taskId}`, { status })
+    const res = await this.client.tasks[':id'].$patch({
+      param: { id: taskId },
+      json: { status }
+    })
+    await unwrap<Task>(res)
   }
 }

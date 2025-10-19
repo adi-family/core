@@ -56,6 +56,7 @@ export type Task = {
   status: string
   project_id: string | null
   task_source_id: string
+  file_space_id: string | null
   source_gitlab_issue: GitlabIssue | null
   source_github_issue: GithubIssue | null
   source_jira_issue: JiraIssue | null
@@ -91,6 +92,7 @@ export type CreateTaskInput = {
   status: string
   project_id?: string
   task_source_id?: string
+  file_space_id?: string
   source_gitlab_issue?: GitlabIssue
   source_github_issue?: GithubIssue
   source_jira_issue?: JiraIssue
