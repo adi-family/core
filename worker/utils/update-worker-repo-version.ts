@@ -11,8 +11,8 @@
  */
 
 import { sql } from '@db/client.ts'
-import * as projectQueries from '../../db/projects'
-import * as workerRepoQueries from '../../db/worker-repositories'
+import * as projectQueries from '@db/projects'
+import * as workerRepoQueries from '@db/worker-repositories'
 import { CIRepositoryManager } from '../ci-repository-manager'
 import { createLogger } from '@utils/logger.ts'
 
