@@ -64,19 +64,50 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
       const selectedRunner = this.context.selectRunner();
       this.logger.info(`Selected runner: ${selectedRunner}`);
 
+      const getSourceIssue = () => {
+        switch (issue.metadata.provider) {
+          case 'gitlab':
+            return {
+              source_gitlab_issue: {
+                id: issue.id,
+                iid: issue.iid,
+                title: issue.title,
+                updated_at: issue.updatedAt,
+                metadata: issue.metadata
+              }
+            };
+          case 'github':
+            return {
+              source_github_issue: {
+                id: issue.id,
+                iid: issue.iid,
+                title: issue.title,
+                updated_at: issue.updatedAt,
+                metadata: issue.metadata
+              }
+            };
+          case 'jira':
+            return {
+              source_jira_issue: {
+                id: issue.id,
+                title: issue.title,
+                updated_at: issue.updatedAt,
+                metadata: issue.metadata
+              }
+            };
+          default:
+            assertNever(issue.metadata);
+            return {};
+        }
+      };
+
       const task = await createTask(this.context.sql, {
         title: issue.title,
         description: `Issue #${issue.id} from ${this.context.project.name}`,
         status: 'processing',
         project_id: this.context.project.id,
         task_source_id: this.taskSource.getId(),
-        source_gitlab_issue: {
-          id: issue.id,
-          iid: issue.iid,
-          title: issue.title,
-          updated_at: issue.updatedAt,
-          metadata: issue.metadata
-        }
+        ...getSourceIssue()
       });
       this.logger.success(`Created task ${task.id} for issue ${issue.id}`);
 

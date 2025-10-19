@@ -4,6 +4,51 @@ function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
 }
 
+export type GitlabMetadata = {
+  provider: 'gitlab';
+  repo: string;
+  host?: string;
+  iid?: number;
+};
+
+export type GithubMetadata = {
+  provider: 'github';
+  repo: string;
+  host?: string;
+};
+
+export type JiraMetadata = {
+  provider: 'jira';
+  host: string;
+  key: string;
+  project_key: string;
+};
+
+export type IssueMetadata = GitlabMetadata | GithubMetadata | JiraMetadata;
+
+export type GitlabIssue = {
+  id: string;
+  iid?: number | null;
+  title: string;
+  updated_at: Date;
+  metadata: GitlabMetadata;
+};
+
+export type GithubIssue = {
+  id: string;
+  iid?: number | null;
+  title: string;
+  updated_at: Date;
+  metadata: GithubMetadata;
+};
+
+export type JiraIssue = {
+  id: string;
+  title: string;
+  updated_at: Date;
+  metadata: JiraMetadata;
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -11,9 +56,9 @@ export type Task = {
   status: string;
   project_id: string | null;
   task_source_id: string | null;
-  source_gitlab_issue: unknown | null;
-  source_github_issue: unknown | null;
-  source_jira_issue: unknown | null;
+  source_gitlab_issue: GitlabIssue | null;
+  source_github_issue: GithubIssue | null;
+  source_jira_issue: JiraIssue | null;
   created_at: Date;
   updated_at: Date;
 };
@@ -47,7 +92,9 @@ export type CreateTaskInput = {
   status: string;
   project_id?: string;
   task_source_id?: string;
-  source_gitlab_issue?: unknown;
+  source_gitlab_issue?: GitlabIssue;
+  source_github_issue?: GithubIssue;
+  source_jira_issue?: JiraIssue;
 };
 
 export type CreateSessionInput = {

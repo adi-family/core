@@ -8,7 +8,7 @@ export default tseslint.config(
   {
     ignores: [
       'node_modules/**',
-      'dist/**',
+      '**/dist/**',
       'build/**',
       'client/dist/**',
       '*.config.js',
