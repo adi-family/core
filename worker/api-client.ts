@@ -11,8 +11,6 @@ import type {
   PipelineExecution,
   CreatePipelineExecutionInput,
   UpdatePipelineExecutionInput,
-  CreatePipelineArtifactInput,
-  PipelineArtifact,
   Result
 } from '../backend/types'
 import type { LockContext, SignalInfo } from '../db/worker-cache'
