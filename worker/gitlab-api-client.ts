@@ -176,6 +176,7 @@ export class GitLabApiClient {
    * Get current user's namespace ID
    */
   async getCurrentUserNamespaceId(): Promise<number> {
+    // @ts-expect-error - current() exists but is not properly typed in @gitbeaker/rest
     const user = await this.client.Users.current() as unknown as { namespace_id: number }
     return user.namespace_id
   }
