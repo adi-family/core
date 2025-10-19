@@ -7,6 +7,10 @@ import { createMessageHandlers } from './handlers/messages'
 import { createWorkerCacheHandlers } from './handlers/worker-cache'
 import { createFileSpaceHandlers } from './handlers/file-spaces'
 import { createTaskSourceHandlers } from './handlers/task-sources'
+import { createWorkerRepositoryHandlers } from './handlers/worker-repositories'
+import { createPipelineExecutionHandlers } from './handlers/pipeline-executions'
+import { createPipelineArtifactHandlers } from './handlers/pipeline-artifacts'
+import { authMiddleware } from './middleware/auth'
 
 const app = new Hono()
 
@@ -17,6 +21,9 @@ const messageHandlers = createMessageHandlers(sql)
 const workerCacheHandlers = createWorkerCacheHandlers(sql)
 const fileSpaceHandlers = createFileSpaceHandlers(sql)
 const taskSourceHandlers = createTaskSourceHandlers(sql)
+const workerRepositoryHandlers = createWorkerRepositoryHandlers(sql)
+const pipelineExecutionHandlers = createPipelineExecutionHandlers(sql)
+const pipelineArtifactHandlers = createPipelineArtifactHandlers(sql)
 
 app.get('/projects', projectHandlers.list)
 app.post('/projects', projectHandlers.create)
@@ -43,6 +50,11 @@ app.delete('/messages/:id', messageHandlers.delete)
 app.get('/sessions/:sessionId/messages', messageHandlers.listBySession)
 
 app.get('/worker-cache', workerCacheHandlers.list)
+app.post('/projects/:projectId/worker-cache/is-signaled', workerCacheHandlers.isSignaledBefore)
+app.post('/projects/:projectId/worker-cache/try-acquire-lock', workerCacheHandlers.tryAcquireLock)
+app.post('/projects/:projectId/worker-cache/release-lock', workerCacheHandlers.releaseLock)
+app.post('/projects/:projectId/worker-cache/signal', workerCacheHandlers.signal)
+app.get('/projects/:projectId/worker-cache/:issueId/task-id', workerCacheHandlers.getTaskId)
 
 app.get('/file-spaces', fileSpaceHandlers.list)
 app.post('/file-spaces', fileSpaceHandlers.create)
@@ -56,6 +68,27 @@ app.get('/task-sources/:id', taskSourceHandlers.get)
 app.patch('/task-sources/:id', taskSourceHandlers.update)
 app.delete('/task-sources/:id', taskSourceHandlers.delete)
 app.post('/task-sources/:id/sync', taskSourceHandlers.sync)
+
+app.get('/worker-repositories', workerRepositoryHandlers.list)
+app.post('/worker-repositories', workerRepositoryHandlers.create)
+app.get('/worker-repositories/:id', workerRepositoryHandlers.get)
+app.get('/projects/:projectId/worker-repository', workerRepositoryHandlers.getByProjectId)
+app.patch('/worker-repositories/:id', workerRepositoryHandlers.update)
+app.delete('/worker-repositories/:id', workerRepositoryHandlers.delete)
+
+app.get('/pipeline-executions', pipelineExecutionHandlers.list)
+app.get('/pipeline-executions/stale', pipelineExecutionHandlers.listStale)
+app.post('/pipeline-executions', pipelineExecutionHandlers.create)
+app.get('/pipeline-executions/:id', pipelineExecutionHandlers.get)
+app.patch('/pipeline-executions/:id', authMiddleware, pipelineExecutionHandlers.update)
+app.delete('/pipeline-executions/:id', pipelineExecutionHandlers.delete)
+app.get('/sessions/:sessionId/pipeline-executions', pipelineExecutionHandlers.getBySessionId)
+
+app.get('/pipeline-artifacts', pipelineArtifactHandlers.list)
+app.get('/pipeline-artifacts/:id', pipelineArtifactHandlers.get)
+app.delete('/pipeline-artifacts/:id', pipelineArtifactHandlers.delete)
+app.get('/pipeline-executions/:executionId/artifacts', pipelineArtifactHandlers.getByExecutionId)
+app.post('/pipeline-executions/:executionId/artifacts', authMiddleware, pipelineArtifactHandlers.create)
 
 export { app }
 export type AppType = typeof app

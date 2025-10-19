@@ -7,6 +7,7 @@ import {createFileSpace} from './file-spaces/factory';
 import type {FileSpace} from './file-spaces/base';
 import {createTaskSource} from './task-sources/factory';
 import type {TaskSource} from './task-sources/base';
+import { startPipelineMonitor, stopPipelineMonitor } from './pipeline-monitor';
 import chalk from 'chalk';
 import * as path from 'path';
 import 'dotenv/config';
@@ -63,6 +64,23 @@ async function run() {
   const workerId = `${process.pid}-${Date.now()}`;
 
   console.log(chalk.blue.bold(`Worker ID: ${workerId}`));
+
+  // Start pipeline monitor for stale pipeline detection
+  console.log(chalk.blue.bold('Starting pipeline monitor...'));
+  const monitorIntervalId = startPipelineMonitor();
+
+  // Handle graceful shutdown
+  process.on('SIGINT', () => {
+    console.log(chalk.yellow('\nShutting down...'));
+    stopPipelineMonitor(monitorIntervalId);
+    process.exit(0);
+  });
+
+  process.on('SIGTERM', () => {
+    console.log(chalk.yellow('\nShutting down...'));
+    stopPipelineMonitor(monitorIntervalId);
+    process.exit(0);
+  });
 
   while (true) {
     console.log(chalk.cyan.bold(`\n=== Starting new iteration at ${new Date().toISOString()} ===\n`));

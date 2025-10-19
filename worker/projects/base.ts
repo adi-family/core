@@ -3,6 +3,7 @@ import type {Project} from '../queries';
 import type {BaseFileSpace} from '../file-spaces/base';
 import type {BaseTaskSource, TaskSourceIssue} from '../task-sources/base';
 import type {RunnerType} from '../runners';
+import type {BackendApiClient} from '../api-client';
 
 export type Issue = {
   id: () => string;
@@ -14,6 +15,7 @@ export type Issue = {
 
 export type ProcessorContext = {
   sql: Sql;
+  apiClient?: BackendApiClient;
   project: Project;
   fileSpaces: BaseFileSpace[];
   taskSource: BaseTaskSource;

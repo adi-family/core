@@ -1,6 +1,8 @@
 *
 !handlers
 !handlers/***
+!middleware
+!middleware/***
 !queries
 !queries/***
 !app.ts

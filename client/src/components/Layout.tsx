@@ -52,6 +52,18 @@ export function Layout() {
               >
                 Sources
               </Link>
+              <Link
+                to="/pipeline-executions"
+                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
+              >
+                Pipelines
+              </Link>
+              <Link
+                to="/pipeline-artifacts"
+                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
+              >
+                Artifacts
+              </Link>
             </div>
           </div>
         </div>

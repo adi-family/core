@@ -3,6 +3,7 @@ import type {TaskSourceIssue} from '../task-sources/base';
 import {initTrafficLight} from '../cache';
 import {createTask, createSession, createMessage, updateTaskStatus, addTaskFileSpaces} from '../queries';
 import {createRunner} from '../runners';
+import {triggerPipeline} from '../pipeline-executor';
 import {assertNever} from '@utils/assert-never';
 import * as path from 'path';
 import chalk from 'chalk';
@@ -20,7 +21,11 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
   }
 
   async processIssue(issue: TaskSourceIssue): Promise<void> {
-    const signaler = initTrafficLight(this.context.sql, this.context.project.id);
+    // Use API client if available, otherwise fall back to direct DB access
+    const signaler = initTrafficLight(
+      this.context.apiClient || this.context.sql,
+      this.context.project.id
+    );
 
     console.log(
       chalk.blue.bold(`[${this.context.project.name}] New or updated issue:`),
@@ -92,6 +97,44 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
         runner: selectedRunner
       });
       console.log(chalk.green(`Created session ${session.id} with runner ${selectedRunner}`));
+
+      // Check if pipeline execution mode is enabled
+      const usePipelineExecution = process.env.USE_PIPELINE_EXECUTION === 'true';
+
+      if (usePipelineExecution) {
+        console.log(chalk.blue.bold('🚀 Pipeline execution mode enabled'));
+
+        try {
+          if (!this.context.apiClient) {
+            throw new Error('API client is required for pipeline execution mode');
+          }
+          const result = await triggerPipeline({
+            sessionId: session.id,
+            apiClient: this.context.apiClient
+          });
+
+          console.log(chalk.green(`✅ Pipeline triggered successfully!`));
+          console.log(chalk.cyan(`   Pipeline URL: ${result.pipelineUrl}`));
+          console.log(chalk.cyan(`   Execution ID: ${result.execution.id}`));
+          console.log(chalk.gray(`   Status will be updated by pipeline or monitor`));
+
+          // Mark issue as signaled to prevent reprocessing
+          await signaler.signal({
+            issueId: issue.uniqueId,
+            date: new Date(),
+            taskId: task.id
+          });
+
+          return; // Exit early - pipeline will handle the rest
+        } catch (error) {
+          console.error(chalk.red(`❌ Failed to trigger pipeline:`), error);
+          await updateTaskStatus(this.context.sql, task.id, 'failed');
+          throw error;
+        }
+      }
+
+      // Local execution mode (existing code)
+      console.log(chalk.blue.bold('🖥️  Local execution mode'));
 
       const taskDir = path.join(this.context.appsDir, `task-${task.id}`);
       const branchName = `issue/${issue.metadata.provider}-${issue.id}`;
