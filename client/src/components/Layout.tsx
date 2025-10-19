@@ -1,4 +1,5 @@
 import { Link, Outlet } from "react-router-dom"
+import { UserButton } from '@clerk/clerk-react'
 
 export function Layout() {
   return (
@@ -9,7 +10,7 @@ export function Layout() {
             <Link to="/" className="font-bold text-sm uppercase tracking-wider text-gray-900 transition-all hover:text-blue-600">
               ADI
             </Link>
-            <div className="flex gap-6">
+            <div className="flex flex-1 gap-6">
               <Link
                 to="/projects"
                 className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
@@ -64,6 +65,9 @@ export function Layout() {
               >
                 Artifacts
               </Link>
+            </div>
+            <div className="ml-auto">
+              <UserButton afterSignOutUrl="/" />
             </div>
           </div>
         </div>
