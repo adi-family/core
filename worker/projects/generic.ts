@@ -6,10 +6,12 @@ import {createRunner} from '../runners';
 import {triggerPipeline} from '../pipeline-executor';
 import {assertNever} from '@utils/assert-never';
 import * as path from 'path';
-import chalk from 'chalk';
+import {createLogger} from '../../utils/logger';
 
 
 export class GenericProjectProcessor extends BaseProjectProcessor {
+  private logger = createLogger({ namespace: 'GenericProjectProcessor' });
+
   constructor(context: ProcessorContext) {
     super(context);
   }
@@ -27,16 +29,11 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
       this.context.project.id
     );
 
-    console.log(
-      chalk.blue.bold(`[${this.context.project.name}] New or updated issue:`),
-      issue.title
-    );
+    this.logger.info(`[${this.context.project.name}] New or updated issue: ${issue.title}`);
 
     if (await signaler.isSignaledBefore(issue.uniqueId, issue.updatedAt)) {
-      console.log(
-        chalk.gray(
-          `[${this.context.project.name}] Skipping already processed issue: ${issue.title}`
-        )
+      this.logger.debug(
+        `[${this.context.project.name}] Skipping already processed issue: ${issue.title}`
       );
       return;
     }
@@ -46,10 +43,8 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
       workerId: this.context.workerId,
       lockTimeoutSeconds: 3600
     }))) {
-      console.log(
-        chalk.yellow(
-          `[${this.context.project.name}] Issue ${issue.id} is being processed by another worker`
-        )
+      this.logger.warn(
+        `[${this.context.project.name}] Issue ${issue.id} is being processed by another worker`
       );
       return;
     }
@@ -64,10 +59,10 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
         );
       }
 
-      console.log(chalk.blue(`Processing issue with ${fileSpaces.length} file space(s)`));
+      this.logger.info(`Processing issue with ${fileSpaces.length} file space(s)`);
 
       const selectedRunner = this.context.selectRunner();
-      console.log(chalk.cyan(`Selected runner: ${selectedRunner}`));
+      this.logger.info(`Selected runner: ${selectedRunner}`);
 
       const task = await createTask(this.context.sql, {
         title: issue.title,
@@ -83,26 +78,26 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
           metadata: issue.metadata
         }
       });
-      console.log(chalk.green(`Created task ${task.id} for issue ${issue.id}`));
+      this.logger.success(`Created task ${task.id} for issue ${issue.id}`);
 
       await addTaskFileSpaces(
         this.context.sql,
         task.id,
         fileSpaces.map(fs => fs.getId())
       );
-      console.log(chalk.green(`Associated ${fileSpaces.length} file space(s) with task ${task.id}`));
+      this.logger.success(`Associated ${fileSpaces.length} file space(s) with task ${task.id}`);
 
       const session = await createSession(this.context.sql, {
         task_id: task.id,
         runner: selectedRunner
       });
-      console.log(chalk.green(`Created session ${session.id} with runner ${selectedRunner}`));
+      this.logger.success(`Created session ${session.id} with runner ${selectedRunner}`);
 
       // Check if pipeline execution mode is enabled
       const usePipelineExecution = process.env.USE_PIPELINE_EXECUTION === 'true';
 
       if (usePipelineExecution) {
-        console.log(chalk.blue.bold('🚀 Pipeline execution mode enabled'));
+        this.logger.info('🚀 Pipeline execution mode enabled');
 
         try {
           if (!this.context.apiClient) {
@@ -113,10 +108,10 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
             apiClient: this.context.apiClient
           });
 
-          console.log(chalk.green(`✅ Pipeline triggered successfully!`));
-          console.log(chalk.cyan(`   Pipeline URL: ${result.pipelineUrl}`));
-          console.log(chalk.cyan(`   Execution ID: ${result.execution.id}`));
-          console.log(chalk.gray(`   Status will be updated by pipeline or monitor`));
+          this.logger.success(`✅ Pipeline triggered successfully!`);
+          this.logger.info(`   Pipeline URL: ${result.pipelineUrl}`);
+          this.logger.info(`   Execution ID: ${result.execution.id}`);
+          this.logger.debug(`   Status will be updated by pipeline or monitor`);
 
           // Mark issue as signaled to prevent reprocessing
           await signaler.signal({
@@ -127,14 +122,14 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
 
           return; // Exit early - pipeline will handle the rest
         } catch (error) {
-          console.error(chalk.red(`❌ Failed to trigger pipeline:`), error);
+          this.logger.error(`❌ Failed to trigger pipeline:`, error);
           await updateTaskStatus(this.context.sql, task.id, 'failed');
           throw error;
         }
       }
 
       // Local execution mode (existing code)
-      console.log(chalk.blue.bold('🖥️  Local execution mode'));
+      this.logger.info('🖥️  Local execution mode');
 
       const taskDir = path.join(this.context.appsDir, `task-${task.id}`);
       const branchName = `issue/${issue.metadata.provider}-${issue.id}`;
@@ -145,7 +140,7 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
         const fileSpaceName = fileSpace.getId().substring(0, 8); // Use first 8 chars of ID as folder name
         const workspaceDir = path.join(taskDir, fileSpaceName);
 
-        console.log(chalk.gray(`Cloning file space ${fileSpaceName} to ${workspaceDir}`));
+        this.logger.debug(`Cloning file space ${fileSpaceName} to ${workspaceDir}`);
         await fileSpace.clone(workspaceDir);
 
         const location = {workDir: workspaceDir, workspaceName: branchName};
@@ -197,8 +192,8 @@ export class GenericProjectProcessor extends BaseProjectProcessor {
         }
       }
     } catch (error) {
-      console.error(
-        chalk.red(`[${this.context.project.name}] Error processing issue ${issue.id}:`),
+      this.logger.error(
+        `[${this.context.project.name}] Error processing issue ${issue.id}:`,
         error
       );
       await signaler.releaseLock(issue.uniqueId);

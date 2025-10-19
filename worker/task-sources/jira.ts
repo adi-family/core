@@ -1,9 +1,10 @@
 import {BaseTaskSource, type TaskSource, type TaskSourceIssue, type JiraMetadata, type TaskSourceJiraConfig} from './base';
 import {execSync} from 'child_process';
-import chalk from 'chalk';
+import {createLogger} from '../../utils/logger';
 
 export class JiraTaskSource extends BaseTaskSource {
   private jiraConfig: TaskSourceJiraConfig;
+  private logger = createLogger({ namespace: 'JiraTaskSource' });
 
   constructor(taskSource: TaskSource) {
     super(taskSource);
@@ -44,7 +45,7 @@ export class JiraTaskSource extends BaseTaskSource {
         }
       }
     } catch (error) {
-      console.error(chalk.red('Failed to fetch Jira issues:'), error);
+      this.logger.error('Failed to fetch Jira issues:', error);
     }
   }
 

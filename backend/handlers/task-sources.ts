@@ -1,6 +1,9 @@
 import type { Context } from 'hono'
 import type { Sql } from 'postgres'
 import * as queries from '../../db/task-sources'
+import { createLogger } from '../../utils/logger'
+
+const logger = createLogger({ namespace: 'task-sources' })
 
 export const createTaskSourceHandlers = (sql: Sql) => ({
   list: async (c: Context) => {
@@ -65,7 +68,7 @@ export const createTaskSourceHandlers = (sql: Sql) => ({
 
     // TODO: Implement actual task source sync logic
     // This would trigger the worker to fetch and process issues from this task source
-    console.log(`Sync requested for task source ${id}`)
+    logger.info(`Sync requested for task source ${id}`)
 
     return c.json({ success: true, message: 'Sync triggered' })
   }

@@ -10,6 +10,7 @@ export default tseslint.config(
       'node_modules/**',
       'dist/**',
       'build/**',
+      'client/dist/**',
       '*.config.js',
       'client/src/vite-env.d.ts',
     ],
