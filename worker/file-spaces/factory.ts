@@ -1,6 +1,7 @@
 import {BaseFileSpace, type FileSpace} from './base';
 import {GitlabFileSpace} from './gitlab';
 import {GithubFileSpace} from './github';
+import {assertNever} from '@utils/assert-never';
 
 export function createFileSpace(fileSpace: FileSpace): BaseFileSpace {
   switch (fileSpace.type) {
@@ -9,6 +10,7 @@ export function createFileSpace(fileSpace: FileSpace): BaseFileSpace {
     case 'github':
       return new GithubFileSpace(fileSpace);
     default:
-      throw new Error(`Unknown file space type: ${fileSpace.type}`);
+      assertNever(fileSpace.type);
+      throw new Error('Unreachable');
   }
 }
