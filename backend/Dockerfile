@@ -9,6 +9,7 @@ RUN bun install --frozen-lockfile --production
 
 # Copy source code
 COPY tsconfig.json ./
+COPY types ./types
 COPY backend ./backend
 COPY db ./db
 COPY utils ./utils

@@ -16,6 +16,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
+      "@types": ["../types"],
       "@utils/*": ["../utils/*"],
       "@db/*": ["../db/*"],
       "@backend/*": ["../backend/*"],

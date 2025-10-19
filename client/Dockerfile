@@ -9,6 +9,7 @@ RUN bun install --frozen-lockfile
 
 # Copy source code
 COPY client ./client
+COPY types ./types
 COPY backend ./backend
 COPY db ./db
 COPY worker ./worker

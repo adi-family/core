@@ -1,5 +1,5 @@
 import { BasePresenter } from './base'
-import type { TaskSource } from '../../../backend/types'
+import type { TaskSource } from '../../../types'
 import { Badge } from '@/components/ui/badge'
 import { GitBranch, CheckCircle2, XCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'

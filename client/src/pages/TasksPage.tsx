@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label"
 import { PresenterTable } from "@/components/PresenterTable"
 import { TaskPresenter } from "@/presenters"
 import { client } from "@/lib/client"
-import type { Task, TaskSource } from "../../../backend/types"
+import type { Task, TaskSource } from "../../../types"
 
 export function TasksPage() {
   const [tasks, setTasks] = useState<Task[]>([])

@@ -9,7 +9,7 @@ import {
 import { PresenterTable } from "@/components/PresenterTable"
 import { TaskSourcePresenter } from "@/presenters"
 import { client } from "@/lib/client"
-import type { TaskSource } from "../../../backend/types"
+import type { TaskSource } from "../../../types"
 
 export function TaskSourcesPage() {
   const [taskSources, setTaskSources] = useState<TaskSource[]>([])

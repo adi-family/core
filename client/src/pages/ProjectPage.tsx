@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { client } from "@/lib/client"
-import type { Project } from "../../../backend/types"
+import type { Project } from "../../../types"
 
 export function ProjectPage() {
   const { id } = useParams<{ id: string }>()

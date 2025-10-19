@@ -1,5 +1,5 @@
 import { BasePresenter } from './base'
-import type { Project } from '../../../backend/types'
+import type { Project } from '../../../types'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, XCircle } from 'lucide-react'
 

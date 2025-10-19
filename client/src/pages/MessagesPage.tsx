@@ -9,7 +9,7 @@ import {
 import { PresenterTable } from "@/components/PresenterTable"
 import { MessagePresenter } from "@/presenters"
 import { client } from "@/lib/client"
-import type { Message } from "../../../backend/types"
+import type { Message } from "../../../types"
 
 export function MessagesPage() {
   const [messages, setMessages] = useState<Message[]>([])

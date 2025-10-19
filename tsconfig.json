@@ -22,6 +22,7 @@
     "types": ["bun-types"],
     "baseUrl": ".",
     "paths": {
+      "@types": ["types"],
       "@utils/*": ["utils/*"],
       "@db/*": ["db/*"],
       "@backend/*": ["backend/*"],

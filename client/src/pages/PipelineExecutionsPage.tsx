@@ -9,7 +9,7 @@ import {
 import { PresenterTable } from "@/components/PresenterTable"
 import { PipelineExecutionPresenter } from "@/presenters"
 import { client } from "@/lib/client"
-import type { PipelineExecution } from "../../../backend/types"
+import type { PipelineExecution } from "../../../types"
 
 export function PipelineExecutionsPage() {
   const [executions, setExecutions] = useState<PipelineExecution[]>([])

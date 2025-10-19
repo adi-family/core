@@ -9,7 +9,7 @@ import {
 import { PresenterTable } from "@/components/PresenterTable"
 import { PipelineArtifactPresenter } from "@/presenters"
 import { client } from "@/lib/client"
-import type { PipelineArtifact } from "../../../backend/types"
+import type { PipelineArtifact } from "../../../types"
 
 export function PipelineArtifactsPage() {
   const [artifacts, setArtifacts] = useState<PipelineArtifact[]>([])

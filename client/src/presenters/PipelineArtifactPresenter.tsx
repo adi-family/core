@@ -1,5 +1,5 @@
 import { BasePresenter } from './base'
-import type { PipelineArtifact } from '../../../backend/types'
+import type { PipelineArtifact } from '../../../types'
 import { Badge } from '@/components/ui/badge'
 
 export class PipelineArtifactPresenter extends BasePresenter<PipelineArtifact> {

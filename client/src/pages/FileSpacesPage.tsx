@@ -9,7 +9,7 @@ import {
 import { PresenterTable } from "@/components/PresenterTable"
 import { FileSpacePresenter } from "@/presenters"
 import { client } from "@/lib/client"
-import type { FileSpace } from "../../../backend/types"
+import type { FileSpace } from "../../../types"
 
 export function FileSpacesPage() {
   const [fileSpaces, setFileSpaces] = useState<FileSpace[]>([])

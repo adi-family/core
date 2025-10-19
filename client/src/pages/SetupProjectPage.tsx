@@ -8,7 +8,7 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { client } from "@/lib/client"
-import type { CreateProjectInput } from "../../../backend/types"
+import type { CreateProjectInput } from "../../../types"
 
 export function SetupProjectPage() {
   const navigate = useNavigate()

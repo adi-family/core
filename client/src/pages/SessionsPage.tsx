@@ -9,7 +9,7 @@ import {
 import { PresenterTable } from "@/components/PresenterTable"
 import { SessionPresenter } from "@/presenters"
 import { client } from "@/lib/client"
-import type { Session } from "../../../backend/types"
+import type { Session } from "../../../types"
 
 export function SessionsPage() {
   const [sessions, setSessions] = useState<Session[]>([])

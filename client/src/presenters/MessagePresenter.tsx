@@ -1,5 +1,5 @@
 import { BasePresenter } from './base'
-import type { Message } from '../../../backend/types'
+import type { Message } from '../../../types'
 
 /**
  * Presenter for Message model

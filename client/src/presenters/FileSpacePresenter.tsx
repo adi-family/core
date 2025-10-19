@@ -1,5 +1,5 @@
 import { BasePresenter } from './base'
-import type { FileSpace } from '../../../backend/types'
+import type { FileSpace } from '../../../types'
 import { Badge } from '@/components/ui/badge'
 import { FolderGit2, CheckCircle2, XCircle } from 'lucide-react'
 

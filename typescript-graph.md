@@ -22,7 +22,6 @@ flowchart
     subgraph backend_["backend"]
         backend_/types.ts["types.ts"]
         backend_/schemas.ts["schemas.ts"]
-        backend_/pipeline//executor.ts["pipeline-executor.ts"]
         backend_/api//client.ts["api-client.ts"]
         backend_/app.ts["app.ts"]
         backend_/index.ts["index.ts"]
@@ -38,6 +37,10 @@ flowchart
             backend_/handlers/pipeline//executions.ts["pipeline-executions.ts"]
             backend_/handlers/pipeline//artifacts.ts["pipeline-artifacts.ts"]
             backend_/handlers/webhooks.ts["webhooks.ts"]
+        end
+        subgraph backend_/worker//orchestration["/worker-orchestration"]
+            backend_/worker//orchestration/pipeline//executor.ts["pipeline-executor.ts"]
+            backend_/worker//orchestration/pipeline//monitor.ts["pipeline-monitor.ts"]
         end
         subgraph backend_/services["/services"]
             backend_/services/orchestrator.ts["orchestrator.ts"]
@@ -58,8 +61,6 @@ flowchart
     end
     subgraph worker["worker"]
         worker/ci//repository//manager.ts["ci-repository-manager.ts"]
-        worker/pipeline//executor.ts["pipeline-executor.ts"]
-        worker/pipeline//monitor.ts["pipeline-monitor.ts"]
         subgraph worker/templates/2025//10//18//01/worker//scripts["/templates/2025-10-18-01/worker-scripts"]
             worker/templates/2025//10//18//01/worker//scripts/claude//pipeline.ts["claude-pipeline.ts"]
             worker/templates/2025//10//18//01/worker//scripts/codex//pipeline.ts["codex-pipeline.ts"]
@@ -92,9 +93,9 @@ flowchart
     backend_/handlers/file//spaces.ts-->backend_/schemas.ts
     db/task//sources.ts-->backend_/types.ts
     db/worker//repositories.ts-->backend_/types.ts
-    backend_/pipeline//executor.ts-->backend_/types.ts
-    backend_/pipeline//executor.ts-->backend_/api//client.ts
-    backend_/pipeline//executor.ts-->shared/gitlab//api//client.ts
+    backend_/worker//orchestration/pipeline//executor.ts-->backend_/types.ts
+    backend_/worker//orchestration/pipeline//executor.ts-->backend_/api//client.ts
+    backend_/worker//orchestration/pipeline//executor.ts-->shared/gitlab//api//client.ts
     gitlab.ts-->issue.ts
     task//sources/gitlab//issues.ts-->task//sources/base.ts
     task//sources/gitlab//issues.ts-->gitlab.ts
@@ -109,7 +110,7 @@ flowchart
     backend_/services/orchestrator.ts-->db/worker//repositories.ts
     backend_/services/orchestrator.ts-->db/sessions.ts
     backend_/services/orchestrator.ts-->db/worker//cache.ts
-    backend_/services/orchestrator.ts-->backend_/pipeline//executor.ts
+    backend_/services/orchestrator.ts-->backend_/worker//orchestration/pipeline//executor.ts
     backend_/services/orchestrator.ts-->backend_/api//client.ts
     backend_/services/orchestrator.ts-->backend_/types.ts
     backend_/services/orchestrator.ts-->task//sources/base.ts
@@ -158,11 +159,8 @@ flowchart
     backend_/index.ts-->backend_/app.ts
     backend_/index.ts-->backend_/services/scheduler.ts
     backend_/index.ts-->db/client.ts
-    worker/pipeline//executor.ts-->backend_/types.ts
-    worker/pipeline//executor.ts-->backend_/api//client.ts
-    worker/pipeline//executor.ts-->shared/gitlab//api//client.ts
-    worker/pipeline//monitor.ts-->backend_/api//client.ts
-    worker/pipeline//monitor.ts-->shared/gitlab//api//client.ts
+    backend_/worker//orchestration/pipeline//monitor.ts-->backend_/api//client.ts
+    backend_/worker//orchestration/pipeline//monitor.ts-->shared/gitlab//api//client.ts
     worker/templates/2025//10//18//01/worker//scripts/shared/api//client.ts-->backend_/app.ts
     worker/templates/2025//10//18//01/worker//scripts/shared/api//client.ts-->backend_/types.ts
     worker/templates/2025//10//18//01/worker//scripts/shared/traffic//check.ts-->worker/templates/2025//10//18//01/worker//scripts/shared/api//client.ts

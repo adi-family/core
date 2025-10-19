@@ -9,7 +9,7 @@ import {
 import { PresenterTable } from "@/components/PresenterTable"
 import { ProjectPresenter } from "@/presenters"
 import { client } from "@/lib/client"
-import type { Project } from "../../../backend/types"
+import type { Project } from "../../../types"
 
 export function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([])
