@@ -4,7 +4,7 @@
  */
 
 import type { PipelineExecution } from '../backend/types'
-import type { BackendApiClient } from './api-client'
+import type { BackendClient } from './api-client'
 import { GitLabApiClient } from './gitlab-api-client'
 import { decrypt } from './crypto-utils'
 import { retry, isRetryableError } from '../utils/retry'
@@ -14,7 +14,7 @@ const logger = createLogger({ namespace: 'pipeline-executor' })
 
 export interface TriggerPipelineInput {
   sessionId: string
-  apiClient: BackendApiClient
+  apiClient: BackendClient
 }
 
 export interface TriggerPipelineResult {
@@ -45,45 +45,45 @@ interface PipelineContext {
 /**
  * Validate and fetch all required context for pipeline execution
  */
-async function validateAndFetchPipelineContext(apiClient: BackendApiClient, sessionId: string): Promise<PipelineContext> {
+async function validateAndFetchPipelineContext(apiClient: BackendClient, sessionId: string): Promise<PipelineContext> {
   // Fetch session
-  const sessionResult = await apiClient.getSession(sessionId)
-  if (!sessionResult.ok) {
+  const sessionRes = await apiClient.sessions[':id'].$get({ param: { id: sessionId } })
+  if (!sessionRes.ok) {
     throw new Error(`Session not found: ${sessionId}`)
   }
-  const session = sessionResult.data
+  const session = await sessionRes.json()
 
   if (!session.task_id) {
     throw new Error(`Session ${sessionId} has no associated task. Please ensure the session is properly configured.`)
   }
 
   // Fetch task
-  const taskResult = await apiClient.getTask(session.task_id)
-  if (!taskResult.ok) {
+  const taskRes = await apiClient.tasks[':id'].$get({ param: { id: session.task_id } })
+  if (!taskRes.ok) {
     throw new Error(`Task not found: ${session.task_id}`)
   }
-  const task = taskResult.data
+  const task = await taskRes.json()
 
   if (!task.project_id) {
     throw new Error(`Task ${task.id} has no associated project. Please ensure the task is properly configured.`)
   }
 
   // Fetch project
-  const projectResult = await apiClient.getProject(task.project_id)
-  if (!projectResult.ok) {
+  const projectRes = await apiClient.projects[':id'].$get({ param: { id: task.project_id } })
+  if (!projectRes.ok) {
     throw new Error(`Project not found: ${task.project_id}`)
   }
-  const project = projectResult.data
+  const project = await projectRes.json()
 
   // Fetch worker repository
-  const workerRepoResult = await apiClient.getWorkerRepositoryByProjectId(project.id)
-  if (!workerRepoResult.ok) {
+  const workerRepoRes = await apiClient.projects[':projectId']['worker-repository'].$get({ param: { projectId: project.id } })
+  if (!workerRepoRes.ok) {
     throw new Error(
       `Worker repository not found for project: ${project.name} (${project.id}). Please create a worker repository first using the CIRepositoryManager.`
     )
   }
-  const workerRepo = workerRepoResult.data
-  const source = workerRepo.source_gitlab as GitLabSource
+  const workerRepo = await workerRepoRes.json()
+  const source = workerRepo.source_gitlab as unknown as GitLabSource
 
   // Validate source configuration
   if (source.type !== 'gitlab') {
@@ -147,7 +147,7 @@ async function executePipelineTrigger(
   context: PipelineContext,
   executionId: string,
   config: { accessToken: string; variables: Record<string, string> },
-  apiClient: BackendApiClient
+  apiClient: BackendClient
 ): Promise<{ execution: PipelineExecution; pipelineUrl: string }> {
   const gitlabClient = new GitLabApiClient(context.source.host!, config.accessToken)
 
@@ -177,20 +177,24 @@ async function executePipelineTrigger(
   logger.info(`✓ GitLab pipeline triggered: ${pipeline.id}`)
 
   // Update execution record
-  const updateResult = await apiClient.updatePipelineExecution(executionId, {
-    pipeline_id: pipeline.id.toString(),
-    status: 'pending',
-    last_status_update: new Date(),
+  const updateRes = await apiClient['pipeline-executions'][':id'].$patch({
+    param: { id: executionId },
+    json: {
+      pipeline_id: pipeline.id.toString(),
+      status: 'pending' as const,
+      last_status_update: new Date().toISOString(),
+    }
   })
 
-  if (!updateResult.ok) {
+  if (!updateRes.ok) {
     throw new Error(`Failed to update pipeline execution ${executionId} with pipeline ID ${pipeline.id}`)
   }
 
+  const execution = await updateRes.json() as unknown as PipelineExecution
   const pipelineUrl = `${context.source.host}/${context.source.project_path}/-/pipelines/${pipeline.id}`
 
   return {
-    execution: updateResult.data,
+    execution,
     pipelineUrl,
   }
 }
@@ -210,11 +214,17 @@ export async function triggerPipeline(
     const context = await validateAndFetchPipelineContext(input.apiClient, input.sessionId)
 
     // Create pipeline execution record
-    const execution = await input.apiClient.createPipelineExecution({
-      session_id: context.session.id,
-      worker_repository_id: context.workerRepo.id,
-      status: 'pending',
+    const createRes = await input.apiClient['pipeline-executions'].$post({
+      json: {
+        session_id: context.session.id,
+        worker_repository_id: context.workerRepo.id,
+        status: 'pending' as const,
+      }
     })
+    if (!createRes.ok) {
+      throw new Error('Failed to create pipeline execution record')
+    }
+    const execution = await createRes.json()
     executionId = execution.id
     logger.info(`✓ Created pipeline execution record: ${execution.id}`)
 
@@ -233,9 +243,12 @@ export async function triggerPipeline(
     logger.error(`❌ Pipeline execution failed for session ${input.sessionId}: ${errorMessage}`)
 
     if (executionId) {
-      await input.apiClient.updatePipelineExecution(executionId, {
-        status: 'failed',
-        last_status_update: new Date(),
+      await input.apiClient['pipeline-executions'][':id'].$patch({
+        param: { id: executionId },
+        json: {
+          status: 'failed' as const,
+          last_status_update: new Date().toISOString(),
+        }
       })
     }
 

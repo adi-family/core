@@ -3,7 +3,7 @@
  * Monitors running GitLab pipelines and syncs status to database
  */
 
-import type { BackendApiClient } from './api-client'
+import type { BackendClient } from './api-client'
 import { GitLabApiClient } from './gitlab-api-client'
 import { decrypt } from './crypto-utils'
 import { retry, isRetryableError } from '../utils/retry'
@@ -14,7 +14,7 @@ const logger = createLogger({ namespace: 'pipeline-monitor' })
 export interface PipelineMonitorConfig {
   timeoutMinutes?: number
   pollIntervalMs?: number
-  apiClient?: BackendApiClient
+  apiClient?: BackendClient
 }
 
 const DEFAULT_TIMEOUT_MINUTES = 30
@@ -67,7 +67,13 @@ export async function checkStalePipelines(
   }
 
   // Find stale pipeline executions
-  const stalePipelines = await config.apiClient.getStalePipelineExecutions(timeoutMinutes)
+  const staleRes = await config.apiClient['pipeline-executions'].stale.$get({
+    query: { timeoutMinutes: String(timeoutMinutes) }
+  })
+  if (!staleRes.ok) {
+    throw new Error('Failed to fetch stale pipeline executions')
+  }
+  const stalePipelines = await staleRes.json()
 
   if (stalePipelines.length === 0) {
     logger.info('✓ No stale pipelines found')
@@ -93,16 +99,16 @@ export async function checkStalePipelines(
 /**
  * Update pipeline status from GitLab
  */
-export async function updatePipelineStatus(executionId: string, apiClient: BackendApiClient): Promise<void> {
+export async function updatePipelineStatus(executionId: string, apiClient: BackendClient): Promise<void> {
   logger.info(`📊 Updating status for pipeline execution ${executionId}`)
 
   try {
     // Fetch pipeline execution
-    const execResult = await apiClient.getPipelineExecution(executionId)
-    if (!execResult.ok) {
+    const execRes = await apiClient['pipeline-executions'][':id'].$get({ param: { id: executionId } })
+    if (!execRes.ok) {
       throw new Error(`Pipeline execution not found: ${executionId}`)
     }
-    const execution = execResult.data
+    const execution = await execRes.json()
 
     // Validate execution has pipeline_id
     if (!execution.pipeline_id) {
@@ -113,16 +119,16 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
     }
 
     // Fetch worker repository
-    const workerRepoResult = await apiClient.getWorkerRepository(execution.worker_repository_id)
-    if (!workerRepoResult.ok) {
+    const workerRepoRes = await apiClient['worker-repositories'][':id'].$get({ param: { id: execution.worker_repository_id } })
+    if (!workerRepoRes.ok) {
       throw new Error(
         `Worker repository not found: ${execution.worker_repository_id}`
       )
     }
-    const workerRepo = workerRepoResult.data
+    const workerRepo = await workerRepoRes.json()
 
     // Parse source from JSONB
-    const source = workerRepo.source_gitlab as {
+    const source = workerRepo.source_gitlab as unknown as {
       type: string
       project_id?: string
       host?: string
@@ -197,12 +203,15 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
         `  Status changed: ${execution.status} → ${newStatus}`
       )
 
-      const updateResult = await apiClient.updatePipelineExecution(execution.id, {
-        status: newStatus,
-        last_status_update: new Date(),
+      const updateRes = await apiClient['pipeline-executions'][':id'].$patch({
+        param: { id: execution.id },
+        json: {
+          status: newStatus,
+          last_status_update: new Date().toISOString(),
+        }
       })
 
-      if (!updateResult.ok) {
+      if (!updateRes.ok) {
         throw new Error(
           `Failed to update pipeline execution ${execution.id} status to ${newStatus}`
         )
@@ -213,8 +222,11 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
       logger.info(`  No status change (still ${execution.status})`)
 
       // Update last_status_update timestamp even if status didn't change
-      await apiClient.updatePipelineExecution(execution.id, {
-        last_status_update: new Date(),
+      await apiClient['pipeline-executions'][':id'].$patch({
+        param: { id: execution.id },
+        json: {
+          last_status_update: new Date().toISOString(),
+        }
       })
     }
   } catch (error) {
