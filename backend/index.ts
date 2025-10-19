@@ -12,7 +12,7 @@ if (!process.env.SERVER_PORT) {
 const port = Number(process.env.SERVER_PORT)
 
 // Start scheduler if enabled
-const schedulerInterval = startScheduler(sql, {
+startScheduler(sql, {
   intervalMs: process.env.SCHEDULER_INTERVAL_MS
     ? Number(process.env.SCHEDULER_INTERVAL_MS)
     : 600000, // 10 minutes default

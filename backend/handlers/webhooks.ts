@@ -8,6 +8,7 @@ import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger.ts'
 import { processTaskSource } from '../services/orchestrator'
 import * as taskSourceQueries from '../../db/task-sources'
+import type { GitlabIssuesConfig, GithubIssuesConfig, TaskSourceJiraConfig } from '../task-sources/base'
 
 const logger = createLogger({ namespace: 'webhooks' })
 
@@ -49,7 +50,7 @@ export const createWebhookHandlers = (sql: Sql) => ({
           return false
         }
 
-        const config = ts.config as any
+        const config = ts.config as GitlabIssuesConfig
         const host = config.host || 'https://gitlab.com'
         const repo = config.repo
 
@@ -118,7 +119,7 @@ export const createWebhookHandlers = (sql: Sql) => ({
           return false
         }
 
-        const config = ts.config as any
+        const config = ts.config as TaskSourceJiraConfig
         return config.project_key === projectKey
       })
 
@@ -159,7 +160,7 @@ export const createWebhookHandlers = (sql: Sql) => ({
   github: async (c: Context) => {
     try {
       const event = c.req.header('X-GitHub-Event')
-      const signature = c.req.header('X-Hub-Signature-256')
+      // const signature = c.req.header('X-Hub-Signature-256')
 
       logger.info(`Received GitHub webhook: ${event}`)
 
@@ -184,7 +185,7 @@ export const createWebhookHandlers = (sql: Sql) => ({
           return false
         }
 
-        const config = ts.config as any
+        const config = ts.config as GithubIssuesConfig
         const repo = config.repo
 
         return repo === repository.full_name
