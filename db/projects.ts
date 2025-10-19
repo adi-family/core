@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { Project, CreateProjectInput, UpdateProjectInput, Result } from '../backend/types'
+import type { Project, CreateProjectInput, UpdateProjectInput, Result } from '../types/index.js'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);

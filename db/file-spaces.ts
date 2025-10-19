@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { FileSpace, CreateFileSpaceInput, UpdateFileSpaceInput, Result } from '../backend/types'
+import type { FileSpace, CreateFileSpaceInput, UpdateFileSpaceInput, Result } from '../types/index.js'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);

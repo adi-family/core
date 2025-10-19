@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { PipelineArtifact, CreatePipelineArtifactInput, Result } from '../backend/types'
+import type { PipelineArtifact, CreatePipelineArtifactInput, Result } from '../types/index.js'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);

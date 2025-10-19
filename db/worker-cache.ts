@@ -1,5 +1,5 @@
 import type { Sql } from 'postgres';
-import type { WorkerCache, LockContext, SignalInfo } from '../backend/types';
+import type { WorkerCache, LockContext, SignalInfo } from '../types/index.js';
 
 export type { WorkerCache, LockContext, SignalInfo };
 

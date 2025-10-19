@@ -5,7 +5,7 @@
 
 import { hc } from 'hono/client'
 import type { AppType } from '../../../../../backend/app'
-import type { Session, Task, FileSpace } from '../../../../../backend/types'
+import type { Session, Task, FileSpace } from '../../../../../types/index.js'
 
 export type { Session, Task, FileSpace }
 
