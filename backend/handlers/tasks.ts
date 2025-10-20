@@ -4,15 +4,35 @@ import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/tasks'
 import { idParamSchema, createTaskSchema, updateTaskSchema } from '../schemas'
 import { authMiddleware } from '../middleware/auth'
+import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
+import { getClerkUserId } from '../middleware/clerk'
+import * as userAccessQueries from '../../db/user-access'
 
 export const createTaskRoutes = (sql: Sql) => {
+  const acl = createFluentACL(sql)
+
   return new Hono()
     .get('/', async (c) => {
+      const userId = getClerkUserId(c)
+
+      // If authenticated, filter tasks by project access
+      if (userId) {
+        const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+        const allTasks = await queries.findAllTasks(sql)
+        const filtered = allTasks.filter(t => t.project_id && accessibleProjectIds.includes(t.project_id))
+        return c.json(filtered)
+      }
+
+      // Backward compatibility - return all
       const tasks = await queries.findAllTasks(sql)
       return c.json(tasks)
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
+
+      // Check task access (inherits from project)
+      await acl.task(id).read.orNull(c)
+
       const result = await queries.findTaskById(sql, id)
 
       if (!result.ok) {
@@ -29,6 +49,17 @@ export const createTaskRoutes = (sql: Sql) => {
     .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateTaskSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
+
+      try {
+        // Require write access (inherits developer from project)
+        await acl.task(id).write.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
       const result = await queries.updateTask(sql, id, body)
 
       if (!result.ok) {
@@ -39,6 +70,17 @@ export const createTaskRoutes = (sql: Sql) => {
     })
     .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
+
+      try {
+        // Require write access (inherits developer from project)
+        await acl.task(id).write.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
       const result = await queries.deleteTask(sql, id)
 
       if (!result.ok) {
