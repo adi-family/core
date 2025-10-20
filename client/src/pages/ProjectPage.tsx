@@ -38,13 +38,13 @@ export function ProjectPage() {
         })
 
         if (!res.ok) {
-          const errorData = await res.json()
+          const errorData = await res.json() as any
           setError(errorData.error || "Failed to fetch project")
           setLoading(false)
           return
         }
 
-        const data = await res.json()
+        const data = await res.json() as any
         setProject(data)
         setLoading(false)
       } catch {
@@ -82,7 +82,7 @@ export function ProjectPage() {
     if (!id || !project) return
 
     try {
-      const res = await client.projects[":id"].$put({
+      const res = await client.projects[":id"].$patch({
         param: { id },
         json: { enabled: !project.enabled },
       })
@@ -92,7 +92,7 @@ export function ProjectPage() {
         return
       }
 
-      const updatedProject = await res.json()
+      const updatedProject = await res.json() as any
       setProject(updatedProject)
     } catch {
       alert("Error updating project")

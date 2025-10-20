@@ -23,7 +23,7 @@ export function MessagesPage() {
         setLoading(false)
         return
       }
-      const data = await res.json()
+      const data = await res.json() as any
       setMessages(data)
       setLoading(false)
     }

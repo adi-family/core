@@ -23,7 +23,7 @@ export function PipelineExecutionsPage() {
         setLoading(false)
         return
       }
-      const data = await res.json()
+      const data = await res.json() as any
       setExecutions(data)
       setLoading(false)
     }
@@ -39,7 +39,7 @@ export function PipelineExecutionsPage() {
     const interval = setInterval(async () => {
       const res = await client['pipeline-executions'].$get()
       if (res.ok) {
-        const data = await res.json()
+        const data = await res.json() as any
         setExecutions(data)
       }
     }, 30000)

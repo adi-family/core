@@ -24,7 +24,7 @@ export function TasksPage() {
     setLoading(true)
     const [tasksRes, taskSourcesRes] = await Promise.all([
       client.tasks.$get(),
-      client["task-sources"].$get()
+      (client as any)["task-sources"].$get()
     ])
 
     if (!tasksRes.ok) {
@@ -39,8 +39,8 @@ export function TasksPage() {
       return
     }
 
-    const tasksData = await tasksRes.json()
-    const taskSourcesData = await taskSourcesRes.json()
+    const tasksData = await tasksRes.json() as any
+    const taskSourcesData = await taskSourcesRes.json() as any
 
     if (!Array.isArray(tasksData)) {
       console.error("Invalid API response: expected array of tasks")

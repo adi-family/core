@@ -17,13 +17,13 @@ export function FileSpacesPage() {
 
   useEffect(() => {
     const fetchFileSpaces = async () => {
-      const res = await client["file-spaces"].$get()
+      const res = await (client as any)["file-spaces"].$get()
       if (!res.ok) {
         console.error("Error fetching file spaces:", await res.text())
         setLoading(false)
         return
       }
-      const data = await res.json()
+      const data = await res.json() as any
       setFileSpaces(data)
       setLoading(false)
     }

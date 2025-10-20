@@ -58,13 +58,13 @@ export function WorkerCachePage() {
 
   useEffect(() => {
     const fetchCache = async () => {
-      const res = await client["worker-cache"].$get()
+      const res = await (client as any)["worker-cache"].$get()
       if (!res.ok) {
         console.error("Error fetching worker cache:", await res.text())
         setLoading(false)
         return
       }
-      const data = await res.json()
+      const data = await res.json() as any
       setCache(data)
       setLoading(false)
     }

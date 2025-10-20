@@ -24,7 +24,7 @@ export function ProjectsPage() {
         setLoading(false)
         return
       }
-      const data = await res.json()
+      const data = await res.json() as any
       setProjects(data)
       setLoading(false)
     }
