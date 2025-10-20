@@ -260,3 +260,25 @@ export type UpdateSecretInput = {
   value?: string
   description?: string
 }
+
+export type UserAccess = {
+  id: string
+  user_id: string
+  entity_type: 'project' | 'task_source' | 'file_space' | 'secret' | 'task'
+  entity_id: string
+  role: 'owner' | 'admin' | 'developer' | 'viewer' | 'read' | 'write' | 'use'
+  granted_by: string | null
+  granted_at: Date
+  expires_at: Date | null
+  created_at: Date
+}
+
+export type CreateUserAccessInput = {
+  user_id: string
+  entity_type: 'project' | 'task_source' | 'file_space' | 'secret' | 'task'
+  entity_id: string
+  role: 'owner' | 'admin' | 'developer' | 'viewer' | 'read' | 'write' | 'use'
+  granted_by?: string
+  granted_at?: Date
+  expires_at?: Date
+}
