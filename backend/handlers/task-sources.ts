@@ -150,13 +150,12 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         return c.json({ error: result.error }, 404)
       }
 
-      // Trigger orchestrator to fetch and process issues from this task source
+      // Trigger orchestrator to fetch and create tasks from this task source
       logger.info(`Sync requested for task source ${id}`)
 
       try {
         const syncResult = await processTaskSource(sql, {
-          taskSourceId: id,
-          runner: 'claude' // TODO: Make configurable via query param or body
+          taskSourceId: id
         })
 
         return c.json({

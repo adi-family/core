@@ -10,10 +10,7 @@ import * as projectQueries from '../../db/projects'
 import * as taskSourceQueries from '../../db/task-sources'
 import * as fileSpaceQueries from '../../db/file-spaces'
 import * as workerRepoQueries from '../../db/worker-repositories'
-import * as sessionQueries from '../../db/sessions'
 import * as workerCacheDb from '../../db/worker-cache'
-import { triggerPipeline } from '../worker-orchestration/pipeline-executor'
-import { createBackendApiClient } from '../api-client'
 import type { TaskSource as TaskSourceDb } from '../../types'
 import type { TaskSource, TaskSourceIssue } from '../task-sources/base'
 import { createTaskSource } from '../task-sources/factory'
@@ -22,27 +19,24 @@ const logger = createLogger({ namespace: 'orchestrator' })
 
 export interface ProcessTaskSourceInput {
   taskSourceId: string
-  runner?: string
 }
 
 export interface ProcessTaskSourceResult {
   tasksCreated: number
-  pipelinesTriggered: number
   errors: string[]
 }
 
 /**
- * Process a single task source: fetch issues and trigger pipelines
+ * Process a single task source: fetch issues and create tasks
  */
 export async function processTaskSource(
   sql: Sql,
   input: ProcessTaskSourceInput
 ): Promise<ProcessTaskSourceResult> {
-  const { taskSourceId, runner = 'claude' } = input
+  const { taskSourceId } = input
 
   const result: ProcessTaskSourceResult = {
     tasksCreated: 0,
-    pipelinesTriggered: 0,
     errors: []
   }
 
@@ -157,22 +151,14 @@ export async function processTaskSource(
           const task = await taskQueries.createTask(sql, {
             title: issue.title,
             description: issue.description || undefined,
-            status: 'processing',
+            status: 'pending',
             project_id: project.id,
             task_source_id: taskSource.id,
             ...convertToBackendIssue()
           })
 
           result.tasksCreated++
-
-          // TODO: Link file spaces to task (implement addTaskFileSpaces in db/tasks.ts if needed)
-          // For now, skip this step as it's not critical for initial implementation
-
-          // Create session
-          const session = await sessionQueries.createSession(sql, {
-            task_id: task.id,
-            runner
-          })
+          logger.info(`Created task ${task.id} for issue ${issue.id}`)
 
           // Signal in worker cache
           await cache.signal({
@@ -180,27 +166,6 @@ export async function processTaskSource(
             date: issue.updatedAt,
             taskId: task.id
           })
-
-          // Trigger pipeline if USE_PIPELINE_EXECUTION is enabled
-          if (process.env.USE_PIPELINE_EXECUTION === 'true') {
-            try {
-              const apiClient = createBackendApiClient()
-              const pipelineResult = await triggerPipeline({
-                sessionId: session.id,
-                apiClient
-              })
-
-              logger.info(`Pipeline triggered for session ${session.id}: ${pipelineResult.pipelineUrl}`)
-              result.pipelinesTriggered++
-            } catch (pipelineError) {
-              const errorMsg = `Failed to trigger pipeline for session ${session.id}: ${pipelineError instanceof Error ? pipelineError.message : String(pipelineError)}`
-              logger.error(errorMsg)
-              result.errors.push(errorMsg)
-
-              // Release lock on pipeline trigger failure
-              await cache.releaseLock(issue.id)
-            }
-          }
         } catch (taskError) {
           // Release lock on task creation failure
           await cache.releaseLock(issue.id)
@@ -247,14 +212,12 @@ async function fetchIssuesFromTaskSource(taskSource: TaskSourceDb): Promise<Task
  */
 export async function processProjectTaskSources(
   sql: Sql,
-  projectId: string,
-  runner?: string
+  projectId: string
 ): Promise<ProcessTaskSourceResult> {
   const taskSources = await taskSourceQueries.findTaskSourcesByProjectId(sql, projectId)
 
   const combinedResult: ProcessTaskSourceResult = {
     tasksCreated: 0,
-    pipelinesTriggered: 0,
     errors: []
   }
 
@@ -264,12 +227,10 @@ export async function processProjectTaskSources(
     }
 
     const result = await processTaskSource(sql, {
-      taskSourceId: taskSource.id,
-      runner
+      taskSourceId: taskSource.id
     })
 
     combinedResult.tasksCreated += result.tasksCreated
-    combinedResult.pipelinesTriggered += result.pipelinesTriggered
     combinedResult.errors.push(...result.errors)
   }
 
@@ -280,14 +241,12 @@ export async function processProjectTaskSources(
  * Process all enabled projects
  */
 export async function processAllProjects(
-  sql: Sql,
-  runner?: string
+  sql: Sql
 ): Promise<ProcessTaskSourceResult> {
   const projects = await projectQueries.findAllProjects(sql)
 
   const combinedResult: ProcessTaskSourceResult = {
     tasksCreated: 0,
-    pipelinesTriggered: 0,
     errors: []
   }
 
@@ -296,10 +255,9 @@ export async function processAllProjects(
       continue
     }
 
-    const result = await processProjectTaskSources(sql, project.id, runner)
+    const result = await processProjectTaskSources(sql, project.id)
 
     combinedResult.tasksCreated += result.tasksCreated
-    combinedResult.pipelinesTriggered += result.pipelinesTriggered
     combinedResult.errors.push(...result.errors)
   }
 

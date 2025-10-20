@@ -11,7 +11,6 @@ const logger = createLogger({ namespace: 'scheduler' })
 
 export interface SchedulerOptions {
   intervalMs?: number
-  runner?: string
   enabled?: boolean
 }
 
@@ -23,7 +22,6 @@ let schedulerIntervalId: Timer | null = null
 export function startScheduler(sql: Sql, options: SchedulerOptions = {}): Timer | null {
   const {
     intervalMs = 600000, // 10 minutes default (same as old worker)
-    runner = 'claude',
     enabled = process.env.ENABLE_SCHEDULER === 'true'
   } = options
 
@@ -40,7 +38,7 @@ export function startScheduler(sql: Sql, options: SchedulerOptions = {}): Timer 
   logger.info(`Starting scheduler with ${intervalMs}ms interval (${intervalMs / 1000}s)`)
 
   // Run immediately on start
-  processAllProjects(sql, runner)
+  processAllProjects(sql)
     .then(result => {
       logger.info(`Initial scheduler run completed:`, result)
     })
@@ -52,7 +50,7 @@ export function startScheduler(sql: Sql, options: SchedulerOptions = {}): Timer 
   schedulerIntervalId = setInterval(async () => {
     try {
       logger.info('Scheduler: Starting periodic task source processing')
-      const result = await processAllProjects(sql, runner)
+      const result = await processAllProjects(sql)
       logger.info(`Scheduler: Processing completed:`, result)
     } catch (error) {
       logger.error('Scheduler: Processing failed:', error)

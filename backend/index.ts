@@ -16,7 +16,6 @@ startScheduler(sql, {
   intervalMs: process.env.SCHEDULER_INTERVAL_MS
     ? Number(process.env.SCHEDULER_INTERVAL_MS)
     : 600000, // 10 minutes default
-  runner: process.env.DEFAULT_RUNNER || 'claude',
   enabled: process.env.ENABLE_SCHEDULER === 'true'
 })
 

@@ -110,28 +110,6 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
         variant: 'outline' as const,
       },
       {
-        label: 'View Details',
-        onClick: (taskSource: TaskSource) => {
-          window.location.href = `/task-sources/${taskSource.id}`
-        },
-        variant: 'default' as const,
-      },
-      {
-        label: 'View Project',
-        onClick: (taskSource: TaskSource) => {
-          window.location.href = `/projects/${taskSource.project_id}`
-        },
-        variant: 'outline' as const,
-      },
-      {
-        label: this.model.enabled ? 'Disable' : 'Enable',
-        onClick: async (taskSource: TaskSource) => {
-          // TODO: Implement toggle enabled status
-          console.log(`Toggle task source ${taskSource.id} status`)
-        },
-        variant: 'outline' as const,
-      },
-      {
         label: 'Delete',
         onClick: async (taskSource: TaskSource) => {
           if (confirm(`Are you sure you want to delete "${taskSource.name}"?`)) {

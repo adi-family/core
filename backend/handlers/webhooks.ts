@@ -71,8 +71,7 @@ export const createWebhookRoutes = (sql: Sql) => {
       for (const taskSource of matchingTaskSources) {
         try {
           const result = await processTaskSource(sql, {
-            taskSourceId: taskSource.id,
-            runner: 'claude' // TODO: Make configurable
+            taskSourceId: taskSource.id
           })
           results.push({ taskSourceId: taskSource.id, ...result })
         } catch (error) {
@@ -133,8 +132,7 @@ export const createWebhookRoutes = (sql: Sql) => {
       for (const taskSource of matchingTaskSources) {
         try {
           const result = await processTaskSource(sql, {
-            taskSourceId: taskSource.id,
-            runner: 'claude' // TODO: Make configurable
+            taskSourceId: taskSource.id
           })
           results.push({ taskSourceId: taskSource.id, ...result })
         } catch (error) {
@@ -200,8 +198,7 @@ export const createWebhookRoutes = (sql: Sql) => {
       for (const taskSource of matchingTaskSources) {
         try {
           const result = await processTaskSource(sql, {
-            taskSourceId: taskSource.id,
-            runner: 'claude' // TODO: Make configurable
+            taskSourceId: taskSource.id
           })
           results.push({ taskSourceId: taskSource.id, ...result })
         } catch (error) {
