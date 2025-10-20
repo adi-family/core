@@ -41,7 +41,7 @@ export function SecretSelect({
           setLoading(false)
           return
         }
-        const data = await res.json() as any
+        const data = await res.json()
         setSecrets(data)
         setLoading(false)
       } catch (error) {

@@ -31,7 +31,7 @@ export function ProjectSelect({
           setLoading(false)
           return
         }
-        const data = await res.json() as any
+        const data = await res.json()
         setProjects(data)
         setLoading(false)
       } catch (error) {

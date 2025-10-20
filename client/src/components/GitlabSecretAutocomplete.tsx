@@ -59,12 +59,12 @@ export function GitlabSecretAutocomplete({
         })
 
         if (res.ok) {
-          const secrets = await res.json() as any as any
+          const secrets = await res.json()
           setExistingSecrets(secrets)
 
           // If value is provided, find and select that secret
           if (value) {
-            const secret = secrets.find((s: any) => s.id === value)
+            const secret = secrets.find((s) => s.id === value)
             if (secret) {
               setSelectedSecret(secret)
             }
@@ -203,7 +203,7 @@ export function GitlabSecretAutocomplete({
         return
       }
 
-      const secret = await res.json() as any as any
+      const secret = await res.json()
       setSelectedSecret(secret)
       setExistingSecrets((prev) => [...prev, secret])
       onChange(secret.id, secret)

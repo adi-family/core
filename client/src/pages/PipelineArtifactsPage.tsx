@@ -23,7 +23,7 @@ export function PipelineArtifactsPage() {
         setLoading(false)
         return
       }
-      const data = await res.json() as any
+      const data = await res.json()
       setArtifacts(data)
       setLoading(false)
     }

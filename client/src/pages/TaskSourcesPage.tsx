@@ -20,13 +20,15 @@ export function TaskSourcesPage() {
 
   useEffect(() => {
     const fetchTaskSources = async () => {
-      const res = await (client as any)["task-sources"].$get()
+      const res = await client["task-sources"].$get({
+        query: {}
+      })
       if (!res.ok) {
         console.error("Error fetching task sources:", await res.text())
         setLoading(false)
         return
       }
-      const data = await res.json() as any
+      const data = await res.json()
       setTaskSources(data)
       setLoading(false)
     }

@@ -23,7 +23,7 @@ export function SessionsPage() {
         setLoading(false)
         return
       }
-      const data = await res.json() as any
+      const data = await res.json()
       setSessions(data)
       setLoading(false)
     }

@@ -64,7 +64,7 @@ export function WorkerCachePage() {
         setLoading(false)
         return
       }
-      const data = await res.json() as any
+      const data = await res.json()
       setCache(data)
       setLoading(false)
     }

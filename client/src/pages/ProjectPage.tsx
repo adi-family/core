@@ -38,13 +38,13 @@ export function ProjectPage() {
         })
 
         if (!res.ok) {
-          const errorData = await res.json() as any
-          setError(errorData.error || "Failed to fetch project")
+          const errorText = await res.text()
+          setError(errorText || "Failed to fetch project")
           setLoading(false)
           return
         }
 
-        const data = await res.json() as any
+        const data = await res.json()
         setProject(data)
         setLoading(false)
       } catch {
@@ -92,7 +92,7 @@ export function ProjectPage() {
         return
       }
 
-      const updatedProject = await res.json() as any
+      const updatedProject = await res.json()
       setProject(updatedProject)
     } catch {
       alert("Error updating project")

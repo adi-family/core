@@ -48,7 +48,7 @@ export function GitlabConfiguration({ projectId }: GitlabConfigurationProps) {
         })
 
         if (res.ok) {
-          const secret = await res.json() as any as any
+          const secret = await res.json()
           setSelectedSecret(secret)
         }
       } catch (err) {
