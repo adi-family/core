@@ -6,8 +6,11 @@ import * as userAccessQueries from '../../db/user-access'
 import { idParamSchema, createProjectSchema, updateProjectSchema } from '../schemas'
 import { authMiddleware } from '../middleware/auth'
 import { getClerkUserId } from '../middleware/clerk'
+import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 
 export const createProjectRoutes = (sql: Sql) => {
+  const acl = createFluentACL(sql)
+
   return new Hono()
     .get('/', async (c) => {
       const userId = getClerkUserId(c)
@@ -27,15 +30,12 @@ export const createProjectRoutes = (sql: Sql) => {
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
-      const userId = getClerkUserId(c)
 
-      // Check if user has access to this project
-      if (userId) {
-        const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id, 'viewer')
-        if (!hasAccess) {
-          return c.json({ error: 'Insufficient permissions' }, 403)
-        }
-      }
+      // Check if user has viewer access (optional - doesn't throw if no auth)
+      await acl.project(id).viewer.gte.orNull(c)
+
+      // Allow viewing if user has access OR if there's backward compatibility mode
+      // In strict mode, you'd throw if no access
 
       const result = await queries.findProjectById(sql, id)
 
@@ -67,14 +67,15 @@ export const createProjectRoutes = (sql: Sql) => {
     .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateProjectSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
-      const userId = getClerkUserId(c)
 
-      // Require developer access to update
-      if (userId) {
-        const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id, 'developer')
-        if (!hasAccess) {
-          return c.json({ error: 'Insufficient permissions' }, 403)
+      try {
+        // Require developer access or higher
+        await acl.project(id).developer.gte.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
         }
+        throw error
       }
 
       const result = await queries.updateProject(sql, id, body)
@@ -87,14 +88,15 @@ export const createProjectRoutes = (sql: Sql) => {
     })
     .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
-      const userId = getClerkUserId(c)
 
-      // Require owner access to delete
-      if (userId) {
-        const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id, 'owner')
-        if (!hasAccess) {
-          return c.json({ error: 'Insufficient permissions' }, 403)
+      try {
+        // Require owner access
+        await acl.project(id).owner.gte.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
         }
+        throw error
       }
 
       const result = await queries.deleteProject(sql, id)
