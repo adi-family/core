@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { BasePresenter } from "@/presenters/base"
 
 interface PresenterTableProps<T, P extends BasePresenter<T>> {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   presenter: new (model: T, ...args: any[]) => P
   items: T[]
   loading?: boolean
