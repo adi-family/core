@@ -16,35 +16,37 @@ export const createFileSpaceRoutes = (sql: Sql) => {
       const { project_id } = c.req.valid('query')
       const userId = getClerkUserId(c)
 
+      if (!userId) {
+        return c.json({ error: 'Authentication required' }, 401)
+      }
+
       if (project_id) {
-        // Check project access before returning file spaces
-        if (userId) {
-          const hasAccess = await acl.project(project_id).viewer.gte.check(c)
-          if (!hasAccess) {
-            return c.json({ error: 'Insufficient permissions' }, 403)
-          }
+        const hasAccess = await acl.project(project_id).viewer.gte.check(c)
+        if (!hasAccess) {
+          return c.json({ error: 'Insufficient permissions' }, 403)
         }
 
         const fileSpaces = await queries.findFileSpacesByProjectId(sql, project_id)
         return c.json(fileSpaces)
       }
 
-      // Filter all file spaces by project access
-      if (userId) {
-        const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
-        const allFileSpaces = await queries.findAllFileSpaces(sql)
-        const filtered = allFileSpaces.filter(fs => accessibleProjectIds.includes(fs.project_id))
-        return c.json(filtered)
-      }
-
-      const fileSpaces = await queries.findAllFileSpaces(sql)
-      return c.json(fileSpaces)
+      const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+      const allFileSpaces = await queries.findAllFileSpaces(sql)
+      const filtered = allFileSpaces.filter(fs => accessibleProjectIds.includes(fs.project_id))
+      return c.json(filtered)
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      // Check file space access
-      await acl.fileSpace(id).read.orNull(c)
+      try {
+        // Require read access
+        await acl.fileSpace(id).read.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
 
       const result = await queries.findFileSpaceById(sql, id)
 

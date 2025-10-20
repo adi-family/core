@@ -15,23 +15,27 @@ export const createTaskRoutes = (sql: Sql) => {
     .get('/', async (c) => {
       const userId = getClerkUserId(c)
 
-      // If authenticated, filter tasks by project access
-      if (userId) {
-        const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
-        const allTasks = await queries.findAllTasks(sql)
-        const filtered = allTasks.filter(t => t.project_id && accessibleProjectIds.includes(t.project_id))
-        return c.json(filtered)
+      if (!userId) {
+        return c.json({ error: 'Authentication required' }, 401)
       }
 
-      // Backward compatibility - return all
-      const tasks = await queries.findAllTasks(sql)
-      return c.json(tasks)
+      const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+      const allTasks = await queries.findAllTasks(sql)
+      const filtered = allTasks.filter(t => t.project_id && accessibleProjectIds.includes(t.project_id))
+      return c.json(filtered)
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      // Check task access (inherits from project)
-      await acl.task(id).read.orNull(c)
+      try {
+        // Require read access
+        await acl.task(id).read.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
 
       const result = await queries.findTaskById(sql, id)
 

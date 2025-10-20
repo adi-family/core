@@ -20,35 +20,37 @@ export const createTaskSourceRoutes = (sql: Sql) => {
       const { project_id } = c.req.valid('query')
       const userId = getClerkUserId(c)
 
+      if (!userId) {
+        return c.json({ error: 'Authentication required' }, 401)
+      }
+
       if (project_id) {
-        // Check project access
-        if (userId) {
-          const hasAccess = await acl.project(project_id).viewer.gte.check(c)
-          if (!hasAccess) {
-            return c.json({ error: 'Insufficient permissions' }, 403)
-          }
+        const hasAccess = await acl.project(project_id).viewer.gte.check(c)
+        if (!hasAccess) {
+          return c.json({ error: 'Insufficient permissions' }, 403)
         }
 
         const taskSources = await queries.findTaskSourcesByProjectId(sql, project_id)
         return c.json(taskSources)
       }
 
-      // Filter by project access
-      if (userId) {
-        const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
-        const allTaskSources = await queries.findAllTaskSources(sql)
-        const filtered = allTaskSources.filter(ts => accessibleProjectIds.includes(ts.project_id))
-        return c.json(filtered)
-      }
-
-      const taskSources = await queries.findAllTaskSources(sql)
-      return c.json(taskSources)
+      const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+      const allTaskSources = await queries.findAllTaskSources(sql)
+      const filtered = allTaskSources.filter(ts => accessibleProjectIds.includes(ts.project_id))
+      return c.json(filtered)
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      // Check task source access
-      await acl.taskSource(id).read.orNull(c)
+      try {
+        // Require read access
+        await acl.taskSource(id).read.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
 
       const result = await queries.findTaskSourceById(sql, id)
 

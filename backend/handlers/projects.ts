@@ -15,27 +15,27 @@ export const createProjectRoutes = (sql: Sql) => {
     .get('/', async (c) => {
       const userId = getClerkUserId(c)
 
-      // If user is authenticated, filter projects by access
-      if (userId) {
-        const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
-        const allProjects = await queries.findAllProjects(sql)
-        const filtered = allProjects.filter(p => accessibleProjectIds.includes(p.id))
-        return c.json(filtered)
+      if (!userId) {
+        return c.json({ error: 'Authentication required' }, 401)
       }
 
-      // If no user authentication, return empty array (or all projects for backward compatibility)
-      // For now, return all projects to maintain backward compatibility
-      const projects = await queries.findAllProjects(sql)
-      return c.json(projects)
+      const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+      const allProjects = await queries.findAllProjects(sql)
+      const filtered = allProjects.filter(p => accessibleProjectIds.includes(p.id))
+      return c.json(filtered)
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      // Check if user has viewer access (optional - doesn't throw if no auth)
-      await acl.project(id).viewer.gte.orNull(c)
-
-      // Allow viewing if user has access OR if there's backward compatibility mode
-      // In strict mode, you'd throw if no access
+      try {
+        // Require viewer access
+        await acl.project(id).viewer.gte.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
 
       const result = await queries.findProjectById(sql, id)
 

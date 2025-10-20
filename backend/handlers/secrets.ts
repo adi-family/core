@@ -35,17 +35,14 @@ export const createSecretRoutes = (sql: Sql) => {
     .get('/', async (c) => {
       const userId = getClerkUserId(c)
 
-      // If authenticated, filter secrets by project access
-      if (userId) {
-        const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
-        const allSecrets = await queries.findAllSecrets(sql)
-        const filtered = allSecrets.filter(s => accessibleProjectIds.includes(s.project_id))
-        return c.json(filtered)
+      if (!userId) {
+        return c.json({ error: 'Authentication required' }, 401)
       }
 
-      // Backward compatibility - return all
-      const secrets = await queries.findAllSecrets(sql)
-      return c.json(secrets)
+      const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+      const allSecrets = await queries.findAllSecrets(sql)
+      const filtered = allSecrets.filter(s => accessibleProjectIds.includes(s.project_id))
+      return c.json(filtered)
     })
     .get('/by-project/:projectId', zValidator('param', projectIdParamSchema), async (c) => {
       const { projectId } = c.req.valid('param')
@@ -66,8 +63,15 @@ export const createSecretRoutes = (sql: Sql) => {
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      // Check secret read access
-      await acl.secret(id).read.orNull(c)
+      try {
+        // Require read access
+        await acl.secret(id).read.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
 
       const result = await queries.findSecretById(sql, id)
 
