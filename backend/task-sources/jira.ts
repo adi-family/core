@@ -49,7 +49,7 @@ export class JiraTaskSource extends BaseTaskSource {
             iid: null,
             title: issue.fields.summary,
             description: issue.fields.description,
-            updatedAt: new Date(issue.fields.updated),
+            updatedAt: issue.fields.updated,
             uniqueId: `jira-${issue.id}`,
             metadata
           };

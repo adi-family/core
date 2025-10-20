@@ -27,7 +27,7 @@ export type TaskSourceIssue = {
   iid?: number | null;
   title: string;
   description?: string;
-  updatedAt: Date;
+  updatedAt: string;
   uniqueId: string;
   metadata: IssueMetadata;
 };
@@ -58,8 +58,8 @@ export type TaskSource = {
   project_id: string;
   name: string;
   enabled: boolean;
-  created_at: Date;
-  updated_at: Date;
+  created_at: string;
+  updated_at: string;
 } & (
   | { type: 'gitlab_issues'; config: GitlabIssuesConfig }
   | { type: 'jira'; config: TaskSourceJiraConfig }

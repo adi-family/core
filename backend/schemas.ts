@@ -26,7 +26,7 @@ export const gitlabIssueSchema = z.object({
   id: z.string(),
   iid: z.number().nullable().optional(),
   title: z.string(),
-  updated_at: z.coerce.date(),
+  updated_at: z.string(),
   metadata: gitlabMetadataSchema
 })
 
@@ -34,14 +34,14 @@ export const githubIssueSchema = z.object({
   id: z.string(),
   iid: z.number().nullable().optional(),
   title: z.string(),
-  updated_at: z.coerce.date(),
+  updated_at: z.string(),
   metadata: githubMetadataSchema
 })
 
 export const jiraIssueSchema = z.object({
   id: z.string(),
   title: z.string(),
-  updated_at: z.coerce.date(),
+  updated_at: z.string(),
   metadata: jiraMetadataSchema
 })
 
@@ -50,8 +50,8 @@ export const projectSchema = z.object({
   id: z.string(),
   name: z.string(),
   enabled: z.boolean(),
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date()
+  created_at: z.string(),
+  updated_at: z.string()
 })
 
 export const createProjectSchema = z.object({
@@ -72,8 +72,8 @@ export const taskSchema = z.object({
   source_gitlab_issue: gitlabIssueSchema.nullable(),
   source_github_issue: githubIssueSchema.nullable(),
   source_jira_issue: jiraIssueSchema.nullable(),
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date()
+  created_at: z.string(),
+  updated_at: z.string()
 })
 
 export const createTaskSchema = z.object({
@@ -94,8 +94,8 @@ export const sessionSchema = z.object({
   id: z.string(),
   task_id: z.string().nullable(),
   runner: z.string(),
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date()
+  created_at: z.string(),
+  updated_at: z.string()
 })
 
 export const createSessionSchema = z.object({
@@ -108,7 +108,7 @@ export const messageSchema = z.object({
   id: z.string(),
   session_id: z.string(),
   data: z.unknown(),
-  created_at: z.coerce.date()
+  created_at: z.string()
 })
 
 export const createMessageSchema = z.object({
@@ -124,8 +124,8 @@ export const fileSpaceSchema = z.object({
   type: z.enum(['gitlab', 'github']),
   config: z.unknown(),
   enabled: z.boolean(),
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date()
+  created_at: z.string(),
+  updated_at: z.string()
 })
 
 export const createFileSpaceSchema = z.object({
@@ -146,8 +146,8 @@ export const taskSourceSchema = z.object({
   type: z.enum(['gitlab_issues', 'jira', 'github_issues']),
   config: z.unknown(),
   enabled: z.boolean(),
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date()
+  created_at: z.string(),
+  updated_at: z.string()
 })
 
 export const createTaskSourceSchema = z.object({
@@ -166,8 +166,8 @@ export const workerRepositorySchema = z.object({
   project_id: z.string(),
   source_gitlab: z.unknown(),
   current_version: z.string(),
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date()
+  created_at: z.string(),
+  updated_at: z.string()
 })
 
 export const createWorkerRepositorySchema = z.object({
@@ -185,9 +185,9 @@ export const pipelineExecutionSchema = z.object({
   worker_repository_id: z.string(),
   pipeline_id: z.string(),
   status: z.enum(['pending', 'running', 'success', 'failed', 'canceled']),
-  last_status_update: z.coerce.date().nullable(),
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date()
+  last_status_update: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
 })
 
 export const createPipelineExecutionSchema = z.object({
@@ -200,7 +200,7 @@ export const createPipelineExecutionSchema = z.object({
 export const updatePipelineExecutionSchema = z.object({
   pipeline_id: z.string().optional(),
   status: z.enum(['pending', 'running', 'success', 'failed', 'canceled']).optional(),
-  last_status_update: z.coerce.date().optional()
+  last_status_update: z.string().optional()
 })
 
 // PipelineArtifact schemas
@@ -210,7 +210,7 @@ export const pipelineArtifactSchema = z.object({
   artifact_type: z.enum(['merge_request', 'issue', 'branch', 'commit', 'execution_result', 'text']),
   reference_url: z.string(),
   metadata: z.unknown().nullable(),
-  created_at: z.coerce.date()
+  created_at: z.string()
 })
 
 export const createPipelineArtifactSchema = z.object({
@@ -225,13 +225,13 @@ export const workerCacheSchema = z.object({
   id: z.number(),
   issue_id: z.string(),
   project_id: z.string(),
-  last_processed_at: z.coerce.date(),
+  last_processed_at: z.string(),
   status: z.string().nullable(),
   task_id: z.string().nullable(),
-  processing_started_at: z.coerce.date().nullable(),
+  processing_started_at: z.string().nullable(),
   processing_worker_id: z.string().nullable(),
-  created_at: z.coerce.date(),
-  updated_at: z.coerce.date()
+  created_at: z.string(),
+  updated_at: z.string()
 })
 
 export const lockContextSchema = z.object({
@@ -242,7 +242,7 @@ export const lockContextSchema = z.object({
 
 export const signalInfoSchema = z.object({
   issueId: z.string(),
-  date: z.coerce.date(),
+  date: z.string(),
   taskId: z.string()
 })
 

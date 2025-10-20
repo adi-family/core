@@ -13,7 +13,7 @@ export const findAllWorkerCache = async (sql: Sql): Promise<WorkerCache[]> => {
 
 export function initTrafficLight(sql: Sql, projectId: string) {
   return {
-    isSignaledBefore: async (issueId: string, date: Date): Promise<boolean> => {
+    isSignaledBefore: async (issueId: string, date: string): Promise<boolean> => {
       const result = await sql`
         SELECT last_processed_at
         FROM worker_task_cache
@@ -25,8 +25,7 @@ export function initTrafficLight(sql: Sql, projectId: string) {
         return false;
       }
 
-      const lastProcessed = new Date(row.last_processed_at);
-      return lastProcessed >= date;
+      return row.last_processed_at >= date;
     },
     tryAcquireLock: async (ctx: LockContext): Promise<boolean> => {
       const lockTimeoutSeconds = ctx.lockTimeoutSeconds !== undefined ? ctx.lockTimeoutSeconds : 3600;

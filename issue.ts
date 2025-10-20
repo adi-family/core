@@ -5,6 +5,6 @@ export abstract class Issue {
 
   abstract provider(): string
   abstract id(): string;
-  abstract updatedAt(): Date;
+  abstract updatedAt(): string;
   abstract title(): string;
 }

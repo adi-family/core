@@ -30,8 +30,8 @@ export class GitlabIssueMinimalList extends Issue {
     return this.issue.title;
   }
 
-  public updatedAt(): Date {
-    return new Date(this.issue.updated_at);
+  public updatedAt(): string {
+    return this.issue.updated_at;
   }
 }
 

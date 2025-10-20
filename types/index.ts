@@ -22,7 +22,7 @@ export type GitlabIssue = {
   id: string
   iid?: number | null
   title: string
-  updated_at: Date
+  updated_at: string
   metadata: GitlabMetadata
 }
 
@@ -30,14 +30,14 @@ export type GithubIssue = {
   id: string
   iid?: number | null
   title: string
-  updated_at: Date
+  updated_at: string
   metadata: GithubMetadata
 }
 
 export type JiraIssue = {
   id: string
   title: string
-  updated_at: Date
+  updated_at: string
   metadata: JiraMetadata
 }
 
@@ -45,8 +45,8 @@ export type Project = {
   id: string
   name: string
   enabled: boolean
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 export type Task = {
@@ -60,23 +60,23 @@ export type Task = {
   source_gitlab_issue: GitlabIssue | null
   source_github_issue: GithubIssue | null
   source_jira_issue: JiraIssue | null
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 export type Session = {
   id: string
   task_id: string | null
   runner: string
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 export type Message = {
   id: string
   session_id: string
   data: unknown
-  created_at: Date
+  created_at: string
 }
 
 export type CreateProjectInput = {
@@ -117,8 +117,8 @@ export type FileSpace = {
   type: 'gitlab' | 'github'
   config: unknown
   enabled: boolean
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 export type CreateFileSpaceInput = {
@@ -138,8 +138,8 @@ export type TaskSource = {
   type: 'gitlab_issues' | 'jira' | 'github_issues'
   config: unknown
   enabled: boolean
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 export type CreateTaskSourceInput = {
@@ -157,8 +157,8 @@ export type WorkerRepository = {
   project_id: string
   source_gitlab: unknown
   current_version: string
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 export type CreateWorkerRepositoryInput = {
@@ -175,9 +175,9 @@ export type PipelineExecution = {
   worker_repository_id: string
   pipeline_id: string
   status: 'pending' | 'running' | 'success' | 'failed' | 'canceled'
-  last_status_update: Date | null
-  created_at: Date
-  updated_at: Date
+  last_status_update: string | null
+  created_at: string
+  updated_at: string
 }
 
 export type CreatePipelineExecutionInput = {
@@ -190,7 +190,7 @@ export type CreatePipelineExecutionInput = {
 export type UpdatePipelineExecutionInput = {
   pipeline_id?: string
   status?: 'pending' | 'running' | 'success' | 'failed' | 'canceled'
-  last_status_update?: Date
+  last_status_update?: string
 }
 
 export type PipelineArtifact = {
@@ -199,7 +199,7 @@ export type PipelineArtifact = {
   artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text'
   reference_url: string
   metadata: unknown | null
-  created_at: Date
+  created_at: string
 }
 
 export type CreatePipelineArtifactInput = {
@@ -218,13 +218,13 @@ export type WorkerCache = {
   id: number
   issue_id: string
   project_id: string
-  last_processed_at: Date
+  last_processed_at: string
   status: string | null
   task_id: string | null
-  processing_started_at: Date | null
+  processing_started_at: string | null
   processing_worker_id: string | null
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 export type LockContext = {
@@ -235,7 +235,7 @@ export type LockContext = {
 
 export type SignalInfo = {
   issueId: string
-  date: Date
+  date: string
   taskId: string
 }
 
@@ -245,8 +245,8 @@ export type Secret = {
   name: string
   value: string
   description: string | null
-  created_at: Date
-  updated_at: Date
+  created_at: string
+  updated_at: string
 }
 
 export type CreateSecretInput = {
@@ -268,9 +268,9 @@ export type UserAccess = {
   entity_id: string
   role: 'owner' | 'admin' | 'developer' | 'viewer' | 'read' | 'write' | 'use'
   granted_by: string | null
-  granted_at: Date
-  expires_at: Date | null
-  created_at: Date
+  granted_at: string
+  expires_at: string | null
+  created_at: string
 }
 
 export type CreateUserAccessInput = {
@@ -279,6 +279,6 @@ export type CreateUserAccessInput = {
   entity_id: string
   role: 'owner' | 'admin' | 'developer' | 'viewer' | 'read' | 'write' | 'use'
   granted_by?: string
-  granted_at?: Date
-  expires_at?: Date
+  granted_at?: string
+  expires_at?: string
 }

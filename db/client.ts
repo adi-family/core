@@ -9,4 +9,13 @@ if (!DATABASE_URL.startsWith('postgres://') && !DATABASE_URL.startsWith('postgre
   throw new Error('DATABASE_URL must be a valid PostgreSQL connection string (starting with postgres:// or postgresql://)');
 }
 
-export const sql = postgres(DATABASE_URL);
+export const sql = postgres(DATABASE_URL, {
+  types: {
+    date: {
+      to: 1082,
+      from: [1082, 1114, 1184],
+      serialize: (x: string) => x,
+      parse: (x: string) => x,
+    },
+  },
+});

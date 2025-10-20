@@ -204,7 +204,7 @@ const app = new Hono()
     const { projectId } = c.req.valid('param')
     const { issueId, date } = c.req.valid('json')
     const trafficLight = initTrafficLight(sql, projectId)
-    const result = await trafficLight.isSignaledBefore(issueId, new Date(date))
+    const result = await trafficLight.isSignaledBefore(issueId, date)
     return c.json({ signaled: result })
   })
   .post('/projects/:projectId/worker-cache/try-acquire-lock', zValidator('param', projectIdParamSchema), zValidator('json', lockContextSchema), authMiddleware, async (c) => {
@@ -227,7 +227,7 @@ const app = new Hono()
     const trafficLight = initTrafficLight(sql, projectId)
     await trafficLight.signal({
       ...signalInfo,
-      date: new Date(signalInfo.date)
+      date: signalInfo.date
     })
     return c.json({ success: true })
   })

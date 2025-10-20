@@ -47,7 +47,7 @@ export const createUserAccessRoutes = (sql: Sql) => {
         const access = await userAccessQueries.grantAccess(sql, {
           ...body,
           granted_by: body.user_id,
-          expires_at: body.expires_at ? new Date(body.expires_at) : undefined,
+          expires_at: body.expires_at,
         })
 
         return c.json(access, 201)
