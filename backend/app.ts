@@ -15,6 +15,7 @@ import { createWebhookRoutes } from './handlers/webhooks'
 import { createSecretRoutes } from './handlers/secrets'
 import { createUserAccessRoutes } from './handlers/user-access'
 import { authMiddleware } from './middleware/auth'
+import { clerkAuth, optionalClerkAuth } from './middleware/clerk'
 import * as sessionQueries from '../db/sessions'
 import * as messageQueries from '../db/messages'
 import * as pipelineExecutionQueries from '../db/pipeline-executions'
@@ -41,6 +42,10 @@ import {
 } from './schemas'
 
 const app = new Hono()
+  // Global Clerk authentication middleware
+  .use('*', clerkAuth)
+  // Set userId in context if authenticated (optional for most routes)
+  .use('*', optionalClerkAuth())
   // Mount main routes
   .route('/projects', createProjectRoutes(sql))
   .route('/tasks', createTaskRoutes(sql))
