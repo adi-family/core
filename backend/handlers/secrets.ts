@@ -3,9 +3,8 @@ import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/secrets'
 import { z } from 'zod'
-import { authMiddleware } from '../middleware/auth'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
-import { getClerkUserId } from '../middleware/clerk'
+import { getClerkUserId, requireClerkAuth } from '../middleware/clerk'
 import * as userAccessQueries from '../../db/user-access'
 
 const idParamSchema = z.object({
@@ -81,7 +80,7 @@ export const createSecretRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .post('/', zValidator('json', createSecretSchema), authMiddleware, async (c) => {
+    .post('/', zValidator('json', createSecretSchema), requireClerkAuth(), async (c) => {
       const body = c.req.valid('json')
       const userId = getClerkUserId(c)
 
@@ -110,7 +109,7 @@ export const createSecretRoutes = (sql: Sql) => {
 
       return c.json(secret, 201)
     })
-    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateSecretSchema), authMiddleware, async (c) => {
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateSecretSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
 
@@ -132,7 +131,7 @@ export const createSecretRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
+    .delete('/:id', zValidator('param', idParamSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')
 
       try {

@@ -1,5 +1,6 @@
-import {type FormEvent, useState} from "react"
+import {type FormEvent, useState, useMemo} from "react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "@clerk/clerk-react"
 import {
   Card,
   CardContent,
@@ -7,14 +8,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { client } from "@/lib/client"
+import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateProjectInput } from "../../../types"
 
 export function SetupProjectPage() {
   const navigate = useNavigate()
+  const { getToken } = useAuth()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
 
   const [formData, setFormData] = useState<CreateProjectInput>({
     name: "",

@@ -5,7 +5,6 @@ import * as queries from '../../db/task-sources'
 import { createLogger } from '@utils/logger.ts'
 import { processTaskSource } from '../services/orchestrator'
 import { idParamSchema, createTaskSourceSchema, updateTaskSourceSchema, projectIdQuerySchema } from '../schemas'
-import { authMiddleware } from '../middleware/auth'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { getClerkUserId } from '../middleware/clerk'
 import * as userAccessQueries from '../../db/user-access'
@@ -60,7 +59,7 @@ export const createTaskSourceRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .post('/', zValidator('json', createTaskSourceSchema), authMiddleware, async (c) => {
+    .post('/', zValidator('json', createTaskSourceSchema), async (c) => {
       const body = c.req.valid('json')
       const userId = getClerkUserId(c)
 
@@ -89,7 +88,7 @@ export const createTaskSourceRoutes = (sql: Sql) => {
 
       return c.json(taskSource, 201)
     })
-    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateTaskSourceSchema), authMiddleware, async (c) => {
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateTaskSourceSchema), async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
 
@@ -111,7 +110,7 @@ export const createTaskSourceRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
+    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
       try {
@@ -132,8 +131,19 @@ export const createTaskSourceRoutes = (sql: Sql) => {
 
       return c.json({ success: true })
     })
-    .post('/:id/sync', zValidator('param', idParamSchema), authMiddleware, async (c) => {
+    .post('/:id/sync', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
+
+      try {
+        // Require write access to sync
+        await acl.taskSource(id).write.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
       const result = await queries.findTaskSourceById(sql, id)
 
       if (!result.ok) {

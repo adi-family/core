@@ -15,6 +15,7 @@ import { TaskSourcesPage } from "./pages/TaskSourcesPage"
 import { CreateTaskSourcePage } from "./pages/CreateTaskSourcePage"
 import { PipelineExecutionsPage } from "./pages/PipelineExecutionsPage"
 import { PipelineArtifactsPage } from "./pages/PipelineArtifactsPage"
+import { DebugGitlabSecretPage } from "./pages/DebugGitlabSecretPage"
 
 export function App() {
   return (
@@ -98,6 +99,7 @@ export function App() {
                     <Route path="create-task-source" element={<CreateTaskSourcePage />} />
                     <Route path="pipeline-executions" element={<PipelineExecutionsPage />} />
                     <Route path="pipeline-artifacts" element={<PipelineArtifactsPage />} />
+                    <Route path="debug" element={<DebugGitlabSecretPage />} />
                   </Route>
                 </Routes>
               </SignedIn>

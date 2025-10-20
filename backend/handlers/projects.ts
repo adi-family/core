@@ -4,8 +4,7 @@ import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/projects'
 import * as userAccessQueries from '../../db/user-access'
 import { idParamSchema, createProjectSchema, updateProjectSchema } from '../schemas'
-import { authMiddleware } from '../middleware/auth'
-import { getClerkUserId } from '../middleware/clerk'
+import { getClerkUserId, requireClerkAuth } from '../middleware/clerk'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 
 export const createProjectRoutes = (sql: Sql) => {
@@ -45,7 +44,7 @@ export const createProjectRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .post('/', zValidator('json', createProjectSchema), authMiddleware, async (c) => {
+    .post('/', zValidator('json', createProjectSchema), requireClerkAuth(), async (c) => {
       const body = c.req.valid('json')
       const userId = getClerkUserId(c)
 
@@ -64,7 +63,7 @@ export const createProjectRoutes = (sql: Sql) => {
 
       return c.json(project, 201)
     })
-    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateProjectSchema), authMiddleware, async (c) => {
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateProjectSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
 
@@ -86,7 +85,7 @@ export const createProjectRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
+    .delete('/:id', zValidator('param', idParamSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')
 
       try {

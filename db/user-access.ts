@@ -166,7 +166,7 @@ const mapResourceRoleToProjectRole = (role: Role): Role => {
   }
 }
 
-const createUserAccessCols = ['user_id', 'entity_type', 'entity_id', 'role', 'granted_by', 'granted_at', 'expires_at'] as const
+const createUserAccessCols = ['user_id', 'entity_type', 'entity_id', 'role', 'granted_by'] as const
 export const grantAccess = async (
   sql: Sql,
   input: CreateUserAccessInput
@@ -175,8 +175,7 @@ export const grantAccess = async (
     INSERT INTO user_access ${sql(input, createUserAccessCols)}
     ON CONFLICT (user_id, entity_type, entity_id, role) DO UPDATE
     SET granted_by = EXCLUDED.granted_by,
-        granted_at = EXCLUDED.granted_at,
-        expires_at = EXCLUDED.expires_at
+        granted_at = NOW()
     RETURNING *
   `)
   if (!access) {

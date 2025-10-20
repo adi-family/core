@@ -1,5 +1,6 @@
-import { type FormEvent, useState } from "react"
+import { type FormEvent, useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "@clerk/clerk-react"
 import {
   Card,
   CardContent,
@@ -13,7 +14,8 @@ import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
 import { ProjectSelect } from "@/components/ProjectSelect"
 import { SecretSelect } from "@/components/SecretSelect"
-import { client } from "@/lib/client"
+import { GitlabTaskSourceConfig } from "@/components/GitlabTaskSourceConfig"
+import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateTaskSourceInput } from "../../../types"
 import { ChevronRight, ChevronLeft, Check } from "lucide-react"
 
@@ -55,6 +57,8 @@ const STEPS: Step[] = [
 
 export function TaskSourceMultistageForm() {
   const navigate = useNavigate()
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -170,7 +174,7 @@ export function TaskSourceMultistageForm() {
         return true
       case 3:
         if (formData.type === "gitlab_issues") {
-          return gitlabConfig.repo !== ""
+          return gitlabConfig.repo !== "" && gitlabConfig.access_token_secret_id !== ""
         } else if (formData.type === "github_issues") {
           return githubConfig.repo !== ""
         } else {
@@ -403,61 +407,11 @@ export function TaskSourceMultistageForm() {
               <div className="space-y-6 animate-fadeIn">
                 {/* GitLab Issues Configuration */}
                 {formData.type === "gitlab_issues" && (
-                  <div className="space-y-4 p-4 border border-gray-200/60 bg-gray-50/50 backdrop-blur-sm">
-                    <h3 className="text-xs uppercase tracking-wide font-medium">GITLAB CONFIGURATION</h3>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="gitlab_repo" className="text-xs uppercase tracking-wide">
-                        REPOSITORY
-                      </Label>
-                      <Input
-                        id="gitlab_repo"
-                        type="text"
-                        value={gitlabConfig.repo}
-                        onChange={(e) => handleGitlabConfigChange("repo", e.target.value)}
-                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                        required
-                        placeholder="e.g., group/project"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="gitlab_labels" className="text-xs uppercase tracking-wide">
-                        LABELS (COMMA-SEPARATED)
-                      </Label>
-                      <Input
-                        id="gitlab_labels"
-                        type="text"
-                        value={gitlabConfig.labels.join(", ")}
-                        onChange={(e) => handleGitlabConfigChange("labels", e.target.value.split(",").map(l => l.trim()).filter(l => l))}
-                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                        placeholder="e.g., DOIT, TODO"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide">
-                        HOST (OPTIONAL)
-                      </Label>
-                      <Input
-                        id="gitlab_host"
-                        type="text"
-                        value={gitlabConfig.host || ""}
-                        onChange={(e) => handleGitlabConfigChange("host", e.target.value)}
-                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                        placeholder="https://gitlab.com"
-                      />
-                    </div>
-
-                    <SecretSelect
-                      projectId={formData.project_id}
-                      value={gitlabConfig.access_token_secret_id || ""}
-                      onChange={(secretId) => handleGitlabConfigChange("access_token_secret_id", secretId)}
-                      label={`ACCESS TOKEN SECRET ${(gitlabConfig.host && gitlabConfig.host !== "https://gitlab.com") ? "(REQUIRED)" : "(OPTIONAL)"}`}
-                      placeholder="Select access token secret"
-                      required={gitlabConfig.host !== "" && gitlabConfig.host !== "https://gitlab.com"}
-                    />
-                  </div>
+                  <GitlabTaskSourceConfig
+                    projectId={formData.project_id}
+                    config={gitlabConfig}
+                    onChange={(field, value) => handleGitlabConfigChange(field, value)}
+                  />
                 )}
 
                 {/* GitHub Issues Configuration */}
