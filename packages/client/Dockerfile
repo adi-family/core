@@ -11,7 +11,8 @@ RUN bun install --frozen-lockfile
 ENV CLIENT_PORT=4173
 ENV BACKEND_URL=http://backend:3000
 ENV VITE_API_URL=/api
-RUN bun run client:build
+WORKDIR /app/packages/client
+RUN bun run build
 
 # Production stage
 FROM oven/bun:1.2.23

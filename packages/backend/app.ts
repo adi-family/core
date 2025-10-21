@@ -25,7 +25,7 @@ import * as projectQueries from '@db/projects'
 import { initTrafficLight } from '@db/worker-cache'
 import { CIRepositoryManager } from '@worker/ci-repository-manager'
 import { createLogger } from '@utils/logger'
-import { startTaskSyncConsumer } from '../../queue/consumer.ts'
+import { startTaskSyncConsumer } from '@queue/consumer'
 import {
   idParamSchema,
   taskIdParamSchema,
