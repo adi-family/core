@@ -5,7 +5,7 @@
 
 import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger.ts'
-import { processAllProjects } from './orchestrator'
+import { syncAllProjects } from './orchestrator'
 
 const logger = createLogger({ namespace: 'scheduler' })
 
@@ -38,7 +38,7 @@ export function startScheduler(sql: Sql, options: SchedulerOptions = {}): Timer 
   logger.info(`Starting scheduler with ${intervalMs}ms interval (${intervalMs / 1000}s)`)
 
   // Run immediately on start
-  processAllProjects(sql)
+  syncAllProjects(sql)
     .then(result => {
       logger.info(`Initial scheduler run completed:`, result)
     })
@@ -49,11 +49,11 @@ export function startScheduler(sql: Sql, options: SchedulerOptions = {}): Timer 
   // Schedule periodic runs
   schedulerIntervalId = setInterval(async () => {
     try {
-      logger.info('Scheduler: Starting periodic task source processing')
-      const result = await processAllProjects(sql)
-      logger.info(`Scheduler: Processing completed:`, result)
+      logger.info('Scheduler: Starting periodic task source sync')
+      const result = await syncAllProjects(sql)
+      logger.info(`Scheduler: Sync completed:`, result)
     } catch (error) {
-      logger.error('Scheduler: Processing failed:', error)
+      logger.error('Scheduler: Sync failed:', error)
     }
   }, intervalMs)
 

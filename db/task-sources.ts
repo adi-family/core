@@ -75,3 +75,29 @@ export const deleteTaskSource = async (sql: Sql, id: string): Promise<Result<voi
     ? { ok: true, data: undefined }
     : { ok: false, error: 'Task source not found' }
 }
+
+/**
+ * Update task source sync status
+ */
+export const updateTaskSourceSyncStatus = async (
+  sql: Sql,
+  id: string,
+  status: 'pending' | 'syncing' | 'completed' | 'failed',
+  lastSyncedAt?: Date
+): Promise<Result<TaskSource>> => {
+  const updates: Record<string, unknown> = { sync_status: status }
+  if (lastSyncedAt) {
+    updates.last_synced_at = lastSyncedAt.toISOString()
+  }
+
+  const taskSources = await get(sql<TaskSource[]>`
+    UPDATE task_sources
+    SET ${sql(updates)}, updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `)
+  const [taskSource] = taskSources
+  return taskSource
+    ? { ok: true, data: taskSource }
+    : { ok: false, error: 'Task source not found' }
+}

@@ -6,7 +6,7 @@
 import { Hono } from 'hono'
 import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger.ts'
-import { processTaskSource } from '../services/orchestrator'
+import { syncTaskSource } from '../services/orchestrator'
 import * as taskSourceQueries from '../../db/task-sources'
 import type { GitlabIssuesConfig, GithubIssuesConfig, TaskSourceJiraConfig } from '../task-sources/base'
 
@@ -66,16 +66,16 @@ export const createWebhookRoutes = (sql: Sql) => {
         return c.json({ success: true, message: 'No matching task sources' })
       }
 
-      // Process each matching task source
+      // Sync each matching task source (publish to RabbitMQ)
       const results = []
       for (const taskSource of matchingTaskSources) {
         try {
-          const result = await processTaskSource(sql, {
+          const result = await syncTaskSource(sql, {
             taskSourceId: taskSource.id
           })
           results.push({ taskSourceId: taskSource.id, ...result })
         } catch (error) {
-          logger.error(`Failed to process task source ${taskSource.id}:`, error)
+          logger.error(`Failed to sync task source ${taskSource.id}:`, error)
           results.push({
             taskSourceId: taskSource.id,
             error: error instanceof Error ? error.message : String(error)
@@ -127,16 +127,16 @@ export const createWebhookRoutes = (sql: Sql) => {
         return c.json({ success: true, message: 'No matching task sources' })
       }
 
-      // Process each matching task source
+      // Sync each matching task source (publish to RabbitMQ)
       const results = []
       for (const taskSource of matchingTaskSources) {
         try {
-          const result = await processTaskSource(sql, {
+          const result = await syncTaskSource(sql, {
             taskSourceId: taskSource.id
           })
           results.push({ taskSourceId: taskSource.id, ...result })
         } catch (error) {
-          logger.error(`Failed to process task source ${taskSource.id}:`, error)
+          logger.error(`Failed to sync task source ${taskSource.id}:`, error)
           results.push({
             taskSourceId: taskSource.id,
             error: error instanceof Error ? error.message : String(error)
@@ -193,16 +193,16 @@ export const createWebhookRoutes = (sql: Sql) => {
         return c.json({ success: true, message: 'No matching task sources' })
       }
 
-      // Process each matching task source
+      // Sync each matching task source (publish to RabbitMQ)
       const results = []
       for (const taskSource of matchingTaskSources) {
         try {
-          const result = await processTaskSource(sql, {
+          const result = await syncTaskSource(sql, {
             taskSourceId: taskSource.id
           })
           results.push({ taskSourceId: taskSource.id, ...result })
         } catch (error) {
-          logger.error(`Failed to process task source ${taskSource.id}:`, error)
+          logger.error(`Failed to sync task source ${taskSource.id}:`, error)
           results.push({
             taskSourceId: taskSource.id,
             error: error instanceof Error ? error.message : String(error)

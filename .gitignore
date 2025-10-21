@@ -13,6 +13,8 @@
 !utils
 !hooks
 !shared
+!daemon-task-sync
+!queue
 !gitlab.ts
 !issue.ts
 !package.json

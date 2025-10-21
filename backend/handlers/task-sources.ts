@@ -3,7 +3,7 @@ import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/task-sources'
 import { createLogger } from '@utils/logger.ts'
-import { processTaskSource } from '../services/orchestrator'
+import { syncTaskSource } from '../services/orchestrator'
 import { idParamSchema, createTaskSourceSchema, updateTaskSourceSchema, projectIdQuerySchema } from '../schemas'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { getClerkUserId } from '../middleware/clerk'
@@ -150,11 +150,11 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         return c.json({ error: result.error }, 404)
       }
 
-      // Trigger orchestrator to fetch and create tasks from this task source
+      // Trigger orchestrator to fetch issues and publish to RabbitMQ
       logger.info(`Sync requested for task source ${id}`)
 
       try {
-        const syncResult = await processTaskSource(sql, {
+        const syncResult = await syncTaskSource(sql, {
           taskSourceId: id
         })
 

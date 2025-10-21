@@ -1,47 +1,42 @@
 /**
  * Task Orchestrator Service
- * Fetches issues from task sources and triggers pipeline execution
+ * Publishes task source sync requests to RabbitMQ queue
  */
 
 import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger.ts'
-import * as taskQueries from '../../db/tasks'
-import * as projectQueries from '../../db/projects'
 import * as taskSourceQueries from '../../db/task-sources'
-import * as fileSpaceQueries from '../../db/file-spaces'
-import * as workerRepoQueries from '../../db/worker-repositories'
-import * as workerCacheDb from '../../db/worker-cache'
-import type { TaskSource as TaskSourceDb } from '../../types'
-import type { TaskSource, TaskSourceIssue } from '../task-sources/base'
-import { createTaskSource } from '../task-sources/factory'
+import * as projectQueries from '../../db/projects'
+import { publishTaskSync } from '../../queue/publisher'
 
 const logger = createLogger({ namespace: 'orchestrator' })
 
-export interface ProcessTaskSourceInput {
+export interface SyncTaskSourceInput {
   taskSourceId: string
 }
 
-export interface ProcessTaskSourceResult {
-  tasksCreated: number
+export interface SyncTaskSourceResult {
+  tasksPublished: number
   errors: string[]
 }
 
 /**
- * Process a single task source: fetch issues and create tasks
+ * Sync a single task source: publish task source ID to RabbitMQ queue
+ * The daemon-task-sync will handle fetching issues and creating tasks
  */
-export async function processTaskSource(
+export async function syncTaskSource(
   sql: Sql,
-  input: ProcessTaskSourceInput
-): Promise<ProcessTaskSourceResult> {
+  input: SyncTaskSourceInput
+): Promise<SyncTaskSourceResult> {
   const { taskSourceId } = input
 
-  const result: ProcessTaskSourceResult = {
-    tasksCreated: 0,
+  const result: SyncTaskSourceResult = {
+    tasksPublished: 0,
     errors: []
   }
 
   try {
-    // Fetch task source
+    // Fetch task source to validate it exists and is enabled
     const taskSourceResult = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
     if (!taskSourceResult.ok) {
       result.errors.push(`Task source not found: ${taskSourceId}`)
@@ -55,130 +50,29 @@ export async function processTaskSource(
       return result
     }
 
-    // Fetch project
-    const projectResult = await projectQueries.findProjectById(sql, taskSource.project_id)
-    if (!projectResult.ok) {
-      result.errors.push(`Project not found: ${taskSource.project_id}`)
+    // Extract provider from task source type
+    let provider: 'gitlab' | 'jira' | 'github'
+    if (taskSource.type === 'gitlab_issues') {
+      provider = 'gitlab'
+    } else if (taskSource.type === 'jira') {
+      provider = 'jira'
+    } else if (taskSource.type === 'github_issues') {
+      provider = 'github'
+    } else {
+      result.errors.push(`Unsupported task source type: ${taskSource.type}`)
       return result
     }
 
-    const project = projectResult.data
+    // Publish task source ID and provider to queue for daemon-task-sync to process
+    await publishTaskSync({
+      taskSourceId: taskSource.id,
+      provider
+    })
 
-    if (!project.enabled) {
-      result.errors.push(`Project is disabled: ${project.id}`)
-      return result
-    }
-
-    // Fetch file spaces for this project
-    const fileSpaces = await fileSpaceQueries.findFileSpacesByProjectId(sql, project.id)
-    if (fileSpaces.length === 0) {
-      result.errors.push(`No file spaces found for project: ${project.id}`)
-      return result
-    }
-
-    // Fetch worker repository
-    const workerRepoResult = await workerRepoQueries.findWorkerRepositoryByProjectId(sql, project.id)
-    if (!workerRepoResult.ok) {
-      result.errors.push(`Worker repository not found for project: ${project.id}`)
-      return result
-    }
-
-    // Fetch issues from task source
-    const issues = await fetchIssuesFromTaskSource(taskSource)
-    logger.info(`Fetched ${issues.length} issues from task source ${taskSource.name}`)
-
-    // Process each issue
-    for (const issue of issues) {
-      try {
-        // Check if already processed using worker cache
-        const cache = workerCacheDb.initTrafficLight(sql, project.id)
-        const alreadySignaled = await cache.isSignaledBefore(issue.id, issue.updatedAt)
-
-        if (alreadySignaled) {
-          logger.info(`Issue ${issue.id} already processed, skipping`)
-          continue
-        }
-
-        // Try to acquire lock
-        const lockAcquired = await cache.tryAcquireLock({
-          issueId: issue.id,
-          workerId: 'orchestrator',
-          lockTimeoutSeconds: 3600 // 1 hour
-        })
-
-        if (!lockAcquired) {
-          logger.info(`Could not acquire lock for issue ${issue.id}, skipping`)
-          continue
-        }
-
-        try {
-          // Convert TaskSourceIssue to backend issue format
-          const convertToBackendIssue = () => {
-            if (taskSource.type === 'gitlab_issues' && issue.metadata.provider === 'gitlab') {
-              return {
-                source_gitlab_issue: {
-                  id: issue.id,
-                  iid: issue.iid,
-                  title: issue.title,
-                  updated_at: issue.updatedAt,
-                  metadata: issue.metadata
-                }
-              }
-            } else if (taskSource.type === 'jira' && issue.metadata.provider === 'jira') {
-              return {
-                source_jira_issue: {
-                  id: issue.id,
-                  title: issue.title,
-                  updated_at: issue.updatedAt,
-                  metadata: issue.metadata
-                }
-              }
-            } else if (taskSource.type === 'github_issues' && issue.metadata.provider === 'github') {
-              return {
-                source_github_issue: {
-                  id: issue.id,
-                  iid: issue.iid,
-                  title: issue.title,
-                  updated_at: issue.updatedAt,
-                  metadata: issue.metadata
-                }
-              }
-            }
-            return {}
-          }
-
-          // Create task
-          const task = await taskQueries.createTask(sql, {
-            title: issue.title,
-            description: issue.description || undefined,
-            status: 'pending',
-            project_id: project.id,
-            task_source_id: taskSource.id,
-            ...convertToBackendIssue()
-          })
-
-          result.tasksCreated++
-          logger.info(`Created task ${task.id} for issue ${issue.id}`)
-
-          // Signal in worker cache
-          await cache.signal({
-            issueId: issue.id,
-            date: issue.updatedAt,
-            taskId: task.id
-          })
-        } catch (taskError) {
-          // Release lock on task creation failure
-          await cache.releaseLock(issue.id)
-          throw taskError
-        }
-      } catch (issueError) {
-        const errorMsg = `Failed to process issue ${issue.id}: ${issueError instanceof Error ? issueError.message : String(issueError)}`
-        logger.error(errorMsg)
-        result.errors.push(errorMsg)
-      }
-    }
+    result.tasksPublished = 1
+    logger.info(`Published task source ${taskSource.id} (${provider}) to sync queue`)
   } catch (error) {
-    const errorMsg = `Failed to process task source ${taskSourceId}: ${error instanceof Error ? error.message : String(error)}`
+    const errorMsg = `Failed to publish task source ${taskSourceId}: ${error instanceof Error ? error.message : String(error)}`
     logger.error(errorMsg)
     result.errors.push(errorMsg)
   }
@@ -187,37 +81,16 @@ export async function processTaskSource(
 }
 
 /**
- * Fetch issues from a task source based on its type
+ * Sync all enabled task sources for a project
  */
-async function fetchIssuesFromTaskSource(taskSource: TaskSourceDb): Promise<TaskSourceIssue[]> {
-  try {
-    const taskSourceInstance = createTaskSource(taskSource as TaskSource)
-    const issuesIterable = await taskSourceInstance.getIssues()
-
-    // Convert AsyncIterable to Array
-    const issues = []
-    for await (const issue of issuesIterable) {
-      issues.push(issue)
-    }
-
-    return issues
-  } catch (error) {
-    logger.error(`Failed to fetch issues from task source ${taskSource.id} (${taskSource.type}):`, error)
-    return []
-  }
-}
-
-/**
- * Process all enabled task sources for a project
- */
-export async function processProjectTaskSources(
+export async function syncProjectTaskSources(
   sql: Sql,
   projectId: string
-): Promise<ProcessTaskSourceResult> {
+): Promise<SyncTaskSourceResult> {
   const taskSources = await taskSourceQueries.findTaskSourcesByProjectId(sql, projectId)
 
-  const combinedResult: ProcessTaskSourceResult = {
-    tasksCreated: 0,
+  const combinedResult: SyncTaskSourceResult = {
+    tasksPublished: 0,
     errors: []
   }
 
@@ -226,11 +99,11 @@ export async function processProjectTaskSources(
       continue
     }
 
-    const result = await processTaskSource(sql, {
+    const result = await syncTaskSource(sql, {
       taskSourceId: taskSource.id
     })
 
-    combinedResult.tasksCreated += result.tasksCreated
+    combinedResult.tasksPublished += result.tasksPublished
     combinedResult.errors.push(...result.errors)
   }
 
@@ -238,15 +111,15 @@ export async function processProjectTaskSources(
 }
 
 /**
- * Process all enabled projects
+ * Sync all enabled projects
  */
-export async function processAllProjects(
+export async function syncAllProjects(
   sql: Sql
-): Promise<ProcessTaskSourceResult> {
+): Promise<SyncTaskSourceResult> {
   const projects = await projectQueries.findAllProjects(sql)
 
-  const combinedResult: ProcessTaskSourceResult = {
-    tasksCreated: 0,
+  const combinedResult: SyncTaskSourceResult = {
+    tasksPublished: 0,
     errors: []
   }
 
@@ -255,9 +128,9 @@ export async function processAllProjects(
       continue
     }
 
-    const result = await processProjectTaskSources(sql, project.id)
+    const result = await syncProjectTaskSources(sql, project.id)
 
-    combinedResult.tasksCreated += result.tasksCreated
+    combinedResult.tasksPublished += result.tasksPublished
     combinedResult.errors.push(...result.errors)
   }
 

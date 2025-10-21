@@ -25,6 +25,7 @@ import * as projectQueries from '../db/projects'
 import { initTrafficLight } from '../db/worker-cache'
 import { CIRepositoryManager } from '../worker/ci-repository-manager'
 import { createLogger } from '../utils/logger'
+import { startTaskSyncConsumer } from '../queue/consumer'
 import {
   idParamSchema,
   taskIdParamSchema,
@@ -40,6 +41,13 @@ import {
   createPipelineArtifactSchema,
   updatePipelineExecutionSchema
 } from './schemas'
+
+// Start RabbitMQ consumer on boot
+const logger = createLogger({ namespace: 'app' })
+startTaskSyncConsumer(sql).catch((error) => {
+  logger.error('Failed to start task sync consumer:', error)
+  process.exit(1)
+})
 
 const app = new Hono()
   // Global Clerk authentication middleware
