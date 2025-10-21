@@ -7,8 +7,8 @@ import { app } from './app'
 import { hc } from 'hono/client'
 
 // Pre-calculate the type at compile time
-const client = hc<typeof app>('')
-export type Client = typeof client
+const _client = hc<typeof app>('')
+export type Client = typeof _client
 
 export const hcWithType = (...args: Parameters<typeof hc<typeof app>>): Client =>
   hc<typeof app>(...args)
