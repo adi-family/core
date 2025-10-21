@@ -3,7 +3,7 @@ import type { ConsumeMessage } from 'amqplib'
 import { createLogger } from '@utils/logger'
 import { TASK_SYNC_QUEUE, TASK_SYNC_CONFIG } from './queues'
 import type { TaskSyncMessage } from './types'
-import { syncTaskSource } from '../daemon-task-sync/service'
+import { syncTaskSource } from '@task-sync-service/service'
 import {channel} from "./connection.ts";
 
 const logger = createLogger({ namespace: 'queue-consumer' })
