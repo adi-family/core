@@ -1,24 +1,11 @@
-FROM oven/bun:latest AS builder
+FROM oven/bun:1.2.23 AS builder
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lock ./
+# Copy all source code (including workspace packages)
+COPY . .
 
 # Install all dependencies (including devDependencies for build)
 RUN bun install --frozen-lockfile
-
-# Copy source code
-COPY client ./client
-COPY types ./types
-COPY backend ./backend
-COPY db ./db
-COPY worker ./worker
-COPY utils ./utils
-COPY shared ./shared
-COPY queue ./queue
-COPY daemon-task-sync ./daemon-task-sync
-COPY gitlab.ts issue.ts ./
-COPY tsconfig.json ./
 
 # Build the client
 ENV CLIENT_PORT=4173
@@ -27,12 +14,12 @@ ENV VITE_API_URL=/api
 RUN bun run client:build
 
 # Production stage
-FROM oven/bun:latest
+FROM oven/bun:1.2.23
 WORKDIR /app
 
 # Copy built files and config
-COPY --from=builder /app/client/dist ./dist
-COPY --from=builder /app/client/vite.config.ts ./vite.config.ts
+COPY --from=builder /app/packages/client/dist ./dist
+COPY --from=builder /app/packages/client/vite.config.ts ./vite.config.ts
 COPY --from=builder /app/tsconfig.json ./tsconfig.json
 
 # Install vite and dependencies for preview server
