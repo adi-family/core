@@ -30,9 +30,9 @@
       "@queue/*": ["packages/queue/*"],
       "@worker/*": ["packages/worker/*"],
       "@shared/*": ["packages/shared/*"],
-      "@task-sync-service/*": ["packages/task-sync-service/*"]
+      "@micros-task-sync/*": ["packages/micros-task-sync/*"]
     }
   },
-  "include": ["packages/backend/**/*.ts", "packages/worker/**/*.ts", "packages/db/**/*.ts", "packages/utils/**/*.ts", "packages/queue/**/*.ts", "packages/task-sync-service/**/*.ts"],
+  "include": ["packages/backend/**/*.ts", "packages/worker/**/*.ts", "packages/db/**/*.ts", "packages/utils/**/*.ts", "packages/queue/**/*.ts", "packages/micros-task-sync/**/*.ts"],
   "exclude": ["node_modules", "packages/client"]
 }

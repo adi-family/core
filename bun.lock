@@ -125,6 +125,10 @@
       "name": "@adi/micros-cron",
       "version": "0.0.0",
     },
+    "packages/micros-task-sync": {
+      "name": "@adi/micros-task-sync",
+      "version": "0.0.0",
+    },
     "packages/queue": {
       "name": "@adi/queue",
       "version": "0.0.0",
@@ -135,10 +139,6 @@
       "devDependencies": {
         "typescript": "~5.9.3",
       },
-    },
-    "packages/task-sync-service": {
-      "name": "@adi/task-sync-service",
-      "version": "0.0.0",
     },
     "packages/types": {
       "name": "@adi-simple/types",
@@ -189,9 +189,9 @@
 
     "@adi/micros-cron": ["@adi/micros-cron@workspace:packages/micros-cron"],
 
-    "@adi/queue": ["@adi/queue@workspace:packages/queue"],
+    "@adi/micros-task-sync": ["@adi/micros-task-sync@workspace:packages/micros-task-sync"],
 
-    "@adi/task-sync-service": ["@adi/task-sync-service@workspace:packages/task-sync-service"],
+    "@adi/queue": ["@adi/queue@workspace:packages/queue"],
 
     "@alcalzone/ansi-tokenize": ["@alcalzone/ansi-tokenize@0.2.0", "", { "dependencies": { "ansi-styles": "^6.2.1", "is-fullwidth-code-point": "^5.0.0" } }, "sha512-qI/5TaaaCZE4yeSZ83lu0+xi1r88JSxUjnH4OP/iZF7+KKZ75u3ee5isd0LxX+6N8U0npL61YrpbthILHB6BnA=="],
 
