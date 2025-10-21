@@ -20,7 +20,11 @@
 !package.json
 !bun.lock
 !tsconfig.json
+!tsconfig.build.json
 !eslint.config.js
 !README.md
 !.env.example
 !typescript-graph.md
+
+# TypeScript build output
+dist/

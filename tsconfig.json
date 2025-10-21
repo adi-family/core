@@ -22,17 +22,17 @@
     "types": ["bun-types"],
     "baseUrl": ".",
     "paths": {
-      "@types": ["types"],
-      "@types/*": ["types/*"],
-      "@utils/*": ["utils/*"],
-      "@db/*": ["db/*"],
-      "@backend/*": ["backend/*"],
+      "@types": ["packages/types"],
+      "@types/*": ["packages/types/*"],
+      "@utils/*": ["packages/utils/*"],
+      "@db/*": ["packages/db/*"],
+      "@backend/*": ["packages/backend/*"],
       "@queue/*": ["queue/*"],
-      "@worker/*": ["worker/*"],
-      "@shared/*": ["shared/*"],
+      "@worker/*": ["packages/worker/*"],
+      "@shared/*": ["packages/shared/*"],
       "@daemon-task-sync/*": ["daemon-task-sync/*"]
     }
   },
-  "include": ["backend/**/*.ts", "worker/**/*.ts", "db/**/*.ts", "utils/**/*.ts", "queue/**/*.ts"],
-  "exclude": ["node_modules", "client"]
+  "include": ["packages/backend/**/*.ts", "packages/worker/**/*.ts", "packages/db/**/*.ts", "packages/utils/**/*.ts", "queue/**/*.ts"],
+  "exclude": ["node_modules", "packages/client"]
 }

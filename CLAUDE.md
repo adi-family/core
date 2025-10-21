@@ -1,12 +1,13 @@
 # adi-simple
-mono-repository, typescript, database-infrastructure, migration-management, git-workflow, lint-automation
+turborepo-monorepo, typescript, database-infrastructure, migration-management, git-workflow, lint-automation
 
 PROJECT STAGE - CAN EDIT EVERYTHING, NO NEED TO MAINTAIN
 
 ## Project Overview
-- Mono repository containing migrations, backend, worker, and db submodules
+- **Turborepo-managed monorepo** with workspaces in `packages/` directory
+- **Workspaces**: backend, client, worker, db, utils, shared, types
 - **.gitignore** follows ignore-all-allow-specific pattern (ignore everything, explicitly allow needed files)
-- **db/** directory contains shared database logic (client connection, queries) used by backend and worker
+- **packages/db/** contains shared database logic (client connection, queries) used by backend and worker
 
 ## Infrastructure
 - **Docker Compose** manages Postgres database and migrations
@@ -16,9 +17,12 @@ PROJECT STAGE - CAN EDIT EVERYTHING, NO NEED TO MAINTAIN
 - **Migration naming** follows timestamp format: `YYYYMMDDHHmmss_name.up/down.sql`
 
 ## Development Tools
+- **Turborepo** orchestrates build, dev, typecheck, and lint tasks across all workspaces
+- **Bun** package manager (packageManager: "bun@1.2.23")
 - **ESLint** configured at root with TypeScript and React support
-- **package.json** at root includes ESLint configuration and dependencies
 - **Pre-push hook** runs ESLint to prevent pushing code with lint errors
+- **Commands**: `bun run dev`, `bun run build`, `bun run typecheck`, `bun run lint`
+- **Turbo tasks**: Parallel execution, smart caching, task dependencies
 - use glab tool please with custom gitlab domain ( https://gitlab.the-ihor.com )
 
 ## Code Style

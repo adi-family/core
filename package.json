@@ -3,17 +3,16 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
+  "packageManager": "bun@1.2.23",
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "dev": "concurrently \"bun run backend:dev\" \"bun run client:dev\" \"bun run tailwind:dev\"",
-    "backend:dev": "bun --watch backend/index.ts",
-    "client:dev": "vite --config client/vite.config.ts",
-    "client:build": "tsc -b client && vite build --config client/vite.config.ts",
-    "client:preview": "vite preview --config client/vite.config.ts",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "typecheck": "tsc --noEmit && tsc -b client --force",
-    "tailwind:dev": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --cwd=./client --watch",
-    "tailwind:build": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.c --cwd=./client --minify",
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "typecheck": "turbo run typecheck",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint --fix",
     "hooks:install": "sh hooks/install.sh"
   },
   "devDependencies": {
@@ -33,6 +32,7 @@
     "globals": "^16.4.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.14",
+    "turbo": "^2.5.8",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.45.0",
     "vite": "^7.1.7"
