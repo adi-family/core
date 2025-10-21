@@ -92,23 +92,23 @@ export const findTaskSourcesNeedingSync = async (
       AND (
         -- Normal case: never synced or synced long ago
         (
-          (last_synced_at IS NULL OR last_synced_at < NOW() - INTERVAL '${minutesSinceLastSync} minutes')
+          (last_synced_at IS NULL OR last_synced_at < NOW() - (${minutesSinceLastSync}::text || ' minutes')::interval)
           AND sync_status NOT IN ('syncing', 'queued')
         )
         -- Corner case: stuck in 'queued' status for too long
         OR (
           sync_status = 'queued'
-          AND updated_at < NOW() - INTERVAL '${queuedTimeoutMinutes} minutes'
+          AND updated_at < NOW() - (${queuedTimeoutMinutes}::text || ' minutes')::interval
         )
         -- Corner case: stuck in 'syncing' status for too long
         OR (
           sync_status = 'syncing'
-          AND updated_at < NOW() - INTERVAL '${queuedTimeoutMinutes} minutes'
+          AND updated_at < NOW() - (${queuedTimeoutMinutes}::text || ' minutes')::interval
         )
       )
     ORDER BY
       CASE
-        WHEN sync_status IN ('queued', 'syncing') AND updated_at < NOW() - INTERVAL '${queuedTimeoutMinutes} minutes' THEN 0
+        WHEN sync_status IN ('queued', 'syncing') AND updated_at < NOW() - (${queuedTimeoutMinutes}::text || ' minutes')::interval THEN 0
         WHEN last_synced_at IS NULL THEN 1
         ELSE 2
       END,
@@ -126,17 +126,21 @@ export const updateTaskSourceSyncStatus = async (
   status: 'pending' | 'queued' | 'syncing' | 'completed' | 'failed',
   lastSyncedAt?: Date
 ): Promise<Result<TaskSource>> => {
-  const updates: Record<string, unknown> = { sync_status: status }
-  if (lastSyncedAt) {
-    updates.last_synced_at = lastSyncedAt.toISOString()
-  }
-
-  const taskSources = await get(sql<TaskSource[]>`
-    UPDATE task_sources
-    SET ${sql(updates)}, updated_at = NOW()
-    WHERE id = ${id}
-    RETURNING *
-  `)
+  const taskSources = await get(
+    lastSyncedAt
+      ? sql<TaskSource[]>`
+          UPDATE task_sources
+          SET sync_status = ${status}, last_synced_at = ${lastSyncedAt.toISOString()}, updated_at = NOW()
+          WHERE id = ${id}
+          RETURNING *
+        `
+      : sql<TaskSource[]>`
+          UPDATE task_sources
+          SET sync_status = ${status}, updated_at = NOW()
+          WHERE id = ${id}
+          RETURNING *
+        `
+  )
   const [taskSource] = taskSources
   return taskSource
     ? { ok: true, data: taskSource }
