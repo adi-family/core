@@ -1,0 +1,52 @@
+import type {MaybeRow, PendingQuery, Sql} from 'postgres'
+import type { Task, CreateTaskInput, UpdateTaskInput, Result } from '@types'
+
+function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
+  return q.then(v => v);
+}
+
+export const findAllTasks = async (sql: Sql): Promise<Task[]> => {
+  return get(sql<Task[]>`SELECT * FROM tasks ORDER BY created_at DESC`)
+}
+
+export const findTaskById = async (sql: Sql, id: string): Promise<Result<Task>> => {
+  const tasks = await get(sql<Task[]>`SELECT * FROM tasks WHERE id = ${id}`)
+  const [task] = tasks
+  return task
+    ? { ok: true, data: task }
+    : { ok: false, error: 'Task not found' }
+}
+
+const createTaskCols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
+export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
+  const [task] = await get(sql<Task[]>`
+    INSERT INTO tasks ${sql(input, createTaskCols)}
+    RETURNING *
+  `)
+  if (!task) {
+    throw new Error('Failed to create task')
+  }
+  return task
+}
+
+const updateTaskCols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
+export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): Promise<Result<Task>> => {
+  const tasks = await get(sql<Task[]>`
+    UPDATE tasks
+    SET ${sql(input, updateTaskCols)}, updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `)
+  const [task] = tasks
+  return task
+    ? { ok: true, data: task }
+    : { ok: false, error: 'Task not found' }
+}
+
+export const deleteTask = async (sql: Sql, id: string): Promise<Result<void>> => {
+  const resultSet = await get(sql`DELETE FROM tasks WHERE id = ${id}`)
+  const deleted = resultSet.count > 0
+  return deleted
+    ? { ok: true, data: undefined }
+    : { ok: false, error: 'Task not found' }
+}

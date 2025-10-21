@@ -1,0 +1,80 @@
+@import "tailwindcss";
+@plugin "@tailwindcss/typography";
+@config "../../tailwind.config.ts";
+
+* {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fadeIn {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@theme {
+  /* Apple-inspired fluid color system */
+  --color-brand-50: #f9fafb;
+  --color-brand-100: #f3f4f6;
+  --color-brand-200: #e5e7eb;
+  --color-brand-300: #d1d5db;
+  --color-brand-400: #9ca3af;
+  --color-brand-500: #6b7280;
+  --color-brand-600: #4b5563;
+  --color-brand-700: #374151;
+  --color-brand-800: #1f2937;
+  --color-brand-900: #111827;
+  --color-brand-950: #030712;
+
+  /* Vibrant accent colors with depth */
+  --color-accent-blue: #007AFF;
+  --color-accent-blue-dark: #0051D5;
+  --color-accent-green: #34C759;
+  --color-accent-yellow: #FFD60A;
+  --color-accent-red: #FF3B30;
+  --color-accent-purple: #BF5AF2;
+
+  /* Semantic colors with vibrancy */
+  --color-success: #34C759;
+  --color-warning: #FFD60A;
+  --color-danger: #FF3B30;
+  --color-info: #007AFF;
+
+  /* Custom spacing */
+  --spacing-18: 4.5rem;
+  --spacing-22: 5.5rem;
+
+  /* Apple system fonts */
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", system-ui, sans-serif;
+  --font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+
+  /* Custom breakpoints */
+  --breakpoint-xs: 475px;
+  --breakpoint-3xl: 1920px;
+
+  /* Fluid border radius */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-xl: 0;
+  --radius-2xl: 0;
+  --radius-3xl: 0;
+  --radius-4xl: 0;
+
+  /* Fluid depth shadows - Apple style */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-sm: 0 2px 8px 0 rgb(0 0 0 / 0.08), 0 1px 2px 0 rgb(0 0 0 / 0.04);
+  --shadow-md: 0 4px 16px 0 rgb(0 0 0 / 0.10), 0 2px 4px 0 rgb(0 0 0 / 0.06);
+  --shadow-lg: 0 8px 24px 0 rgb(0 0 0 / 0.12), 0 4px 8px 0 rgb(0 0 0 / 0.08);
+  --shadow-xl: 0 16px 48px 0 rgb(0 0 0 / 0.16), 0 8px 16px 0 rgb(0 0 0 / 0.10);
+}

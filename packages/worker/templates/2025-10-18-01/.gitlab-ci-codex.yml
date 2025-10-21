@@ -1,0 +1,82 @@
+stages:
+  - prepare
+  - execute
+  - report
+
+variables:
+  WORKER_IMAGE: "oven/bun:latest"
+
+prepare:
+  stage: prepare
+  image: $WORKER_IMAGE
+  script:
+    - echo "Installing dependencies"
+    - cd worker-scripts
+    - bun install
+    - echo "SESSION_ID=$SESSION_ID"
+    - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
+  cache:
+    paths:
+      - worker-scripts/node_modules/
+  only:
+    - pipelines
+
+execute:
+  stage: execute
+  image: $WORKER_IMAGE
+  script:
+    - cd worker-scripts
+
+    # Update status to 'running'
+    - |
+      curl -X PATCH "$API_BASE_URL/pipeline-executions/$PIPELINE_EXECUTION_ID" \
+        -H "Authorization: Bearer $API_TOKEN" \
+        -H "Content-Type: application/json" \
+        -d '{"status":"running"}'
+
+    # Run Codex pipeline (TypeScript with Bun)
+    - bun run codex-pipeline.ts
+
+    # Capture exit code
+    - EXIT_CODE=$?
+
+    # Update status based on exit code
+    - |
+      if [ $EXIT_CODE -eq 0 ]; then
+        curl -X PATCH "$API_BASE_URL/pipeline-executions/$PIPELINE_EXECUTION_ID" \
+          -H "Authorization: Bearer $API_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{"status":"success"}'
+      else
+        curl -X PATCH "$API_BASE_URL/pipeline-executions/$PIPELINE_EXECUTION_ID" \
+          -H "Authorization: Bearer $API_TOKEN" \
+          -H "Content-Type: application/json" \
+          -d '{"status":"failed"}'
+        exit $EXIT_CODE
+      fi
+  artifacts:
+    paths:
+      - results/
+    expire_in: 7 days
+  cache:
+    paths:
+      - worker-scripts/node_modules/
+    policy: pull
+  only:
+    - pipelines
+
+report:
+  stage: report
+  image: $WORKER_IMAGE
+  script:
+    - cd worker-scripts
+    # Upload artifacts via our API (TypeScript)
+    - bun run upload-results.ts
+  dependencies:
+    - execute
+  cache:
+    paths:
+      - worker-scripts/node_modules/
+    policy: pull
+  only:
+    - pipelines
