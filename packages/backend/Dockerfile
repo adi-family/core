@@ -1,22 +1,14 @@
-FROM oven/bun:latest AS base
+FROM oven/bun:1.2.23 AS base
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lock ./
+# Copy all source code (including workspace packages)
+COPY . .
 
 # Install dependencies
 RUN bun install --frozen-lockfile --production
-
-# Copy source code
-COPY tsconfig.json ./
-COPY types ./types
-COPY backend ./backend
-COPY db ./db
-COPY utils ./utils
-COPY gitlab.ts issue.ts ./
 
 # Set environment
 ENV NODE_ENV=production
 
 # Run the application
-CMD ["bun", "run", "backend/index.ts"]
+CMD ["bun", "run", "packages/backend/index.ts"]
