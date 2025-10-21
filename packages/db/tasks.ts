@@ -56,3 +56,67 @@ export const deleteTask = async (sql: Sql, id: string): Promise<Result<void>> =>
     ? { ok: true, data: undefined }
     : { ok: false, error: 'Task not found' }
 }
+
+const upsertTaskCols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
+export const upsertTaskFromGitlab = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
+  const presentCols = upsertTaskCols.filter(col => col in input)
+
+  const [task] = await get(sql<Task[]>`
+    INSERT INTO tasks ${sql(input, presentCols)}
+    ON CONFLICT (task_source_id, (source_gitlab_issue->>'id'))
+    WHERE source_gitlab_issue IS NOT NULL
+    DO UPDATE SET
+      title = EXCLUDED.title,
+      description = EXCLUDED.description,
+      status = EXCLUDED.status,
+      source_gitlab_issue = EXCLUDED.source_gitlab_issue,
+      updated_at = NOW()
+    RETURNING *
+  `)
+  if (!task) {
+    throw new Error('Failed to upsert task')
+  }
+  return task
+}
+
+export const upsertTaskFromGithub = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
+  const presentCols = upsertTaskCols.filter(col => col in input)
+
+  const [task] = await get(sql<Task[]>`
+    INSERT INTO tasks ${sql(input, presentCols)}
+    ON CONFLICT (task_source_id, (source_github_issue->>'id'))
+    WHERE source_github_issue IS NOT NULL
+    DO UPDATE SET
+      title = EXCLUDED.title,
+      description = EXCLUDED.description,
+      status = EXCLUDED.status,
+      source_github_issue = EXCLUDED.source_github_issue,
+      updated_at = NOW()
+    RETURNING *
+  `)
+  if (!task) {
+    throw new Error('Failed to upsert task')
+  }
+  return task
+}
+
+export const upsertTaskFromJira = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
+  const presentCols = upsertTaskCols.filter(col => col in input)
+
+  const [task] = await get(sql<Task[]>`
+    INSERT INTO tasks ${sql(input, presentCols)}
+    ON CONFLICT (task_source_id, (source_jira_issue->>'id'))
+    WHERE source_jira_issue IS NOT NULL
+    DO UPDATE SET
+      title = EXCLUDED.title,
+      description = EXCLUDED.description,
+      status = EXCLUDED.status,
+      source_jira_issue = EXCLUDED.source_jira_issue,
+      updated_at = NOW()
+    RETURNING *
+  `)
+  if (!task) {
+    throw new Error('Failed to upsert task')
+  }
+  return task
+}

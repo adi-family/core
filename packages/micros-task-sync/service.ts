@@ -12,7 +12,7 @@ import * as taskSourceQueries from '@db/task-sources'
 import * as projectQueries from '@db/projects'
 import * as syncStateQueries from '@db/task-source-sync-state'
 import {assertNever} from "@utils/assert-never.ts";
-import type {TaskSource, TaskSourceIssue, CreateTaskInput} from "@types";
+import type {TaskSource, TaskSourceIssue, CreateTaskInput, Task} from "@types";
 
 const logger = createLogger({ namespace: 'daemon-task-sync' })
 
@@ -251,8 +251,22 @@ async function createTaskFromIssue(
     // Remove all undefined values from the entire object (including nested objects)
     const cleanedInput = removeUndefined(taskInput) as CreateTaskInput
 
-    const task = await taskQueries.createTask(tx, cleanedInput)
+    // Use upsert to handle both create and update cases
+    let task: Task
+    switch (issue.metadata.provider) {
+      case 'gitlab':
+        task = await taskQueries.upsertTaskFromGitlab(tx, cleanedInput)
+        break
+      case 'github':
+        task = await taskQueries.upsertTaskFromGithub(tx, cleanedInput)
+        break
+      case 'jira':
+        task = await taskQueries.upsertTaskFromJira(tx, cleanedInput)
+        break
+      default:
+        assertNever(issue.metadata)
+    }
 
-    logger.info(`Created task ${task.id} for issue ${issue.id}`)
+    logger.info(`Upserted task ${task.id} for issue ${issue.id}`)
   })
 }
