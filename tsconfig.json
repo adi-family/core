@@ -26,9 +26,12 @@
       "@utils/*": ["utils/*"],
       "@db/*": ["db/*"],
       "@backend/*": ["backend/*"],
-      "@worker/*": ["worker/*"]
+      "@queue/*": ["queue/*"],
+      "@worker/*": ["worker/*"],
+      "@shared/*": ["shared/*"],
+      "@daemon-task-sync/*": ["daemon-task-sync/*"]
     }
   },
-  "include": ["backend/**/*.ts", "worker/**/*.ts", "db/**/*.ts", "utils/**/*.ts"],
+  "include": ["backend/**/*.ts", "worker/**/*.ts", "db/**/*.ts", "utils/**/*.ts", "queue/**/*.ts"],
   "exclude": ["node_modules", "client"]
 }

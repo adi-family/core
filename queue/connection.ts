@@ -1,69 +1,52 @@
 import amqp from 'amqplib'
 import { createLogger } from '@utils/logger'
 import { TASK_SYNC_CONFIG, TASK_SYNC_DLQ_CONFIG, TASK_SYNC_DLX } from './queues'
+import {singleton} from "@utils/singleton.ts";
 
-const logger = createLogger({ namespace: 'rabbitmq' })
+const logger = createLogger({ namespace: 'rabbitmq' });
 
-let connection: amqp.Connection | null = null
-let channel: amqp.Channel | null = null
-
-export async function getRabbitMQConnection(): Promise<amqp.Connection> {
-  if (connection) {
-    return connection
-  }
-
+export const connection = singleton<amqp.ChannelModel>(async (connCtx) => {
   const rabbitmqUrl = process.env.RABBITMQ_URL
   if (!rabbitmqUrl) {
     throw new Error('RABBITMQ_URL environment variable is required')
   }
 
-  try {
-    connection = await amqp.connect(rabbitmqUrl)
-    logger.info('Connected to RabbitMQ')
+  const conn = await amqp.connect(rabbitmqUrl);
+  logger.info('Connected to RabbitMQ')
 
-    connection.on('error', (err) => {
-      logger.error('RabbitMQ connection error:', err)
-      connection = null
-      channel = null
-    })
+  conn.on('error', (err) => {
+    logger.error('RabbitMQ connection error:', err)
+    connCtx.reset();
+    channel.reset();
+  });
 
-    connection.on('close', () => {
-      logger.warn('RabbitMQ connection closed')
-      connection = null
-      channel = null
-    })
+  conn.on('close', () => {
+    logger.warn('RabbitMQ connection closed')
+    connCtx.reset();
+    channel.reset();
+  })
 
-    return connection
-  } catch (error) {
-    logger.error('Failed to connect to RabbitMQ:', error)
-    throw error
-  }
-}
+  return conn;
+});
 
-export async function getRabbitMQChannel(): Promise<amqp.Channel> {
-  if (channel) {
-    return channel
-  }
+export const channel = singleton<amqp.Channel>(async (channelCtx) => {
+  const connVal = await connection.value;
+  const ch = await connVal.createChannel();
 
-  const conn = await getRabbitMQConnection()
-  channel = await conn.createChannel()
-
-  logger.info('Created RabbitMQ channel')
-
-  channel.on('error', (err) => {
+  ch.on('error', (err) => {
     logger.error('RabbitMQ channel error:', err)
-    channel = null
+    channelCtx.reset()
   })
 
-  channel.on('close', () => {
+  ch.on('close', () => {
     logger.warn('RabbitMQ channel closed')
-    channel = null
+    channelCtx.reset()
   })
 
-  await setupQueues(channel)
+  await setupQueues(ch);
 
-  return channel
-}
+  return ch;
+});
 
 async function setupQueues(ch: amqp.Channel): Promise<void> {
   // Create dead letter exchange
@@ -87,20 +70,4 @@ async function setupQueues(ch: amqp.Channel): Promise<void> {
   })
 
   logger.info('RabbitMQ queues and exchanges configured')
-}
-
-export async function closeRabbitMQConnection(): Promise<void> {
-  try {
-    if (channel) {
-      await channel.close()
-      channel = null
-    }
-    if (connection) {
-      await connection.close()
-      connection = null
-    }
-    logger.info('RabbitMQ connection closed')
-  } catch (error) {
-    logger.error('Error closing RabbitMQ connection:', error)
-  }
 }

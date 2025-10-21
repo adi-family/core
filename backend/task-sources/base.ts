@@ -1,4 +1,5 @@
 import {assertNever} from '@utils/assert-never';
+import type {TaskSource} from "@types";
 
 export type GitlabMetadata = {
   provider: 'gitlab';
@@ -52,19 +53,6 @@ export type TaskSourceJiraConfig = {
   host: string;
   access_token_secret_id?: string;
 };
-
-export type TaskSource = {
-  id: string;
-  project_id: string;
-  name: string;
-  enabled: boolean;
-  created_at: string;
-  updated_at: string;
-} & (
-  | { type: 'gitlab_issues'; config: GitlabIssuesConfig }
-  | { type: 'jira'; config: TaskSourceJiraConfig }
-  | { type: 'github_issues'; config: GithubIssuesConfig }
-);
 
 export abstract class BaseTaskSource {
   protected taskSource: TaskSource;

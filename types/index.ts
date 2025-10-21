@@ -1,3 +1,5 @@
+import type {GithubIssuesConfig, GitlabIssuesConfig, TaskSourceJiraConfig} from "@backend/task-sources/base.ts";
+
 export type GitlabMetadata = {
   provider: 'gitlab'
   repo: string
@@ -132,23 +134,27 @@ export type CreateFileSpaceInput = {
 export type UpdateFileSpaceInput = Partial<CreateFileSpaceInput>
 
 export type TaskSource = {
-  id: string
-  project_id: string
-  name: string
-  type: 'gitlab_issues' | 'jira' | 'github_issues'
-  config: unknown
-  enabled: boolean
-  created_at: string
-  updated_at: string
-}
+  id: string;
+  project_id: string;
+  name: string;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+} & (
+  | { type: 'gitlab_issues'; config: GitlabIssuesConfig }
+  | { type: 'jira'; config: TaskSourceJiraConfig }
+  | { type: 'github_issues'; config: GithubIssuesConfig }
+  );
 
 export type CreateTaskSourceInput = {
   project_id: string
   name: string
-  type: 'gitlab_issues' | 'jira' | 'github_issues'
-  config: unknown
   enabled?: boolean
-}
+} & (
+  | { type: 'gitlab_issues'; config: GitlabIssuesConfig }
+  | { type: 'jira'; config: TaskSourceJiraConfig }
+  | { type: 'github_issues'; config: GithubIssuesConfig }
+  )
 
 export type UpdateTaskSourceInput = Partial<CreateTaskSourceInput>
 

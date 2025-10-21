@@ -6,12 +6,14 @@
 
 import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger'
-import type { TaskSource, TaskSourceIssue } from '../backend/task-sources/base'
-import { createTaskSource } from '../backend/task-sources/factory'
-import * as taskQueries from '../db/tasks'
-import * as taskSourceQueries from '../db/task-sources'
-import * as projectQueries from '../db/projects'
-import * as syncStateQueries from '../db/task-source-sync-state'
+import { createTaskSource } from '@backend/task-sources/factory'
+import * as taskQueries from '@db/tasks'
+import * as taskSourceQueries from '@db/task-sources'
+import * as projectQueries from '@db/projects'
+import * as syncStateQueries from '@db/task-source-sync-state'
+import {assertNever} from "@utils/assert-never.ts";
+import type {TaskSourceIssue} from "@backend/task-sources/base.ts";
+import type {TaskSource} from "@types";
 
 const logger = createLogger({ namespace: 'daemon-task-sync' })
 
@@ -154,7 +156,7 @@ export async function syncTaskSource(
 async function fetchIssuesFromTaskSource(taskSource: TaskSource): Promise<TaskSourceIssue[]> {
   try {
     const taskSourceInstance = createTaskSource(taskSource)
-    const issuesIterable = await taskSourceInstance.getIssues()
+    const issuesIterable = taskSourceInstance.getIssues()
 
     // Convert AsyncIterable to Array
     const issues = []
@@ -182,37 +184,40 @@ async function createTaskFromIssue(
 
   await sql.begin(async (tx) => {
     const convertToBackendIssue = () => {
-      if (issue.metadata.provider === 'gitlab') {
-        return {
-          source_gitlab_issue: {
-            id: issue.id,
-            iid: issue.iid,
-            title: issue.title,
-            updated_at: issue.updatedAt,
-            metadata: issue.metadata
+      switch (issue.metadata.provider) {
+        case "github":
+          return {
+            source_github_issue: {
+              id: issue.id,
+              iid: issue.iid,
+              title: issue.title,
+              updated_at: issue.updatedAt,
+              metadata: issue.metadata
+            }
           }
-        }
-      } else if (issue.metadata.provider === 'jira') {
-        return {
-          source_jira_issue: {
-            id: issue.id,
-            title: issue.title,
-            updated_at: issue.updatedAt,
-            metadata: issue.metadata
+        case "gitlab":
+          return {
+            source_gitlab_issue: {
+              id: issue.id,
+              iid: issue.iid,
+              title: issue.title,
+              updated_at: issue.updatedAt,
+              metadata: issue.metadata
+            }
           }
-        }
-      } else if (issue.metadata.provider === 'github') {
-        return {
-          source_github_issue: {
-            id: issue.id,
-            iid: issue.iid,
-            title: issue.title,
-            updated_at: issue.updatedAt,
-            metadata: issue.metadata
+        case "jira":
+          return {
+            source_jira_issue: {
+              id: issue.id,
+              title: issue.title,
+              updated_at: issue.updatedAt,
+              metadata: issue.metadata
+            }
           }
-        }
+        default:
+          assertNever(issue.metadata);
+          throw new Error('Issue metadata is not supported');
       }
-      return {}
     }
 
     const task = await taskQueries.createTask(tx, {
