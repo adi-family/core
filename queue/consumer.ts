@@ -4,7 +4,7 @@ import { createLogger } from '@utils/logger'
 import { TASK_SYNC_QUEUE, TASK_SYNC_CONFIG } from './queues'
 import type { TaskSyncMessage } from './types'
 import { syncTaskSource } from '../daemon-task-sync/service'
-import {channel} from "@queue/connection.ts";
+import {channel} from "./connection.ts";
 
 const logger = createLogger({ namespace: 'queue-consumer' })
 
@@ -16,7 +16,7 @@ export async function startTaskSyncConsumer(sql: Sql): Promise<void> {
 
     logger.info(`Starting consumer for queue: ${TASK_SYNC_QUEUE}`)
 
-    await ch.consume(TASK_SYNC_QUEUE, async (msg) => {
+    await ch.consume(TASK_SYNC_QUEUE, async (msg: ConsumeMessage | null) => {
       if (!msg) {
         return
       }

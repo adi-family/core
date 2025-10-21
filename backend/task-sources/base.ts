@@ -1,6 +1,8 @@
 import {assertNever} from '@utils/assert-never';
 import type {TaskSource} from "@types";
 
+export type {TaskSource};
+
 export type GitlabMetadata = {
   provider: 'gitlab';
   repo: string;

@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { Session, CreateSessionInput, Result } from '../types'
+import type { Session, CreateSessionInput, Result } from '@types'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);

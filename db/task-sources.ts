@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { TaskSource, CreateTaskSourceInput, UpdateTaskSourceInput, Result } from '../types'
+import type { TaskSource, CreateTaskSourceInput, UpdateTaskSourceInput, Result } from '@types'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);

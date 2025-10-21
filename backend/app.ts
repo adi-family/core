@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
-import { sql } from '../db/client'
+import { sql } from '@db/client'
 import { createProjectRoutes } from './handlers/projects'
 import { createTaskRoutes } from './handlers/tasks'
 import { createSessionRoutes } from './handlers/sessions'
@@ -16,16 +16,16 @@ import { createSecretRoutes } from './handlers/secrets'
 import { createUserAccessRoutes } from './handlers/user-access'
 import { authMiddleware } from './middleware/auth'
 import { clerkAuth, optionalClerkAuth } from './middleware/clerk'
-import * as sessionQueries from '../db/sessions'
-import * as messageQueries from '../db/messages'
-import * as pipelineExecutionQueries from '../db/pipeline-executions'
-import * as pipelineArtifactQueries from '../db/pipeline-artifacts'
-import * as workerRepoQueries from '../db/worker-repositories'
-import * as projectQueries from '../db/projects'
-import { initTrafficLight } from '../db/worker-cache'
-import { CIRepositoryManager } from '../worker/ci-repository-manager'
-import { createLogger } from '../utils/logger'
-import { startTaskSyncConsumer } from '../queue/consumer'
+import * as sessionQueries from '@db/sessions'
+import * as messageQueries from '@db/messages'
+import * as pipelineExecutionQueries from '@db/pipeline-executions'
+import * as pipelineArtifactQueries from '@db/pipeline-artifacts'
+import * as workerRepoQueries from '@db/worker-repositories'
+import * as projectQueries from '@db/projects'
+import { initTrafficLight } from '@db/worker-cache'
+import { CIRepositoryManager } from '@worker/ci-repository-manager'
+import { createLogger } from '@utils/logger'
+import { startTaskSyncConsumer } from '../queue/consumer.ts'
 import {
   idParamSchema,
   taskIdParamSchema,
@@ -44,7 +44,7 @@ import {
 
 // Start RabbitMQ consumer on boot
 const logger = createLogger({ namespace: 'app' })
-startTaskSyncConsumer(sql).catch((error) => {
+startTaskSyncConsumer(sql).catch((error: unknown) => {
   logger.error('Failed to start task sync consumer:', error)
   process.exit(1)
 })

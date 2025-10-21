@@ -15,6 +15,8 @@ COPY db ./db
 COPY worker ./worker
 COPY utils ./utils
 COPY shared ./shared
+COPY queue ./queue
+COPY daemon-task-sync ./daemon-task-sync
 COPY gitlab.ts issue.ts ./
 COPY tsconfig.json ./
 

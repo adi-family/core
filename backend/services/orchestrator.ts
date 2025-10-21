@@ -4,10 +4,10 @@
  */
 
 import type { Sql } from 'postgres'
-import { createLogger } from '@utils/logger.ts'
-import * as taskSourceQueries from '../../db/task-sources'
-import * as projectQueries from '../../db/projects'
-import { publishTaskSync } from '../../queue/publisher'
+import { createLogger } from '@utils/logger'
+import * as taskSourceQueries from '@db/task-sources'
+import * as projectQueries from '@db/projects'
+import { publishTaskSync } from '@queue/publisher'
 
 const logger = createLogger({ namespace: 'orchestrator' })
 
@@ -59,7 +59,9 @@ export async function syncTaskSource(
     } else if (taskSource.type === 'github_issues') {
       provider = 'github'
     } else {
-      result.errors.push(`Unsupported task source type: ${taskSource.type}`)
+      // TypeScript exhaustiveness check - this should never happen
+      const _exhaustiveCheck: never = taskSource
+      result.errors.push(`Unsupported task source type: ${(_exhaustiveCheck as { type: string }).type}`)
       return result
     }
 

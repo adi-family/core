@@ -73,7 +73,7 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const taskSource = await queries.createTaskSource(sql, body)
+      const taskSource = await queries.createTaskSource(sql, body as import('../../types').CreateTaskSourceInput)
 
       // Grant write access to creator
       if (userId) {
@@ -102,7 +102,7 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.updateTaskSource(sql, id, body)
+      const result = await queries.updateTaskSource(sql, id, body as import('../../types').UpdateTaskSourceInput)
 
       if (!result.ok) {
         return c.json({ error: result.error }, 404)

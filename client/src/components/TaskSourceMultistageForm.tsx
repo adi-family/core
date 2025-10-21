@@ -98,21 +98,31 @@ export function TaskSourceMultistageForm() {
     setLoading(true)
 
     try {
-      let config: unknown
+      let payload: CreateTaskSourceInput
       if (formData.type === "gitlab_issues") {
-        config = gitlabConfig
+        payload = {
+          project_id: formData.project_id,
+          name: formData.name,
+          type: formData.type,
+          config: gitlabConfig,
+          enabled: formData.enabled,
+        }
       } else if (formData.type === "github_issues") {
-        config = githubConfig
+        payload = {
+          project_id: formData.project_id,
+          name: formData.name,
+          type: formData.type,
+          config: githubConfig,
+          enabled: formData.enabled,
+        }
       } else {
-        config = jiraConfig
-      }
-
-      const payload: CreateTaskSourceInput = {
-        project_id: formData.project_id,
-        name: formData.name,
-        type: formData.type,
-        config,
-        enabled: formData.enabled,
+        payload = {
+          project_id: formData.project_id,
+          name: formData.name,
+          type: formData.type,
+          config: jiraConfig,
+          enabled: formData.enabled,
+        }
       }
 
       const res = await client["task-sources"].$post({
