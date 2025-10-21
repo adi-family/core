@@ -6,7 +6,6 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
 import { Label } from "@/components/ui/label"
 import { PresenterTable } from "@/components/PresenterTable"
@@ -70,18 +69,8 @@ export function TasksPage() {
     <div className="mx-auto p-6 max-w-7xl">
       <Card>
         <CardHeader>
-          <div className="flex justify-between items-start">
-            <div>
-              <CardTitle>Tasks</CardTitle>
-              <CardDescription>View all tasks in the system</CardDescription>
-            </div>
-            <Button
-              onClick={() => fetchData()}
-              disabled={loading}
-            >
-              {loading ? "Syncing..." : "Sync"}
-            </Button>
-          </div>
+          <CardTitle>Tasks</CardTitle>
+          <CardDescription>View all tasks in the system</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="mb-6">
