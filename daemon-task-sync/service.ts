@@ -12,8 +12,7 @@ import * as taskSourceQueries from '@db/task-sources'
 import * as projectQueries from '@db/projects'
 import * as syncStateQueries from '@db/task-source-sync-state'
 import {assertNever} from "@utils/assert-never.ts";
-import type {TaskSourceIssue} from "@backend/task-sources/base.ts";
-import type {TaskSource} from "@types";
+import type {TaskSource, TaskSourceIssue} from "@types";
 
 const logger = createLogger({ namespace: 'daemon-task-sync' })
 

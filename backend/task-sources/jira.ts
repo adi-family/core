@@ -1,8 +1,9 @@
-import {BaseTaskSource, type TaskSource, type TaskSourceIssue, type JiraMetadata, type TaskSourceJiraConfig} from './base';
+import {BaseTaskSource} from './base';
 import {execSync} from 'child_process';
 import {createLogger} from '@utils/logger.ts';
-import {sql} from '../../db/client';
-import {findSecretById} from '../../db/secrets';
+import {sql} from '@db/client.ts';
+import {findSecretById} from '@db/secrets.ts';
+import type {JiraMetadata, TaskSource, TaskSourceIssue, TaskSourceJiraConfig} from "@types";
 
 export class JiraTaskSource extends BaseTaskSource {
   private jiraConfig: TaskSourceJiraConfig;

@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label"
 import { ProjectSelect } from "@/components/ProjectSelect"
 import { GitlabSecretAutocomplete } from "@/components/GitlabSecretAutocomplete"
 import { GitlabRepositorySelect } from "@/components/GitlabRepositorySelect"
-import type { Secret } from "../../../types"
+import type { Secret } from "@types"
 
 export function DebugGitlabSecretPage() {
   const [projectId, setProjectId] = useState("")

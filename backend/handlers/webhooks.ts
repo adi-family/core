@@ -8,7 +8,6 @@ import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger.ts'
 import { syncTaskSource } from '../services/orchestrator'
 import * as taskSourceQueries from '../../db/task-sources'
-import type { GitlabIssuesConfig, GithubIssuesConfig, TaskSourceJiraConfig } from '../task-sources/base'
 
 const logger = createLogger({ namespace: 'webhooks' })
 
@@ -51,7 +50,7 @@ export const createWebhookRoutes = (sql: Sql) => {
           return false
         }
 
-        const config = ts.config as GitlabIssuesConfig
+        const config = ts.config
         const host = config.host || 'https://gitlab.com'
         const repo = config.repo
 
@@ -118,7 +117,7 @@ export const createWebhookRoutes = (sql: Sql) => {
           return false
         }
 
-        const config = ts.config as TaskSourceJiraConfig
+        const config = ts.config
         return config.project_key === projectKey
       })
 
@@ -182,7 +181,7 @@ export const createWebhookRoutes = (sql: Sql) => {
           return false
         }
 
-        const config = ts.config as GithubIssuesConfig
+        const config = ts.config
         const repo = config.repo
 
         return repo === repository.full_name

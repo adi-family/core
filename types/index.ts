@@ -1,4 +1,3 @@
-import type {GithubIssuesConfig, GitlabIssuesConfig, TaskSourceJiraConfig} from "@backend/task-sources/base.ts";
 
 export type GitlabMetadata = {
   provider: 'gitlab'
@@ -288,3 +287,36 @@ export type CreateUserAccessInput = {
   granted_at?: string
   expires_at?: string
 }
+
+export type IssueMetadata = GitlabMetadata | GithubMetadata | JiraMetadata;
+
+export type TaskSourceIssue = {
+  id: string;
+  iid?: number | null;
+  title: string;
+  description?: string;
+  updatedAt: string;
+  uniqueId: string;
+  metadata: IssueMetadata;
+};
+
+export type GitlabIssuesConfig = {
+  repo: string;
+  labels: string[];
+  host?: string;
+  access_token_secret_id?: string;
+};
+
+export type GithubIssuesConfig = {
+  repo: string;
+  labels?: string[];
+  host?: string;
+  access_token_secret_id?: string;
+};
+
+export type TaskSourceJiraConfig = {
+  project_key: string;
+  jql_filter?: string;
+  host: string;
+  access_token_secret_id?: string;
+};

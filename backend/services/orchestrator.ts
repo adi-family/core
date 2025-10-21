@@ -8,6 +8,7 @@ import { createLogger } from '@utils/logger'
 import * as taskSourceQueries from '@db/task-sources'
 import * as projectQueries from '@db/projects'
 import { publishTaskSync } from '@queue/publisher'
+import { assertNever } from "@utils/assert-never";
 
 const logger = createLogger({ namespace: 'orchestrator' })
 
@@ -60,8 +61,8 @@ export async function syncTaskSource(
       provider = 'github'
     } else {
       // TypeScript exhaustiveness check - this should never happen
-      const _exhaustiveCheck: never = taskSource
-      result.errors.push(`Unsupported task source type: ${(_exhaustiveCheck as { type: string }).type}`)
+      assertNever(taskSource)
+      result.errors.push(`Unsupported task source type: ${taskSource?.type}`)
       return result
     }
 

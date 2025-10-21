@@ -1,5 +1,5 @@
 import { BasePresenter } from './base'
-import type { Session } from '../../../types'
+import type { Session } from '@types'
 
 /**
  * Presenter for Session model

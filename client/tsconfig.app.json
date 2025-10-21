@@ -20,7 +20,8 @@
       "@utils/*": ["../utils/*"],
       "@db/*": ["../db/*"],
       "@backend/*": ["../backend/*"],
-      "@worker/*": ["../worker/*"]
+      "@worker/*": ["../worker/*"],
+      "@queue/*": ["../queue/*"]
     },
     "strict": true,
     "noUnusedLocals": true,

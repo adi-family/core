@@ -1,5 +1,5 @@
 import { BasePresenter } from './base'
-import type { PipelineExecution } from '../../../types'
+import type { PipelineExecution } from '@types'
 import { Badge } from '@/components/ui/badge'
 
 export class PipelineExecutionPresenter extends BasePresenter<PipelineExecution> {
