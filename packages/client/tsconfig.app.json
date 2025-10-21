@@ -17,7 +17,8 @@
     "paths": {
       "@/*": ["./src/*"],
       "@types": ["../types"],
-      "@types/*": ["../types/*"]
+      "@types/*": ["../types/*"],
+      "@backend/*": ["../backend/*"]
     },
     "strict": true,
     "noUnusedLocals": true,
