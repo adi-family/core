@@ -77,12 +77,53 @@ export const deleteTaskSource = async (sql: Sql, id: string): Promise<Result<voi
 }
 
 /**
+ * Find task sources that need syncing
+ * Returns enabled task sources that haven't been synced in the last N minutes
+ * Also includes task sources stuck in 'queued' or 'syncing' status for too long
+ */
+export const findTaskSourcesNeedingSync = async (
+  sql: Sql,
+  minutesSinceLastSync: number,
+  queuedTimeoutMinutes: number = 120
+): Promise<TaskSource[]> => {
+  return get(sql<TaskSource[]>`
+    SELECT * FROM task_sources
+    WHERE enabled = true
+      AND (
+        -- Normal case: never synced or synced long ago
+        (
+          (last_synced_at IS NULL OR last_synced_at < NOW() - INTERVAL '${minutesSinceLastSync} minutes')
+          AND sync_status NOT IN ('syncing', 'queued')
+        )
+        -- Corner case: stuck in 'queued' status for too long
+        OR (
+          sync_status = 'queued'
+          AND updated_at < NOW() - INTERVAL '${queuedTimeoutMinutes} minutes'
+        )
+        -- Corner case: stuck in 'syncing' status for too long
+        OR (
+          sync_status = 'syncing'
+          AND updated_at < NOW() - INTERVAL '${queuedTimeoutMinutes} minutes'
+        )
+      )
+    ORDER BY
+      CASE
+        WHEN sync_status IN ('queued', 'syncing') AND updated_at < NOW() - INTERVAL '${queuedTimeoutMinutes} minutes' THEN 0
+        WHEN last_synced_at IS NULL THEN 1
+        ELSE 2
+      END,
+      updated_at ASC,
+      last_synced_at ASC NULLS FIRST
+  `)
+}
+
+/**
  * Update task source sync status
  */
 export const updateTaskSourceSyncStatus = async (
   sql: Sql,
   id: string,
-  status: 'pending' | 'syncing' | 'completed' | 'failed',
+  status: 'pending' | 'queued' | 'syncing' | 'completed' | 'failed',
   lastSyncedAt?: Date
 ): Promise<Result<TaskSource>> => {
   const updates: Record<string, unknown> = { sync_status: status }

@@ -1,0 +1,14 @@
+{
+  "name": "@adi/micros-cron",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./*"
+  },
+  "scripts": {
+    "dev": "bun --env-file=../../.env --watch index.ts",
+    "start": "bun --env-file=../../.env index.ts",
+    "typecheck": "tsc --noEmit"
+  }
+}

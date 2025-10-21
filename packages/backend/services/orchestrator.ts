@@ -66,6 +66,9 @@ export async function syncTaskSource(
       return result
     }
 
+    // Mark as queued before publishing
+    await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSource.id, 'queued')
+
     // Publish task source ID and provider to queue for daemon-task-sync to process
     await publishTaskSync({
       taskSourceId: taskSource.id,

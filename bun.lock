@@ -121,6 +121,10 @@
         "typescript": "~5.9.3",
       },
     },
+    "packages/micros-cron": {
+      "name": "@adi/micros-cron",
+      "version": "0.0.0",
+    },
     "packages/queue": {
       "name": "@adi/queue",
       "version": "0.0.0",
@@ -182,6 +186,8 @@
     "@adi-simple/utils": ["@adi-simple/utils@workspace:packages/utils"],
 
     "@adi-simple/worker": ["@adi-simple/worker@workspace:packages/worker"],
+
+    "@adi/micros-cron": ["@adi/micros-cron@workspace:packages/micros-cron"],
 
     "@adi/queue": ["@adi/queue@workspace:packages/queue"],
 
