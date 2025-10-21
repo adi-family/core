@@ -12,7 +12,7 @@ ENV CLIENT_PORT=4173
 ENV BACKEND_URL=http://backend:3000
 ENV VITE_API_URL=/api
 WORKDIR /app/packages/client
-RUN vite build
+RUN bunx vite build
 
 # Production stage
 FROM oven/bun:1.2.23
