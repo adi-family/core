@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { Project, CreateProjectInput, UpdateProjectInput, Result } from '@types'
+import type { Project, CreateProjectInput, UpdateProjectInput, Result, GitlabExecutorConfig } from '@types'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -49,4 +49,65 @@ export const deleteProject = async (sql: Sql, id: string): Promise<Result<void>>
   return deleted
     ? { ok: true, data: undefined }
     : { ok: false, error: 'Project not found' }
+}
+
+/**
+ * Set job executor GitLab configuration for a project
+ */
+export const setProjectJobExecutor = async (
+  sql: Sql,
+  projectId: string,
+  config: GitlabExecutorConfig
+): Promise<Result<Project>> => {
+  const projects = await get(sql<Project[]>`
+    UPDATE projects
+    SET
+      job_executor_gitlab = ${sql.json(config)},
+      updated_at = NOW()
+    WHERE id = ${projectId}
+    RETURNING *
+  `)
+  const [project] = projects
+  return project
+    ? { ok: true, data: project }
+    : { ok: false, error: 'Project not found' }
+}
+
+/**
+ * Remove job executor GitLab configuration from a project
+ */
+export const removeProjectJobExecutor = async (
+  sql: Sql,
+  projectId: string
+): Promise<Result<Project>> => {
+  const projects = await get(sql<Project[]>`
+    UPDATE projects
+    SET
+      job_executor_gitlab = NULL,
+      updated_at = NOW()
+    WHERE id = ${projectId}
+    RETURNING *
+  `)
+  const [project] = projects
+  return project
+    ? { ok: true, data: project }
+    : { ok: false, error: 'Project not found' }
+}
+
+/**
+ * Get project's job executor configuration
+ * Returns null if not set
+ */
+export const getProjectJobExecutor = async (
+  sql: Sql,
+  projectId: string
+): Promise<Result<GitlabExecutorConfig | null>> => {
+  const projectResult = await findProjectById(sql, projectId)
+  if (!projectResult.ok) {
+    return { ok: false, error: projectResult.error }
+  }
+  return {
+    ok: true,
+    data: projectResult.data.job_executor_gitlab
+  }
 }

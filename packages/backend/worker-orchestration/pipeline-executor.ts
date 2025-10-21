@@ -3,7 +3,7 @@
  * Triggers GitLab CI pipelines for worker execution
  */
 
-import type { PipelineExecution } from '@types'
+import type { PipelineExecution, GitlabExecutorConfig } from '@types'
 import type { BackendClient } from '../api-client'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { decrypt } from '@shared/crypto-utils'
@@ -37,7 +37,7 @@ interface GitLabSource {
 interface PipelineContext {
   session: { id: string; task_id: string | null; runner: string | null }
   task: { id: string; project_id: string | null }
-  project: { id: string; name: string }
+  project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null }
   workerRepo: { id: string; current_version: string | null; source_gitlab: unknown }
   source: GitLabSource
 }
@@ -112,21 +112,39 @@ async function validateAndFetchPipelineContext(apiClient: BackendClient, session
 }
 
 /**
- * Prepare pipeline configuration (CI path, variables, decrypted token)
+ * Get executor configuration (project-level or worker repository)
  */
-function preparePipelineConfig(context: PipelineContext, executionId: string): {
-  ciConfigPath: string
-  variables: Record<string, string>
-  accessToken: string
-} {
-  const ciConfigPath = `${context.workerRepo.current_version}/.gitlab-ci-${context.session.runner}.yml`
-  logger.info(`✓ Using CI config: ${ciConfigPath}`)
+async function getExecutorConfig(
+  context: PipelineContext,
+  apiClient: BackendClient
+): Promise<{ host: string; accessToken: string; projectPath: string }> {
+  // Check if project has custom executor configured
+  if (context.project.job_executor_gitlab) {
+    const executor = context.project.job_executor_gitlab
+    logger.info(`Using project-specific GitLab executor: ${executor.host}`)
 
-  const variables = {
-    SESSION_ID: context.session.id,
-    PIPELINE_EXECUTION_ID: executionId,
-    CI_CONFIG_PATH: ciConfigPath,
+    // Fetch secret for access token
+    const secretRes = await apiClient.secrets[':id'].$get({
+      param: { id: executor.access_token_secret_id }
+    })
+
+    if (!secretRes.ok) {
+      throw new Error(
+        `Failed to fetch GitLab executor secret for project ${context.project.id}. Secret ID: ${executor.access_token_secret_id}`
+      )
+    }
+
+    const secret = await secretRes.json()
+
+    return {
+      host: executor.host,
+      accessToken: secret.value,
+      projectPath: context.source.project_path!
+    }
   }
+
+  // Fall back to worker repository executor
+  logger.info(`Using worker repository GitLab executor: ${context.source.host}`)
 
   let accessToken: string
   try {
@@ -137,7 +155,30 @@ function preparePipelineConfig(context: PipelineContext, executionId: string): {
     )
   }
 
-  return { ciConfigPath, variables, accessToken }
+  return {
+    host: context.source.host!,
+    accessToken,
+    projectPath: context.source.project_path!
+  }
+}
+
+/**
+ * Prepare pipeline configuration (CI path, variables)
+ */
+function preparePipelineConfig(context: PipelineContext, executionId: string): {
+  ciConfigPath: string
+  variables: Record<string, string>
+} {
+  const ciConfigPath = `${context.workerRepo.current_version}/.gitlab-ci-${context.session.runner}.yml`
+  logger.info(`✓ Using CI config: ${ciConfigPath}`)
+
+  const variables = {
+    SESSION_ID: context.session.id,
+    PIPELINE_EXECUTION_ID: executionId,
+    CI_CONFIG_PATH: ciConfigPath,
+  }
+
+  return { ciConfigPath, variables }
 }
 
 /**
@@ -146,10 +187,11 @@ function preparePipelineConfig(context: PipelineContext, executionId: string): {
 async function executePipelineTrigger(
   context: PipelineContext,
   executionId: string,
-  config: { accessToken: string; variables: Record<string, string> },
+  config: { variables: Record<string, string> },
+  executorConfig: { host: string; accessToken: string; projectPath: string },
   apiClient: BackendClient
 ): Promise<{ execution: PipelineExecution; pipelineUrl: string }> {
-  const gitlabClient = new GitLabApiClient(context.source.host!, config.accessToken)
+  const gitlabClient = new GitLabApiClient(executorConfig.host, executorConfig.accessToken)
 
   // Trigger pipeline with retry
   const pipeline = await retry(
@@ -191,7 +233,7 @@ async function executePipelineTrigger(
   }
 
   const execution = await updateRes.json() as unknown as PipelineExecution
-  const pipelineUrl = `${context.source.host}/${context.source.project_path}/-/pipelines/${pipeline.id}`
+  const pipelineUrl = `${executorConfig.host}/${executorConfig.projectPath}/-/pipelines/${pipeline.id}`
 
   return {
     execution,
@@ -232,8 +274,11 @@ export async function triggerPipeline(
     const config = preparePipelineConfig(context, execution.id)
     logger.info(`✓ Pipeline variables prepared`)
 
+    // Get executor configuration (project-level or worker repository)
+    const executorConfig = await getExecutorConfig(context, input.apiClient)
+
     // Trigger pipeline and update execution
-    const result = await executePipelineTrigger(context, execution.id, config, input.apiClient)
+    const result = await executePipelineTrigger(context, execution.id, config, executorConfig, input.apiClient)
 
     logger.info(`✅ Pipeline triggered successfully: ${result.pipelineUrl}`)
 

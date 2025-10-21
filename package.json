@@ -42,6 +42,7 @@
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.1.12",
+    "@anthropic-ai/sdk": "^0.67.0",
     "@clerk/clerk-react": "^5.53.2",
     "@gitbeaker/rest": "^43.5.0",
     "@google/gemini-cli": "^0.8.2",

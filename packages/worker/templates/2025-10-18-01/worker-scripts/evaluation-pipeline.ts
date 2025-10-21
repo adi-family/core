@@ -73,6 +73,10 @@ Respond in JSON format:
   })
 
   const content = message.content[0]
+  if (!content) {
+    throw new Error('No content in response from Claude')
+  }
+
   if (content.type !== 'text') {
     throw new Error('Unexpected response format from Claude')
   }
@@ -143,6 +147,10 @@ Note: You don't have direct access to read files in this analysis, so provide ed
   })
 
   const content = message.content[0]
+  if (!content) {
+    throw new Error('No content in response from Claude')
+  }
+
   if (content.type !== 'text') {
     throw new Error('Unexpected response format from Claude')
   }

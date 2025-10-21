@@ -61,6 +61,11 @@ export const createProjectSchema = z.object({
 
 export const updateProjectSchema = createProjectSchema.partial()
 
+export const setJobExecutorSchema = z.object({
+  host: z.string().url(),
+  access_token: z.string().min(1)
+})
+
 // Task schemas
 export const taskSchema = z.object({
   id: z.string(),

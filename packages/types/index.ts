@@ -42,10 +42,18 @@ export type JiraIssue = {
   metadata: JiraMetadata
 }
 
+export type GitlabExecutorConfig = {
+  host: string
+  access_token_secret_id: string
+  verified_at?: string
+  user?: string
+}
+
 export type Project = {
   id: string
   name: string
   enabled: boolean
+  job_executor_gitlab: GitlabExecutorConfig | null
   created_at: string
   updated_at: string
 }
