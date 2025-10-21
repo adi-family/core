@@ -35,14 +35,15 @@ export class GitlabIssuesTaskSource extends BaseTaskSource {
       const metadata: GitlabMetadata = {
         provider: 'gitlab',
         repo: this.gitlabConfig.repo,
-        host: this.gitlabConfig.host
+        host: this.gitlabConfig.host,
+        iid: issue.iid()
       };
 
       yield {
         id: issue.id(),
-        iid: null,
+        iid: issue.iid(),
         title: issue.title(),
-        description: undefined,
+        description: issue.description() || undefined,
         updatedAt: issue.updatedAt(),
         uniqueId: issue.uniqueId(),
         metadata

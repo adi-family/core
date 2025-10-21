@@ -12,7 +12,7 @@ import * as taskSourceQueries from '@db/task-sources'
 import * as projectQueries from '@db/projects'
 import * as syncStateQueries from '@db/task-source-sync-state'
 import {assertNever} from "@utils/assert-never.ts";
-import type {TaskSource, TaskSourceIssue} from "@types";
+import type {TaskSource, TaskSourceIssue, CreateTaskInput} from "@types";
 
 const logger = createLogger({ namespace: 'daemon-task-sync' })
 
@@ -171,6 +171,26 @@ async function fetchIssuesFromTaskSource(taskSource: TaskSource): Promise<TaskSo
 }
 
 /**
+ * Helper to remove undefined values from an object (recursively)
+ * Postgres doesn't accept undefined values - they must be null or omitted
+ */
+function removeUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> {
+  const result: Partial<T> = {}
+  for (const key in obj) {
+    const value = obj[key]
+    if (value !== undefined) {
+      // Recursively clean nested objects
+      if (value !== null && typeof value === 'object' && !Array.isArray(value)) {
+        result[key] = removeUndefined(value as Record<string, unknown>) as T[Extract<keyof T, string>]
+      } else {
+        result[key] = value
+      }
+    }
+  }
+  return result
+}
+
+/**
  * Create a task from an issue
  */
 async function createTaskFromIssue(
@@ -219,14 +239,19 @@ async function createTaskFromIssue(
       }
     }
 
-    const task = await taskQueries.createTask(tx, {
+    const taskInput = {
       title: issue.title,
-      description: issue.description || undefined,
+      description: issue.description,
       status: 'pending',
       project_id: projectId,
       task_source_id: taskSourceId,
       ...convertToBackendIssue()
-    })
+    }
+
+    // Remove all undefined values from the entire object (including nested objects)
+    const cleanedInput = removeUndefined(taskInput) as CreateTaskInput
+
+    const task = await taskQueries.createTask(tx, cleanedInput)
 
     logger.info(`Created task ${task.id} for issue ${issue.id}`)
   })

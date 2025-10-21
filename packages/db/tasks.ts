@@ -19,8 +19,11 @@ export const findTaskById = async (sql: Sql, id: string): Promise<Result<Task>> 
 
 const createTaskCols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
 export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
+  // Only include columns that actually exist in the input to avoid undefined values
+  const presentCols = createTaskCols.filter(col => col in input)
+
   const [task] = await get(sql<Task[]>`
-    INSERT INTO tasks ${sql(input, createTaskCols)}
+    INSERT INTO tasks ${sql(input, presentCols)}
     RETURNING *
   `)
   if (!task) {
@@ -31,9 +34,12 @@ export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task
 
 const updateTaskCols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
 export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): Promise<Result<Task>> => {
+  // Only include columns that actually exist in the input to avoid undefined values
+  const presentCols = updateTaskCols.filter(col => col in input)
+
   const tasks = await get(sql<Task[]>`
     UPDATE tasks
-    SET ${sql(input, updateTaskCols)}, updated_at = NOW()
+    SET ${sql(input, presentCols)}, updated_at = NOW()
     WHERE id = ${id}
     RETURNING *
   `)

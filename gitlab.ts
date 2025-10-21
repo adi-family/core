@@ -33,6 +33,14 @@ export class GitlabIssueMinimalList extends Issue {
   public updatedAt(): string {
     return this.issue.updated_at;
   }
+
+  public iid(): number {
+    return this.issue.iid;
+  }
+
+  public description(): string {
+    return this.issue.description;
+  }
 }
 
 export async function getGitlabIssueList(
