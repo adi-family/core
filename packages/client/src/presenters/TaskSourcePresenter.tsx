@@ -1,7 +1,7 @@
 import { BasePresenter } from './base'
 import type { TaskSource } from '@types'
 import { Badge } from '@/components/ui/badge'
-import { GitBranch, CheckCircle2, XCircle } from 'lucide-react'
+import { GitBranch, CheckCircle2, XCircle, Clock, Loader2, CheckCheck, AlertCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { GithubIcon } from '@/components/icons/GithubIcon'
 
@@ -52,6 +52,29 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
           >
             {taskSource.enabled ? 'Enabled' : 'Disabled'}
           </Badge>
+        ),
+        sortable: true,
+      },
+      {
+        key: 'sync_status',
+        label: 'Sync Status',
+        render: (taskSource: TaskSource) => (
+          <Badge
+            variant={this.getSyncStatusVariant(taskSource.sync_status)}
+            icon={this.getSyncStatusIcon(taskSource.sync_status)}
+          >
+            {this.formatSyncStatus(taskSource.sync_status)}
+          </Badge>
+        ),
+        sortable: true,
+      },
+      {
+        key: 'last_synced_at',
+        label: 'Last Synced',
+        render: (taskSource: TaskSource) => (
+          <span className="text-muted-foreground text-sm">
+            {taskSource.last_synced_at ? this.formatDate(taskSource.last_synced_at) : 'Never'}
+          </span>
         ),
         sortable: true,
       },
@@ -170,5 +193,50 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
       default:
         return GitBranch
     }
+  }
+
+  /**
+   * Get sync status badge variant
+   */
+  getSyncStatusVariant(status: string): 'success' | 'warning' | 'blue' | 'gray' | 'destructive' {
+    switch (status) {
+      case 'completed':
+        return 'success'
+      case 'syncing':
+        return 'blue'
+      case 'queued':
+        return 'warning'
+      case 'failed':
+        return 'destructive'
+      case 'pending':
+      default:
+        return 'gray'
+    }
+  }
+
+  /**
+   * Get sync status icon
+   */
+  getSyncStatusIcon(status: string): LucideIcon {
+    switch (status) {
+      case 'completed':
+        return CheckCheck
+      case 'syncing':
+        return Loader2
+      case 'queued':
+        return Clock
+      case 'failed':
+        return AlertCircle
+      case 'pending':
+      default:
+        return Clock
+    }
+  }
+
+  /**
+   * Format sync status for display
+   */
+  formatSyncStatus(status: string): string {
+    return status.charAt(0).toUpperCase() + status.slice(1)
   }
 }

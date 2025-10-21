@@ -61,6 +61,8 @@ export type Task = {
   source_gitlab_issue: GitlabIssue | null
   source_github_issue: GithubIssue | null
   source_jira_issue: JiraIssue | null
+  ai_evaluation_status: 'pending' | 'queued' | 'evaluating' | 'completed' | 'failed'
+  ai_evaluation_session_id: string | null
   created_at: string
   updated_at: string
 }
@@ -203,7 +205,7 @@ export type UpdatePipelineExecutionInput = {
 export type PipelineArtifact = {
   id: string
   pipeline_execution_id: string
-  artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text'
+  artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text' | 'task_evaluation'
   reference_url: string
   metadata: unknown | null
   created_at: string
@@ -211,7 +213,7 @@ export type PipelineArtifact = {
 
 export type CreatePipelineArtifactInput = {
   pipeline_execution_id: string
-  artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text'
+  artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text' | 'task_evaluation'
   reference_url: string
   metadata?: unknown
 }

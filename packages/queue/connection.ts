@@ -1,6 +1,13 @@
 import amqp from 'amqplib'
 import { createLogger } from '@utils/logger'
-import { TASK_SYNC_CONFIG, TASK_SYNC_DLQ_CONFIG, TASK_SYNC_DLX } from './queues'
+import {
+  TASK_SYNC_CONFIG,
+  TASK_SYNC_DLQ_CONFIG,
+  TASK_SYNC_DLX,
+  TASK_EVAL_CONFIG,
+  TASK_EVAL_DLQ_CONFIG,
+  TASK_EVAL_DLX
+} from './queues'
 import {singleton} from "@utils/singleton.ts";
 
 const logger = createLogger({ namespace: 'rabbitmq' });
@@ -49,6 +56,7 @@ export const channel = singleton<amqp.Channel>(async (channelCtx) => {
 });
 
 async function setupQueues(ch: amqp.Channel): Promise<void> {
+  // Task Sync Queues
   // Create dead letter exchange
   await ch.assertExchange(TASK_SYNC_DLX, 'direct', { durable: true })
 
@@ -66,6 +74,27 @@ async function setupQueues(ch: amqp.Channel): Promise<void> {
     deadLetterExchange: TASK_SYNC_CONFIG.deadLetterExchange,
     arguments: {
       'x-message-ttl': TASK_SYNC_CONFIG.messageTtl
+    }
+  })
+
+  // Task Evaluation Queues
+  // Create dead letter exchange
+  await ch.assertExchange(TASK_EVAL_DLX, 'direct', { durable: true })
+
+  // Create dead letter queue
+  await ch.assertQueue(TASK_EVAL_DLQ_CONFIG.name, {
+    durable: TASK_EVAL_DLQ_CONFIG.durable
+  })
+
+  // Bind DLQ to DLX
+  await ch.bindQueue(TASK_EVAL_DLQ_CONFIG.name, TASK_EVAL_DLX, TASK_EVAL_CONFIG.name)
+
+  // Create main queue with DLX
+  await ch.assertQueue(TASK_EVAL_CONFIG.name, {
+    durable: TASK_EVAL_CONFIG.durable,
+    deadLetterExchange: TASK_EVAL_CONFIG.deadLetterExchange,
+    arguments: {
+      'x-message-ttl': TASK_EVAL_CONFIG.messageTtl
     }
   })
 

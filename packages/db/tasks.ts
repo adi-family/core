@@ -120,3 +120,38 @@ export const upsertTaskFromJira = async (sql: Sql, input: CreateTaskInput): Prom
   }
   return task
 }
+
+/**
+ * Update task evaluation status
+ */
+export const updateTaskEvaluationStatus = async (
+  sql: Sql,
+  taskId: string,
+  status: 'pending' | 'queued' | 'evaluating' | 'completed' | 'failed',
+  sessionId?: string
+): Promise<Result<Task>> => {
+  const tasks = await get(sql<Task[]>`
+    UPDATE tasks
+    SET
+      ai_evaluation_status = ${status},
+      ai_evaluation_session_id = ${sessionId || null},
+      updated_at = NOW()
+    WHERE id = ${taskId}
+    RETURNING *
+  `)
+  const [task] = tasks
+  return task
+    ? { ok: true, data: task }
+    : { ok: false, error: 'Task not found' }
+}
+
+/**
+ * Find tasks needing evaluation
+ */
+export const findTasksNeedingEvaluation = async (sql: Sql): Promise<Task[]> => {
+  return get(sql<Task[]>`
+    SELECT * FROM tasks
+    WHERE ai_evaluation_status = 'pending'
+    ORDER BY created_at DESC
+  `)
+}

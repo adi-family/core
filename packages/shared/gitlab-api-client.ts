@@ -48,6 +48,51 @@ export interface GitLabPipeline {
   updated_at: string
 }
 
+export interface GitLabFileContent {
+  file_name: string
+  file_path: string
+  size: number
+  encoding: string
+  content: string
+  content_sha256: string
+  ref: string
+  blob_id: string
+  commit_id: string
+  last_commit_id: string
+}
+
+export interface GitLabCommit {
+  id: string
+  short_id: string
+  title: string
+  author_name: string
+  author_email: string
+  authored_date: string
+  committer_name: string
+  committer_email: string
+  committed_date: string
+  message: string
+}
+
+export interface GitLabTreeEntry {
+  id: string
+  name: string
+  type: 'tree' | 'blob'
+  path: string
+  mode: string
+}
+
+export interface GitLabSearchResult {
+  basename: string
+  data: string
+  path: string
+  filename: string
+  id: number | null
+  ref: string
+  startline: number
+  project_id: number
+}
+
 export class GitLabApiClient {
   private client: InstanceType<typeof Gitlab>
 
@@ -179,5 +224,92 @@ export class GitLabApiClient {
     // @ts-expect-error - current() exists but is not properly typed in @gitbeaker/rest
     const user = await this.client.Users.current() as unknown as { namespace_id: number }
     return user.namespace_id
+  }
+
+  /**
+   * Read file content from repository at specific ref (commit/branch/tag)
+   */
+  async getFile(
+    projectId: string,
+    filePath: string,
+    ref: string = 'main'
+  ): Promise<GitLabFileContent> {
+    const file = await this.client.RepositoryFiles.show(
+      projectId,
+      filePath,
+      ref
+    ) as unknown as GitLabFileContent
+
+    // Decode content if base64 encoded
+    if (file.encoding === 'base64') {
+      file.content = Buffer.from(file.content, 'base64').toString('utf-8')
+    }
+
+    return file
+  }
+
+  /**
+   * Get current commit SHA for a branch
+   */
+  async getCommitSha(
+    projectId: string,
+    branch: string = 'main'
+  ): Promise<string> {
+    const commits = await this.client.Commits.all(projectId, {
+      refName: branch,
+      perPage: 1
+    }) as unknown as GitLabCommit[]
+
+    if (commits.length === 0) {
+      throw new Error(`No commits found for branch: ${branch}`)
+    }
+
+    return commits[0].id
+  }
+
+  /**
+   * Search code in repository
+   */
+  async searchCode(
+    projectId: string,
+    query: string,
+    ref?: string
+  ): Promise<GitLabSearchResult[]> {
+    const results = await this.client.Search.all('blobs', {
+      search: query,
+      projectId: projectId,
+      ref: ref
+    }) as unknown as GitLabSearchResult[]
+
+    return results
+  }
+
+  /**
+   * List directory contents (tree)
+   */
+  async getTree(
+    projectId: string,
+    path: string = '',
+    ref: string = 'main'
+  ): Promise<GitLabTreeEntry[]> {
+    const tree = await this.client.Repositories.tree(projectId, {
+      path,
+      ref,
+      recursive: false
+    }) as unknown as GitLabTreeEntry[]
+
+    return tree
+  }
+
+  /**
+   * Get file raw content (convenience method)
+   */
+  async getFileContent(
+    projectId: string,
+    filePath: string,
+    ref: string = 'main'
+  ): Promise<string> {
+    const file = await this.getFile(projectId, filePath, ref)
+    return file.content
   }
 }

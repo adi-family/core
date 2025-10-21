@@ -4,6 +4,11 @@ export interface TaskSyncMessage {
   attempt?: number
 }
 
+export interface TaskEvalMessage {
+  taskId: string
+  attempt?: number
+}
+
 export interface QueueConfig {
   name: string
   durable: boolean

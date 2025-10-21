@@ -17,3 +17,21 @@ export const TASK_SYNC_DLQ_CONFIG: QueueConfig = {
   name: TASK_SYNC_DLQ,
   durable: true
 }
+
+export const TASK_EVAL_QUEUE = 'task-eval'
+export const TASK_EVAL_DLQ = 'task-eval.dlq'
+export const TASK_EVAL_DLX = 'task-eval.dlx'
+
+export const TASK_EVAL_CONFIG: QueueConfig = {
+  name: TASK_EVAL_QUEUE,
+  durable: true,
+  deadLetterExchange: TASK_EVAL_DLX,
+  deadLetterQueue: TASK_EVAL_DLQ,
+  messageTtl: 3600000, // 1 hour
+  maxRetries: 3
+}
+
+export const TASK_EVAL_DLQ_CONFIG: QueueConfig = {
+  name: TASK_EVAL_DLQ,
+  durable: true
+}

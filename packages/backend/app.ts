@@ -25,7 +25,7 @@ import * as projectQueries from '@db/projects'
 import { initTrafficLight } from '@db/worker-cache'
 import { CIRepositoryManager } from '@worker/ci-repository-manager'
 import { createLogger } from '@utils/logger'
-import { startTaskSyncConsumer } from '@queue/consumer'
+import { startTaskSyncConsumer, startTaskEvalConsumer } from '@queue/consumer'
 import {
   idParamSchema,
   taskIdParamSchema,
@@ -42,10 +42,14 @@ import {
   updatePipelineExecutionSchema
 } from './schemas'
 
-// Start RabbitMQ consumer on boot
+// Start RabbitMQ consumers on boot
 const logger = createLogger({ namespace: 'app' })
 startTaskSyncConsumer(sql).catch((error: unknown) => {
   logger.error('Failed to start task sync consumer:', error)
+  process.exit(1)
+})
+startTaskEvalConsumer(sql).catch((error: unknown) => {
+  logger.error('Failed to start task eval consumer:', error)
   process.exit(1)
 })
 

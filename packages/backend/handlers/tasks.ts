@@ -7,6 +7,7 @@ import { authMiddleware } from '../middleware/auth'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { getClerkUserId } from '../middleware/clerk'
 import * as userAccessQueries from '../../db/user-access'
+import { publishTaskEval } from '@queue/publisher'
 
 export const createTaskRoutes = (sql: Sql) => {
   const acl = createFluentACL(sql)
@@ -92,5 +93,32 @@ export const createTaskRoutes = (sql: Sql) => {
       }
 
       return c.json({ success: true })
+    })
+    .post('/:id/evaluate', zValidator('param', idParamSchema), authMiddleware, async (c) => {
+      const { id } = c.req.valid('param')
+
+      try {
+        // Require read access to trigger evaluation
+        await acl.task(id).read.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
+      // Verify task exists
+      const taskResult = await queries.findTaskById(sql, id)
+      if (!taskResult.ok) {
+        return c.json({ error: 'Task not found' }, 404)
+      }
+
+      // Publish evaluation message to queue
+      await publishTaskEval({ taskId: id })
+
+      return c.json({
+        message: 'Task evaluation queued',
+        taskId: id
+      })
     })
 }

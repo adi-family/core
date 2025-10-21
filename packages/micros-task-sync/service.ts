@@ -13,6 +13,7 @@ import * as projectQueries from '@db/projects'
 import * as syncStateQueries from '@db/task-source-sync-state'
 import {assertNever} from "@utils/assert-never.ts";
 import type {TaskSource, TaskSourceIssue, CreateTaskInput, Task} from "@types";
+import { publishTaskEval } from '@queue/publisher'
 
 const logger = createLogger({ namespace: 'daemon-task-sync' })
 
@@ -102,7 +103,7 @@ export async function syncTaskSource(
         const isUpdated = existingState && existingState.issue_updated_at !== issue.updatedAt
 
         if (isNew || isUpdated) {
-          await createTaskFromIssue(sql, {
+          const task = await createTaskFromIssue(sql, {
             taskSourceId: taskSource.id,
             projectId: project.id,
             issue
@@ -111,6 +112,16 @@ export async function syncTaskSource(
           if (isNew) {
             result.tasksCreated++
             logger.debug(`Created new task for issue ${issue.id}`)
+
+            // Queue evaluation for newly created tasks
+            if (task.ai_evaluation_status === 'pending') {
+              try {
+                await publishTaskEval({ taskId: task.id })
+                logger.debug(`Queued evaluation for new task ${task.id}`)
+              } catch (evalError) {
+                logger.error(`Failed to queue evaluation for task ${task.id}:`, evalError)
+              }
+            }
           } else {
             result.tasksUpdated++
             logger.debug(`Updated task for issue ${issue.id}`)
@@ -196,12 +207,12 @@ function removeUndefined<T extends Record<string, unknown>>(obj: T): Partial<T> 
 async function createTaskFromIssue(
   sql: Sql,
   input: { taskSourceId: string; projectId: string; issue: TaskSourceIssue }
-): Promise<void> {
+): Promise<Task> {
   const { taskSourceId, projectId, issue } = input
 
   logger.debug(`Creating task for issue ${issue.id} from task source ${taskSourceId}`)
 
-  await sql.begin(async (tx) => {
+  return await sql.begin(async (tx) => {
     const convertToBackendIssue = () => {
       switch (issue.metadata.provider) {
         case "github":
@@ -268,5 +279,6 @@ async function createTaskFromIssue(
     }
 
     logger.info(`Upserted task ${task.id} for issue ${issue.id}`)
+    return task
   })
 }

@@ -1,6 +1,6 @@
 import { createLogger } from '@utils/logger'
-import { TASK_SYNC_QUEUE } from './queues'
-import type { TaskSyncMessage } from './types'
+import { TASK_SYNC_QUEUE, TASK_EVAL_QUEUE } from './queues'
+import type { TaskSyncMessage, TaskEvalMessage } from './types'
 import {channel} from "@queue/connection.ts";
 
 const logger = createLogger({ namespace: 'queue-publisher' })
@@ -23,6 +23,28 @@ export async function publishTaskSync(message: TaskSyncMessage): Promise<void> {
     logger.debug(`Published task sync message for task source ${message.taskSourceId}`)
   } catch (error) {
     logger.error('Failed to publish task sync message:', error)
+    throw error
+  }
+}
+
+export async function publishTaskEval(message: TaskEvalMessage): Promise<void> {
+  try {
+    const ch = await channel.value;
+
+    const buffer = Buffer.from(JSON.stringify(message))
+
+    const sent = ch.sendToQueue(TASK_EVAL_QUEUE, buffer, {
+      persistent: true,
+      contentType: 'application/json'
+    })
+
+    if (!sent) {
+      logger.warn(`Queue ${TASK_EVAL_QUEUE} is full, message may be buffered`)
+    }
+
+    logger.debug(`Published task evaluation message for task ${message.taskId}`)
+  } catch (error) {
+    logger.error('Failed to publish task evaluation message:', error)
     throw error
   }
 }
