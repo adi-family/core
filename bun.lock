@@ -119,12 +119,20 @@
         "typescript": "~5.9.3",
       },
     },
+    "packages/queue": {
+      "name": "@adi/queue",
+      "version": "0.0.0",
+    },
     "packages/shared": {
       "name": "@adi-simple/shared",
       "version": "0.0.1",
       "devDependencies": {
         "typescript": "~5.9.3",
       },
+    },
+    "packages/task-sync-service": {
+      "name": "@adi/task-sync-service",
+      "version": "0.0.0",
     },
     "packages/types": {
       "name": "@adi-simple/types",
@@ -172,6 +180,10 @@
     "@adi-simple/utils": ["@adi-simple/utils@workspace:packages/utils"],
 
     "@adi-simple/worker": ["@adi-simple/worker@workspace:packages/worker"],
+
+    "@adi/queue": ["@adi/queue@workspace:packages/queue"],
+
+    "@adi/task-sync-service": ["@adi/task-sync-service@workspace:packages/task-sync-service"],
 
     "@alcalzone/ansi-tokenize": ["@alcalzone/ansi-tokenize@0.2.0", "", { "dependencies": { "ansi-styles": "^6.2.1", "is-fullwidth-code-point": "^5.0.0" } }, "sha512-qI/5TaaaCZE4yeSZ83lu0+xi1r88JSxUjnH4OP/iZF7+KKZ75u3ee5isd0LxX+6N8U0npL61YrpbthILHB6BnA=="],
 
