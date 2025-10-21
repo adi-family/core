@@ -17,12 +17,7 @@
     "paths": {
       "@/*": ["./src/*"],
       "@types": ["../types"],
-      "@types/*": ["../types/*"],
-      "@utils/*": ["../utils/*"],
-      "@db/*": ["../db/*"],
-      "@backend/*": ["../backend/*"],
-      "@worker/*": ["../worker/*"],
-      "@queue/*": ["../../queue/*"]
+      "@types/*": ["../types/*"]
     },
     "strict": true,
     "noUnusedLocals": true,
