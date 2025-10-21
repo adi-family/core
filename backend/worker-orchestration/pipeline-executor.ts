@@ -3,12 +3,12 @@
  * Triggers GitLab CI pipelines for worker execution
  */
 
-import type { PipelineExecution } from '../../types'
+import type { PipelineExecution } from '@types'
 import type { BackendClient } from '../api-client'
-import { GitLabApiClient } from '../../shared/gitlab-api-client'
-import { decrypt } from '../../shared/crypto-utils'
-import { retry, isRetryableError } from '../../utils/retry'
-import { createLogger } from '../../utils/logger'
+import { GitLabApiClient } from '@shared/gitlab-api-client'
+import { decrypt } from '@shared/crypto-utils'
+import { retry, isRetryableError } from '@utils/retry'
+import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'pipeline-executor' })
 
