@@ -27,12 +27,12 @@
       "@utils/*": ["packages/utils/*"],
       "@db/*": ["packages/db/*"],
       "@backend/*": ["packages/backend/*"],
-      "@queue/*": ["queue/*"],
+      "@queue/*": ["packages/queue/*"],
       "@worker/*": ["packages/worker/*"],
       "@shared/*": ["packages/shared/*"],
-      "@daemon-task-sync/*": ["daemon-task-sync/*"]
+      "@task-sync-service/*": ["packages/task-sync-service/*"]
     }
   },
-  "include": ["packages/backend/**/*.ts", "packages/worker/**/*.ts", "packages/db/**/*.ts", "packages/utils/**/*.ts", "queue/**/*.ts"],
+  "include": ["packages/backend/**/*.ts", "packages/worker/**/*.ts", "packages/db/**/*.ts", "packages/utils/**/*.ts", "packages/queue/**/*.ts", "packages/task-sync-service/**/*.ts"],
   "exclude": ["node_modules", "packages/client"]
 }
