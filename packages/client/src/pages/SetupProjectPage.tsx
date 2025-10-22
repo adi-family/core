@@ -25,6 +25,11 @@ export function SetupProjectPage() {
     enabled: true,
   })
 
+  // Optional GitLab executor configuration
+  const [configureExecutor, setConfigureExecutor] = useState(false)
+  const [executorHost, setExecutorHost] = useState("https://gitlab.the-ihor.com")
+  const [executorToken, setExecutorToken] = useState("")
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -40,6 +45,29 @@ export function SetupProjectPage() {
         setError(`Failed to create project: ${errorText}`)
         setLoading(false)
         return
+      }
+
+      const project = await res.json()
+
+      // If executor configuration is requested, configure it
+      if (configureExecutor && executorHost && executorToken) {
+        try {
+          const executorRes = await client.projects[":id"]["job-executor-gitlab"].$post({
+            param: { id: project.id },
+            json: { host: executorHost, access_token: executorToken },
+          })
+
+          if (!executorRes.ok) {
+            const errorData = await executorRes.json()
+            setError(`Project created but executor configuration failed: ${(errorData as { error?: string }).error || "Unknown error"}`)
+            setLoading(false)
+            return
+          }
+        } catch (execError) {
+          setError(`Project created but executor configuration failed: ${execError instanceof Error ? execError.message : "Unknown error"}`)
+          setLoading(false)
+          return
+        }
       }
 
       setSuccess(true)
@@ -126,6 +154,67 @@ export function SetupProjectPage() {
               <label htmlFor="enabled" className="text-sm font-medium">
                 Enabled
               </label>
+            </div>
+
+            {/* Optional GitLab Executor Configuration */}
+            <div className="border-t pt-4 mt-4">
+              <div className="flex items-center space-x-2 mb-4">
+                <input
+                  id="configureExecutor"
+                  type="checkbox"
+                  checked={configureExecutor}
+                  onChange={(e) => setConfigureExecutor(e.target.checked)}
+                  className="w-4 h-4 rounded border-gray-300"
+                />
+                <label htmlFor="configureExecutor" className="text-sm font-medium">
+                  Configure Custom GitLab Pipeline Executor (Optional)
+                </label>
+              </div>
+
+              {configureExecutor && (
+                <div className="space-y-4 p-4 bg-gray-50 rounded border">
+                  <p className="text-xs text-muted-foreground">
+                    Configure a custom GitLab instance for pipeline execution. If not set, the project will use the default worker repository executor.
+                  </p>
+                  <div>
+                    <label
+                      htmlFor="executorHost"
+                      className="block text-sm font-medium mb-2"
+                    >
+                      GitLab Host
+                    </label>
+                    <input
+                      id="executorHost"
+                      type="text"
+                      value={executorHost}
+                      onChange={(e) => setExecutorHost(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md"
+                      placeholder="https://gitlab.the-ihor.com"
+                      required={configureExecutor}
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="executorToken"
+                      className="block text-sm font-medium mb-2"
+                    >
+                      Access Token
+                    </label>
+                    <input
+                      id="executorToken"
+                      type="password"
+                      value={executorToken}
+                      onChange={(e) => setExecutorToken(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md"
+                      placeholder="GitLab access token"
+                      required={configureExecutor}
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Required scopes: <code className="bg-gray-200 px-1 rounded">api</code>
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 pt-4">

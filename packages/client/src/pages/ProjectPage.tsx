@@ -11,6 +11,7 @@ import {
 import { createAuthenticatedClient } from "@/lib/client"
 import type { Project } from "../../../types"
 import { GitlabConfiguration } from "@/components/GitlabConfiguration"
+import { GitlabExecutorConfig } from "@/components/GitlabExecutorConfig"
 
 type TabType = "overview" | "task-sources" | "configuration"
 
@@ -272,7 +273,12 @@ export function ProjectPage() {
           )}
 
           {activeTab === "configuration" && (
-            <GitlabConfiguration projectId={project.id} />
+            <div className="space-y-8">
+              <GitlabExecutorConfig projectId={project.id} />
+              <div className="border-t border-gray-200/60 pt-8">
+                <GitlabConfiguration projectId={project.id} />
+              </div>
+            </div>
           )}
         </CardContent>
       </Card>
