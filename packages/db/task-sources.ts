@@ -1,5 +1,6 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
 import type { TaskSource, CreateTaskSourceInput, UpdateTaskSourceInput, Result } from '@types'
+import { filterPresentColumns } from './utils'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -56,9 +57,11 @@ export const createTaskSource = async (sql: Sql, input: CreateTaskSourceInput): 
 
 const updateTaskSourceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
 export const updateTaskSource = async (sql: Sql, id: string, input: UpdateTaskSourceInput): Promise<Result<TaskSource>> => {
+  const presentCols = filterPresentColumns(input, updateTaskSourceCols)
+
   const taskSources = await get(sql<TaskSource[]>`
     UPDATE task_sources
-    SET ${sql(input, updateTaskSourceCols)}, updated_at = NOW()
+    SET ${sql(input, presentCols)}, updated_at = NOW()
     WHERE id = ${id}
     RETURNING *
   `)

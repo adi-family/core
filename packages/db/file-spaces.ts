@@ -1,5 +1,6 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
 import type { FileSpace, CreateFileSpaceInput, UpdateFileSpaceInput, Result } from '@types'
+import { filterPresentColumns } from './utils'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -56,9 +57,11 @@ export const createFileSpace = async (sql: Sql, input: CreateFileSpaceInput): Pr
 
 const updateFileSpaceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
 export const updateFileSpace = async (sql: Sql, id: string, input: UpdateFileSpaceInput): Promise<Result<FileSpace>> => {
+  const presentCols = filterPresentColumns(input, updateFileSpaceCols)
+
   const fileSpaces = await get(sql<FileSpace[]>`
     UPDATE file_spaces
-    SET ${sql(input, updateFileSpaceCols)}, updated_at = NOW()
+    SET ${sql(input, presentCols)}, updated_at = NOW()
     WHERE id = ${id}
     RETURNING *
   `)

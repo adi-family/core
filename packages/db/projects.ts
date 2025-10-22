@@ -1,5 +1,6 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
 import type { Project, CreateProjectInput, UpdateProjectInput, Result, GitlabExecutorConfig } from '@types'
+import { filterPresentColumns } from './utils'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -31,9 +32,11 @@ export const createProject = async (sql: Sql, input: CreateProjectInput): Promis
 
 const updateProjectCols = ['name', 'enabled'] as const
 export const updateProject = async (sql: Sql, id: string, input: UpdateProjectInput): Promise<Result<Project>> => {
+  const presentCols = filterPresentColumns(input, updateProjectCols)
+
   const projects = await get(sql<Project[]>`
     UPDATE projects
-    SET ${sql(input, updateProjectCols)}, updated_at = NOW()
+    SET ${sql(input, presentCols)}, updated_at = NOW()
     WHERE id = ${id}
     RETURNING *
   `)

@@ -1,5 +1,6 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
 import type { WorkerRepository, CreateWorkerRepositoryInput, UpdateWorkerRepositoryInput, Result } from '@types'
+import { filterPresentColumns } from './utils'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -39,9 +40,11 @@ export const createWorkerRepository = async (sql: Sql, input: CreateWorkerReposi
 
 const updateWorkerRepositoryCols = ['source_gitlab', 'current_version'] as const
 export const updateWorkerRepository = async (sql: Sql, id: string, input: UpdateWorkerRepositoryInput): Promise<Result<WorkerRepository>> => {
+  const presentCols = filterPresentColumns(input, updateWorkerRepositoryCols)
+
   const repos = await get(sql<WorkerRepository[]>`
     UPDATE worker_repositories
-    SET ${sql(input, updateWorkerRepositoryCols)}, updated_at = NOW()
+    SET ${sql(input, presentCols)}, updated_at = NOW()
     WHERE id = ${id}
     RETURNING *
   `)

@@ -1,5 +1,6 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
 import type { Task, CreateTaskInput, UpdateTaskInput, Result } from '@types'
+import { filterPresentColumns } from './utils'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -19,8 +20,7 @@ export const findTaskById = async (sql: Sql, id: string): Promise<Result<Task>> 
 
 const createTaskCols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
 export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  // Only include columns that actually exist in the input to avoid undefined values
-  const presentCols = createTaskCols.filter(col => col in input)
+  const presentCols = filterPresentColumns(input, createTaskCols)
 
   const [task] = await get(sql<Task[]>`
     INSERT INTO tasks ${sql(input, presentCols)}
@@ -34,8 +34,7 @@ export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task
 
 const updateTaskCols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
 export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): Promise<Result<Task>> => {
-  // Only include columns that actually exist in the input to avoid undefined values
-  const presentCols = updateTaskCols.filter(col => col in input)
+  const presentCols = filterPresentColumns(input, updateTaskCols)
 
   const tasks = await get(sql<Task[]>`
     UPDATE tasks
@@ -59,7 +58,7 @@ export const deleteTask = async (sql: Sql, id: string): Promise<Result<void>> =>
 
 const upsertTaskCols = ['title', 'description', 'status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
 export const upsertTaskFromGitlab = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  const presentCols = upsertTaskCols.filter(col => col in input)
+  const presentCols = filterPresentColumns(input, upsertTaskCols)
 
   const [task] = await get(sql<Task[]>`
     INSERT INTO tasks ${sql(input, presentCols)}
@@ -80,7 +79,7 @@ export const upsertTaskFromGitlab = async (sql: Sql, input: CreateTaskInput): Pr
 }
 
 export const upsertTaskFromGithub = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  const presentCols = upsertTaskCols.filter(col => col in input)
+  const presentCols = filterPresentColumns(input, upsertTaskCols)
 
   const [task] = await get(sql<Task[]>`
     INSERT INTO tasks ${sql(input, presentCols)}
@@ -101,7 +100,7 @@ export const upsertTaskFromGithub = async (sql: Sql, input: CreateTaskInput): Pr
 }
 
 export const upsertTaskFromJira = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  const presentCols = upsertTaskCols.filter(col => col in input)
+  const presentCols = filterPresentColumns(input, upsertTaskCols)
 
   const [task] = await get(sql<Task[]>`
     INSERT INTO tasks ${sql(input, presentCols)}

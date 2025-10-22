@@ -1,5 +1,6 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
 import type { Secret, CreateSecretInput, UpdateSecretInput, Result } from '@types'
+import { filterPresentColumns } from './utils'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -43,9 +44,11 @@ export const createSecret = async (sql: Sql, input: CreateSecretInput): Promise<
 
 const updateSecretCols = ['value', 'description'] as const
 export const updateSecret = async (sql: Sql, id: string, input: UpdateSecretInput): Promise<Result<Secret>> => {
+  const presentCols = filterPresentColumns(input, updateSecretCols)
+
   const secrets = await get(sql<Secret[]>`
     UPDATE secrets
-    SET ${sql(input, updateSecretCols)}, updated_at = NOW()
+    SET ${sql(input, presentCols)}, updated_at = NOW()
     WHERE id = ${id}
     RETURNING *
   `)
