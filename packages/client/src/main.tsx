@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import './assets/output.css'
+import './assets/input.css'
 import { App } from './App.tsx'
 import { ClerkProvider } from '@clerk/clerk-react'
 

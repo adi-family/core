@@ -2,6 +2,7 @@ import { defineConfig, loadEnv } from 'vite'
 import path from 'path'
 import react from '@vitejs/plugin-react'
 import tsconfigPathsPlugin from 'vite-tsconfig-paths'
+import tailwindcss from '@tailwindcss/vite'
 import { resolve } from 'node:path'
 
 const tsconfigPaths = tsconfigPathsPlugin({
@@ -25,7 +26,7 @@ export default defineConfig(({ mode }) => {
     },
     root: path.resolve(__dirname),
     envDir: path.resolve(__dirname, '../..'),
-    plugins: [tsconfigPaths, react()],
+    plugins: [tsconfigPaths, react(), tailwindcss()],
     publicDir: resolve(__dirname, 'public'),
     resolve: {
       alias: {
