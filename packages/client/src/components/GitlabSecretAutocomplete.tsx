@@ -181,18 +181,37 @@ export function GitlabSecretAutocomplete({
 
   // Re-validate token when host changes
   useEffect(() => {
-    if (newToken && mode === "create" && tokenValid !== null) {
-      // Reset validation state
+    if (mode === "create") {
+      if (newToken && tokenValid !== null) {
+        // Reset validation state and re-validate
+        setTokenValid(null)
+        setScopesValid(null)
+        setTokenScopes([])
+        setTokenInfo(null)
+        setError(null)
+        validateToken(newToken)
+      }
+    } else {
+      // Clear validation state when not in create mode
       setTokenValid(null)
       setScopesValid(null)
       setTokenScopes([])
       setTokenInfo(null)
-      setError(null)
-      // Re-validate with new host
-      validateToken(newToken)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [host])
+
+  // Clear validation state when switching away from create mode
+  useEffect(() => {
+    if (mode !== "create") {
+      setTokenValid(null)
+      setScopesValid(null)
+      setTokenScopes([])
+      setTokenInfo(null)
+      setTokenValidating(false)
+      setError(null)
+    }
+  }, [mode])
 
   const handleCreateSecret = async () => {
     if (!projectId) {
