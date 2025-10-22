@@ -5,7 +5,7 @@ import { client } from "@/lib/client"
 import type { Secret } from "../../../types"
 
 interface SecretSelectProps {
-  projectId: string
+  projectId?: string
   value: string
   onChange: (secretId: string) => void
   required?: boolean
@@ -26,16 +26,18 @@ export function SecretSelect({
 
   useEffect(() => {
     const fetchSecrets = async () => {
-      if (!projectId) {
-        setSecrets([])
-        setLoading(false)
-        return
-      }
-
       try {
-        const res = await client.secrets["by-project"][":projectId"].$get({
-          param: { projectId },
-        })
+        let res
+        if (projectId) {
+          // Fetch secrets for specific project
+          res = await client.secrets["by-project"][":projectId"].$get({
+            param: { projectId },
+          })
+        } else {
+          // Fetch all secrets accessible to user
+          res = await client.secrets.$get()
+        }
+
         if (!res.ok) {
           console.error("Error fetching secrets:", await res.text())
           setLoading(false)
@@ -66,9 +68,7 @@ export function SecretSelect({
       <Label htmlFor="secret_id" className="text-xs uppercase tracking-wide">
         {label}
       </Label>
-      {!projectId ? (
-        <div className="text-sm text-gray-600">Select a project first</div>
-      ) : loading ? (
+      {loading ? (
         <div className="text-sm text-gray-600">Loading secrets...</div>
       ) : (
         <Combobox

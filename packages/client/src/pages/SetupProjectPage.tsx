@@ -8,8 +8,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { GitlabSecretAutocomplete } from "@/components/GitlabSecretAutocomplete"
 import { createAuthenticatedClient } from "@/lib/client"
-import type { CreateProjectInput } from "../../../types"
+import type { CreateProjectInput, Secret } from "../../../types"
 
 export function SetupProjectPage() {
   const navigate = useNavigate()
@@ -22,13 +23,13 @@ export function SetupProjectPage() {
 
   const [formData, setFormData] = useState<CreateProjectInput>({
     name: "",
-    enabled: true,
   })
 
   // Optional GitLab executor configuration
   const [configureExecutor, setConfigureExecutor] = useState(false)
   const [executorHost, setExecutorHost] = useState("https://gitlab.the-ihor.com")
-  const [executorToken, setExecutorToken] = useState("")
+  const [executorTokenSecretId, setExecutorTokenSecretId] = useState<string | null>(null)
+  const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -48,13 +49,14 @@ export function SetupProjectPage() {
       }
 
       const project = await res.json()
+      setCreatedProjectId(project.id)
 
       // If executor configuration is requested, configure it
-      if (configureExecutor && executorHost && executorToken) {
+      if (configureExecutor && executorHost && executorTokenSecretId) {
         try {
           const executorRes = await client.projects[":id"]["job-executor-gitlab"].$post({
             param: { id: project.id },
-            json: { host: executorHost, access_token: executorToken },
+            json: { host: executorHost, access_token_secret_id: executorTokenSecretId },
           })
 
           if (!executorRes.ok) {
@@ -143,19 +145,6 @@ export function SetupProjectPage() {
               />
             </div>
 
-            <div className="flex items-center space-x-2">
-              <input
-                id="enabled"
-                type="checkbox"
-                checked={formData.enabled}
-                onChange={(e) => handleInputChange("enabled", e.target.checked)}
-                className="w-4 h-4 rounded border-gray-300"
-              />
-              <label htmlFor="enabled" className="text-sm font-medium">
-                Enabled
-              </label>
-            </div>
-
             {/* Optional GitLab Executor Configuration */}
             <div className="border-t pt-4 mt-4">
               <div className="flex items-center space-x-2 mb-4">
@@ -193,26 +182,19 @@ export function SetupProjectPage() {
                       required={configureExecutor}
                     />
                   </div>
-                  <div>
-                    <label
-                      htmlFor="executorToken"
-                      className="block text-sm font-medium mb-2"
-                    >
-                      Access Token
-                    </label>
-                    <input
-                      id="executorToken"
-                      type="password"
-                      value={executorToken}
-                      onChange={(e) => setExecutorToken(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md"
-                      placeholder="GitLab access token"
-                      required={configureExecutor}
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Required scopes: <code className="bg-gray-200 px-1 rounded">api</code>
-                    </p>
-                  </div>
+                  <GitlabSecretAutocomplete
+                    projectId={createdProjectId || undefined}
+                    host={executorHost}
+                    value={executorTokenSecretId}
+                    onChange={(secretId) => setExecutorTokenSecretId(secretId)}
+                    onSecretCreated={(secret: Secret) => {
+                      console.log("Secret created:", secret)
+                      setExecutorTokenSecretId(secret.id)
+                    }}
+                    label="GitLab Access Token Secret"
+                    required={configureExecutor}
+                    requiredScopes={["api"]}
+                  />
                 </div>
               )}
             </div>

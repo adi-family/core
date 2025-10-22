@@ -8,7 +8,7 @@ import type { Secret } from "../../../types"
 import { CheckCircle2, XCircle, Loader2, Plus, AlertCircle, Search } from "lucide-react"
 
 type GitlabSecretAutocompleteProps = {
-  projectId: string
+  projectId?: string
   host: string
   value?: string | null
   onChange: (secretId: string | null, secret?: Secret | null) => void
@@ -54,9 +54,16 @@ export function GitlabSecretAutocomplete({
   useEffect(() => {
     const loadSecrets = async () => {
       try {
-        const res = await client.secrets["by-project"][":projectId"].$get({
-          param: { projectId },
-        })
+        let res
+        if (projectId) {
+          // Load secrets for specific project
+          res = await client.secrets["by-project"][":projectId"].$get({
+            param: { projectId },
+          })
+        } else {
+          // Load all user secrets
+          res = await client.secrets.$get()
+        }
 
         if (res.ok) {
           const secrets = await res.json()
@@ -173,6 +180,11 @@ export function GitlabSecretAutocomplete({
   }, [newToken, mode])
 
   const handleCreateSecret = async () => {
+    if (!projectId) {
+      setError("Project ID is required to create a secret")
+      return
+    }
+
     if (!newToken.trim() || !secretName.trim()) {
       setError("Token and secret name are required")
       return
@@ -330,9 +342,11 @@ export function GitlabSecretAutocomplete({
                 onClick={() => setMode("create")}
                 variant="outline"
                 className="w-full uppercase tracking-wide"
+                disabled={!projectId}
+                title={!projectId ? "Project ID required to create new secrets" : ""}
               >
                 <Plus className="w-4 h-4 mr-2" />
-                CREATE NEW SECRET
+                CREATE NEW SECRET {!projectId && "(Requires Project)"}
               </Button>
             </>
           )}

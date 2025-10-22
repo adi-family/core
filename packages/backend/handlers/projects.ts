@@ -141,7 +141,7 @@ export const createProjectRoutes = (sql: Sql) => {
     })
     .post('/:id/job-executor-gitlab', zValidator('param', idParamSchema), zValidator('json', setJobExecutorSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')
-      const { host, access_token } = c.req.valid('json')
+      const { host, access_token, access_token_secret_id } = c.req.valid('json')
 
       try {
         await acl.project(id).developer.gte.throw(c)
@@ -152,28 +152,50 @@ export const createProjectRoutes = (sql: Sql) => {
         throw error
       }
 
+      // Get the actual access token value
+      let tokenValue: string
+      let secretId: string
+
+      if (access_token_secret_id) {
+        // Use existing secret
+        const secretResult = await secretQueries.findSecretById(sql, access_token_secret_id)
+        if (!secretResult.ok) {
+          return c.json({ error: 'Secret not found' }, 404)
+        }
+        tokenValue = secretResult.data.value
+        secretId = access_token_secret_id
+      } else if (access_token) {
+        // Create new secret from raw token
+        const secret = await secretQueries.createSecret(sql, {
+          project_id: id,
+          name: `gitlab-executor-token-${id}`,
+          value: access_token,
+          description: `GitLab executor token for ${host}`
+        })
+        tokenValue = access_token
+        secretId = secret.id
+      } else {
+        return c.json({ error: 'Either access_token or access_token_secret_id is required' }, 400)
+      }
+
       // Verify the GitLab executor
-      const verificationResult = await verifyGitLabExecutor({ host, access_token })
+      const verificationResult = await verifyGitLabExecutor({ host, access_token: tokenValue })
 
       if (!verificationResult.valid) {
+        // Only cleanup if we created a new secret
+        if (access_token && !access_token_secret_id) {
+          await secretQueries.deleteSecret(sql, secretId)
+        }
         return c.json({
           error: 'GitLab executor verification failed',
           details: verificationResult.error
         }, 400)
       }
 
-      // Create secret for access token
-      const secret = await secretQueries.createSecret(sql, {
-        project_id: id,
-        name: `gitlab-executor-token-${id}`,
-        value: access_token,
-        description: `GitLab executor token for ${host}`
-      })
-
       // Set executor configuration
       const executorConfig = {
         host,
-        access_token_secret_id: secret.id,
+        access_token_secret_id: secretId,
         verified_at: new Date().toISOString(),
         user: verificationResult.user
       }
@@ -181,8 +203,10 @@ export const createProjectRoutes = (sql: Sql) => {
       const result = await queries.setProjectJobExecutor(sql, id, executorConfig)
 
       if (!result.ok) {
-        // Cleanup secret if project update failed
-        await secretQueries.deleteSecret(sql, secret.id)
+        // Cleanup secret if project update failed and we created it
+        if (access_token && !access_token_secret_id) {
+          await secretQueries.deleteSecret(sql, secretId)
+        }
         return c.json({ error: result.error }, 500)
       }
 

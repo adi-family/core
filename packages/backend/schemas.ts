@@ -63,8 +63,12 @@ export const updateProjectSchema = createProjectSchema.partial()
 
 export const setJobExecutorSchema = z.object({
   host: z.string().url(),
-  access_token: z.string().min(1)
-})
+  access_token: z.string().min(1).optional(),
+  access_token_secret_id: z.string().optional()
+}).refine(
+  (data) => data.access_token || data.access_token_secret_id,
+  { message: "Either access_token or access_token_secret_id must be provided" }
+)
 
 // Task schemas
 export const taskSchema = z.object({
