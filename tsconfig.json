@@ -30,9 +30,10 @@
       "@queue/*": ["packages/queue/*"],
       "@worker/*": ["packages/worker/*"],
       "@shared/*": ["packages/shared/*"],
-      "@micros-task-sync/*": ["packages/micros-task-sync/*"]
+      "@micros-task-sync/*": ["packages/micros-task-sync/*"],
+      "@micros-task-eval/*": ["packages/micros-task-eval/*"]
     }
   },
-  "include": ["packages/backend/**/*.ts", "packages/worker/**/*.ts", "packages/db/**/*.ts", "packages/utils/**/*.ts", "packages/queue/**/*.ts", "packages/micros-task-sync/**/*.ts"],
+  "include": ["packages/backend/**/*.ts", "packages/worker/**/*.ts", "packages/db/**/*.ts", "packages/utils/**/*.ts", "packages/queue/**/*.ts", "packages/micros-task-sync/**/*.ts", "packages/micros-task-eval/**/*.ts"],
   "exclude": ["node_modules", "packages/client"]
 }
