@@ -403,7 +403,7 @@ export function GitlabSecretAutocomplete({
                 : "border-gray-200/60"
             } space-y-3`}>
               <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3 flex-1">
+                <div className="flex items-start gap-4 flex-1">
                   <div className="relative group mt-1">
                     {selectedSecretValidating && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
                     {!selectedSecretValidating && selectedSecretValid === true && selectedSecretScopesValid === true && (
