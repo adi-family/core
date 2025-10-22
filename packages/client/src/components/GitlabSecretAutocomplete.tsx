@@ -448,15 +448,13 @@ export function GitlabSecretAutocomplete({
                       <div className="text-xs text-gray-500 mt-0.5">{selectedSecret.description}</div>
                     )}
                     {selectedSecretValid === true && selectedSecretScopesValid === false && (
-                      <div className="text-xs text-yellow-600 mt-2 flex items-center gap-2">
-                        <AlertCircle className="w-3 h-3 flex-shrink-0" />
-                        <span>Missing required scopes</span>
+                      <div className="text-xs text-yellow-600 mt-2">
+                        Missing required scopes
                       </div>
                     )}
                     {selectedSecretValid === false && (
-                      <div className="text-xs text-red-600 mt-2 flex items-center gap-2">
-                        <XCircle className="w-3 h-3 flex-shrink-0" />
-                        <span>Token validation failed</span>
+                      <div className="text-xs text-red-600 mt-2">
+                        Token validation failed
                       </div>
                     )}
                   </div>
