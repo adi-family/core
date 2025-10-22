@@ -66,13 +66,13 @@ export function TasksPage() {
     : tasks
 
   return (
-    <div className="mx-auto p-6 max-w-7xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>Tasks</CardTitle>
-          <CardDescription>View all tasks in the system</CardDescription>
+    <div className="mx-auto">
+      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+        <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
+          <CardTitle className="text-2xl uppercase tracking-wide">Tasks</CardTitle>
+          <CardDescription className="text-gray-300">View all tasks in the system</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <div className="mb-6">
             <Label htmlFor="taskSourceFilter" className="block mb-2">
               Filter by Task Source

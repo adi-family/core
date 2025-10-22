@@ -1,4 +1,5 @@
 import { BasePresenter } from './base'
+import { navigateTo } from '@/utils/navigation'
 import type { Session } from '@types'
 
 /**
@@ -63,7 +64,7 @@ export class SessionPresenter extends BasePresenter<Session> {
       {
         label: 'View Messages',
         onClick: (session: Session) => {
-          window.location.href = `/sessions/${session.id}/messages`
+          navigateTo(`/sessions/${session.id}/messages`)
         },
         variant: 'default' as const,
       },
@@ -71,22 +72,19 @@ export class SessionPresenter extends BasePresenter<Session> {
         label: 'View Task',
         onClick: (session: Session) => {
           if (session.task_id) {
-            window.location.href = `/tasks/${session.task_id}`
+            navigateTo(`/tasks/${session.task_id}`)
           }
         },
         variant: 'outline' as const,
         disabled: !this.model.task_id,
       },
-      {
-        label: 'Delete',
-        onClick: async (session: Session) => {
-          if (confirm(`Are you sure you want to delete session ${this.truncateId(session.id)}?`)) {
-            // TODO: Implement delete action
-            console.log(`Delete session ${session.id}`)
-          }
-        },
-        variant: 'destructive' as const,
-      },
+      this.getDeleteAction(
+        (session) => `Are you sure you want to delete session ${this.truncateId(session.id)}?`,
+        async (session) => {
+          // TODO: Implement delete action
+          console.log(`Delete session ${session.id}`)
+        }
+      ),
     ]
   }
 }

@@ -1,4 +1,5 @@
 import { BasePresenter } from './base'
+import { navigateTo } from '@/utils/navigation'
 import type { FileSpace } from '@types'
 import { Badge } from '@/components/ui/badge'
 import { FolderGit2, CheckCircle2, XCircle } from 'lucide-react'
@@ -86,14 +87,14 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
       {
         label: 'View Details',
         onClick: (fileSpace: FileSpace) => {
-          window.location.href = `/file-spaces/${fileSpace.id}`
+          navigateTo(`/file-spaces/${fileSpace.id}`)
         },
         variant: 'default' as const,
       },
       {
         label: 'View Project',
         onClick: (fileSpace: FileSpace) => {
-          window.location.href = `/projects/${fileSpace.project_id}`
+          navigateTo(`/projects/${fileSpace.project_id}`)
         },
         variant: 'outline' as const,
       },
@@ -105,16 +106,13 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
         },
         variant: 'outline' as const,
       },
-      {
-        label: 'Delete',
-        onClick: async (fileSpace: FileSpace) => {
-          if (confirm(`Are you sure you want to delete "${fileSpace.name}"?`)) {
-            // TODO: Implement delete action
-            console.log(`Delete file space ${fileSpace.id}`)
-          }
-        },
-        variant: 'destructive' as const,
-      },
+      this.getDeleteAction(
+        (fileSpace) => `Are you sure you want to delete "${fileSpace.name}"?`,
+        async (fileSpace) => {
+          // TODO: Implement delete action
+          console.log(`Delete file space ${fileSpace.id}`)
+        }
+      ),
     ]
   }
 }

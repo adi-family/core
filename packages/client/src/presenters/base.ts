@@ -58,4 +58,26 @@ export abstract class BasePresenter<T> {
   protected truncateId(id: string, length: number = 8): string {
     return `${id.substring(0, length)}...`
   }
+
+  /**
+   * Get delete action with confirmation dialog
+   */
+  protected getDeleteAction(
+    confirmMessage: (model: T) => string,
+    deleteFn: (model: T) => Promise<void>
+  ): {
+    label: string
+    onClick: (model: T) => Promise<void>
+    variant: 'destructive'
+  } {
+    return {
+      label: 'Delete',
+      onClick: async (model: T) => {
+        if (confirm(confirmMessage(model))) {
+          await deleteFn(model)
+        }
+      },
+      variant: 'destructive' as const,
+    }
+  }
 }

@@ -1,4 +1,5 @@
 import { BasePresenter } from './base'
+import { navigateTo } from '@/utils/navigation'
 import type { Message } from '@types'
 
 /**
@@ -64,20 +65,17 @@ export class MessagePresenter extends BasePresenter<Message> {
       {
         label: 'View Session',
         onClick: (message: Message) => {
-          window.location.href = `/sessions/${message.session_id}`
+          navigateTo(`/sessions/${message.session_id}`)
         },
         variant: 'outline' as const,
       },
-      {
-        label: 'Delete',
-        onClick: async (message: Message) => {
-          if (confirm(`Are you sure you want to delete message ${this.truncateId(message.id)}?`)) {
-            // TODO: Implement delete action
-            console.log(`Delete message ${message.id}`)
-          }
-        },
-        variant: 'destructive' as const,
-      },
+      this.getDeleteAction(
+        (message) => `Are you sure you want to delete message ${this.truncateId(message.id)}?`,
+        async (message) => {
+          // TODO: Implement delete action
+          console.log(`Delete message ${message.id}`)
+        }
+      ),
     ]
   }
 

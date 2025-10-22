@@ -102,8 +102,8 @@ export function ProjectPage() {
 
   if (loading) {
     return (
-      <div className="container mx-auto py-10">
-        <Card>
+      <div className="mx-auto">
+        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
           <CardContent className="pt-6">
             <div className="text-center py-4">Loading...</div>
           </CardContent>
@@ -114,8 +114,8 @@ export function ProjectPage() {
 
   if (error) {
     return (
-      <div className="container mx-auto py-10">
-        <Card>
+      <div className="mx-auto">
+        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
           <CardContent className="pt-6">
             <div className="text-center py-4 text-destructive">{error}</div>
             <div className="text-center pt-4">
@@ -134,8 +134,8 @@ export function ProjectPage() {
 
   if (!project) {
     return (
-      <div className="container mx-auto py-10">
-        <Card>
+      <div className="mx-auto">
+        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
           <CardContent className="pt-6">
             <div className="text-center py-4">Project not found</div>
           </CardContent>
@@ -151,7 +151,7 @@ export function ProjectPage() {
   ]
 
   return (
-    <div className="container mx-auto py-10">
+    <div className="mx-auto">
       <div className="mb-4">
         <button
           onClick={() => navigate("/projects")}
@@ -161,14 +161,14 @@ export function ProjectPage() {
         </button>
       </div>
 
-      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-md">
-        <CardHeader>
+      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+        <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-xl uppercase tracking-wide bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent">
+              <CardTitle className="text-2xl uppercase tracking-wide">
                 {project.name}
               </CardTitle>
-              <CardDescription className="text-xs uppercase tracking-wide">
+              <CardDescription className="text-gray-300">
                 Project Management
               </CardDescription>
             </div>

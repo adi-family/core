@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { PageCard } from "@/components/PageCard"
 import { PresenterTable } from "@/components/PresenterTable"
 import { PipelineExecutionPresenter } from "@/presenters"
 import { client } from "@/lib/client"
@@ -48,25 +42,18 @@ export function PipelineExecutionsPage() {
   }, [])
 
   return (
-    <div className="mx-auto p-6 max-w-7xl">
-      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
-        <CardHeader className="bg-gradient-to-r from-gray-800 to-gray-900 text-white">
-          <CardTitle className="text-2xl uppercase tracking-wide">
-            Pipeline Executions
-          </CardTitle>
-          <CardDescription className="text-gray-300">
-            Monitor GitLab CI/CD pipeline executions
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <PresenterTable
-            presenter={PipelineExecutionPresenter}
-            items={executions}
-            loading={loading}
-            emptyMessage="No pipeline executions found"
-          />
-        </CardContent>
-      </Card>
+    <div className="mx-auto">
+      <PageCard
+        title="Pipeline Executions"
+        description="Monitor GitLab CI/CD pipeline executions"
+      >
+        <PresenterTable
+          presenter={PipelineExecutionPresenter}
+          items={executions}
+          loading={loading}
+          emptyMessage="No pipeline executions found"
+        />
+      </PageCard>
     </div>
   )
 }

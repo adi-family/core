@@ -40,15 +40,15 @@ export function TaskSourcesPage() {
   }, [])
 
   return (
-    <div className="mx-auto p-6 max-w-7xl">
-      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-md">
-        <CardHeader>
+    <div className="mx-auto">
+      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+        <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className="text-xl uppercase tracking-wide bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent">
-                TASK SOURCES
+              <CardTitle className="text-2xl uppercase tracking-wide">
+                Task Sources
               </CardTitle>
-              <CardDescription className="text-xs uppercase tracking-wide">
+              <CardDescription className="text-gray-300">
                 Manage issue tracking integrations for projects
               </CardDescription>
             </div>
@@ -56,11 +56,11 @@ export function TaskSourcesPage() {
               onClick={() => navigate("/create-task-source")}
               className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
             >
-              CREATE TASK SOURCE
+              Create Task Source
             </Button>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <PresenterTable
             presenter={TaskSourcePresenter}
             items={taskSources}

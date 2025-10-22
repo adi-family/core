@@ -198,7 +198,7 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
   /**
    * Get sync status badge variant
    */
-  getSyncStatusVariant(status: string): 'success' | 'warning' | 'blue' | 'gray' | 'destructive' {
+  getSyncStatusVariant(status: string): 'success' | 'warning' | 'blue' | 'gray' | 'danger' {
     switch (status) {
       case 'completed':
         return 'success'
@@ -207,7 +207,7 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
       case 'queued':
         return 'warning'
       case 'failed':
-        return 'destructive'
+        return 'danger'
       case 'pending':
       default:
         return 'gray'

@@ -8,6 +8,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { GitlabSecretAutocomplete } from "@/components/GitlabSecretAutocomplete"
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateProjectInput, Secret } from "../../../types"
@@ -96,16 +97,13 @@ export function SetupProjectPage() {
 
   if (success) {
     return (
-      <div className="container mx-auto py-10">
-        <Card>
+      <div className="mx-auto">
+        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <div className="text-green-600 text-lg font-medium mb-2">
-                Project created successfully!
+              <div className="text-green-600 font-medium">
+                Project created
               </div>
-              <p className="text-muted-foreground">
-                Redirecting to projects list...
-              </p>
             </div>
           </CardContent>
         </Card>
@@ -114,13 +112,13 @@ export function SetupProjectPage() {
   }
 
   return (
-    <div className="container mx-auto py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle>Setup New Project</CardTitle>
-          <CardDescription>Create a new project in the system</CardDescription>
+    <div className="mx-auto">
+      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+        <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
+          <CardTitle className="text-2xl uppercase tracking-wide">New Project</CardTitle>
+          <CardDescription className="text-gray-300">Add a new project</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-6">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="bg-destructive/15 text-destructive px-4 py-3 rounded">
@@ -129,11 +127,8 @@ export function SetupProjectPage() {
             )}
 
             <div>
-              <label
-                htmlFor="name"
-                className="block text-sm font-medium mb-2"
-              >
-                Project Name
+              <label htmlFor="name" className="block text-sm font-medium mb-1">
+                Name
               </label>
               <input
                 id="name"
@@ -145,105 +140,68 @@ export function SetupProjectPage() {
               />
             </div>
 
-            {/* Optional GitLab Executor Configuration */}
-            <div className="border-t pt-6 mt-6">
-              <div className="border border-gray-200 bg-white">
-                <div className="p-4 bg-gray-50 border-b">
-                  <div className="flex items-center gap-3 mb-2">
-                    <input
-                      id="configureExecutor"
-                      type="checkbox"
-                      checked={configureExecutor}
-                      onChange={(e) => setConfigureExecutor(e.target.checked)}
-                      className="w-5 h-5 border-gray-300 cursor-pointer"
-                    />
-                    <label htmlFor="configureExecutor" className="font-medium cursor-pointer">
-                      Custom GitLab Pipeline Executor
-                    </label>
-                    <span className="bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700 border border-blue-200">
-                      Optional
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-600 ml-8">
-                    Configure a custom GitLab instance for AI pipeline execution. Recommended for GitLab Enterprise users.
-                  </p>
-                  {!configureExecutor && (
-                    <p className="text-xs text-gray-500 mt-2 ml-8">
-                      💡 If not configured, the default worker repository will be used
-                    </p>
-                  )}
-                </div>
-
-                {configureExecutor && (
-                  <div className="p-4 space-y-4 bg-gray-50">
-                    <div className="bg-blue-50 border border-blue-200 p-4">
-                      <div className="flex gap-3">
-                        <div className="text-blue-600 text-xl">ℹ️</div>
-                        <div className="text-sm">
-                          <p className="font-medium text-blue-900">Enterprise Configuration</p>
-                          <p className="text-blue-700 mt-1">
-                            This setup may take a few minutes. You'll need a GitLab access token with API scope.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="bg-white border border-gray-200 p-4 space-y-4">
-                      <div>
-                        <label
-                          htmlFor="executorHost"
-                          className="block text-sm font-medium mb-2"
-                        >
-                          GitLab Host URL
-                        </label>
-                        <input
-                          id="executorHost"
-                          type="text"
-                          value={executorHost}
-                          onChange={(e) => setExecutorHost(e.target.value)}
-                          className="w-full px-3 py-2 border border-gray-300"
-                          placeholder="https://gitlab.your-company.com"
-                          required={configureExecutor}
-                        />
-                        <p className="text-xs text-gray-500 mt-2">
-                          Enter your GitLab instance URL (e.g., https://gitlab.com or your enterprise URL)
-                        </p>
-                      </div>
-
-                      <GitlabSecretAutocomplete
-                        projectId={createdProjectId || undefined}
-                        host={executorHost}
-                        value={executorTokenSecretId}
-                        onChange={(secretId) => setExecutorTokenSecretId(secretId)}
-                        onSecretCreated={(secret: Secret) => {
-                          console.log("Secret created:", secret)
-                          setExecutorTokenSecretId(secret.id)
-                        }}
-                        label="GitLab Access Token Secret"
-                        required={configureExecutor}
-                        requiredScopes={["api"]}
-                      />
-                    </div>
-                  </div>
-                )}
+            <div className="pt-4 mt-4">
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  id="configureExecutor"
+                  type="checkbox"
+                  checked={configureExecutor}
+                  onChange={(e) => setConfigureExecutor(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <label htmlFor="configureExecutor" className="text-sm font-medium cursor-pointer">
+                  Custom GitLab Executor
+                </label>
               </div>
+
+              {configureExecutor && (
+                <div className="ml-6 space-y-3 border-l-2 pl-4">
+                  <div>
+                    <label htmlFor="executorHost" className="block text-sm font-medium mb-1">
+                      Host
+                    </label>
+                    <input
+                      id="executorHost"
+                      type="text"
+                      value={executorHost}
+                      onChange={(e) => setExecutorHost(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-md"
+                      placeholder="https://gitlab.com"
+                      required={configureExecutor}
+                    />
+                  </div>
+
+                  <GitlabSecretAutocomplete
+                    projectId={createdProjectId || undefined}
+                    host={executorHost}
+                    value={executorTokenSecretId}
+                    onChange={(secretId) => setExecutorTokenSecretId(secretId)}
+                    onSecretCreated={(secret: Secret) => {
+                      console.log("Secret created:", secret)
+                      setExecutorTokenSecretId(secret.id)
+                    }}
+                    label="Access Token"
+                    required={configureExecutor}
+                    requiredScopes={["api"]}
+                  />
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 pt-4">
-              <button
+              <Button
                 type="submit"
                 disabled={loading}
-                className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90 disabled:opacity-50"
               >
-                {loading ? "Creating..." : "Create Project"}
-              </button>
-              <button
+                {loading ? "Creating..." : "Create"}
+              </Button>
+              <Button
                 type="button"
+                variant="ghost"
                 onClick={() => navigate("/projects")}
-                className="px-4 py-2 border rounded hover:bg-accent"
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </form>
         </CardContent>

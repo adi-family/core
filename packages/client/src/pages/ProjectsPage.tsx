@@ -1,11 +1,5 @@
 import { useEffect, useState } from "react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { PageCard } from "@/components/PageCard"
 import { PresenterTable } from "@/components/PresenterTable"
 import { ProjectPresenter } from "@/presenters"
 import { client } from "@/lib/client"
@@ -74,24 +68,21 @@ export function ProjectsPage() {
   }
 
   return (
-    <div className="mx-auto p-6 max-w-7xl">
-      <Card>
-        <CardHeader>
-          <CardTitle>Projects</CardTitle>
-          <CardDescription>Manage all projects in the system</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <PresenterTable
-            presenter={ProjectPresenter}
-            items={projects}
-            loading={loading}
-            emptyMessage="No projects found"
-            buildPresenter={(project) =>
-              new ProjectPresenter(project, handleToggleEnabled, togglingProjectId)
-            }
-          />
-        </CardContent>
-      </Card>
+    <div className="mx-auto">
+      <PageCard
+        title="Projects"
+        description="Manage all projects in the system"
+      >
+        <PresenterTable
+          presenter={ProjectPresenter}
+          items={projects}
+          loading={loading}
+          emptyMessage="No projects found"
+          buildPresenter={(project) =>
+            new ProjectPresenter(project, handleToggleEnabled, togglingProjectId)
+          }
+        />
+      </PageCard>
     </div>
   )
 }

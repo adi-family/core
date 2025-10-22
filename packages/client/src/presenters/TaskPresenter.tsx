@@ -1,4 +1,5 @@
 import { BasePresenter } from './base'
+import { navigateTo } from '@/utils/navigation'
 import type { Task, TaskSource } from '@types'
 import { Badge } from '@/components/ui/badge'
 import { Circle } from 'lucide-react'
@@ -96,7 +97,7 @@ export class TaskPresenter extends BasePresenter<Task> {
       {
         label: 'View Details',
         onClick: (task: Task) => {
-          window.location.href = `/tasks/${task.id}`
+          navigateTo(`/tasks/${task.id}`)
         },
         variant: 'default' as const,
       },
@@ -108,16 +109,13 @@ export class TaskPresenter extends BasePresenter<Task> {
         },
         variant: 'outline' as const,
       },
-      {
-        label: 'Delete',
-        onClick: async (task: Task) => {
-          if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
-            // TODO: Implement delete action
-            console.log(`Delete task ${task.id}`)
-          }
-        },
-        variant: 'destructive' as const,
-      },
+      this.getDeleteAction(
+        (task) => `Are you sure you want to delete "${task.title}"?`,
+        async (task) => {
+          // TODO: Implement delete action
+          console.log(`Delete task ${task.id}`)
+        }
+      ),
     ]
   }
 

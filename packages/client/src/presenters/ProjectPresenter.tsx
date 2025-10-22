@@ -1,4 +1,5 @@
 import { BasePresenter } from './base'
+import { navigateTo } from '@/utils/navigation'
 import type { Project } from '@types'
 import { Badge } from '@/components/ui/badge'
 import { CheckCircle2, XCircle } from 'lucide-react'
@@ -65,7 +66,7 @@ export class ProjectPresenter extends BasePresenter<Project> {
       {
         label: 'View Details',
         onClick: (project: Project) => {
-          window.location.href = `/projects/${project.id}`
+          navigateTo(`/projects/${project.id}`)
         },
         variant: 'default' as const,
       },
@@ -79,16 +80,13 @@ export class ProjectPresenter extends BasePresenter<Project> {
         variant: 'outline' as const,
         loading: isToggling,
       },
-      {
-        label: 'Delete',
-        onClick: async (project: Project) => {
-          if (confirm(`Are you sure you want to delete "${project.name}"?`)) {
-            // TODO: Implement delete action
-            console.log(`Delete project ${project.id}`)
-          }
-        },
-        variant: 'destructive' as const,
-      },
+      this.getDeleteAction(
+        (project) => `Are you sure you want to delete "${project.name}"?`,
+        async (project) => {
+          // TODO: Implement delete action
+          console.log(`Delete project ${project.id}`)
+        }
+      ),
     ]
   }
 }

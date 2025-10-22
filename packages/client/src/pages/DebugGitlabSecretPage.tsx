@@ -17,13 +17,13 @@ export function DebugGitlabSecretPage() {
   const [selectedRepository, setSelectedRepository] = useState<any>(null)
 
   return (
-    <div className="container mx-auto py-10 max-w-4xl">
-      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-md mb-6">
-        <CardHeader>
-          <CardTitle className="text-xl uppercase tracking-wide bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent">
-            DEBUG: GITLAB COMPONENTS
+    <div className="mx-auto">
+      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200 mb-6">
+        <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
+          <CardTitle className="text-2xl uppercase tracking-wide">
+            Debug: Gitlab Components
           </CardTitle>
-          <CardDescription className="text-xs uppercase tracking-wide">
+          <CardDescription className="text-gray-300">
             Test and debug GitLab integration components
           </CardDescription>
         </CardHeader>
