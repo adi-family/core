@@ -159,9 +159,12 @@ export function SetupProjectPage() {
                   Configure Custom GitLab Pipeline Executor (Optional)
                 </label>
               </div>
+              <p className="text-xs text-muted-foreground ml-6">
+                Useful for GitLab Enterprise users. Configuration may require additional time.
+              </p>
 
               {configureExecutor && (
-                <div className="space-y-4 p-4 bg-gray-50 rounded border">
+                <div className="space-y-4 p-4 bg-gray-50 rounded border mt-4">
                   <p className="text-xs text-muted-foreground">
                     Configure a custom GitLab instance for pipeline execution. If not set, the project will use the default worker repository executor.
                   </p>
