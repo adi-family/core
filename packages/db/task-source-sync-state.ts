@@ -79,19 +79,17 @@ export const batchUpsertSyncStates = async (
 ): Promise<void> => {
   if (states.length === 0) return
 
-  await sql`
-    INSERT INTO task_source_sync_state (task_source_id, issue_id, issue_updated_at, last_seen_at)
-    SELECT * FROM ${sql(states.map(s => ({
-      task_source_id: s.task_source_id,
-      issue_id: s.issue_id,
-      issue_updated_at: s.issue_updated_at,
-      last_seen_at: new Date().toISOString()
-    })))}
-    ON CONFLICT (task_source_id, issue_id)
-    DO UPDATE SET
-      issue_updated_at = EXCLUDED.issue_updated_at,
-      last_seen_at = EXCLUDED.last_seen_at
-  `
+  // Process each state individually to avoid CSV formatting issues
+  for (const state of states) {
+    await sql`
+      INSERT INTO task_source_sync_state (task_source_id, issue_id, issue_updated_at, last_seen_at)
+      VALUES (${state.task_source_id}, ${state.issue_id}, ${state.issue_updated_at}, NOW())
+      ON CONFLICT (task_source_id, issue_id)
+      DO UPDATE SET
+        issue_updated_at = EXCLUDED.issue_updated_at,
+        last_seen_at = NOW()
+    `
+  }
 }
 
 /**
