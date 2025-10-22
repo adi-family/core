@@ -146,60 +146,96 @@ export function SetupProjectPage() {
             </div>
 
             {/* Optional GitLab Executor Configuration */}
-            <div className="border-t pt-4 mt-4">
-              <div className="flex items-center space-x-2 mb-4">
-                <input
-                  id="configureExecutor"
-                  type="checkbox"
-                  checked={configureExecutor}
-                  onChange={(e) => setConfigureExecutor(e.target.checked)}
-                  className="w-4 h-4 rounded border-gray-300"
-                />
-                <label htmlFor="configureExecutor" className="text-sm font-medium">
-                  Configure Custom GitLab Pipeline Executor (Optional)
-                </label>
-              </div>
-              <p className="text-xs text-muted-foreground ml-6">
-                Useful for GitLab Enterprise users. Configuration may require additional time.
-              </p>
-
-              {configureExecutor && (
-                <div className="space-y-4 p-4 bg-gray-50 rounded border mt-4">
-                  <p className="text-xs text-muted-foreground">
-                    Configure a custom GitLab instance for pipeline execution. If not set, the project will use the default worker repository executor.
-                  </p>
-                  <div>
-                    <label
-                      htmlFor="executorHost"
-                      className="block text-sm font-medium mb-2"
-                    >
-                      GitLab Host
-                    </label>
-                    <input
-                      id="executorHost"
-                      type="text"
-                      value={executorHost}
-                      onChange={(e) => setExecutorHost(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md"
-                      placeholder="https://gitlab.the-ihor.com"
-                      required={configureExecutor}
-                    />
+            <div className="border-t pt-6 mt-6">
+              <div className="rounded-lg border border-gray-200 bg-white overflow-hidden">
+                <div className="p-5 bg-gradient-to-r from-gray-50 to-white border-b">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3">
+                        <input
+                          id="configureExecutor"
+                          type="checkbox"
+                          checked={configureExecutor}
+                          onChange={(e) => setConfigureExecutor(e.target.checked)}
+                          className="w-5 h-5 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
+                        />
+                        <label htmlFor="configureExecutor" className="font-medium text-base cursor-pointer">
+                          Custom GitLab Pipeline Executor
+                        </label>
+                        <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                          Optional
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-2 ml-8">
+                        Configure a custom GitLab instance for AI pipeline execution. Recommended for GitLab Enterprise users.
+                      </p>
+                      {!configureExecutor && (
+                        <p className="text-xs text-gray-500 mt-2 ml-8 flex items-center gap-1.5">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          If not configured, the default worker repository will be used
+                        </p>
+                      )}
+                    </div>
                   </div>
-                  <GitlabSecretAutocomplete
-                    projectId={createdProjectId || undefined}
-                    host={executorHost}
-                    value={executorTokenSecretId}
-                    onChange={(secretId) => setExecutorTokenSecretId(secretId)}
-                    onSecretCreated={(secret: Secret) => {
-                      console.log("Secret created:", secret)
-                      setExecutorTokenSecretId(secret.id)
-                    }}
-                    label="GitLab Access Token Secret"
-                    required={configureExecutor}
-                    requiredScopes={["api"]}
-                  />
                 </div>
-              )}
+
+                {configureExecutor && (
+                  <div className="p-6 space-y-5 bg-gray-50/50">
+                    <div className="bg-blue-50 border border-blue-100 rounded-lg p-4">
+                      <div className="flex gap-3">
+                        <svg className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="text-sm">
+                          <p className="font-medium text-blue-900">Enterprise Configuration</p>
+                          <p className="text-blue-700 mt-1">
+                            This setup may take a few minutes to complete. You'll need a GitLab access token with API scope.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg border p-5 space-y-5">
+                      <div>
+                        <label
+                          htmlFor="executorHost"
+                          className="block text-sm font-medium text-gray-700 mb-2"
+                        >
+                          GitLab Host URL
+                        </label>
+                        <input
+                          id="executorHost"
+                          type="text"
+                          value={executorHost}
+                          onChange={(e) => setExecutorHost(e.target.value)}
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary transition-colors"
+                          placeholder="https://gitlab.your-company.com"
+                          required={configureExecutor}
+                        />
+                        <p className="text-xs text-gray-500 mt-1.5">
+                          Enter your GitLab instance URL (e.g., https://gitlab.com or your enterprise URL)
+                        </p>
+                      </div>
+
+                      <GitlabSecretAutocomplete
+                        projectId={createdProjectId || undefined}
+                        host={executorHost}
+                        value={executorTokenSecretId}
+                        onChange={(secretId) => setExecutorTokenSecretId(secretId)}
+                        onSecretCreated={(secret: Secret) => {
+                          console.log("Secret created:", secret)
+                          setExecutorTokenSecretId(secret.id)
+                        }}
+                        label="GitLab Access Token Secret"
+                        required={configureExecutor}
+                        requiredScopes={["api"]}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="flex gap-2 pt-4">
