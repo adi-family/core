@@ -50,6 +50,13 @@ export function GitlabSecretAutocomplete({
   const [scopesValid, setScopesValid] = useState<boolean | null>(null)
   const [tokenInfo, setTokenInfo] = useState<{ name: string; expiresAt: string | null } | null>(null)
 
+  // Selected secret validation state
+  const [selectedSecretValidating, setSelectedSecretValidating] = useState(false)
+  const [selectedSecretValid, setSelectedSecretValid] = useState<boolean | null>(null)
+  const [selectedSecretScopes, setSelectedSecretScopes] = useState<string[]>([])
+  const [selectedSecretScopesValid, setSelectedSecretScopesValid] = useState<boolean | null>(null)
+  const [selectedSecretInfo, setSelectedSecretInfo] = useState<{ name: string; expiresAt: string | null } | null>(null)
+
   // Load existing secrets
   useEffect(() => {
     const loadSecrets = async () => {
@@ -167,6 +174,72 @@ export function GitlabSecretAutocomplete({
     }
   }
 
+  // Validate selected secret with GitLab API
+  const validateSelectedSecret = async (secret: Secret) => {
+    setSelectedSecretValidating(true)
+    setError(null)
+
+    try {
+      // Fetch the secret value
+      const secretRes = await client.secrets[":id"].$get({
+        param: { id: secret.id },
+      })
+
+      if (!secretRes.ok) {
+        setSelectedSecretValid(false)
+        setSelectedSecretScopesValid(false)
+        setError("Failed to fetch secret value")
+        return
+      }
+
+      const secretData = await secretRes.json()
+      const token = secretData.value
+
+      // Validate token with GitLab
+      const tokenResponse = await fetch(`${host}/api/v4/personal_access_tokens/self`, {
+        headers: {
+          "PRIVATE-TOKEN": token,
+        },
+      })
+
+      if (tokenResponse.ok) {
+        const tokenData = await tokenResponse.json()
+        setSelectedSecretValid(true)
+
+        // Extract scopes
+        const scopes = tokenData.scopes || []
+        setSelectedSecretScopes(scopes)
+
+        // Store token info
+        setSelectedSecretInfo({
+          name: tokenData.name,
+          expiresAt: tokenData.expires_at,
+        })
+
+        // Validate required scopes
+        const hasAllScopes = requiredScopes.every(reqScope =>
+          scopes.includes(reqScope) || scopes.includes("api") || scopes.includes("sudo")
+        )
+        setSelectedSecretScopesValid(hasAllScopes)
+
+        if (!hasAllScopes) {
+          const missingScopes = requiredScopes.filter(rs => !scopes.includes(rs) && !scopes.includes("api") && !scopes.includes("sudo"))
+          setError(`Token is missing required scopes: ${missingScopes.join(", ")}. Current scopes: ${scopes.join(", ")}`)
+        }
+      } else {
+        setSelectedSecretValid(false)
+        setSelectedSecretScopesValid(false)
+        setError("Token validation failed. The token may be invalid or expired.")
+      }
+    } catch (err) {
+      setSelectedSecretValid(false)
+      setSelectedSecretScopesValid(false)
+      setError(`Failed to validate secret: ${err instanceof Error ? err.message : "Unknown error"}`)
+    } finally {
+      setSelectedSecretValidating(false)
+    }
+  }
+
   // Auto-validate token when it changes (with debounce)
   useEffect(() => {
     const timeoutId = setTimeout(() => {
@@ -212,6 +285,29 @@ export function GitlabSecretAutocomplete({
       setError(null)
     }
   }, [mode])
+
+  // Validate selected secret when it's selected or host changes (with debounce)
+  useEffect(() => {
+    if (!selectedSecret || mode !== "select") return
+
+    const timeoutId = setTimeout(() => {
+      validateSelectedSecret(selectedSecret)
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSecret, host, mode])
+
+  // Clear selected secret validation when deselected
+  useEffect(() => {
+    if (!selectedSecret) {
+      setSelectedSecretValid(null)
+      setSelectedSecretScopesValid(null)
+      setSelectedSecretScopes([])
+      setSelectedSecretInfo(null)
+      setSelectedSecretValidating(false)
+    }
+  }, [selectedSecret])
 
   const handleCreateSecret = async () => {
     if (!projectId) {
@@ -297,32 +393,88 @@ export function GitlabSecretAutocomplete({
       {mode === "select" && (
         <div className="space-y-3">
           {selectedSecret ? (
-            <div className="bg-white/90 p-3 border border-green-200/60 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-green-600" />
-                <div>
-                  <div className="text-xs uppercase tracking-wide text-green-600 font-medium">
-                    SELECTED SECRET
+            <div className={`bg-white/90 p-4 border ${
+              selectedSecretValidating
+                ? "border-gray-200/60"
+                : selectedSecretValid === true && selectedSecretScopesValid === true
+                ? "border-green-200/60"
+                : selectedSecretValid === false || selectedSecretScopesValid === false
+                ? "border-red-200/60"
+                : "border-gray-200/60"
+            } space-y-3`}>
+              <div className="flex items-start justify-between">
+                <div className="flex items-start gap-3 flex-1">
+                  <div className="relative group mt-1">
+                    {selectedSecretValidating && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
+                    {!selectedSecretValidating && selectedSecretValid === true && selectedSecretScopesValid === true && (
+                      <>
+                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        {/* Tooltip */}
+                        {selectedSecretInfo && (
+                          <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-gray-900 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
+                            <div className="space-y-1">
+                              <div className="font-semibold border-b border-gray-700 pb-1 mb-2">Token Information</div>
+                              <div><span className="text-gray-400">Name:</span> {selectedSecretInfo.name}</div>
+                              <div><span className="text-gray-400">Scopes:</span> {selectedSecretScopes.join(", ")}</div>
+                              {selectedSecretInfo.expiresAt && (
+                                <div><span className="text-gray-400">Expires:</span> {new Date(selectedSecretInfo.expiresAt).toLocaleDateString()}</div>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    {!selectedSecretValidating && selectedSecretValid === true && selectedSecretScopesValid === false && (
+                      <AlertCircle className="w-5 h-5 text-yellow-600" />
+                    )}
+                    {!selectedSecretValidating && selectedSecretValid === false && (
+                      <XCircle className="w-5 h-5 text-red-600" />
+                    )}
                   </div>
-                  <div className="text-sm font-medium">{selectedSecret.name}</div>
-                  {selectedSecret.description && (
-                    <div className="text-xs text-gray-500">{selectedSecret.description}</div>
-                  )}
+                  <div className="flex-1">
+                    <div className={`text-xs uppercase tracking-wide font-medium ${
+                      selectedSecretValidating
+                        ? "text-gray-500"
+                        : selectedSecretValid === true && selectedSecretScopesValid === true
+                        ? "text-green-600"
+                        : selectedSecretValid === false || selectedSecretScopesValid === false
+                        ? "text-red-600"
+                        : "text-gray-500"
+                    }`}>
+                      {selectedSecretValidating ? "VALIDATING SECRET..." : "SELECTED SECRET"}
+                    </div>
+                    <div className="text-sm font-medium mt-1">{selectedSecret.name}</div>
+                    {selectedSecret.description && (
+                      <div className="text-xs text-gray-500 mt-0.5">{selectedSecret.description}</div>
+                    )}
+                    {selectedSecretValid === true && selectedSecretScopesValid === false && (
+                      <div className="text-xs text-yellow-600 mt-2 flex items-center gap-1">
+                        <AlertCircle className="w-3 h-3" />
+                        Missing required scopes
+                      </div>
+                    )}
+                    {selectedSecretValid === false && (
+                      <div className="text-xs text-red-600 mt-2 flex items-center gap-1">
+                        <XCircle className="w-3 h-3" />
+                        Token validation failed
+                      </div>
+                    )}
+                  </div>
                 </div>
+                <Button
+                  type="button"
+                  onClick={() => {
+                    setSelectedSecret(null)
+                    setSecretSearch("")
+                    onChange(null, null)
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="text-xs uppercase tracking-wide ml-2"
+                >
+                  CHANGE
+                </Button>
               </div>
-              <Button
-                type="button"
-                onClick={() => {
-                  setSelectedSecret(null)
-                  setSecretSearch("")
-                  onChange(null, null)
-                }}
-                variant="outline"
-                size="sm"
-                className="text-xs uppercase tracking-wide"
-              >
-                CHANGE
-              </Button>
             </div>
           ) : (
             <>
