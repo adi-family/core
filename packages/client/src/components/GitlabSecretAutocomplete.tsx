@@ -179,6 +179,21 @@ export function GitlabSecretAutocomplete({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [newToken, mode])
 
+  // Re-validate token when host changes
+  useEffect(() => {
+    if (newToken && mode === "create" && tokenValid !== null) {
+      // Reset validation state
+      setTokenValid(null)
+      setScopesValid(null)
+      setTokenScopes([])
+      setTokenInfo(null)
+      setError(null)
+      // Re-validate with new host
+      validateToken(newToken)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [host])
+
   const handleCreateSecret = async () => {
     if (!projectId) {
       setError("Project ID is required to create a secret")
