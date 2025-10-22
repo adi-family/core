@@ -9,6 +9,7 @@ import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { decrypt } from '@shared/crypto-utils'
 import { retry, isRetryableError } from '@utils/retry'
 import { createLogger } from '@utils/logger'
+import { CIRepositoryManager } from '../../worker/ci-repository-manager'
 
 const logger = createLogger({ namespace: 'pipeline-executor' })
 
@@ -40,6 +41,110 @@ interface PipelineContext {
   project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null }
   workerRepo: { id: string; current_version: string | null; source_gitlab: unknown }
   source: GitLabSource
+}
+
+/**
+ * Auto-create worker repository if it doesn't exist
+ */
+async function ensureWorkerRepository(
+  project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null },
+  apiClient: BackendClient
+): Promise<{ id: string; current_version: string | null; source_gitlab: unknown }> {
+  // Try to fetch existing worker repository
+  const workerRepoRes = await apiClient.projects[':projectId']['worker-repository'].$get({
+    param: { projectId: project.id }
+  })
+
+  if (workerRepoRes.ok) {
+    // Worker repository exists, return it
+    return await workerRepoRes.json()
+  }
+
+  // Worker repository doesn't exist, auto-create it
+  logger.info(`Worker repository not found for project ${project.name}, auto-creating...`)
+
+  // Determine credentials to use
+  let gitlabHost: string
+  let gitlabToken: string
+  let gitlabUser: string
+
+  if (project.job_executor_gitlab) {
+    // Use user-configured executor credentials
+    const executor = project.job_executor_gitlab
+    gitlabHost = executor.host
+
+    // Fetch secret for access token
+    const secretRes = await apiClient.secrets[':id'].$get({
+      param: { id: executor.access_token_secret_id }
+    })
+
+    if (!secretRes.ok) {
+      throw new Error(`Failed to fetch GitLab executor secret for project ${project.id}`)
+    }
+
+    const secret = await secretRes.json()
+    gitlabToken = secret.value
+
+    // Extract user from token (call GitLab API)
+    const gitlabClient = new GitLabApiClient(gitlabHost, gitlabToken)
+    const user = await gitlabClient.getCurrentUser()
+    gitlabUser = user.username
+
+    logger.info(`Using user-configured GitLab executor: ${gitlabHost} (user: ${gitlabUser})`)
+  } else {
+    // Use default environment credentials
+    gitlabHost = process.env.GITLAB_HOST || ''
+    gitlabToken = process.env.GITLAB_TOKEN || ''
+    gitlabUser = process.env.GITLAB_USER || ''
+
+    if (!gitlabHost || !gitlabToken || !gitlabUser) {
+      throw new Error(
+        `Worker repository not found for project ${project.name} and cannot auto-create: ` +
+        `missing environment variables (GITLAB_HOST, GITLAB_TOKEN, GITLAB_USER) or project executor configuration. ` +
+        `Please configure either project-level GitLab executor or set default environment variables.`
+      )
+    }
+
+    logger.info(`Using default GitLab credentials: ${gitlabHost} (user: ${gitlabUser})`)
+  }
+
+  // Create worker repository
+  const manager = new CIRepositoryManager()
+  const version = '2025-10-18-01'
+  const customPath = `adi-worker-${project.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')}`
+
+  const source = await manager.createWorkerRepository({
+    projectName: project.name,
+    sourceType: 'gitlab',
+    host: gitlabHost,
+    accessToken: gitlabToken,
+    user: gitlabUser,
+    customPath,
+  })
+
+  logger.info(`✓ Created GitLab repository: ${source.project_path}`)
+
+  // Upload CI files
+  await manager.uploadCIFiles({ source, version })
+  logger.info(`✓ Uploaded CI files (version: ${version})`)
+
+  // Save to database
+  const createRes = await apiClient['worker-repositories'].$post({
+    json: {
+      project_id: project.id,
+      source_gitlab: source as unknown,
+      current_version: version,
+    }
+  })
+
+  if (!createRes.ok) {
+    throw new Error('Failed to create worker repository record in database')
+  }
+
+  const workerRepo = await createRes.json()
+  logger.info(`✓ Worker repository auto-created: ${workerRepo.id}`)
+
+  return workerRepo
 }
 
 /**
@@ -75,14 +180,8 @@ async function validateAndFetchPipelineContext(apiClient: BackendClient, session
   }
   const project = await projectRes.json()
 
-  // Fetch worker repository
-  const workerRepoRes = await apiClient.projects[':projectId']['worker-repository'].$get({ param: { projectId: project.id } })
-  if (!workerRepoRes.ok) {
-    throw new Error(
-      `Worker repository not found for project: ${project.name} (${project.id}). Please create a worker repository first using the CIRepositoryManager.`
-    )
-  }
-  const workerRepo = await workerRepoRes.json()
+  // Fetch or auto-create worker repository
+  const workerRepo = await ensureWorkerRepository(project, apiClient)
   const source = workerRepo.source_gitlab as unknown as GitLabSource
 
   // Validate source configuration
