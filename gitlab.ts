@@ -67,7 +67,6 @@ export async function getGitlabIssueList(
 
   const issues = await gitlab.Issues.all({
     projectId: repo,
-    scope: 'assigned_to_me',
     state: 'opened'
   });
 
