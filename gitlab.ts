@@ -45,7 +45,6 @@ export class GitlabIssueMinimalList extends Issue {
 
 export async function getGitlabIssueList(
   repo: string,
-  labels: string[] = ['DOIT'],
   host?: string,
   accessToken?: string
 ): Promise<GitlabIssueMinimalList[]> {
@@ -54,9 +53,6 @@ export async function getGitlabIssueList(
   }
   if (!repo.includes('/')) {
     throw new Error('GitLab repo must be in format owner/name (e.g., gitlab-org/gitlab)');
-  }
-  if (!Array.isArray(labels) || labels.length === 0) {
-    throw new Error('GitLab labels must be a non-empty array');
   }
 
   const token = accessToken || process.env.GITLAB_TOKEN;
@@ -71,7 +67,6 @@ export async function getGitlabIssueList(
 
   const issues = await gitlab.Issues.all({
     projectId: repo,
-    labels: labels.join(','),
     scope: 'assigned_to_me',
     state: 'opened'
   });

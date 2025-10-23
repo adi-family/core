@@ -27,7 +27,6 @@ export class GitlabIssuesTaskSource extends BaseTaskSource {
 
     const issues = await getGitlabIssueList(
       this.gitlabConfig.repo,
-      this.gitlabConfig.labels,
       this.gitlabConfig.host,
       accessToken
     );
