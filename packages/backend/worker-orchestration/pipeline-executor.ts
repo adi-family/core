@@ -6,10 +6,10 @@
 import type { PipelineExecution, GitlabExecutorConfig } from '@types'
 import type { BackendClient } from '../api-client'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
-import { decrypt } from '@shared/crypto-utils'
 import { retry, isRetryableError } from '@utils/retry'
 import { createLogger } from '@utils/logger'
 import { CIRepositoryManager } from '../../worker/ci-repository-manager'
+import { validateGitLabSource, decryptGitLabToken, type GitLabSource } from './gitlab-utils'
 
 const logger = createLogger({ namespace: 'pipeline-executor' })
 
@@ -23,17 +23,6 @@ export interface TriggerPipelineResult {
   pipelineUrl: string
 }
 
-/**
- * GitLab source configuration type
- */
-interface GitLabSource {
-  type: string
-  project_id?: string
-  project_path?: string
-  host?: string
-  user?: string
-  access_token_encrypted?: string
-}
 
 interface PipelineContext {
   session: { id: string; task_id: string | null; runner: string | null }
@@ -189,15 +178,7 @@ async function validateAndFetchPipelineContext(apiClient: BackendClient, session
     throw new Error(`Unsupported worker repository type: ${source.type}. Only 'gitlab' is currently supported.`)
   }
 
-  if (!source.project_id || !source.host || !source.access_token_encrypted) {
-    throw new Error(
-      `Invalid worker repository source configuration. Missing required fields: ${[
-        !source.project_id && 'project_id',
-        !source.host && 'host',
-        !source.access_token_encrypted && 'access_token_encrypted',
-      ].filter(Boolean).join(', ')}`
-    )
-  }
+  validateGitLabSource(source)
 
   if (!workerRepo.current_version) {
     throw new Error(`Worker repository ${workerRepo.id} has no current version. Please upload CI files first.`)
@@ -245,14 +226,7 @@ async function getExecutorConfig(
   // Fall back to worker repository executor
   logger.info(`Using worker repository GitLab executor: ${context.source.host}`)
 
-  let accessToken: string
-  try {
-    accessToken = decrypt(context.source.access_token_encrypted!)
-  } catch (error) {
-    throw new Error(
-      `Failed to decrypt GitLab access token. Please check ENCRYPTION_KEY environment variable. Error: ${error instanceof Error ? error.message : String(error)}`
-    )
-  }
+  const accessToken = decryptGitLabToken(context.source.access_token_encrypted!)
 
   return {
     host: context.source.host!,

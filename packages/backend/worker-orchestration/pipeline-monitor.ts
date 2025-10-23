@@ -5,9 +5,9 @@
 
 import type { BackendClient } from '../api-client'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
-import { decrypt } from '@shared/crypto-utils'
 import { retry, isRetryableError } from '@utils/retry'
 import { createLogger } from '@utils/logger'
+import { validateGitLabSource, decryptGitLabToken } from './gitlab-utils'
 
 const logger = createLogger({ namespace: 'pipeline-monitor' })
 
@@ -142,28 +142,13 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
       )
     }
 
-    if (!source.project_id || !source.host || !source.access_token_encrypted) {
-      throw new Error(
-        `Invalid worker repository source configuration. Missing required fields: ${[
-          !source.project_id && 'project_id',
-          !source.host && 'host',
-          !source.access_token_encrypted && 'access_token_encrypted',
-        ].filter(Boolean).join(', ')}`
-      )
-    }
+    validateGitLabSource(source)
 
     // Decrypt access token
-    let accessToken: string
-    try {
-      accessToken = decrypt(source.access_token_encrypted)
-    } catch (error) {
-      throw new Error(
-        `Failed to decrypt GitLab access token. Please check ENCRYPTION_KEY environment variable. Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    }
+    const accessToken = decryptGitLabToken(source.access_token_encrypted!)
 
     // Fetch pipeline status from GitLab with retry logic
-    const gitlabClient = new GitLabApiClient(source.host, accessToken)
+    const gitlabClient = new GitLabApiClient(source.host!, accessToken)
 
     const pipeline = await retry(
       async () => {
