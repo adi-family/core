@@ -3,7 +3,7 @@ import { ApiClient } from './shared/api-client'
 import { readFile } from 'fs/promises'
 import { promisify } from 'util'
 import { exec as execCallback } from 'child_process'
-import { createLogger } from '@utils/logger.ts'
+import { createLogger } from './shared/logger'
 
 const exec = promisify(execCallback)
 const logger = createLogger({ namespace: 'upload-results' })

@@ -239,6 +239,22 @@ export class GitLabApiClient {
   }
 
   /**
+   * Find a project by its path (e.g., "username/project-name")
+   */
+  async findProjectByPath(path: string): Promise<GitLabProject | null> {
+    try {
+      const project = await this.client.Projects.show(path) as unknown as GitLabProject
+      return project
+    } catch (error) {
+      // Project not found
+      if (error instanceof Error && (error.message.includes('404') || error.message.includes('Not Found'))) {
+        return null
+      }
+      throw error
+    }
+  }
+
+  /**
    * Read file content from repository at specific ref (commit/branch/tag)
    */
   async getFile(

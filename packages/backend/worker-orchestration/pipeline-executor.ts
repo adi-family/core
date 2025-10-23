@@ -245,10 +245,18 @@ function preparePipelineConfig(context: PipelineContext, executionId: string): {
   const ciConfigPath = `${context.workerRepo.current_version}/.gitlab-ci-${context.session.runner}.yml`
   logger.info(`✓ Using CI config: ${ciConfigPath}`)
 
+  // Get API base URL from environment - prefer GITLAB_RUNNER_API_URL for public-facing access
+  const apiBaseUrl = process.env.GITLAB_RUNNER_API_URL || process.env.API_BASE_URL || process.env.BACKEND_URL || 'http://localhost:3000'
+  const apiToken = process.env.API_TOKEN || process.env.BACKEND_API_TOKEN || ''
+  const anthropicApiKey = process.env.ANTHROPIC_API_KEY || ''
+
   const variables = {
     SESSION_ID: context.session.id,
     PIPELINE_EXECUTION_ID: executionId,
     CI_CONFIG_PATH: ciConfigPath,
+    API_BASE_URL: apiBaseUrl,
+    API_TOKEN: apiToken,
+    ANTHROPIC_API_KEY: anthropicApiKey,
   }
 
   return { ciConfigPath, variables }

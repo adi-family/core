@@ -6,7 +6,7 @@
 
 import { ApiClient } from './shared/api-client'
 import { mkdir, writeFile } from 'fs/promises'
-import { createLogger } from '@utils/logger.ts'
+import { createLogger } from './shared/logger'
 import Anthropic from '@anthropic-ai/sdk'
 
 const logger = createLogger({ namespace: 'evaluation-pipeline' })

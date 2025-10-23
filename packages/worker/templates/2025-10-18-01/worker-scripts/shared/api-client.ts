@@ -1,53 +1,70 @@
 /**
  * API Client for communicating with our backend
- * Uses Hono RPC for type-safe API calls
+ * Standalone fetch-based client for use in GitLab CI workers
  */
 
-import { hcWithType } from '../../../../../backend/client'
-import type { Session, Task, FileSpace } from '../../../../../types'
-
-export type { Session, Task, FileSpace }
-
-export const createApiClient = (baseUrl: string, token: string) => {
-  return hcWithType(baseUrl, {
-    headers: {
-      Authorization: `Bearer ${token}`
-    }
-  })
+// Minimal type definitions
+export interface Session {
+  id: string
+  task_id: string | null
+  runner: string | null
+  [key: string]: unknown
 }
 
-export type BackendClient = ReturnType<typeof createApiClient>
-
-// Helper to unwrap API responses and throw on error
-async function unwrap<T>(response: { ok: boolean; status: number; statusText: string; text: () => Promise<string>; json: () => Promise<unknown> }): Promise<T> {
-  if (!response.ok) {
-    const errorText = await response.text()
-    throw new Error(`API request failed: ${response.status} ${response.statusText}\n${errorText}`)
-  }
-  return await response.json() as T
+export interface Task {
+  id: string
+  title: string
+  description: string | null
+  project_id: string | null
+  file_space_id: string | null
+  status?: string
+  [key: string]: unknown
 }
 
-// API Client wrapper class
+export interface FileSpace {
+  id: string
+  [key: string]: unknown
+}
+
+// API Client using fetch
 export class ApiClient {
-  private client: BackendClient
+  private baseUrl: string
+  private token: string
 
   constructor(baseUrl: string, token: string) {
-    this.client = createApiClient(baseUrl, token)
+    this.baseUrl = baseUrl
+    this.token = token
+  }
+
+  private async fetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const url = `${this.baseUrl}${path}`
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Authorization': `Bearer ${this.token}`,
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(`API request failed: ${response.status} ${response.statusText}\n${errorText}`)
+    }
+
+    return await response.json() as T
   }
 
   async getSession(sessionId: string): Promise<Session> {
-    const res = await this.client.sessions[':id'].$get({ param: { id: sessionId } })
-    return unwrap<Session>(res)
+    return this.fetch<Session>(`/sessions/${sessionId}`)
   }
 
   async getTask(taskId: string): Promise<Task> {
-    const res = await this.client.tasks[':id'].$get({ param: { id: taskId } })
-    return unwrap<Task>(res)
+    return this.fetch<Task>(`/tasks/${taskId}`)
   }
 
   async getFileSpace(fileSpaceId: string): Promise<FileSpace> {
-    const res = await this.client['file-spaces'][':id'].$get({ param: { id: fileSpaceId } })
-    return unwrap<FileSpace>(res)
+    return this.fetch<FileSpace>(`/file-spaces/${fileSpaceId}`)
   }
 
   async createPipelineArtifact(
@@ -58,21 +75,19 @@ export class ApiClient {
       metadata?: unknown
     }
   ): Promise<void> {
-    const res = await this.client['pipeline-executions'][':executionId'].artifacts.$post({
-      param: { executionId },
-      json: {
+    await this.fetch<void>(`/pipeline-executions/${executionId}/artifacts`, {
+      method: 'POST',
+      body: JSON.stringify({
         pipeline_execution_id: executionId,
         ...data
-      }
+      })
     })
-    await unwrap<void>(res)
   }
 
   async updateTaskStatus(taskId: string, status: string): Promise<void> {
-    const res = await this.client.tasks[':id'].$patch({
-      param: { id: taskId },
-      json: { status }
+    await this.fetch<Task>(`/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status })
     })
-    await unwrap<Task>(res)
   }
 }

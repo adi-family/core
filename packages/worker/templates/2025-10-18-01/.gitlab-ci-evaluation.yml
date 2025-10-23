@@ -11,28 +11,27 @@ prepare:
   image: $WORKER_IMAGE
   script:
     - echo "Installing dependencies"
-    - cd worker-scripts
+    - cd 2025-10-18-01/worker-scripts
     - bun install
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
   cache:
     paths:
-      - worker-scripts/node_modules/
-  only:
-    - pipelines
+      - 2025-10-18-01/worker-scripts/node_modules/
 
 execute:
   stage: execute
   image: $WORKER_IMAGE
   script:
-    - cd worker-scripts
+    - cd 2025-10-18-01/worker-scripts
 
     # Update status to 'running'
     - |
-      curl -X PATCH "$API_BASE_URL/pipeline-executions/$PIPELINE_EXECUTION_ID" \
-        -H "Authorization: Bearer $API_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d '{"status":"running"}'
+      if [ -n "$API_BASE_URL" ]; then
+        bun -e "await fetch(process.env.API_BASE_URL + '/pipeline-executions/' + process.env.PIPELINE_EXECUTION_ID, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + process.env.API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({status:'running'}) })"
+      else
+        echo "⚠️  API_BASE_URL not set, skipping status update"
+      fi
 
     # Run evaluation pipeline (TypeScript with Bun)
     - bun run evaluation-pipeline.ts
@@ -42,41 +41,35 @@ execute:
 
     # Update status based on exit code
     - |
-      if [ $EXIT_CODE -eq 0 ]; then
-        curl -X PATCH "$API_BASE_URL/pipeline-executions/$PIPELINE_EXECUTION_ID" \
-          -H "Authorization: Bearer $API_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d '{"status":"success"}'
+      if [ -n "$API_BASE_URL" ]; then
+        if [ $EXIT_CODE -eq 0 ]; then
+          bun -e "await fetch(process.env.API_BASE_URL + '/pipeline-executions/' + process.env.PIPELINE_EXECUTION_ID, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + process.env.API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({status:'success'}) })"
+        else
+          bun -e "await fetch(process.env.API_BASE_URL + '/pipeline-executions/' + process.env.PIPELINE_EXECUTION_ID, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + process.env.API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({status:'failed'}) })"
+        fi
       else
-        curl -X PATCH "$API_BASE_URL/pipeline-executions/$PIPELINE_EXECUTION_ID" \
-          -H "Authorization: Bearer $API_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d '{"status":"failed"}'
-        exit $EXIT_CODE
+        echo "⚠️  API_BASE_URL not set, skipping status update"
       fi
+      exit $EXIT_CODE
   artifacts:
     paths:
       - results/
     expire_in: 7 days
   cache:
     paths:
-      - worker-scripts/node_modules/
+      - 2025-10-18-01/worker-scripts/node_modules/
     policy: pull
-  only:
-    - pipelines
 
 report:
   stage: report
   image: $WORKER_IMAGE
   script:
-    - cd worker-scripts
+    - cd 2025-10-18-01/worker-scripts
     # Upload artifacts via our API (TypeScript)
     - bun run upload-results.ts
   dependencies:
     - execute
   cache:
     paths:
-      - worker-scripts/node_modules/
+      - 2025-10-18-01/worker-scripts/node_modules/
     policy: pull
-  only:
-    - pipelines

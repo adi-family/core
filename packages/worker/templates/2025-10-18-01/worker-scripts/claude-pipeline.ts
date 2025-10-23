@@ -12,7 +12,7 @@ import { mkdir } from 'fs/promises'
 import { spawn } from 'child_process'
 import { promisify } from 'util'
 import { exec as execCallback } from 'child_process'
-import { createLogger } from '@utils/logger.ts'
+import { createLogger } from './shared/logger'
 
 const exec = promisify(execCallback)
 const logger = createLogger({ namespace: 'claude-pipeline' })

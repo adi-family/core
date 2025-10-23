@@ -44,7 +44,7 @@ export class CIRepositoryManager {
   }
 
   /**
-   * Create a worker repository in GitLab
+   * Create a worker repository in GitLab (or use existing if already created)
    */
   async createWorkerRepository(
     config: CreateWorkerRepositoryConfig
@@ -57,13 +57,34 @@ export class CIRepositoryManager {
 
     const client = new GitLabApiClient(config.host, config.accessToken)
 
-    // Get user's namespace ID
-    const namespaceId = await client.getCurrentUserNamespaceId()
+    // Get user information
+    const user = await client.getCurrentUser()
+    const namespaceId = user.namespace_id
 
-    // Create GitLab project
+    // Build expected project path
+    const projectPath = config.customPath.split('/').pop() || config.customPath
+    const fullPath = `${config.user}/${projectPath}`
+
+    // Check if project already exists
+    const existingProject = await client.findProjectByPath(fullPath)
+
+    if (existingProject) {
+      logger.info(`✓ Found existing GitLab project: ${existingProject.path_with_namespace}`)
+
+      return {
+        type: 'gitlab',
+        project_id: existingProject.id.toString(),
+        project_path: existingProject.path_with_namespace,
+        host: config.host,
+        user: config.user,
+        access_token_encrypted: encrypt(config.accessToken),
+      }
+    }
+
+    // Create GitLab project if it doesn't exist
     const project = await client.createProject({
       name: `adi-worker-${config.projectName}`,
-      path: config.customPath.split('/').pop() || config.customPath,
+      path: projectPath,
       namespace_id: namespaceId,
       visibility: 'private',
       description: `ADI Worker Repository for ${config.projectName}`,
@@ -122,7 +143,16 @@ export class CIRepositoryManager {
     const basePath = config.templateBasePath || this.templateBasePath
     const versionDir = join(basePath, versionPath)
 
-    logger.info(`📤 Uploading CI files for version ${versionPath}...`)
+    // Check if CI files for this version already exist by checking for a key file
+    const markerFilePath = `${versionPath}/worker-scripts/evaluation-pipeline.ts`
+    try {
+      await client.getFile(projectId, markerFilePath, 'main')
+      logger.info(`✓ CI files for version ${versionPath} already exist, skipping upload`)
+      return
+    } catch {
+      // Marker file doesn't exist, proceed with upload
+      logger.info(`📤 Uploading CI files for version ${versionPath}...`)
+    }
 
     // Get all files recursively from version directory
     const allFiles = await this.getAllFiles(versionDir)

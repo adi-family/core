@@ -9,7 +9,7 @@ import { runTrafficCheck } from './shared/traffic-check'
 import { runCompletionCheck } from './shared/completion-check'
 import { runClarificationCheck } from './shared/clarification-check'
 import { mkdir } from 'fs/promises'
-import { createLogger } from '@utils/logger.ts'
+import { createLogger } from './shared/logger'
 
 const logger = createLogger({ namespace: 'gemini-pipeline' })
 

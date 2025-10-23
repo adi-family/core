@@ -36,7 +36,7 @@ export const findStalePipelineExecutions = async (sql: Sql, timeoutMinutes: numb
 
 export const createPipelineExecution = async (sql: Sql, input: CreatePipelineExecutionInput): Promise<PipelineExecution> => {
   const pipelineId = input.pipeline_id || ''
-  const lastStatusUpdate = new Date()
+  const lastStatusUpdate = new Date().toISOString()
 
   const [execution] = await get(sql<PipelineExecution[]>`
     INSERT INTO pipeline_executions (session_id, worker_repository_id, pipeline_id, status, last_status_update)
@@ -50,8 +50,8 @@ export const createPipelineExecution = async (sql: Sql, input: CreatePipelineExe
 }
 
 export const updatePipelineExecution = async (sql: Sql, id: string, input: UpdatePipelineExecutionInput): Promise<Result<PipelineExecution>> => {
-  const lastStatusUpdate = input.last_status_update || new Date()
-  const updatedAt = new Date()
+  const lastStatusUpdate = input.last_status_update || new Date().toISOString()
+  const updatedAt = new Date().toISOString()
 
   let executions: PipelineExecution[]
 
