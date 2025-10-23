@@ -3,6 +3,7 @@ import type { Sql } from 'postgres'
 import type { EntityType, Role } from '../../db/user-access'
 import { hasProjectAccess, hasAccessToResource } from '../../db/user-access'
 import { getClerkUserId } from './clerk'
+import { isServiceAuthenticated } from './service-auth'
 
 /**
  * Fluent API for access control
@@ -36,8 +37,14 @@ class ProjectAccessCheck {
   /**
    * Check if user has access
    * Returns userId if has access, throws 401/403 if not
+   * Internal service calls (API_TOKEN) bypass ACL checks
    */
   async throw(c: Context): Promise<string> {
+    // Internal service calls bypass ACL checks
+    if (isServiceAuthenticated(c)) {
+      return 'service' // Return special marker for service calls
+    }
+
     const userId = getClerkUserId(c)
 
     if (!userId) {
@@ -99,8 +106,14 @@ class ResourceAccessCheck {
   /**
    * Check if user has access
    * Returns userId if has access, throws 401/403 if not
+   * Internal service calls (API_TOKEN) bypass ACL checks
    */
   async throw(c: Context): Promise<string> {
+    // Internal service calls bypass ACL checks
+    if (isServiceAuthenticated(c)) {
+      return 'service' // Return special marker for service calls
+    }
+
     const userId = getClerkUserId(c)
 
     if (!userId) {
