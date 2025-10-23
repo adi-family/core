@@ -3,13 +3,14 @@
  * Triggers GitLab CI pipelines for worker execution
  */
 
-import type { PipelineExecution, GitlabExecutorConfig } from '@types'
+import type { PipelineExecution, GitlabExecutorConfig, AIProviderConfig } from '@types'
 import type { BackendClient } from '../api-client'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { retry, isRetryableError } from '@utils/retry'
 import { createLogger } from '@utils/logger'
 import { CIRepositoryManager } from '../../worker/ci-repository-manager'
 import { validateGitLabSource, decryptGitLabToken, type GitLabSource } from './gitlab-utils'
+import { decrypt } from '@shared/crypto-utils'
 
 const logger = createLogger({ namespace: 'pipeline-executor' })
 
@@ -27,7 +28,7 @@ export interface TriggerPipelineResult {
 interface PipelineContext {
   session: { id: string; task_id: string | null; runner: string | null }
   task: { id: string; project_id: string | null }
-  project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null }
+  project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null; ai_provider_configs: AIProviderConfig | null }
   workerRepo: { id: string; current_version: string | null; source_gitlab: unknown }
   source: GitLabSource
 }
@@ -71,7 +72,7 @@ async function ensureWorkerRepository(
       throw new Error(`Failed to fetch GitLab executor secret for project ${project.id}`)
     }
 
-    const secret = await secretRes.json()
+    const secret = await secretRes.json() as any
     gitlabToken = secret.value
 
     // Extract user from token (call GitLab API)
@@ -214,7 +215,7 @@ async function getExecutorConfig(
       )
     }
 
-    const secret = await secretRes.json()
+    const secret = await secretRes.json() as any
 
     return {
       host: executor.host,
@@ -236,19 +237,164 @@ async function getExecutorConfig(
 }
 
 /**
+ * Fetch and decrypt AI provider configurations and prepare environment variables
+ */
+async function getAIProviderEnvVars(
+  projectId: string,
+  aiProviderConfigs: AIProviderConfig | null,
+  apiClient: BackendClient
+): Promise<Record<string, string>> {
+  const envVars: Record<string, string> = {}
+
+  if (!aiProviderConfigs) {
+    return envVars
+  }
+
+  try {
+    // Process Anthropic configuration
+    if (aiProviderConfigs.anthropic) {
+      const config = aiProviderConfigs.anthropic
+      try {
+        const secretRes = await apiClient.secrets[':id'].$get({ param: { id: config.api_key_secret_id } })
+        if (secretRes.ok) {
+          const secret = await secretRes.json() as any
+          const apiKey = secret.is_encrypted && secret.encrypted_value
+            ? decrypt(secret.encrypted_value)
+            : secret.value
+
+          envVars.ANTHROPIC_API_KEY = apiKey
+          logger.info(`✓ Loaded ANTHROPIC_API_KEY from secret ${config.api_key_secret_id}`)
+
+          if (config.type === 'self-hosted' && config.endpoint_url) {
+            envVars.ANTHROPIC_API_URL = config.endpoint_url
+            logger.info(`✓ Set ANTHROPIC_API_URL to ${config.endpoint_url}`)
+          }
+
+          if (config.model) {
+            envVars.ANTHROPIC_MODEL = config.model
+          }
+          if (config.max_tokens) {
+            envVars.ANTHROPIC_MAX_TOKENS = config.max_tokens.toString()
+          }
+          if (config.temperature !== undefined) {
+            envVars.ANTHROPIC_TEMPERATURE = config.temperature.toString()
+          }
+        }
+      } catch (error) {
+        logger.warn(`⚠️  Failed to load Anthropic config: ${error}`)
+      }
+    }
+
+    // Process OpenAI configuration
+    if (aiProviderConfigs.openai) {
+      const config = aiProviderConfigs.openai
+      try {
+        const secretRes = await apiClient.secrets[':id'].$get({ param: { id: config.api_key_secret_id } })
+        if (secretRes.ok) {
+          const secret = await secretRes.json() as any
+          const apiKey = secret.is_encrypted && secret.encrypted_value
+            ? decrypt(secret.encrypted_value)
+            : secret.value
+
+          envVars.OPENAI_API_KEY = apiKey
+          logger.info(`✓ Loaded OPENAI_API_KEY from secret ${config.api_key_secret_id}`)
+
+          if (config.type === 'azure') {
+            envVars.OPENAI_API_BASE = config.endpoint_url
+            envVars.OPENAI_API_TYPE = 'azure'
+            envVars.OPENAI_API_VERSION = config.api_version
+            envVars.OPENAI_DEPLOYMENT_NAME = config.deployment_name
+            logger.info(`✓ Configured Azure OpenAI with deployment ${config.deployment_name}`)
+          } else if (config.type === 'self-hosted') {
+            envVars.OPENAI_API_BASE = config.endpoint_url
+            logger.info(`✓ Set OPENAI_API_BASE to ${config.endpoint_url}`)
+          } else if (config.type === 'cloud' && config.organization_id) {
+            envVars.OPENAI_ORGANIZATION = config.organization_id
+          }
+
+          if (config.model) {
+            envVars.OPENAI_MODEL = config.model
+          }
+          if (config.max_tokens) {
+            envVars.OPENAI_MAX_TOKENS = config.max_tokens.toString()
+          }
+          if (config.temperature !== undefined) {
+            envVars.OPENAI_TEMPERATURE = config.temperature.toString()
+          }
+        }
+      } catch (error) {
+        logger.warn(`⚠️  Failed to load OpenAI config: ${error}`)
+      }
+    }
+
+    // Process Google configuration
+    if (aiProviderConfigs.google) {
+      const config = aiProviderConfigs.google
+      try {
+        const secretRes = await apiClient.secrets[':id'].$get({ param: { id: config.api_key_secret_id } })
+        if (secretRes.ok) {
+          const secret = await secretRes.json() as any
+          const apiKey = secret.is_encrypted && secret.encrypted_value
+            ? decrypt(secret.encrypted_value)
+            : secret.value
+
+          envVars.GOOGLE_API_KEY = apiKey
+          logger.info(`✓ Loaded GOOGLE_API_KEY from secret ${config.api_key_secret_id}`)
+
+          if (config.type === 'vertex') {
+            envVars.GOOGLE_PROJECT_ID = config.project_id
+            envVars.GOOGLE_LOCATION = config.location
+            logger.info(`✓ Configured Vertex AI with project ${config.project_id} in ${config.location}`)
+          } else if (config.type === 'self-hosted') {
+            envVars.GOOGLE_API_ENDPOINT = config.endpoint_url
+            logger.info(`✓ Set GOOGLE_API_ENDPOINT to ${config.endpoint_url}`)
+          }
+
+          if (config.model) {
+            envVars.GOOGLE_MODEL = config.model
+          }
+          if (config.max_tokens) {
+            envVars.GOOGLE_MAX_TOKENS = config.max_tokens.toString()
+          }
+          if (config.temperature !== undefined) {
+            envVars.GOOGLE_TEMPERATURE = config.temperature.toString()
+          }
+        }
+      } catch (error) {
+        logger.warn(`⚠️  Failed to load Google config: ${error}`)
+      }
+    }
+  } catch (error) {
+    logger.error(`❌ Failed to fetch AI provider configurations for project ${projectId}: ${error}`)
+  }
+
+  return envVars
+}
+
+/**
  * Prepare pipeline configuration (CI path, variables)
  */
-function preparePipelineConfig(context: PipelineContext, executionId: string): {
+async function preparePipelineConfig(
+  context: PipelineContext,
+  executionId: string,
+  apiClient: BackendClient
+): Promise<{
   ciConfigPath: string
   variables: Record<string, string>
-} {
+}> {
   const ciConfigPath = `${context.workerRepo.current_version}/.gitlab-ci-${context.session.runner}.yml`
   logger.info(`✓ Using CI config: ${ciConfigPath}`)
 
   // Get API base URL from environment - prefer GITLAB_RUNNER_API_URL for public-facing access
   const apiBaseUrl = process.env.GITLAB_RUNNER_API_URL || process.env.API_BASE_URL || process.env.BACKEND_URL || 'http://localhost:3000'
   const apiToken = process.env.API_TOKEN || process.env.BACKEND_API_TOKEN || ''
-  const anthropicApiKey = process.env.ANTHROPIC_API_KEY || ''
+
+  // Fetch AI provider configurations and prepare environment variables
+  const aiEnvVars = await getAIProviderEnvVars(
+    context.project.id,
+    context.project.ai_provider_configs,
+    apiClient
+  )
 
   const variables = {
     SESSION_ID: context.session.id,
@@ -256,7 +402,7 @@ function preparePipelineConfig(context: PipelineContext, executionId: string): {
     CI_CONFIG_PATH: ciConfigPath,
     API_BASE_URL: apiBaseUrl,
     API_TOKEN: apiToken,
-    ANTHROPIC_API_KEY: anthropicApiKey,
+    ...aiEnvVars
   }
 
   return { ciConfigPath, variables }
@@ -352,7 +498,7 @@ export async function triggerPipeline(
     logger.info(`✓ Created pipeline execution record: ${execution.id}`)
 
     // Prepare pipeline configuration
-    const config = preparePipelineConfig(context, execution.id)
+    const config = await preparePipelineConfig(context, execution.id, input.apiClient)
     logger.info(`✓ Pipeline variables prepared`)
 
     // Get executor configuration (project-level or worker repository)

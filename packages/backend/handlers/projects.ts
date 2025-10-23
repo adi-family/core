@@ -4,10 +4,12 @@ import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/projects'
 import * as secretQueries from '../../db/secrets'
 import * as userAccessQueries from '../../db/user-access'
-import { idParamSchema, createProjectSchema, updateProjectSchema, setJobExecutorSchema } from '../schemas'
+import { idParamSchema, createProjectSchema, updateProjectSchema, setJobExecutorSchema, setAIProviderEnterpriseConfigSchema, aiProviderParamSchema } from '../schemas'
 import { getClerkUserId, requireClerkAuth } from '../middleware/clerk'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { verifyGitLabExecutor } from '../services/gitlab-executor-verifier'
+import * as secretsService from '../services/secrets'
+import * as aiProviderValidator from '../services/ai-provider-validator'
 
 export const createProjectRoutes = (sql: Sql) => {
   const acl = createFluentACL(sql)
@@ -245,4 +247,166 @@ export const createProjectRoutes = (sql: Sql) => {
 
       return c.json({ success: true })
     })
+    .get('/:id/ai-providers', zValidator('param', idParamSchema), requireClerkAuth(), async (c) => {
+      const { id } = c.req.valid('param')
+
+      try {
+        await acl.project(id).viewer.gte.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
+      const result = await queries.getProjectAIProviderConfigs(sql, id)
+
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
+
+      if (!result.data) {
+        return c.json({
+          anthropic: null,
+          openai: null,
+          google: null
+        })
+      }
+
+      return c.json({
+        anthropic: result.data.anthropic || null,
+        openai: result.data.openai || null,
+        google: result.data.google || null
+      })
+    })
+    .put('/:id/ai-providers/:provider', zValidator('param', idParamSchema), zValidator('param', aiProviderParamSchema), zValidator('json', setAIProviderEnterpriseConfigSchema), requireClerkAuth(), async (c) => {
+      const { id } = c.req.valid('param')
+      const { provider } = c.req.valid('param')
+      const config = c.req.valid('json')
+
+      try {
+        await acl.project(id).developer.gte.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
+      let secretId: string
+      let createdSecretId: string | null = null
+
+      // Check if api_key_secret_id is provided or if we need to create a secret from api_key
+      const configWithSecretId = config as any
+
+      if (configWithSecretId.api_key_secret_id) {
+        const secretResult = await secretQueries.findSecretById(sql, configWithSecretId.api_key_secret_id)
+        if (!secretResult.ok) {
+          return c.json({ error: 'Secret not found' }, 404)
+        }
+        secretId = configWithSecretId.api_key_secret_id
+      } else if (configWithSecretId.api_key) {
+        const secret = await secretsService.createEncryptedSecret(sql, {
+          project_id: id,
+          name: `${provider}-api-key-${id}-${config.type}`,
+          value: configWithSecretId.api_key,
+          description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} ${config.type} API key`
+        })
+        secretId = secret.id
+        createdSecretId = secret.id
+      } else {
+        return c.json({ error: 'Either api_key or api_key_secret_id is required' }, 400)
+      }
+
+      // Build the final config with api_key_secret_id
+      const finalConfig = {
+        ...config,
+        api_key_secret_id: secretId
+      }
+      delete (finalConfig as any).api_key
+
+      const result = await queries.setProjectAIProviderConfig(sql, id, provider, finalConfig as any)
+
+      if (!result.ok) {
+        if (createdSecretId) {
+          await secretQueries.deleteSecret(sql, createdSecretId)
+        }
+        return c.json({ error: result.error }, 500)
+      }
+
+      return c.json({
+        provider,
+        type: config.type,
+        configured: true
+      })
+    })
+    .delete('/:id/ai-providers/:provider', zValidator('param', idParamSchema), zValidator('param', aiProviderParamSchema), requireClerkAuth(), async (c) => {
+      const { id } = c.req.valid('param')
+      const { provider } = c.req.valid('param')
+
+      try {
+        await acl.project(id).developer.gte.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
+      const providerConfig = await queries.getProjectAIProviderConfig(sql, id, provider)
+      if (providerConfig.ok && providerConfig.data) {
+        const secretId = providerConfig.data.api_key_secret_id
+        if (secretId) {
+          await secretQueries.deleteSecret(sql, secretId)
+        }
+      }
+
+      const result = await queries.removeProjectAIProviderConfig(sql, id, provider)
+
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
+
+      return c.json({ success: true })
+    })
+    .post('/:id/ai-providers/:provider/validate', zValidator('param', idParamSchema), zValidator('param', aiProviderParamSchema), zValidator('json', setAIProviderEnterpriseConfigSchema), requireClerkAuth(), async (c) => {
+      const { id } = c.req.valid('param')
+      const { provider } = c.req.valid('param')
+      const config = c.req.valid('json')
+
+      try {
+        await acl.project(id).developer.gte.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
+      // Get the API key from the config or from secret_id
+      const configWithKey = config as any
+      let apiKey: string
+
+      if (configWithKey.api_key) {
+        apiKey = configWithKey.api_key
+      } else if (configWithKey.api_key_secret_id) {
+        try {
+          apiKey = await secretsService.getDecryptedSecretValue(sql, configWithKey.api_key_secret_id)
+        } catch {
+          return c.json({ error: 'Failed to retrieve API key from secret' }, 400)
+        }
+      } else {
+        return c.json({ error: 'Either api_key or api_key_secret_id is required' }, 400)
+      }
+
+      // Validate the configuration
+      const validationResult = await aiProviderValidator.validateAIProviderConfig(
+        provider,
+        config as any,
+        apiKey
+      )
+
+      return c.json(validationResult)
+    })
 }
+

@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { Project, CreateProjectInput, UpdateProjectInput, Result, GitlabExecutorConfig } from '@types'
+import type { Project, CreateProjectInput, UpdateProjectInput, Result, GitlabExecutorConfig, AIProviderConfig, AnthropicConfig, OpenAIConfig, GoogleConfig } from '@types'
 import { filterPresentColumns } from './utils'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
@@ -112,5 +112,93 @@ export const getProjectJobExecutor = async (
   return {
     ok: true,
     data: projectResult.data.job_executor_gitlab
+  }
+}
+
+/**
+ * Get project's AI provider configurations
+ * Returns null if not set
+ */
+export const getProjectAIProviderConfigs = async (
+  sql: Sql,
+  projectId: string
+): Promise<Result<AIProviderConfig | null>> => {
+  const projectResult = await findProjectById(sql, projectId)
+  if (!projectResult.ok) {
+    return { ok: false, error: projectResult.error }
+  }
+  return {
+    ok: true,
+    data: projectResult.data.ai_provider_configs
+  }
+}
+
+/**
+ * Set AI provider configuration for a project
+ */
+export const setProjectAIProviderConfig = async (
+  sql: Sql,
+  projectId: string,
+  provider: 'anthropic' | 'openai' | 'google',
+  config: AnthropicConfig | OpenAIConfig | GoogleConfig
+): Promise<Result<Project>> => {
+  const projects = await get(sql<Project[]>`
+    UPDATE projects
+    SET
+      ai_provider_configs = COALESCE(ai_provider_configs, '{}'::jsonb) || jsonb_build_object(${provider}, ${sql.json(config)}),
+      updated_at = NOW()
+    WHERE id = ${projectId}
+    RETURNING *
+  `)
+  const [project] = projects
+  return project
+    ? { ok: true, data: project }
+    : { ok: false, error: 'Project not found' }
+}
+
+/**
+ * Remove AI provider configuration from a project
+ */
+export const removeProjectAIProviderConfig = async (
+  sql: Sql,
+  projectId: string,
+  provider: 'anthropic' | 'openai' | 'google'
+): Promise<Result<Project>> => {
+  const projects = await get(sql<Project[]>`
+    UPDATE projects
+    SET
+      ai_provider_configs = ai_provider_configs - ${provider},
+      updated_at = NOW()
+    WHERE id = ${projectId}
+    RETURNING *
+  `)
+  const [project] = projects
+  return project
+    ? { ok: true, data: project }
+    : { ok: false, error: 'Project not found' }
+}
+
+/**
+ * Get specific AI provider configuration for a project
+ */
+export const getProjectAIProviderConfig = async (
+  sql: Sql,
+  projectId: string,
+  provider: 'anthropic' | 'openai' | 'google'
+): Promise<Result<AnthropicConfig | OpenAIConfig | GoogleConfig | null>> => {
+  const projectResult = await findProjectById(sql, projectId)
+  if (!projectResult.ok) {
+    return { ok: false, error: projectResult.error }
+  }
+
+  const config = projectResult.data.ai_provider_configs
+  if (!config) {
+    return { ok: true, data: null }
+  }
+
+  const providerConfig = config[provider]
+  return {
+    ok: true,
+    data: providerConfig || null
   }
 }

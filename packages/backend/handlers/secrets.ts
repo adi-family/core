@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { getClerkUserId, requireClerkAuth } from '../middleware/clerk'
 import * as userAccessQueries from '../../db/user-access'
+import * as secretsService from '../services/secrets'
 
 const idParamSchema = z.object({
   id: z.string()
@@ -41,7 +42,8 @@ export const createSecretRoutes = (sql: Sql) => {
       const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
       const allSecrets = await queries.findAllSecrets(sql)
       const filtered = allSecrets.filter(s => accessibleProjectIds.includes(s.project_id))
-      return c.json(filtered)
+      const sanitized = filtered.map(s => secretsService.sanitizeSecretForResponse(s))
+      return c.json(sanitized)
     })
     .get('/by-project/:projectId', zValidator('param', projectIdParamSchema), async (c) => {
       const { projectId } = c.req.valid('param')
@@ -57,7 +59,8 @@ export const createSecretRoutes = (sql: Sql) => {
       }
 
       const secrets = await queries.findSecretsByProjectId(sql, projectId)
-      return c.json(secrets)
+      const sanitized = secrets.map(s => secretsService.sanitizeSecretForResponse(s))
+      return c.json(sanitized)
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
@@ -78,7 +81,8 @@ export const createSecretRoutes = (sql: Sql) => {
         return c.json({ error: result.error }, 404)
       }
 
-      return c.json(result.data)
+      const sanitized = secretsService.sanitizeSecretForResponse(result.data)
+      return c.json(sanitized)
     })
     .post('/', zValidator('json', createSecretSchema), requireClerkAuth(), async (c) => {
       const body = c.req.valid('json')
@@ -94,7 +98,7 @@ export const createSecretRoutes = (sql: Sql) => {
         throw error
       }
 
-      const secret = await queries.createSecret(sql, body)
+      const secret = await secretsService.createEncryptedSecret(sql, body)
 
       // Grant read access to creator
       if (userId) {
@@ -107,7 +111,8 @@ export const createSecretRoutes = (sql: Sql) => {
         })
       }
 
-      return c.json(secret, 201)
+      const sanitized = secretsService.sanitizeSecretForResponse(secret)
+      return c.json(sanitized, 201)
     })
     .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateSecretSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')
@@ -123,13 +128,14 @@ export const createSecretRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.updateSecret(sql, id, body)
+      const result = await secretsService.updateEncryptedSecret(sql, id, body)
 
       if (!result.ok) {
         return c.json({ error: result.error }, 404)
       }
 
-      return c.json(result.data)
+      const sanitized = secretsService.sanitizeSecretForResponse(result.data)
+      return c.json(sanitized)
     })
     .delete('/:id', zValidator('param', idParamSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')

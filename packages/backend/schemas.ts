@@ -70,6 +70,165 @@ export const setJobExecutorSchema = z.object({
   { message: "Either access_token or access_token_secret_id must be provided" }
 )
 
+export const aiProviderSchema = z.enum(['anthropic', 'openai', 'google'])
+
+export const setAIProviderKeySchema = z.object({
+  api_key: z.string().min(1).optional(),
+  api_key_secret_id: z.string().optional()
+}).refine(
+  (data) => data.api_key || data.api_key_secret_id,
+  { message: "Either api_key or api_key_secret_id must be provided" }
+)
+
+export const aiProviderParamSchema = z.object({
+  provider: aiProviderSchema
+})
+
+// Enterprise AI Provider Configuration Schemas
+
+export const anthropicCloudConfigSchema = z.object({
+  type: z.literal('cloud'),
+  api_key_secret_id: z.string().uuid(),
+  model: z.string().optional(),
+  max_tokens: z.number().int().positive().optional(),
+  temperature: z.number().min(0).max(1).optional()
+})
+
+export const anthropicSelfHostedConfigSchema = z.object({
+  type: z.literal('self-hosted'),
+  api_key_secret_id: z.string().uuid(),
+  endpoint_url: z.string().url(),
+  model: z.string().optional(),
+  max_tokens: z.number().int().positive().optional(),
+  temperature: z.number().min(0).max(1).optional(),
+  additional_headers: z.record(z.string(), z.string()).optional()
+})
+
+export const anthropicConfigSchema = z.discriminatedUnion('type', [
+  anthropicCloudConfigSchema,
+  anthropicSelfHostedConfigSchema
+])
+
+export const openaiCloudConfigSchema = z.object({
+  type: z.literal('cloud'),
+  api_key_secret_id: z.string().uuid(),
+  organization_id: z.string().optional(),
+  model: z.string().optional(),
+  max_tokens: z.number().int().positive().optional(),
+  temperature: z.number().min(0).max(1).optional()
+})
+
+export const openaiAzureConfigSchema = z.object({
+  type: z.literal('azure'),
+  api_key_secret_id: z.string().uuid(),
+  endpoint_url: z.string().url(),
+  deployment_name: z.string().min(1),
+  api_version: z.string().regex(/^\d{4}-\d{2}-\d{2}(-preview)?$/),
+  model: z.string().optional(),
+  max_tokens: z.number().int().positive().optional(),
+  temperature: z.number().min(0).max(1).optional()
+})
+
+export const openaiSelfHostedConfigSchema = z.object({
+  type: z.literal('self-hosted'),
+  api_key_secret_id: z.string().uuid(),
+  endpoint_url: z.string().url(),
+  model: z.string().optional(),
+  max_tokens: z.number().int().positive().optional(),
+  temperature: z.number().min(0).max(1).optional(),
+  additional_headers: z.record(z.string(), z.string()).optional()
+})
+
+export const openaiConfigSchema = z.discriminatedUnion('type', [
+  openaiCloudConfigSchema,
+  openaiAzureConfigSchema,
+  openaiSelfHostedConfigSchema
+])
+
+export const googleCloudConfigSchema = z.object({
+  type: z.literal('cloud'),
+  api_key_secret_id: z.string().uuid(),
+  model: z.string().optional(),
+  max_tokens: z.number().int().positive().optional(),
+  temperature: z.number().min(0).max(1).optional()
+})
+
+export const googleVertexConfigSchema = z.object({
+  type: z.literal('vertex'),
+  api_key_secret_id: z.string().uuid(),
+  project_id: z.string().min(1),
+  location: z.string().min(1),
+  model: z.string().optional(),
+  max_tokens: z.number().int().positive().optional(),
+  temperature: z.number().min(0).max(1).optional()
+})
+
+export const googleSelfHostedConfigSchema = z.object({
+  type: z.literal('self-hosted'),
+  api_key_secret_id: z.string().uuid(),
+  endpoint_url: z.string().url(),
+  model: z.string().optional(),
+  max_tokens: z.number().int().positive().optional(),
+  temperature: z.number().min(0).max(1).optional(),
+  additional_headers: z.record(z.string(), z.string()).optional()
+})
+
+export const googleConfigSchema = z.discriminatedUnion('type', [
+  googleCloudConfigSchema,
+  googleVertexConfigSchema,
+  googleSelfHostedConfigSchema
+])
+
+export const aiProviderEnterpriseConfigSchema = z.object({
+  anthropic: anthropicConfigSchema.optional(),
+  openai: openaiConfigSchema.optional(),
+  google: googleConfigSchema.optional()
+})
+
+// Schema for setting AI provider with raw API key or secret_id
+export const setAIProviderEnterpriseConfigSchema = z.union([
+  anthropicCloudConfigSchema.extend({ api_key: z.string().min(1).optional() }).omit({ api_key_secret_id: true }).merge(
+    z.object({ api_key_secret_id: z.string().uuid().optional() })
+  ).refine(data => data.api_key || data.api_key_secret_id, {
+    message: 'Either api_key or api_key_secret_id must be provided'
+  }),
+  anthropicSelfHostedConfigSchema.extend({ api_key: z.string().min(1).optional() }).omit({ api_key_secret_id: true }).merge(
+    z.object({ api_key_secret_id: z.string().uuid().optional() })
+  ).refine(data => data.api_key || data.api_key_secret_id, {
+    message: 'Either api_key or api_key_secret_id must be provided'
+  }),
+  openaiCloudConfigSchema.extend({ api_key: z.string().min(1).optional() }).omit({ api_key_secret_id: true }).merge(
+    z.object({ api_key_secret_id: z.string().uuid().optional() })
+  ).refine(data => data.api_key || data.api_key_secret_id, {
+    message: 'Either api_key or api_key_secret_id must be provided'
+  }),
+  openaiAzureConfigSchema.extend({ api_key: z.string().min(1).optional() }).omit({ api_key_secret_id: true }).merge(
+    z.object({ api_key_secret_id: z.string().uuid().optional() })
+  ).refine(data => data.api_key || data.api_key_secret_id, {
+    message: 'Either api_key or api_key_secret_id must be provided'
+  }),
+  openaiSelfHostedConfigSchema.extend({ api_key: z.string().min(1).optional() }).omit({ api_key_secret_id: true }).merge(
+    z.object({ api_key_secret_id: z.string().uuid().optional() })
+  ).refine(data => data.api_key || data.api_key_secret_id, {
+    message: 'Either api_key or api_key_secret_id must be provided'
+  }),
+  googleCloudConfigSchema.extend({ api_key: z.string().min(1).optional() }).omit({ api_key_secret_id: true }).merge(
+    z.object({ api_key_secret_id: z.string().uuid().optional() })
+  ).refine(data => data.api_key || data.api_key_secret_id, {
+    message: 'Either api_key or api_key_secret_id must be provided'
+  }),
+  googleVertexConfigSchema.extend({ api_key: z.string().min(1).optional() }).omit({ api_key_secret_id: true }).merge(
+    z.object({ api_key_secret_id: z.string().uuid().optional() })
+  ).refine(data => data.api_key || data.api_key_secret_id, {
+    message: 'Either api_key or api_key_secret_id must be provided'
+  }),
+  googleSelfHostedConfigSchema.extend({ api_key: z.string().min(1).optional() }).omit({ api_key_secret_id: true }).merge(
+    z.object({ api_key_secret_id: z.string().uuid().optional() })
+  ).refine(data => data.api_key || data.api_key_secret_id, {
+    message: 'Either api_key or api_key_secret_id must be provided'
+  })
+])
+
 // Task schemas
 export const taskSchema = z.object({
   id: z.string(),

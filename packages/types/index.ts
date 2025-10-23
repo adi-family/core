@@ -49,11 +49,109 @@ export type GitlabExecutorConfig = {
   user?: string
 }
 
+export type AnthropicCloudConfig = {
+  type: 'cloud'
+  api_key_secret_id: string
+  model?: string
+  max_tokens?: number
+  temperature?: number
+}
+
+export type AnthropicSelfHostedConfig = {
+  type: 'self-hosted'
+  api_key_secret_id: string
+  endpoint_url: string
+  model?: string
+  max_tokens?: number
+  temperature?: number
+  additional_headers?: Record<string, string>
+}
+
+export type AnthropicConfig = AnthropicCloudConfig | AnthropicSelfHostedConfig
+
+export type OpenAICloudConfig = {
+  type: 'cloud'
+  api_key_secret_id: string
+  organization_id?: string
+  model?: string
+  max_tokens?: number
+  temperature?: number
+}
+
+export type OpenAIAzureConfig = {
+  type: 'azure'
+  api_key_secret_id: string
+  endpoint_url: string
+  deployment_name: string
+  api_version: string
+  model?: string
+  max_tokens?: number
+  temperature?: number
+}
+
+export type OpenAISelfHostedConfig = {
+  type: 'self-hosted'
+  api_key_secret_id: string
+  endpoint_url: string
+  model?: string
+  max_tokens?: number
+  temperature?: number
+  additional_headers?: Record<string, string>
+}
+
+export type OpenAIConfig = OpenAICloudConfig | OpenAIAzureConfig | OpenAISelfHostedConfig
+
+export type GoogleCloudConfig = {
+  type: 'cloud'
+  api_key_secret_id: string
+  model?: string
+  max_tokens?: number
+  temperature?: number
+}
+
+export type GoogleVertexConfig = {
+  type: 'vertex'
+  api_key_secret_id: string
+  project_id: string
+  location: string
+  model?: string
+  max_tokens?: number
+  temperature?: number
+}
+
+export type GoogleSelfHostedConfig = {
+  type: 'self-hosted'
+  api_key_secret_id: string
+  endpoint_url: string
+  model?: string
+  max_tokens?: number
+  temperature?: number
+  additional_headers?: Record<string, string>
+}
+
+export type GoogleConfig = GoogleCloudConfig | GoogleVertexConfig | GoogleSelfHostedConfig
+
+export type AIProviderConfig = {
+  anthropic?: AnthropicConfig
+  openai?: OpenAIConfig
+  google?: GoogleConfig
+}
+
+export type AIProviderValidationResult = {
+  valid: boolean
+  endpoint_reachable: boolean
+  authentication_valid: boolean
+  error?: string
+  details?: Record<string, any>
+  tested_at: string
+}
+
 export type Project = {
   id: string
   name: string
   enabled: boolean
   job_executor_gitlab: GitlabExecutorConfig | null
+  ai_provider_configs: AIProviderConfig | null
   created_at: string
   updated_at: string
 }
@@ -261,6 +359,9 @@ export type Secret = {
   project_id: string
   name: string
   value: string
+  encrypted_value: string | null
+  encryption_version: string | null
+  is_encrypted: boolean
   description: string | null
   created_at: string
   updated_at: string

@@ -12,8 +12,9 @@ import { createAuthenticatedClient } from "@/lib/client"
 import type { Project } from "../../../types"
 import { GitlabConfiguration } from "@/components/GitlabConfiguration"
 import { GitlabExecutorConfig } from "@/components/GitlabExecutorConfig"
+import { AIProviderSettings } from "@/components/AIProviderSettings"
 
-type TabType = "overview" | "task-sources" | "configuration"
+type TabType = "overview" | "task-sources" | "configuration" | "ai-providers"
 
 export function ProjectPage() {
   const { id } = useParams<{ id: string }>()
@@ -148,6 +149,7 @@ export function ProjectPage() {
     { id: "overview", label: "OVERVIEW" },
     { id: "task-sources", label: "TASK SOURCES" },
     { id: "configuration", label: "SOURCE SETTINGS" },
+    { id: "ai-providers", label: "AI PROVIDERS" },
   ]
 
   return (
@@ -279,6 +281,10 @@ export function ProjectPage() {
                 <GitlabConfiguration projectId={project.id} />
               </div>
             </div>
+          )}
+
+          {activeTab === "ai-providers" && (
+            <AIProviderSettings projectId={project.id} />
           )}
         </CardContent>
       </Card>
