@@ -221,8 +221,7 @@ export class GitLabApiClient {
    * Get current user information
    */
   async getCurrentUser(): Promise<{ id: number; username: string; name: string; namespace_id: number }> {
-    // @ts-expect-error - current() exists but is not properly typed in @gitbeaker/rest
-    const user = await this.client.Users.current() as unknown as {
+    const user = await this.client.Users.showCurrentUser() as unknown as {
       id: number
       username: string
       name: string
