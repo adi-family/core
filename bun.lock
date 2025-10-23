@@ -129,10 +129,33 @@
     "packages/micros-task-eval": {
       "name": "@adi/micros-task-eval",
       "version": "0.0.0",
+      "dependencies": {
+        "@adi-simple/backend": "workspace:*",
+        "@adi-simple/db": "workspace:*",
+        "@adi-simple/types": "workspace:*",
+        "@adi-simple/utils": "workspace:*",
+        "@adi/queue": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^24.7.1",
+        "typescript": "~5.9.3",
+      },
     },
     "packages/micros-task-sync": {
       "name": "@adi/micros-task-sync",
       "version": "0.0.0",
+      "dependencies": {
+        "@adi-simple/db": "workspace:*",
+        "@adi-simple/types": "workspace:*",
+        "@adi-simple/utils": "workspace:*",
+        "@adi/queue": "workspace:*",
+      },
+      "devDependencies": {
+        "@types/bun": "latest",
+        "@types/node": "^24.7.1",
+        "typescript": "~5.9.3",
+      },
     },
     "packages/queue": {
       "name": "@adi/queue",

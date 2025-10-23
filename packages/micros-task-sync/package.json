@@ -3,7 +3,24 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "scripts": {
+    "dev": "bun --env-file=../../.env --watch index.ts",
+    "start": "bun --env-file=../../.env index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint ."
+  },
   "exports": {
     "./*": "./*"
+  },
+  "dependencies": {
+    "@adi-simple/db": "workspace:*",
+    "@adi-simple/utils": "workspace:*",
+    "@adi/queue": "workspace:*",
+    "@adi-simple/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^24.7.1",
+    "typescript": "~5.9.3"
   }
 }

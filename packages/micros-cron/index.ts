@@ -5,7 +5,7 @@
 
 import { sql } from '@db/client'
 import { createLogger } from '@utils/logger'
-import { startCronScheduler, stopCronScheduler } from './service'
+import { startCronScheduler, stopCronScheduler, startEvalScheduler, stopEvalScheduler } from './service'
 
 const logger = createLogger({ namespace: 'micros-cron-main' })
 
@@ -28,16 +28,23 @@ const queuedTimeoutMinutes = process.env.QUEUED_TIMEOUT_MINUTES
   ? Number(process.env.QUEUED_TIMEOUT_MINUTES)
   : 120
 
+const evalIntervalMinutes = process.env.EVAL_INTERVAL_MINUTES
+  ? Number(process.env.EVAL_INTERVAL_MINUTES)
+  : 5
+
 logger.info('Starting Micros-Cron service...')
 logger.info(`Configuration:`)
 logger.info(`  - Check interval: ${intervalMinutes} minutes`)
 logger.info(`  - Sync threshold: ${syncThresholdMinutes} minutes`)
 logger.info(`  - Stuck task timeout: ${queuedTimeoutMinutes} minutes`)
+logger.info(`  - Eval interval: ${evalIntervalMinutes} minutes`)
 
 // Start the cron scheduler
-let timer: NodeJS.Timeout | null = null
+let syncTimer: NodeJS.Timeout | null = null
+let evalTimer: NodeJS.Timeout | null = null
 try {
-  timer = startCronScheduler(sql, intervalMinutes, syncThresholdMinutes, queuedTimeoutMinutes)
+  syncTimer = startCronScheduler(sql, intervalMinutes, syncThresholdMinutes, queuedTimeoutMinutes)
+  evalTimer = startEvalScheduler(sql, evalIntervalMinutes)
   logger.info('Micros-Cron service started successfully')
 } catch (error) {
   logger.error('Failed to start Micros-Cron service:', error)
@@ -47,8 +54,11 @@ try {
 // Graceful shutdown handlers
 const shutdown = (signal: string) => {
   logger.info(`Received ${signal}, shutting down gracefully...`)
-  if (timer) {
-    stopCronScheduler(timer)
+  if (syncTimer) {
+    stopCronScheduler(syncTimer)
+  }
+  if (evalTimer) {
+    stopEvalScheduler(evalTimer)
   }
   sql.end().then(() => {
     logger.info('Database connection closed')

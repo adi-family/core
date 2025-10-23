@@ -11,7 +11,7 @@ if (!process.env.SERVER_PORT) {
 
 const port = Number(process.env.SERVER_PORT)
 
-// Start scheduler if enabled
+// Start task sync scheduler if enabled
 startScheduler(sql, {
   intervalMs: process.env.SCHEDULER_INTERVAL_MS
     ? Number(process.env.SCHEDULER_INTERVAL_MS)
