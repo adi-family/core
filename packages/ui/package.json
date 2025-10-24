@@ -12,6 +12,10 @@
     "./label": "./src/label.tsx",
     "./select": "./src/select.tsx",
     "./table": "./src/table.tsx",
+    "./tooltip": "./src/tooltip.tsx",
+    "./gitlab-repository-select": "./src/gitlab-repository-select.tsx",
+    "./gitlab-secret-autocomplete": "./src/gitlab-secret-autocomplete.tsx",
+    "./project-select": "./src/project-select.tsx",
     "./lib/utils": "./src/lib/utils.ts"
   },
   "scripts": {
@@ -21,6 +25,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@clerk/clerk-react": "^5.53.3",
     "@radix-ui/react-tooltip": "^1.2.8",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

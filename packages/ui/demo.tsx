@@ -9,6 +9,7 @@ import { SelectDemo } from "./src/SelectDemo";
 import { TableDemo } from "./src/TableDemo";
 import { ComboboxDemo } from "./src/ComboboxDemo";
 import { TooltipDemo } from "./src/TooltipDemo";
+import { GitlabDemo } from "./src/GitlabDemo";
 import "./src/styles.css";
 
 // Define sections for easy extensibility
@@ -22,6 +23,7 @@ const SECTIONS = [
   { id: "tables", label: "Tables" },
   { id: "comboboxes", label: "Comboboxes" },
   { id: "tooltips", label: "Tooltips" },
+  { id: "gitlab", label: "GitLab" },
 ];
 
 function Demo() {
@@ -75,6 +77,7 @@ function Demo() {
           <TableDemo />
           <ComboboxDemo />
           <TooltipDemo />
+          <GitlabDemo />
         </div>
       </main>
     </div>

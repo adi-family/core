@@ -1,13 +1,17 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { useAuth } from "@clerk/clerk-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@adi-simple/ui/card'
 import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
-import { ProjectSelect } from "@/components/ProjectSelect"
-import { GitlabSecretAutocomplete } from "@/components/GitlabSecretAutocomplete"
-import { GitlabRepositorySelect } from "@/components/GitlabRepositorySelect"
-import type { Secret } from "@types"
+import { ProjectSelect } from "@adi-simple/ui/project-select"
+import { GitlabSecretAutocomplete, type Secret } from "@adi-simple/ui/gitlab-secret-autocomplete"
+import { GitlabRepositorySelect } from "@adi-simple/ui/gitlab-repository-select"
+import { createAuthenticatedClient } from "@/lib/client"
 
 export function DebugGitlabSecretPage() {
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
+
   const [projectId, setProjectId] = useState("")
   const [host, setHost] = useState("https://gitlab.com")
   const [selectedSecretId, setSelectedSecretId] = useState<string | null>(null)
@@ -39,6 +43,7 @@ export function DebugGitlabSecretPage() {
               </h4>
 
               <ProjectSelect
+                client={client}
                 value={projectId}
                 onChange={(id) => setProjectId(id)}
                 required={true}
@@ -76,6 +81,7 @@ export function DebugGitlabSecretPage() {
             {/* Component Test */}
             {projectId ? (
               <GitlabSecretAutocomplete
+                client={client}
                 projectId={projectId}
                 host={host}
                 value={selectedSecretId}
