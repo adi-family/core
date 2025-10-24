@@ -1,7 +1,21 @@
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./card";
+import { Input } from "./input";
+import { Label } from "./label";
+import { ProjectSelect } from "./project-select";
+import { GitlabSecretAutocomplete, type Secret } from "./gitlab-secret-autocomplete";
+import { GitlabRepositorySelect } from "./gitlab-repository-select";
+import { mockApiClient, mockProjectClient } from "./mock-client";
 
 export function GitlabDemo() {
+  const [projectId, setProjectId] = useState("");
+  const [host, setHost] = useState("https://gitlab.com");
+  const [selectedSecretId, setSelectedSecretId] = useState<string | null>(null);
+  const [requiredScopes, setRequiredScopes] = useState("api");
+  const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null);
+  const [selectedRepositoryId, setSelectedRepositoryId] = useState<number | null>(null);
+  const [selectedRepository, setSelectedRepository] = useState<any>(null);
+
   return (
     <section id="gitlab" className="space-y-6">
       <div>
@@ -11,72 +25,202 @@ export function GitlabDemo() {
 
       <Card>
         <CardHeader className="bg-gradient-to-r from-orange-600 to-red-500 text-white">
-          <CardTitle>GitLab Integration Components</CardTitle>
+          <CardTitle>GitLab Integration Demo</CardTitle>
           <CardDescription className="text-orange-100">
-            Components for GitLab secrets and repository selection
+            Interactive demo with mock data
           </CardDescription>
         </CardHeader>
-        <CardContent className="space-y-6 pt-6">
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              Available Components
-            </h3>
-            <ul className="space-y-2 text-sm text-gray-700">
-              <li className="flex items-start gap-2">
-                <span className="text-orange-600">•</span>
-                <div>
-                  <strong>GitlabSecretAutocomplete</strong> - Autocomplete for selecting GitLab API tokens with validation
-                </div>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-orange-600">•</span>
-                <div>
-                  <strong>GitlabRepositorySelect</strong> - Search and select from GitLab repositories
-                </div>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-orange-600">•</span>
-                <div>
-                  <strong>ProjectSelect</strong> - Select from available projects with search
-                </div>
-              </li>
-            </ul>
-          </div>
+        <CardContent className="space-y-6">
+          {/* GitlabSecretAutocomplete Section */}
+          <div className="p-4 border border-gray-200/60 bg-gray-50/50 space-y-4">
+            <h3 className="text-xs uppercase tracking-wide font-medium">GITLAB SECRET AUTOCOMPLETE</h3>
 
-          <div className="bg-blue-50 border border-blue-200 p-4 space-y-2">
-            <div className="flex items-center gap-2">
-              <span className="text-blue-600 text-lg">ℹ️</span>
-              <h4 className="font-semibold text-blue-900">Integration Required</h4>
+            {/* Configuration for Secret Autocomplete */}
+            <div className="p-4 border border-blue-200/60 bg-blue-50/50 space-y-4">
+              <h4 className="text-xs uppercase tracking-wide font-medium text-blue-800">
+                COMPONENT CONFIGURATION
+              </h4>
+
+              <ProjectSelect
+                client={mockProjectClient}
+                value={projectId}
+                onChange={(id) => setProjectId(id)}
+                required={true}
+              />
+
+              <div className="space-y-2">
+                <Label htmlFor="host" className="text-xs uppercase tracking-wide">
+                  GITLAB HOST
+                </Label>
+                <Input
+                  id="host"
+                  type="text"
+                  value={host}
+                  onChange={(e) => setHost(e.target.value)}
+                  className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="https://gitlab.com"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="scopes" className="text-xs uppercase tracking-wide">
+                  REQUIRED SCOPES (COMMA-SEPARATED)
+                </Label>
+                <Input
+                  id="scopes"
+                  type="text"
+                  value={requiredScopes}
+                  onChange={(e) => setRequiredScopes(e.target.value)}
+                  className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  placeholder="api, read_api"
+                />
+              </div>
             </div>
-            <p className="text-sm text-blue-800">
-              These components require API client integration to function. They accept a <code className="bg-blue-100 px-1 py-0.5">client</code> prop
-              that provides access to your backend API.
-            </p>
-            <p className="text-sm text-blue-800">
-              See the client implementation for usage examples with authentication.
-            </p>
+
+            {/* Component Test */}
+            {projectId ? (
+              <GitlabSecretAutocomplete
+                client={mockApiClient}
+                projectId={projectId}
+                host={host}
+                value={selectedSecretId}
+                onChange={(secretId, secret) => {
+                  console.log("Selected secret ID:", secretId, secret)
+                  setSelectedSecretId(secretId)
+                  setSelectedSecret(secret || null)
+                }}
+                onSecretCreated={(secret) => {
+                  console.log("Secret created:", secret)
+                  setSelectedSecret(secret)
+                }}
+                requiredScopes={requiredScopes.split(",").map(s => s.trim()).filter(s => s)}
+                required={true}
+              />
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p className="text-xs uppercase tracking-wide">
+                  Please select a project to test the component
+                </p>
+              </div>
+            )}
           </div>
 
-          <div className="space-y-3">
-            <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-              Features
+          {/* GitlabRepositorySelect Section */}
+          <div className="p-4 border border-green-200/60 bg-green-50/50 space-y-4">
+            <h3 className="text-xs uppercase tracking-wide font-medium text-green-800">
+              GITLAB REPOSITORY SELECT
             </h3>
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="p-3 bg-gray-50 border border-gray-200">
-                <div className="font-medium text-sm mb-1">Token Validation</div>
-                <p className="text-xs text-gray-600">Validates GitLab tokens and checks required scopes</p>
+
+            {/* Configuration for Repository Select */}
+            <div className="p-4 border border-blue-200/60 bg-blue-50/50 space-y-4">
+              <h4 className="text-xs uppercase tracking-wide font-medium text-blue-800">
+                COMPONENT CONFIGURATION
+              </h4>
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide">
+                  GITLAB HOST
+                </Label>
+                <div className="font-mono text-sm bg-white/90 p-3 border border-gray-200">
+                  {host}
+                </div>
               </div>
-              <div className="p-3 bg-gray-50 border border-gray-200">
-                <div className="font-medium text-sm mb-1">Repository Search</div>
-                <p className="text-xs text-gray-600">Search through GitLab repositories with autocomplete</p>
+
+              <div className="space-y-2">
+                <Label className="text-xs uppercase tracking-wide">
+                  TOKEN (FROM SELECTED SECRET)
+                </Label>
+                <div className="font-mono text-sm bg-white/90 p-3 border border-gray-200">
+                  {selectedSecret ? "•••••••••••••••••••" : <span className="text-gray-400">No secret selected</span>}
+                </div>
               </div>
-              <div className="p-3 bg-gray-50 border border-gray-200">
-                <div className="font-medium text-sm mb-1">Secret Management</div>
-                <p className="text-xs text-gray-600">Create and select encrypted secrets for GitLab access</p>
+            </div>
+
+            {/* Component Test */}
+            {selectedSecret ? (
+              <GitlabRepositorySelect
+                host={host}
+                token={selectedSecret.value}
+                value={selectedRepositoryId}
+                onChange={(repoId, repo) => {
+                  console.log("Selected repository ID:", repoId, repo)
+                  setSelectedRepositoryId(repoId)
+                  setSelectedRepository(repo)
+                }}
+                required={true}
+              />
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <p className="text-xs uppercase tracking-wide">
+                  Please select a GitLab token secret first
+                </p>
               </div>
-              <div className="p-3 bg-gray-50 border border-gray-200">
-                <div className="font-medium text-sm mb-1">Project Integration</div>
-                <p className="text-xs text-gray-600">Associate GitLab resources with projects</p>
+            )}
+          </div>
+
+          {/* State Display */}
+          <div className="p-4 border border-purple-200/60 bg-purple-50/50 space-y-4">
+            <h3 className="text-xs uppercase tracking-wide font-medium text-purple-800">
+              COMPONENT STATE
+            </h3>
+
+            <div className="space-y-3">
+              <div>
+                <div className="text-xs uppercase tracking-wide text-gray-500">
+                  PROJECT ID
+                </div>
+                <div className="font-mono text-sm mt-1">
+                  {projectId || <span className="text-gray-400">not selected</span>}
+                </div>
+              </div>
+
+              <div>
+                <div className="text-xs uppercase tracking-wide text-gray-500">
+                  SELECTED SECRET ID
+                </div>
+                <div className="font-mono text-sm mt-1">
+                  {selectedSecretId || <span className="text-gray-400">null</span>}
+                </div>
+              </div>
+
+              {selectedSecret && (
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                    SELECTED SECRET
+                  </div>
+                  <div className="bg-white/90 p-3 border border-gray-200 mt-1 font-mono text-xs">
+                    <pre>{JSON.stringify(selectedSecret, null, 2)}</pre>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <div className="text-xs uppercase tracking-wide text-gray-500">
+                  SELECTED REPOSITORY ID
+                </div>
+                <div className="font-mono text-sm mt-1">
+                  {selectedRepositoryId || <span className="text-gray-400">null</span>}
+                </div>
+              </div>
+
+              {selectedRepository && (
+                <div>
+                  <div className="text-xs uppercase tracking-wide text-gray-500">
+                    REPOSITORY DETAILS
+                  </div>
+                  <div className="bg-white/90 p-3 border border-gray-200 mt-1 font-mono text-xs">
+                    <pre>{JSON.stringify(selectedRepository, null, 2)}</pre>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <div className="text-xs uppercase tracking-wide text-gray-500">
+                  DEMO NOTE
+                </div>
+                <div className="text-xs text-gray-600 mt-1">
+                  This demo uses mock data. Open browser console to see interaction logs.
+                </div>
               </div>
             </div>
           </div>
