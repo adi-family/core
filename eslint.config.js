@@ -40,7 +40,7 @@ export default tseslint.config({
     'no-console': 'off',
   },
 }, {
-  files: ['client/**/*.{ts,tsx}'],
+  files: ['client/**/*.{ts,tsx}', 'packages/client/**/*.{ts,tsx}', 'packages/ui/**/*.{ts,tsx}'],
   plugins: {
     'react-hooks': reactPlugin,
     'react-refresh': reactRefresh,
