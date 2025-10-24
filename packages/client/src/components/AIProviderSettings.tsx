@@ -439,18 +439,21 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         {(['anthropic', 'openai', 'google'] as Provider[]).map((provider) => {
           const config = currentConfigs?.[provider]
           const isConfigured = !!config
+          const isSupported = provider === 'anthropic'
 
           return (
             <div
               key={provider}
-              className={`p-4 border-2 rounded-lg transition-all cursor-pointer ${
-                selectedProvider === provider
-                  ? 'border-blue-500 bg-blue-50/50'
+              className={`p-4 border-2 rounded-lg transition-all ${
+                !isSupported
+                  ? 'border-gray-200 bg-gray-50/50 opacity-60 cursor-not-allowed'
+                  : selectedProvider === provider
+                  ? 'border-blue-500 bg-blue-50/50 cursor-pointer'
                   : isConfigured
-                  ? 'border-green-300 bg-green-50/50 hover:border-green-400'
-                  : 'border-gray-200 bg-white hover:border-gray-300'
+                  ? 'border-green-300 bg-green-50/50 hover:border-green-400 cursor-pointer'
+                  : 'border-gray-200 bg-white hover:border-gray-300 cursor-pointer'
               }`}
-              onClick={() => handleProviderSelect(provider)}
+              onClick={() => isSupported && handleProviderSelect(provider)}
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-3">
@@ -461,7 +464,11 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                     {provider === 'anthropic' ? 'Anthropic' : provider === 'openai' ? 'OpenAI' : 'Google'}
                   </h4>
                 </div>
-                {isConfigured ? (
+                {!isSupported ? (
+                  <span className="text-xs font-medium px-2 py-1 bg-gray-200 text-gray-600 rounded uppercase tracking-wide">
+                    Not Supported
+                  </span>
+                ) : isConfigured ? (
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
                     <button
@@ -479,7 +486,11 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                 )}
               </div>
               <div className="text-sm text-gray-600">
-                {isConfigured ? (
+                {!isSupported ? (
+                  <div className="text-xs text-gray-500">
+                    Only Claude-based runners are currently supported
+                  </div>
+                ) : isConfigured ? (
                   <>
                     <div className="capitalize">{config.type}</div>
                     {config.model && <div className="text-xs text-gray-500">{config.model}</div>}
@@ -507,14 +518,24 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
       )}
 
       {/* Help Text */}
-      <div className="bg-blue-50/50 p-4 border border-blue-200/60 text-sm">
-        <p className="text-xs uppercase tracking-wide text-blue-800 font-medium mb-2">Configuration Help</p>
-        <ul className="text-gray-700 space-y-1 text-xs">
-          <li>• API keys are encrypted before storage</li>
-          <li>• Test your configuration before saving</li>
-          <li>• These credentials will be injected as environment variables in pipeline executions</li>
-          <li>• You can configure multiple providers simultaneously</li>
-        </ul>
+      <div className="space-y-3">
+        <div className="bg-amber-50/50 p-4 border border-amber-200/60 text-sm">
+          <p className="text-xs uppercase tracking-wide text-amber-800 font-medium mb-2">Provider Support</p>
+          <p className="text-gray-700 text-xs">
+            Currently, only <strong>Anthropic (Claude)</strong> is supported for pipeline execution.
+            OpenAI and Google providers are not available at this time.
+          </p>
+        </div>
+
+        <div className="bg-blue-50/50 p-4 border border-blue-200/60 text-sm">
+          <p className="text-xs uppercase tracking-wide text-blue-800 font-medium mb-2">Configuration Help</p>
+          <ul className="text-gray-700 space-y-1 text-xs">
+            <li>• API keys are encrypted before storage</li>
+            <li>• Test your configuration before saving</li>
+            <li>• These credentials will be injected as environment variables in pipeline executions</li>
+            <li>• Both Cloud and Self-Hosted Anthropic configurations are supported</li>
+          </ul>
+        </div>
       </div>
     </div>
   )
