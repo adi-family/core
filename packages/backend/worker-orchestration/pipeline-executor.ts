@@ -372,6 +372,40 @@ async function getAIProviderEnvVars(
 }
 
 /**
+ * Validate that required API keys are present for the pipeline runner type
+ */
+function validateRequiredApiKeys(
+  runner: string | null,
+  aiEnvVars: Record<string, string>
+): void {
+  if (!runner) {
+    return // No validation needed if runner type is not specified
+  }
+
+  // Disable non-Claude runners
+  const disabledRunners = ['codex', 'gemini']
+  if (disabledRunners.includes(runner)) {
+    throw new Error(
+      `Cannot start ${runner} pipeline: This runner type is currently disabled. ` +
+      `Only Claude-based runners (evaluation, claude) are supported.`
+    )
+  }
+
+  const runnerKeyMap: Record<string, { key: string; provider: string }> = {
+    'evaluation': { key: 'ANTHROPIC_API_KEY', provider: 'Anthropic (Claude)' },
+    'claude': { key: 'ANTHROPIC_API_KEY', provider: 'Anthropic (Claude)' },
+  }
+
+  const requirement = runnerKeyMap[runner]
+  if (requirement && !aiEnvVars[requirement.key]) {
+    throw new Error(
+      `Cannot start ${runner} pipeline: Missing required API key for ${requirement.provider}. ` +
+      `Please configure the ${requirement.provider} provider in your project settings with a valid API key.`
+    )
+  }
+}
+
+/**
  * Prepare pipeline configuration (CI path, variables)
  */
 async function preparePipelineConfig(
@@ -395,6 +429,10 @@ async function preparePipelineConfig(
     context.project.ai_provider_configs,
     apiClient
   )
+
+  // Validate that required API keys are present before triggering pipeline
+  validateRequiredApiKeys(context.session.runner, aiEnvVars)
+  logger.info(`✓ Required API keys validated for runner type: ${context.session.runner}`)
 
   const variables = {
     SESSION_ID: context.session.id,
