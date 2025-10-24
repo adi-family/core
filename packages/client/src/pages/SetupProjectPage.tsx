@@ -75,10 +75,7 @@ export function SetupProjectPage() {
 
       setSuccess(true)
       setLoading(false)
-
-      setTimeout(() => {
-        navigate("/projects")
-      }, 1500)
+      navigate(`/projects/${project.id}?tab=ai-providers`)
     } catch {
       setError("Error creating project")
       setLoading(false)

@@ -6,6 +6,7 @@ import { Button } from '@adi-simple/ui/button'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { AIProviderConfig, AIProviderValidationResult } from "../../../types"
 import { CheckCircle2, XCircle, Loader2, AlertCircle, Trash2 } from "lucide-react"
+import { siAnthropic, siOpenai, siGoogle } from "simple-icons"
 
 type AIProviderSettingsProps = {
   projectId: string
@@ -192,6 +193,23 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     }
   }
 
+  const getProviderLogo = (provider: Provider) => {
+    const iconData = provider === 'anthropic' ? siAnthropic : provider === 'openai' ? siOpenai : siGoogle
+
+    return (
+      <svg
+        role="img"
+        viewBox="0 0 24 24"
+        className="w-6 h-6"
+        fill={`#${iconData.hex}`}
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <title>{iconData.title}</title>
+        <path d={iconData.path} />
+      </svg>
+    )
+  }
+
   const getProviderTypeOptions = (provider: Provider): { value: ProviderType; label: string }[] => {
     switch (provider) {
       case 'anthropic':
@@ -326,46 +344,6 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
           </div>
         )}
 
-        {/* Optional fields for all providers */}
-        <div className="border-t border-gray-200 pt-4 mt-4">
-          <p className="text-xs uppercase tracking-wide text-gray-500 mb-3">Optional Settings</p>
-
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide">Model</Label>
-            <Input
-              value={formData.model || ''}
-              onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-              placeholder={selectedProvider === 'anthropic' ? 'claude-3-opus-20240229' : selectedProvider === 'openai' ? 'gpt-4' : 'gemini-pro'}
-              className="bg-white"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide">Max Tokens</Label>
-            <Input
-              type="number"
-              value={formData.max_tokens || ''}
-              onChange={(e) => setFormData({ ...formData, max_tokens: e.target.value ? parseInt(e.target.value) : undefined })}
-              placeholder="4000"
-              className="bg-white"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide">Temperature</Label>
-            <Input
-              type="number"
-              step="0.1"
-              min="0"
-              max="2"
-              value={formData.temperature || ''}
-              onChange={(e) => setFormData({ ...formData, temperature: e.target.value ? parseFloat(e.target.value) : undefined })}
-              placeholder="0.7"
-              className="bg-white"
-            />
-          </div>
-        </div>
-
         {/* Validation Result */}
         {validationResult && (
           <div className={`p-4 border ${validationResult.valid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
@@ -474,10 +452,15 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
               }`}
               onClick={() => handleProviderSelect(provider)}
             >
-              <div className="flex items-center justify-between mb-2">
-                <h4 className="font-medium uppercase tracking-wide">
-                  {provider === 'anthropic' ? 'Anthropic' : provider === 'openai' ? 'OpenAI' : 'Google'}
-                </h4>
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className="flex-shrink-0">
+                    {getProviderLogo(provider)}
+                  </div>
+                  <h4 className="font-medium uppercase tracking-wide">
+                    {provider === 'anthropic' ? 'Anthropic' : provider === 'openai' ? 'OpenAI' : 'Google'}
+                  </h4>
+                </div>
                 {isConfigured ? (
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -513,9 +496,12 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
       {/* Configuration Form */}
       {selectedProvider && (
         <div className="mt-6">
-          <h4 className="text-md font-medium uppercase tracking-wide mb-4">
-            Configure {selectedProvider === 'anthropic' ? 'Anthropic' : selectedProvider === 'openai' ? 'OpenAI' : 'Google'}
-          </h4>
+          <div className="flex items-center gap-3 mb-4">
+            {getProviderLogo(selectedProvider)}
+            <h4 className="text-md font-medium uppercase tracking-wide">
+              Configure {selectedProvider === 'anthropic' ? 'Anthropic' : selectedProvider === 'openai' ? 'OpenAI' : 'Google'}
+            </h4>
+          </div>
           {renderProviderForm()}
         </div>
       )}

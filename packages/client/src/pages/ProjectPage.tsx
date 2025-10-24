@@ -1,5 +1,5 @@
 import { useEffect, useState, useMemo } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useAuth } from "@clerk/clerk-react"
 import {
   Card,
@@ -19,12 +19,16 @@ type TabType = "overview" | "task-sources" | "configuration" | "ai-providers"
 export function ProjectPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const [project, setProject] = useState<Project | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<TabType>("overview")
+
+  // Get initial tab from URL query parameter or default to overview
+  const initialTab = (searchParams.get("tab") as TabType) || "overview"
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab)
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -165,34 +169,12 @@ export function ProjectPage() {
 
       <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
         <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle className="text-2xl uppercase tracking-wide">
-                {project.name}
-              </CardTitle>
-              <CardDescription className="text-gray-300">
-                Project Management
-              </CardDescription>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleToggleEnabled}
-                className={`px-4 py-2 text-sm font-medium uppercase tracking-wide transition-all duration-200 shadow-sm active:scale-95 ${
-                  project.enabled
-                    ? "bg-yellow-100/80 text-yellow-800 hover:bg-yellow-200/80"
-                    : "bg-green-100/80 text-green-800 hover:bg-green-200/80"
-                }`}
-              >
-                {project.enabled ? "Disable" : "Enable"}
-              </button>
-              <button
-                onClick={handleDelete}
-                className="px-4 py-2 bg-red-500/90 text-white text-sm font-medium uppercase tracking-wide hover:bg-red-600/90 shadow-sm active:scale-95 transition-all duration-200"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
+          <CardTitle className="text-2xl uppercase tracking-wide">
+            {project.name}
+          </CardTitle>
+          <CardDescription className="text-gray-300">
+            Project Management
+          </CardDescription>
         </CardHeader>
 
         {/* Tabs */}
