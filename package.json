@@ -15,7 +15,8 @@
     "lint:fix": "turbo run lint --fix",
     "hooks:install": "sh hooks/install.sh",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "db:reset": "sh scripts/reset-db.sh"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.1",
