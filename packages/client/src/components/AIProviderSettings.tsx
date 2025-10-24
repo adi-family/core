@@ -465,8 +465,8 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                   </h4>
                 </div>
                 {!isSupported ? (
-                  <span className="text-xs font-medium px-2 py-1 bg-gray-200 text-gray-600 rounded uppercase tracking-wide">
-                    Not Supported
+                  <span className="text-xs font-medium px-2 py-1 bg-amber-100 text-amber-700 rounded uppercase tracking-wide">
+                    Private Beta
                   </span>
                 ) : isConfigured ? (
                   <div className="flex items-center gap-2">
@@ -488,7 +488,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
               <div className="text-sm text-gray-600">
                 {!isSupported ? (
                   <div className="text-xs text-gray-500">
-                    Only Claude-based runners are currently supported
+                    Available only in private beta
                   </div>
                 ) : isConfigured ? (
                   <>
