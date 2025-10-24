@@ -63,48 +63,6 @@ export function ProjectPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id])
 
-  const handleDelete = async () => {
-    if (!id || !confirm("Are you sure you want to delete this project?")) {
-      return
-    }
-
-    try {
-      const res = await client.projects[":id"].$delete({
-        param: { id },
-      })
-
-      if (!res.ok) {
-        alert("Failed to delete project")
-        return
-      }
-
-      navigate("/projects")
-    } catch {
-      alert("Error deleting project")
-    }
-  }
-
-  const handleToggleEnabled = async () => {
-    if (!id || !project) return
-
-    try {
-      const res = await client.projects[":id"].$patch({
-        param: { id },
-        json: { enabled: !project.enabled },
-      })
-
-      if (!res.ok) {
-        alert("Failed to update project")
-        return
-      }
-
-      const updatedProject = await res.json()
-      setProject(updatedProject)
-    } catch {
-      alert("Error updating project")
-    }
-  }
-
   if (loading) {
     return (
       <div className="mx-auto">
