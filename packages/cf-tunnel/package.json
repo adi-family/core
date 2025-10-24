@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun run start-tunnel.ts"
+    "dev": "bun --env-file=../../.env run start-tunnel.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

@@ -17,3 +17,6 @@ packages/client/src/assets/output.css
 !.env.example
 *.md
 !README.md
+
+*storybook.log
+storybook-static
