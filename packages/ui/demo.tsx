@@ -1,11 +1,27 @@
 import React, { useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ButtonDemo } from "./src/ButtonDemo";
-import "../client/src/assets/output.css";
+import { CardDemo } from "./src/CardDemo";
+import { InputDemo } from "./src/InputDemo";
+import { LabelDemo } from "./src/LabelDemo";
+import { BadgeDemo } from "./src/BadgeDemo";
+import { SelectDemo } from "./src/SelectDemo";
+import { TableDemo } from "./src/TableDemo";
+import { ComboboxDemo } from "./src/ComboboxDemo";
+import { TooltipDemo } from "./src/TooltipDemo";
+import "./src/styles.css";
 
 // Define sections for easy extensibility
 const SECTIONS = [
   { id: "buttons", label: "Buttons" },
+  { id: "cards", label: "Cards" },
+  { id: "inputs", label: "Inputs" },
+  { id: "labels", label: "Labels" },
+  { id: "badges", label: "Badges" },
+  { id: "selects", label: "Selects" },
+  { id: "tables", label: "Tables" },
+  { id: "comboboxes", label: "Comboboxes" },
+  { id: "tooltips", label: "Tooltips" },
 ];
 
 function Demo() {
@@ -49,8 +65,16 @@ function Demo() {
 
       {/* Main content */}
       <main className="p-8 grow">
-        <div className="max-w-5xl mx-auto space-y-8 p-6">
+        <div className="max-w-5xl mx-auto space-y-16 p-6">
           <ButtonDemo />
+          <CardDemo />
+          <InputDemo />
+          <LabelDemo />
+          <BadgeDemo />
+          <SelectDemo />
+          <TableDemo />
+          <ComboboxDemo />
+          <TooltipDemo />
         </div>
       </main>
     </div>

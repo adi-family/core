@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -47,87 +45,6 @@ services:
       DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
     command: ["postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable", "up"]
     restart: "no"
-
-  backend:
-    build:
-      context: .
-      dockerfile: ./packages/backend/Dockerfile
-    container_name: adi-simple-backend
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
-      RABBITMQ_URL: amqp://rabbit:rabbit@rabbitmq:5672
-      SERVER_PORT: 5174
-      BACKEND_URL: http://localhost:5174
-      GITLAB_TOKEN: ${GITLAB_TOKEN}
-      GITLAB_HOST: ${GITLAB_HOST}
-      GITLAB_USER: ${GITLAB_USER}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
-      API_TOKEN: ${API_TOKEN}
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
-      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
-    ports:
-      - "5174:5174"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:5174/webhooks/gitlab"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 10s
-
-  worker-task-sync:
-    build:
-      context: .
-      dockerfile: ./packages/micros-task-sync/Dockerfile
-    container_name: adi-simple-worker-task-sync
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
-      RABBITMQ_URL: amqp://rabbit:rabbit@rabbitmq:5672
-      GITLAB_TOKEN: ${GITLAB_TOKEN}
-      GITLAB_HOST: ${GITLAB_HOST}
-      GITLAB_USER: ${GITLAB_USER}
-    restart: unless-stopped
-
-  worker-task-eval:
-    build:
-      context: .
-      dockerfile: ./packages/micros-task-eval/Dockerfile
-    container_name: adi-simple-worker-task-eval
-    depends_on:
-      postgres:
-        condition: service_healthy
-      rabbitmq:
-        condition: service_healthy
-      migrations:
-        condition: service_completed_successfully
-      backend:
-        condition: service_healthy
-    environment:
-      NODE_ENV: production
-      DATABASE_URL: postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable
-      RABBITMQ_URL: amqp://rabbit:rabbit@rabbitmq:5672
-      BACKEND_URL: http://backend:5174
-      GITLAB_TOKEN: ${GITLAB_TOKEN}
-      GITLAB_HOST: ${GITLAB_HOST}
-      GITLAB_USER: ${GITLAB_USER}
-      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
-    restart: unless-stopped
 
 volumes:
   postgres_data:

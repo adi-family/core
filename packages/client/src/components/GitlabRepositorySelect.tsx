@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
+import { Label } from '@adi-simple/ui/label'
+import { Input } from '@adi-simple/ui/input'
 import { Loader2, Search, GitBranch } from "lucide-react"
 
 type Repository = {

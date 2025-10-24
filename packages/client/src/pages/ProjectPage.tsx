@@ -7,7 +7,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from '@adi-simple/ui/card'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { Project } from "../../../types"
 import { GitlabConfiguration } from "@/components/GitlabConfiguration"

@@ -7,8 +7,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+} from '@adi-simple/ui/card'
+import { Button } from '@adi-simple/ui/button'
 import { GitlabSecretAutocomplete } from "@/components/GitlabSecretAutocomplete"
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateProjectInput, Secret } from "../../../types"

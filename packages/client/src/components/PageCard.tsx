@@ -1,5 +1,5 @@
 import { type ReactNode } from 'react'
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from './ui/card'
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@adi-simple/ui/card'
 
 interface PageCardProps {
   title: string

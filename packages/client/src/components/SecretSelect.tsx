@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react"
-import { Combobox } from "@/components/ui/combobox"
-import { Label } from "@/components/ui/label"
+import { Combobox } from '@adi-simple/ui/combobox'
+import { Label } from '@adi-simple/ui/label'
 import { client } from "@/lib/client"
 import type { Secret } from "../../../types"
 

@@ -1,7 +1,7 @@
 import { BasePresenter } from './base'
 import { navigateTo } from '@/utils/navigation'
 import type { Task, TaskSource } from '@types'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@adi-simple/ui/badge'
 import { Circle } from 'lucide-react'
 
 /**

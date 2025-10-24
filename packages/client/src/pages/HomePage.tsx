@@ -5,7 +5,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from '@adi-simple/ui/card'
 
 export function HomePage() {
   return (

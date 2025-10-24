@@ -1,6 +1,6 @@
 import { BasePresenter } from './base'
 import type { TaskSource } from '@types'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@adi-simple/ui/badge'
 import { GitBranch, CheckCircle2, XCircle, Clock, Loader2, CheckCheck, AlertCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { GithubIcon } from '@/components/icons/GithubIcon'

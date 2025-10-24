@@ -5,8 +5,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Button } from "@/components/ui/button"
+} from '@adi-simple/ui/table'
+import { Button } from '@adi-simple/ui/button'
 import { BasePresenter } from "@/presenters/base"
 
 interface PresenterTableProps<T, P extends BasePresenter<T>> {

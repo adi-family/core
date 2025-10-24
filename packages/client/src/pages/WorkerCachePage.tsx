@@ -5,7 +5,7 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
+} from '@adi-simple/ui/card'
 import {
   Table,
   TableBody,
@@ -13,8 +13,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
+} from '@adi-simple/ui/table'
+import { Badge } from '@adi-simple/ui/badge'
 import { client } from "@/lib/client"
 import { Loader2, CheckCircle2, Circle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'

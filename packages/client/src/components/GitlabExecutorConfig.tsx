@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@clerk/clerk-react"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Input } from '@adi-simple/ui/input'
+import { Label } from '@adi-simple/ui/label'
 import { createAuthenticatedClient } from "@/lib/client"
 import { CheckCircle2, XCircle, Loader2, Trash2 } from "lucide-react"
 

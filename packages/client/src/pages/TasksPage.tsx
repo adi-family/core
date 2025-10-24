@@ -5,11 +5,10 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Select } from "@/components/ui/select"
-import { Label } from "@/components/ui/label"
-import { PresenterTable } from "@/components/PresenterTable"
-import { TaskPresenter } from "@/presenters"
+} from '@adi-simple/ui/card'
+import { Select } from '@adi-simple/ui/select'
+import { Label } from '@adi-simple/ui/label'
+import { TaskCard } from "@/components/TaskCard"
 import { client } from "@/lib/client"
 import type { Task, TaskSource } from "../../../types"
 
@@ -91,13 +90,21 @@ export function TasksPage() {
               ))}
             </Select>
           </div>
-          <PresenterTable
-            presenter={TaskPresenter}
-            items={filteredTasks}
-            loading={loading}
-            emptyMessage="No tasks found"
-            buildPresenter={(task) => new TaskPresenter(task, taskSources)}
-          />
+          {loading ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="text-gray-500">Loading tasks...</div>
+            </div>
+          ) : filteredTasks.length === 0 ? (
+            <div className="flex justify-center items-center py-12">
+              <div className="text-gray-500">No tasks found</div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredTasks.map((task) => (
+                <TaskCard key={task.id} task={task} taskSources={taskSources} />
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

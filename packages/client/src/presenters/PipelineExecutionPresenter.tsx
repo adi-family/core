@@ -1,6 +1,6 @@
 import { BasePresenter } from './base'
 import type { PipelineExecution } from '@types'
-import { Badge } from '@/components/ui/badge'
+import { Badge } from '@adi-simple/ui/badge'
 
 export class PipelineExecutionPresenter extends BasePresenter<PipelineExecution> {
   getId(): string {

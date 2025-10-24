@@ -19,7 +19,8 @@ const dirs = getDirectoryDirs('./')
 export default {
   content: [
     './*.{js,jsx,ts,tsx}',
-    ...dirs.map(dir => `${dir}/*.{js,jsx,ts,tsx}`)
+    ...dirs.map(dir => `${dir}/*.{js,jsx,ts,tsx}`),
+    '../ui/**/*.{js,jsx,ts,tsx}'
   ],
   theme: {
     extend: {

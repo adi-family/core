@@ -7,11 +7,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
-import { Select } from "@/components/ui/select"
+} from '@adi-simple/ui/card'
+import { Input } from '@adi-simple/ui/input'
+import { Label } from '@adi-simple/ui/label'
+import { Button } from '@adi-simple/ui/button'
+import { Select } from '@adi-simple/ui/select'
 import { ProjectSelect } from "@/components/ProjectSelect"
 import { SecretSelect } from "@/components/SecretSelect"
 import { GitlabTaskSourceConfig } from "@/components/GitlabTaskSourceConfig"

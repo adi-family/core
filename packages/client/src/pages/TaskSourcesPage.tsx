@@ -6,8 +6,8 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+} from '@adi-simple/ui/card'
+import { Button } from '@adi-simple/ui/button'
 import { PresenterTable } from "@/components/PresenterTable"
 import { TaskSourcePresenter } from "@/presenters"
 import { client } from "@/lib/client"

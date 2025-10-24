@@ -1,7 +1,7 @@
 import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@adi-simple/ui/card'
+import { Input } from '@adi-simple/ui/input'
+import { Label } from '@adi-simple/ui/label'
 import { ProjectSelect } from "@/components/ProjectSelect"
 import { GitlabSecretAutocomplete } from "@/components/GitlabSecretAutocomplete"
 import { GitlabRepositorySelect } from "@/components/GitlabRepositorySelect"

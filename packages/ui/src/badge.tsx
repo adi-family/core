@@ -14,15 +14,15 @@ const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
       <span
         ref={ref}
         className={cn(
-          "inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium uppercase tracking-wide border shadow-sm backdrop-blur-sm transition-all duration-200",
+          "inline-flex items-center justify-center gap-1.5 px-2.5 py-1 text-[0.625rem] leading-none font-semibold uppercase tracking-wider rounded-sm transition-all duration-150",
           {
-            'bg-gray-100/80 text-gray-700 border-gray-300 hover:bg-gray-200/80': variant === 'default' || variant === 'gray',
-            'bg-green-50/80 text-green-700 border-green-300 hover:bg-green-100/80': variant === 'success' || variant === 'green',
-            'bg-yellow-50/80 text-yellow-700 border-yellow-300 hover:bg-yellow-100/80': variant === 'warning',
-            'bg-red-50/80 text-red-700 border-red-300 hover:bg-red-100/80': variant === 'danger',
-            'bg-blue-50/80 text-blue-700 border-blue-300 hover:bg-blue-100/80': variant === 'info' || variant === 'blue',
-            'bg-orange-50/80 text-orange-700 border-orange-300 hover:bg-orange-100/80': variant === 'orange',
-            'bg-purple-50/80 text-purple-700 border-purple-300 hover:bg-purple-100/80': variant === 'purple',
+            'bg-gray-200 text-gray-800 hover:bg-gray-300': variant === 'default' || variant === 'gray',
+            'bg-green-500 text-white hover:bg-green-600': variant === 'success' || variant === 'green',
+            'bg-yellow-500 text-white hover:bg-yellow-600': variant === 'warning',
+            'bg-red-500 text-white hover:bg-red-600': variant === 'danger',
+            'bg-blue-500 text-white hover:bg-blue-600': variant === 'info' || variant === 'blue',
+            'bg-orange-500 text-white hover:bg-orange-600': variant === 'orange',
+            'bg-purple-500 text-white hover:bg-purple-600': variant === 'purple',
           },
           className
         )}
