@@ -16,6 +16,13 @@
     "./gitlab-repository-select": "./src/gitlab-repository-select.tsx",
     "./gitlab-secret-autocomplete": "./src/gitlab-secret-autocomplete.tsx",
     "./project-select": "./src/project-select.tsx",
+    "./task-source-select": "./src/task-source-select.tsx",
+    "./file-space-select": "./src/file-space-select.tsx",
+    "./task-select": "./src/task-select.tsx",
+    "./session-select": "./src/session-select.tsx",
+    "./worker-repository-select": "./src/worker-repository-select.tsx",
+    "./pipeline-execution-select": "./src/pipeline-execution-select.tsx",
+    "./mock-client": "./src/mock-client.ts",
     "./lib/utils": "./src/lib/utils.ts"
   },
   "scripts": {
@@ -25,6 +32,7 @@
     "lint": "eslint ."
   },
   "dependencies": {
+    "@adi-simple/types": "workspace:*",
     "@clerk/clerk-react": "^5.53.3",
     "@radix-ui/react-tooltip": "^1.2.8",
     "class-variance-authority": "^0.7.1",

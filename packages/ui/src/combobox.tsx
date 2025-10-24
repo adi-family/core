@@ -4,6 +4,7 @@ import { cn } from "./lib/utils"
 export interface ComboboxOption {
   value: string
   label: string
+  icon?: React.ReactNode
 }
 
 export interface ComboboxProps {
@@ -95,11 +96,12 @@ export function Combobox({
                   type="button"
                   onClick={() => handleSelect(option.value)}
                   className={cn(
-                    "w-full px-3 py-2 text-left text-sm transition-all duration-200 hover:bg-gray-100/80",
+                    "w-full px-3 py-2 text-left text-sm transition-all duration-200 hover:bg-gray-100/80 flex items-center gap-2",
                     option.value === value && "bg-blue-50/80 text-blue-600 font-medium"
                   )}
                 >
-                  {option.label}
+                  {option.icon && <span className="flex-shrink-0">{option.icon}</span>}
+                  <span>{option.label}</span>
                 </button>
               ))}
             </div>
