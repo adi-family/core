@@ -517,26 +517,6 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         </div>
       )}
 
-      {/* Help Text */}
-      <div className="space-y-3">
-        <div className="bg-amber-50/50 p-4 border border-amber-200/60 text-sm">
-          <p className="text-xs uppercase tracking-wide text-amber-800 font-medium mb-2">Provider Support</p>
-          <p className="text-gray-700 text-xs">
-            Currently, only <strong>Anthropic (Claude)</strong> is supported for pipeline execution.
-            OpenAI and Google providers are not available at this time.
-          </p>
-        </div>
-
-        <div className="bg-blue-50/50 p-4 border border-blue-200/60 text-sm">
-          <p className="text-xs uppercase tracking-wide text-blue-800 font-medium mb-2">Configuration Help</p>
-          <ul className="text-gray-700 space-y-1 text-xs">
-            <li>• API keys are encrypted before storage</li>
-            <li>• Test your configuration before saving</li>
-            <li>• These credentials will be injected as environment variables in pipeline executions</li>
-            <li>• Both Cloud and Self-Hosted Anthropic configurations are supported</li>
-          </ul>
-        </div>
-      </div>
     </div>
   )
 }
