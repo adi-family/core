@@ -1,4 +1,3 @@
-import React from "react";
 import { Tooltip } from "./tooltip";
 import { Badge } from "./badge";
 

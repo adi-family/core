@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { ProjectSelect } from "./project-select";
 import { TaskSourceSelect } from "./task-source-select";
 import { FileSpaceSelect } from "./file-space-select";

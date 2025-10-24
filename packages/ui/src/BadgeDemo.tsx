@@ -1,4 +1,3 @@
-import React from "react";
 import { Badge } from "./badge";
 import { CheckCircle2, AlertCircle, XCircle, Clock, Zap } from "lucide-react";
 

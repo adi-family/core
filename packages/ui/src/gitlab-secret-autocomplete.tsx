@@ -96,7 +96,7 @@ export function GitlabSecretAutocomplete({
 
           // If value is provided, find and select that secret
           if (value) {
-            const secret = secrets.find((s) => s.id === value)
+            const secret = secrets.find((s: Secret) => s.id === value)
             if (secret) {
               setSelectedSecret(secret)
             }
@@ -199,7 +199,7 @@ export function GitlabSecretAutocomplete({
 
     try {
       // Fetch the secret value
-      const secretRes = await client.secrets[":id"].$get({
+      const secretRes = await (client.secrets as any)[":id"].$get({
         param: { id: secret.id },
       })
 
@@ -390,7 +390,7 @@ export function GitlabSecretAutocomplete({
   // Filter secrets based on search
   const filteredSecrets = existingSecrets.filter((secret) =>
     secret.name.toLowerCase().includes(secretSearch.toLowerCase()) ||
-    secret.description?.toLowerCase().includes(secretSearch.toLowerCase())
+    (secret as any).description?.toLowerCase().includes(secretSearch.toLowerCase())
   )
 
   return (
@@ -462,8 +462,8 @@ export function GitlabSecretAutocomplete({
                       {selectedSecretValidating ? "VALIDATING SECRET..." : "SELECTED SECRET"}
                     </div>
                     <div className="text-sm font-medium mt-1">{selectedSecret.name}</div>
-                    {selectedSecret.description && (
-                      <div className="text-xs text-gray-500 mt-0.5">{selectedSecret.description}</div>
+                    {(selectedSecret as any).description && (
+                      <div className="text-xs text-gray-500 mt-0.5">{(selectedSecret as any).description}</div>
                     )}
                     {selectedSecretValid === true && selectedSecretScopesValid === false && (
                       <div className="text-xs text-yellow-600 mt-2">
@@ -524,8 +524,8 @@ export function GitlabSecretAutocomplete({
                               className="w-full px-4 py-3 text-left hover:bg-blue-50/50 transition-colors border-b border-gray-100 last:border-b-0"
                             >
                               <div className="font-medium text-sm">{secret.name}</div>
-                              {secret.description && (
-                                <div className="text-xs text-gray-500 mt-1">{secret.description}</div>
+                              {(secret as any).description && (
+                                <div className="text-xs text-gray-500 mt-1">{(secret as any).description}</div>
                               )}
                             </button>
                           ))
