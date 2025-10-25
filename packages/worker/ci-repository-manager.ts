@@ -174,33 +174,27 @@ export class CIRepositoryManager {
     // Get all files recursively from version directory
     const allFiles = await this.getAllFiles(versionDir)
 
+    // Prepare all files for batch upload
+    const filesToUpload: Array<{ path: string; content: string }> = []
+
     for (const file of allFiles) {
       const localPath = join(versionDir, file)
       const remotePath = `${versionPath}/${file}`
       const content = await readFile(localPath, 'utf-8')
 
-      // Determine commit message based on file type
-      let commitMessage = `Add ${file}`
-      if (file.endsWith('.yml')) {
-        commitMessage = `Add CI configuration: ${file}`
-      } else if (file.includes('worker-scripts')) {
-        commitMessage = `Add worker script: ${file}`
-      } else if (file === 'README.md') {
-        commitMessage = 'Add README documentation'
-      }
-
-      await client.uploadFile(
-        projectId,
-        remotePath,
+      filesToUpload.push({
+        path: remotePath,
         content,
-        commitMessage,
-        'main'
-      )
+      })
 
-      logger.info(`  ✓ Uploaded ${remotePath}`)
+      logger.info(`  📄 Prepared ${remotePath}`)
     }
 
-    logger.info(`✅ Successfully uploaded ${allFiles.length} files for version ${versionPath}`)
+    // Upload all files in a single batch commit
+    const commitMessage = `📦 Upload CI files for version ${versionPath} (${allFiles.length} files)`
+    await client.uploadFiles(projectId, filesToUpload, commitMessage, 'main')
+
+    logger.info(`✅ Successfully uploaded ${allFiles.length} files for version ${versionPath} in a single commit`)
   }
 
   /**

@@ -105,6 +105,23 @@ export interface GitLabPersonalAccessToken {
   expires_at: string | null
 }
 
+export interface GitLabFileAction {
+  action: 'create' | 'delete' | 'move' | 'update' | 'chmod'
+  filePath: string
+  content?: string
+  encoding?: 'text' | 'base64'
+  previousPath?: string
+  executeFilemode?: boolean
+}
+
+export interface GitLabBatchCommitInput {
+  branch: string
+  commitMessage: string
+  actions: GitLabFileAction[]
+  authorEmail?: string
+  authorName?: string
+}
+
 export class GitLabApiClient {
   private client: InstanceType<typeof Gitlab>
   private host: string
@@ -390,5 +407,63 @@ export class GitLabApiClient {
   ): Promise<string> {
     const file = await this.getFile(projectId, filePath, ref)
     return file.content
+  }
+
+  /**
+   * Create a batch commit with multiple file actions (create/update/delete)
+   * This allows uploading multiple files in a single commit, reducing commit clutter
+   */
+  async batchCommit(
+    projectId: string,
+    input: GitLabBatchCommitInput
+  ): Promise<GitLabCommit> {
+    const commit = await this.client.Commits.create(projectId, input.branch, input.commitMessage, input.actions, {
+      authorEmail: input.authorEmail,
+      authorName: input.authorName,
+    }) as unknown as GitLabCommit
+
+    return commit
+  }
+
+  /**
+   * Upload multiple files in a single commit
+   * Automatically detects if files need to be created or updated
+   */
+  async uploadFiles(
+    projectId: string,
+    files: Array<{ path: string; content: string }>,
+    commitMessage: string,
+    branch: string = 'main'
+  ): Promise<GitLabCommit> {
+    // Prepare file actions - try to determine if file exists
+    const actions: GitLabFileAction[] = await Promise.all(
+      files.map(async (file) => {
+        try {
+          // Check if file exists
+          await this.getFile(projectId, file.path, branch)
+          // File exists, update it
+          return {
+            action: 'update' as const,
+            filePath: file.path,
+            content: file.content,
+            encoding: 'text' as const,
+          }
+        } catch {
+          // File doesn't exist, create it
+          return {
+            action: 'create' as const,
+            filePath: file.path,
+            content: file.content,
+            encoding: 'text' as const,
+          }
+        }
+      })
+    )
+
+    return this.batchCommit(projectId, {
+      branch,
+      commitMessage: commitMessage,
+      actions,
+    })
   }
 }

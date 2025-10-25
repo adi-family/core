@@ -134,7 +134,8 @@ export const createAdminRoutes = (sql: Sql) => {
             const projectRoot = resolve(process.cwd(), '../..')
             const templateDir = join(projectRoot, 'packages/worker/templates', templateVersion)
 
-            let uploadedCount = 0
+            // Prepare all files for batch upload
+            const filesToUploadBatch: Array<{ path: string; content: string }> = []
             const fileErrors: Array<{ file: string; error: string }> = []
 
             for (const file of filesToUpdate) {
@@ -143,22 +144,38 @@ export const createAdminRoutes = (sql: Sql) => {
                 logger.info(`[Admin] Reading file: ${filePath}`)
                 const content = await readFile(filePath, 'utf-8')
 
-                logger.info(`[Admin] Uploading to ${file.remote} in project ${repo.source_gitlab.project_id}`)
-                await client.uploadFile(
-                  repo.source_gitlab.project_id,
-                  file.remote,
+                filesToUploadBatch.push({
+                  path: file.remote,
                   content,
-                  `🔄 Admin refresh: ${file.remote}`,
-                  'main'
-                )
+                })
 
-                uploadedCount++
-                logger.info(`[Admin] ✓ Uploaded ${file.remote}`)
+                logger.info(`[Admin] 📄 Prepared ${file.remote}`)
               } catch (fileError) {
                 const errorMsg = fileError instanceof Error ? fileError.message : String(fileError)
-                logger.warn(`[Admin] Failed to update ${file.remote} for ${repo.project_name}:`, errorMsg)
+                logger.warn(`[Admin] Failed to read ${file.remote} for ${repo.project_name}:`, errorMsg)
                 fileErrors.push({ file: file.remote, error: errorMsg })
                 // Continue with other files even if one fails
+              }
+            }
+
+            // Upload all files in a single batch commit
+            let uploadedCount = 0
+            if (filesToUploadBatch.length > 0) {
+              try {
+                const commitMessage = `🔄 Admin refresh: Update ${filesToUploadBatch.length} files`
+                logger.info(`[Admin] Uploading ${filesToUploadBatch.length} files in batch to ${repo.source_gitlab.project_id}`)
+                await client.uploadFiles(
+                  repo.source_gitlab.project_id,
+                  filesToUploadBatch,
+                  commitMessage,
+                  'main'
+                )
+                uploadedCount = filesToUploadBatch.length
+                logger.info(`[Admin] ✓ Batch uploaded ${uploadedCount} files in a single commit`)
+              } catch (uploadError) {
+                const errorMsg = uploadError instanceof Error ? uploadError.message : String(uploadError)
+                logger.error(`[Admin] Failed to batch upload files for ${repo.project_name}:`, errorMsg)
+                fileErrors.push({ file: 'batch upload', error: errorMsg })
               }
             }
 
