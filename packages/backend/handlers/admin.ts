@@ -87,10 +87,12 @@ export const createAdminRoutes = (sql: Sql) => {
         const templateVersion = '2025-10-18-01' // TODO: Make this configurable
         const filesToUpdate = [
           { remote: '.gitlab-ci.yml', local: '.gitlab-ci.yml' },
+          { remote: `${templateVersion}/.gitignore`, local: '.gitignore' },
           { remote: `${templateVersion}/.gitlab-ci-evaluation.yml`, local: '.gitlab-ci-evaluation.yml' },
           { remote: `${templateVersion}/.gitlab-ci-claude.yml`, local: '.gitlab-ci-claude.yml' },
           { remote: `${templateVersion}/.gitlab-ci-codex.yml`, local: '.gitlab-ci-codex.yml' },
           { remote: `${templateVersion}/.gitlab-ci-gemini.yml`, local: '.gitlab-ci-gemini.yml' },
+          { remote: `${templateVersion}/worker-scripts/sync-workspaces.ts`, local: 'worker-scripts/sync-workspaces.ts' },
           { remote: `${templateVersion}/worker-scripts/upload-evaluation-results.ts`, local: 'worker-scripts/upload-evaluation-results.ts' },
           { remote: `${templateVersion}/worker-scripts/upload-results.ts`, local: 'worker-scripts/upload-results.ts' },
           { remote: `${templateVersion}/worker-scripts/shared/api-client.ts`, local: 'worker-scripts/shared/api-client.ts' },
