@@ -1,5 +1,6 @@
-import { useState } from 'react'
-import { api } from '../lib/api'
+import { useState, useMemo, useEffect } from 'react'
+import { useAuth } from '@clerk/clerk-react'
+import { createAuthenticatedClient } from '@/lib/client'
 
 interface WorkerRepository {
   id: string
@@ -30,6 +31,9 @@ interface RefreshResponse {
 }
 
 export function AdminPage() {
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
+
   const [repositories, setRepositories] = useState<WorkerRepository[]>([])
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -41,7 +45,7 @@ export function AdminPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await api.admin['worker-repos'].$get()
+      const response = await client.admin['worker-repos'].$get()
       if (response.ok) {
         const data = await response.json()
         setRepositories(data.repositories as WorkerRepository[])
@@ -66,7 +70,7 @@ export function AdminPage() {
     setRefreshResults(null)
 
     try {
-      const response = await api.admin['refresh-worker-repos'].$post()
+      const response = await client.admin['refresh-worker-repos'].$post()
       if (response.ok) {
         const data = await response.json() as RefreshResponse
         setRefreshResults(data)
@@ -84,9 +88,10 @@ export function AdminPage() {
   }
 
   // Load on mount
-  useState(() => {
+  useEffect(() => {
     loadRepositories()
-  })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return (
     <div className="container mx-auto p-6 max-w-6xl">
