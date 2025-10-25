@@ -109,14 +109,15 @@ async function handleSuccessfulPipeline(
       a.artifact_type === 'text'
     )
 
-    if (evalArtifact?.metadata?.is_ready !== undefined) {
+    if (evalArtifact?.metadata && typeof evalArtifact.metadata === 'object' && 'is_ready' in evalArtifact.metadata) {
       // Use transaction to update both status and result atomically
       await sql.begin(async (sql) => {
         // Update status to completed
         await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'completed')
 
         // Update result
-        const result = evalArtifact.metadata.is_ready ? 'ready' : 'needs_clarification'
+        const metadata = evalArtifact.metadata as { is_ready: boolean }
+        const result = metadata.is_ready ? 'ready' : 'needs_clarification'
         await taskQueries.updateTaskEvaluationResult(sql, task.id, result)
 
         logger.info(`✅ Task ${task.id} synced: completed (${result})`)
