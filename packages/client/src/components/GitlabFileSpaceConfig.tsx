@@ -5,7 +5,7 @@ import { Label } from '@adi-simple/ui/label'
 import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocomplete'
 import { GitlabRepositorySelect } from '@adi-simple/ui/gitlab-repository-select'
 import { createAuthenticatedClient } from "@/lib/client"
-import type { Secret, GitlabFileSpaceConfig as GitlabFileSpaceConfigType } from "../../../types"
+import type { GitlabFileSpaceConfig as GitlabFileSpaceConfigType } from "../../../types"
 
 type GitlabFileSpaceConfigProps = {
   projectId: string
