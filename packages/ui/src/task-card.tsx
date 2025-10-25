@@ -48,7 +48,8 @@ export function TaskCard({
     return "gray"
   }
 
-  const getStepIcon = (status: string) => {
+  const getStepIcon = (status: string | null) => {
+    if (!status) return Circle
     const statusLower = status.toLowerCase()
     if (statusLower === "completed" || statusLower === "success") return CheckCircle2
     if (statusLower === "failed" || statusLower === "error") return XCircle
@@ -57,7 +58,8 @@ export function TaskCard({
     return Circle
   }
 
-  const getStepColor = (status: string) => {
+  const getStepColor = (status: string | null) => {
+    if (!status) return "text-gray-400"
     const statusLower = status.toLowerCase()
     if (statusLower === "completed" || statusLower === "success") return "text-green-600"
     if (statusLower === "failed" || statusLower === "error") return "text-red-600"
@@ -117,8 +119,8 @@ export function TaskCard({
           <div className="flex items-center justify-between gap-2">
             {steps.map((step, index) => {
               const StepIcon = getStepIcon(step.status)
-              const isAnimating = step.status.toLowerCase().includes("ing")
-              const isFailed = step.status.toLowerCase() === "failed"
+              const isAnimating = step.status?.toLowerCase().includes("ing") || false
+              const isFailed = step.status?.toLowerCase() === "failed"
 
               return (
                 <div key={step.label} className="flex items-center flex-1">
