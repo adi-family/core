@@ -55,10 +55,11 @@ export class MessagePresenter extends BasePresenter<Message> {
     return [
       {
         label: 'View Full Data',
-        onClick: (message: Message) => {
+        onClick: async (message: Message) => {
           // TODO: Show modal or navigate to detail view
           console.log('Message data:', message.data)
-          alert(JSON.stringify(message.data, null, 2))
+          const { toast } = await import('sonner')
+          toast.info('Message data logged to console')
         },
         variant: 'default' as const,
       },

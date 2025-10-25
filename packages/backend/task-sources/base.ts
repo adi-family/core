@@ -32,6 +32,12 @@ export abstract class BaseTaskSource {
   abstract getIssues(): AsyncIterable<TaskSourceIssue>;
   abstract getIssueDetails(issueId: string): Promise<TaskSourceIssue>;
 
+  /**
+   * Optional method to revalidate issues by their IDs
+   * Used to check if issues have been closed on the remote platform
+   */
+  revalidateIssues?(iids: number[]): AsyncIterable<TaskSourceIssue>;
+
   getId(): string {
     return this.taskSource.id;
   }

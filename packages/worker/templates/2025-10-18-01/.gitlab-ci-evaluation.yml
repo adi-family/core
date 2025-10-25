@@ -22,6 +22,16 @@ prepare:
 execute:
   stage: execute
   image: $WORKER_IMAGE
+  before_script:
+    # Clone codebase for analysis
+    - |
+      if [ -n "$REPO_URL" ] && [ -n "$REPO_TOKEN" ]; then
+        echo "📦 Cloning codebase from $REPO_URL"
+        git clone https://oauth2:${REPO_TOKEN}@${REPO_URL#https://} codebase
+        echo "✓ Codebase cloned successfully"
+      else
+        echo "⚠️  No repository configured (REPO_URL or REPO_TOKEN missing), skipping clone"
+      fi
   script:
     - cd 2025-10-18-01/worker-scripts
 
@@ -53,7 +63,7 @@ execute:
       exit $EXIT_CODE
   artifacts:
     paths:
-      - results/
+      - 2025-10-18-01/results/
     expire_in: 7 days
   cache:
     paths:
@@ -64,6 +74,9 @@ report:
   stage: report
   image: $WORKER_IMAGE
   script:
+    # Debug: Check if artifacts were downloaded
+    - ls -la 2025-10-18-01/ || echo "Directory not found"
+    - ls -la 2025-10-18-01/results/ || echo "Results directory not found"
     - cd 2025-10-18-01/worker-scripts
     # Upload evaluation artifacts via our API (TypeScript)
     - bun run upload-evaluation-results.ts

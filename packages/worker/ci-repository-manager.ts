@@ -71,6 +71,15 @@ export class CIRepositoryManager {
     if (existingProject) {
       logger.info(`✓ Found existing GitLab project: ${existingProject.path_with_namespace}`)
 
+      // Enable external pipeline variables for existing projects too
+      // This ensures projects created before this feature was added get the correct settings
+      try {
+        await client.enableExternalPipelineVariables(existingProject.id.toString())
+        logger.info(`✓ Enabled external pipeline variables for existing project ${existingProject.path_with_namespace}`)
+      } catch (error) {
+        logger.warn(`⚠️  Failed to enable external pipeline variables for existing project: ${error instanceof Error ? error.message : String(error)}`)
+      }
+
       return {
         type: 'gitlab',
         project_id: existingProject.id.toString(),
@@ -91,6 +100,14 @@ export class CIRepositoryManager {
     })
 
     logger.info(`✓ Created GitLab project: ${project.path_with_namespace}`)
+
+    // Enable external pipeline variables for the newly created project
+    try {
+      await client.enableExternalPipelineVariables(project.id.toString())
+      logger.info(`✓ Enabled external pipeline variables for project ${project.path_with_namespace}`)
+    } catch (error) {
+      logger.warn(`⚠️  Failed to enable external pipeline variables: ${error instanceof Error ? error.message : String(error)}`)
+    }
 
     return {
       type: 'gitlab',

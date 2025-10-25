@@ -101,16 +101,32 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
       {
         label: this.model.enabled ? 'Disable' : 'Enable',
         onClick: async (fileSpace: FileSpace) => {
-          // TODO: Implement toggle enabled status
-          console.log(`Toggle file space ${fileSpace.id} status`)
+          const { client } = await import('@/lib/client')
+          const res = await client["file-spaces"][":id"].$patch({
+            param: { id: fileSpace.id },
+            json: {
+              type: fileSpace.type,
+              enabled: !fileSpace.enabled
+            } as any
+          })
+          if (!res.ok) {
+            console.error('Failed to toggle file space status')
+          }
+          this.onRefresh?.()
         },
         variant: 'outline' as const,
       },
       this.getDeleteAction(
         (fileSpace) => `Are you sure you want to delete "${fileSpace.name}"?`,
         async (fileSpace) => {
-          // TODO: Implement delete action
-          console.log(`Delete file space ${fileSpace.id}`)
+          const { client } = await import('@/lib/client')
+          const res = await client["file-spaces"][":id"].$delete({
+            param: { id: fileSpace.id }
+          })
+          if (!res.ok) {
+            console.error('Failed to delete file space')
+          }
+          this.onRefresh?.()
         }
       ),
     ]

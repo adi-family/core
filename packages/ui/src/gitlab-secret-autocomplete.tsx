@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Input } from './input'
 import { Label } from './label'
 import { Button } from './button'
+import { Portal } from './portal'
 import { CheckCircle2, XCircle, Loader2, Plus, AlertCircle, Search } from "lucide-react"
 
 export type Secret = {
@@ -58,6 +59,8 @@ export function GitlabSecretAutocomplete({
   // Autocomplete for existing secrets
   const [secretSearch, setSecretSearch] = useState("")
   const [showSecretDropdown, setShowSecretDropdown] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  const secretInputRef = useRef<HTMLDivElement>(null)
 
   // Create form state
   const [newToken, setNewToken] = useState("")
@@ -116,7 +119,7 @@ export function GitlabSecretAutocomplete({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
 
-  // Validate token with GitLab API
+  // Validate token with backend API
   const validateToken = async (token: string) => {
     if (!token.trim()) {
       setTokenValid(null)
@@ -130,58 +133,51 @@ export function GitlabSecretAutocomplete({
     setError(null)
 
     try {
-      // Get token information including scopes from GitLab's self endpoint
-      const tokenResponse = await fetch(`${host}/api/v4/personal_access_tokens/self`, {
-        headers: {
-          "PRIVATE-TOKEN": token,
-        },
+      // Validate token using backend endpoint
+      const response = await (client.secrets as any)['validate-gitlab-raw-token'].$post({
+        json: {
+          token,
+          hostname: host,
+          scopes: requiredScopes
+        }
       })
 
-      if (tokenResponse.ok) {
-        const tokenData = await tokenResponse.json()
+      if (response.ok) {
+        const result = await response.json()
         setTokenValid(true)
 
-        // Extract scopes from token data
-        const scopes = tokenData.scopes || []
+        // Extract scopes if available
+        const scopes = result.scopes || []
         setTokenScopes(scopes)
 
         // Store token info
         setTokenInfo({
-          name: tokenData.name,
-          expiresAt: tokenData.expires_at,
+          name: result.tokenInfo?.name || `Token for ${result.username}`,
+          expiresAt: result.tokenInfo?.expiresAt || null,
         })
 
-        // Validate required scopes
-        const hasAllScopes = requiredScopes.every(reqScope =>
-          scopes.includes(reqScope) || scopes.includes("api") || scopes.includes("sudo")
-        )
-        setScopesValid(hasAllScopes)
+        // Validate scopes
+        if (result.scopeValidation) {
+          setTokenValid(result.scopeValidation.validated)
+          setScopesValid(result.scopeValidation.validated)
 
-        // Get user info for username and better success message
-        const userResponse = await fetch(`${host}/api/v4/user`, {
-          headers: {
-            "PRIVATE-TOKEN": token,
-          },
-        })
-
-        let username = "user"
-        if (userResponse.ok) {
-          const userData = await userResponse.json()
-          username = userData.username || userData.name || "user"
-        }
-
-        if (!hasAllScopes) {
-          const missingScopes = requiredScopes.filter(rs => !scopes.includes(rs) && !scopes.includes("api") && !scopes.includes("sudo"))
-          setError(`Token is missing required scopes: ${missingScopes.join(", ")}. Current scopes: ${scopes.join(", ")}`)
+          if (!result.scopeValidation.validated) {
+            setError(result.scopeValidation.message || 'Token is missing required scopes')
+          }
+        } else {
+          // If no scope validation info, assume valid
+          setScopesValid(true)
         }
 
         // Auto-generate secret name if not set (include username)
         if (!secretName) {
-          setSecretName(`GitLab Token [${username}]`)
+          setSecretName(`GitLab Token [${result.username}]`)
         }
       } else {
+        const errorData = await response.json()
         setTokenValid(false)
         setScopesValid(false)
+        setError(errorData.error || 'Token validation failed')
       }
     } catch (err) {
       setTokenValid(false)
@@ -192,62 +188,52 @@ export function GitlabSecretAutocomplete({
     }
   }
 
-  // Validate selected secret with GitLab API
+  // Validate selected secret with backend API
   const validateSelectedSecret = async (secret: Secret) => {
     setSelectedSecretValidating(true)
     setError(null)
 
     try {
-      // Fetch the secret value
-      const secretRes = await (client.secrets as any)[":id"].$get({
-        param: { id: secret.id },
+      // Validate secret using backend endpoint
+      const response = await (client.secrets as any)['validate-gitlab-token'].$post({
+        json: {
+          secretId: secret.id,
+          hostname: host,
+          scopes: requiredScopes
+        }
       })
 
-      if (!secretRes.ok) {
-        setSelectedSecretValid(false)
-        setSelectedSecretScopesValid(false)
-        setError("Failed to fetch secret value")
-        return
-      }
-
-      const secretData = await secretRes.json()
-      const token = secretData.value
-
-      // Validate token with GitLab
-      const tokenResponse = await fetch(`${host}/api/v4/personal_access_tokens/self`, {
-        headers: {
-          "PRIVATE-TOKEN": token,
-        },
-      })
-
-      if (tokenResponse.ok) {
-        const tokenData = await tokenResponse.json()
+      if (response.ok) {
+        const result = await response.json()
         setSelectedSecretValid(true)
 
-        // Extract scopes
-        const scopes = tokenData.scopes || []
+        // Extract scopes if available
+        const scopes = result.scopes || []
         setSelectedSecretScopes(scopes)
 
         // Store token info
         setSelectedSecretInfo({
-          name: tokenData.name,
-          expiresAt: tokenData.expires_at,
+          name: result.tokenInfo?.name || `Token for ${result.username}`,
+          expiresAt: result.tokenInfo?.expiresAt || null,
         })
 
-        // Validate required scopes
-        const hasAllScopes = requiredScopes.every(reqScope =>
-          scopes.includes(reqScope) || scopes.includes("api") || scopes.includes("sudo")
-        )
-        setSelectedSecretScopesValid(hasAllScopes)
+        // Validate scopes
+        if (result.scopeValidation) {
+          setSelectedSecretValid(result.scopeValidation.validated)
+          setSelectedSecretScopesValid(result.scopeValidation.validated)
 
-        if (!hasAllScopes) {
-          const missingScopes = requiredScopes.filter(rs => !scopes.includes(rs) && !scopes.includes("api") && !scopes.includes("sudo"))
-          setError(`Token is missing required scopes: ${missingScopes.join(", ")}. Current scopes: ${scopes.join(", ")}`)
+          if (!result.scopeValidation.validated) {
+            setError(result.scopeValidation.message || 'Token is missing required scopes')
+          }
+        } else {
+          // If no scope validation info, assume valid
+          setSelectedSecretScopesValid(true)
         }
       } else {
+        const errorData = await response.json()
         setSelectedSecretValid(false)
         setSelectedSecretScopesValid(false)
-        setError("Token validation failed. The token may be invalid or expired.")
+        setError(errorData.error || 'Token validation failed. The token may be invalid or expired.')
       }
     } catch (err) {
       setSelectedSecretValid(false)
@@ -338,11 +324,6 @@ export function GitlabSecretAutocomplete({
       return
     }
 
-    if (!tokenValid || !scopesValid) {
-      setError("Please provide a valid token with the required scopes")
-      return
-    }
-
     setLoading(true)
     setError(null)
 
@@ -378,6 +359,25 @@ export function GitlabSecretAutocomplete({
     } finally {
       setLoading(false)
     }
+  }
+
+  const updateDropdownPosition = () => {
+    if (secretInputRef.current) {
+      const rect = secretInputRef.current.getBoundingClientRect()
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
+
+      setDropdownPosition({
+        top: rect.bottom + scrollTop,
+        left: rect.left + scrollLeft,
+        width: rect.width
+      })
+    }
+  }
+
+  const handleSecretInputFocus = () => {
+    updateDropdownPosition()
+    setShowSecretDropdown(true)
   }
 
   const handleSelectSecret = (secret: Secret) => {
@@ -495,15 +495,16 @@ export function GitlabSecretAutocomplete({
           ) : (
             <>
               {existingSecrets.length > 0 && (
-                <div className="relative">
+                <div ref={secretInputRef} className="relative">
                     <Input
                       type="text"
                       value={secretSearch}
                       onChange={(e) => {
                         setSecretSearch(e.target.value)
+                        updateDropdownPosition()
                         setShowSecretDropdown(true)
                       }}
-                      onFocus={() => setShowSecretDropdown(true)}
+                      onFocus={handleSecretInputFocus}
                       onBlur={() => setTimeout(() => setShowSecretDropdown(false), 200)}
                       className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10"
                       placeholder="Search existing secrets..."
@@ -514,7 +515,16 @@ export function GitlabSecretAutocomplete({
 
                     {/* Autocomplete Dropdown */}
                     {showSecretDropdown && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200/60 shadow-lg max-h-60 overflow-auto">
+                      <Portal>
+                        <div
+                          className="absolute bg-white border border-gray-200/60 shadow-lg max-h-60 overflow-auto"
+                          style={{
+                            top: `${dropdownPosition.top}px`,
+                            left: `${dropdownPosition.left}px`,
+                            width: `${dropdownPosition.width}px`,
+                            zIndex: 9999
+                          }}
+                        >
                         {filteredSecrets.length > 0 ? (
                           filteredSecrets.map((secret) => (
                             <button
@@ -534,7 +544,8 @@ export function GitlabSecretAutocomplete({
                             Nothing found
                           </div>
                         )}
-                      </div>
+                        </div>
+                      </Portal>
                     )}
                 </div>
               )}

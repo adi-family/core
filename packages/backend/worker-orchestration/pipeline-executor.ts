@@ -26,7 +26,7 @@ export interface TriggerPipelineResult {
 
 interface PipelineContext {
   session: { id: string; task_id: string | null; runner: string | null }
-  task: { id: string; project_id: string | null }
+  task: { id: string; project_id: string | null; file_space_id: string | null }
   project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null; ai_provider_configs: AIProviderConfig | null }
   workerRepo: { id: string; current_version: string | null; source_gitlab: unknown }
   source: GitLabSource
@@ -464,13 +464,49 @@ async function preparePipelineConfig(
   validateRequiredApiKeys(context.session.runner, aiEnvVars)
   logger.info(`✓ Required API keys validated for runner type: ${context.session.runner}`)
 
+  // Prepare repository access variables for codebase cloning
+  const repoVars: Record<string, string> = {}
+  if (context.task.file_space_id) {
+    try {
+      const fileSpaceRes = await apiClient['file-spaces'][':id'].$get({
+        param: { id: context.task.file_space_id }
+      })
+
+      if (fileSpaceRes.ok) {
+        const fileSpace = await fileSpaceRes.json()
+        const config = fileSpace.config as any
+
+        if (config.repo) {
+          repoVars.REPO_URL = config.repo
+          logger.info(`✓ Repository URL configured: ${config.repo}`)
+
+          // Fetch access token from secret if configured
+          if (config.access_token_secret_id) {
+            const secretRes = await apiClient.secrets[':id'].value.$get({
+              param: { id: config.access_token_secret_id }
+            })
+
+            if (secretRes.ok) {
+              const secret = await secretRes.json() as any
+              repoVars.REPO_TOKEN = secret.value
+              logger.info(`✓ Repository access token loaded`)
+            }
+          }
+        }
+      }
+    } catch (error) {
+      logger.warn(`⚠️  Failed to load file space configuration: ${error}`)
+    }
+  }
+
   const variables = {
     SESSION_ID: context.session.id,
     PIPELINE_EXECUTION_ID: executionId,
     CI_RUNNER: context.session.runner!, // Already validated in validateAndFetchPipelineContext
     API_BASE_URL: apiBaseUrl,
     API_TOKEN: apiToken,
-    ...aiEnvVars
+    ...aiEnvVars,
+    ...repoVars
   }
 
   return { variables }

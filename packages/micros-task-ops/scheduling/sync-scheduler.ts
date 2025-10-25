@@ -1,16 +1,15 @@
 /**
- * Cron Service
- * Schedules periodic task source synchronization and task evaluation via orchestrator
+ * Task Source Sync Scheduler
+ * Schedules periodic task source synchronization
+ * Moved from micros-cron to micros-task-ops
  */
 
 import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger'
 import * as taskSourceQueries from '@db/task-sources'
-import * as taskQueries from '@db/tasks'
 import { syncTaskSource } from '@backend/services/orchestrator'
-import { publishTaskEval } from '@queue/publisher'
 
-const logger = createLogger({ namespace: 'micros-cron' })
+const logger = createLogger({ namespace: 'sync-scheduler' })
 
 /**
  * Sync task sources that need syncing
@@ -76,52 +75,15 @@ export async function syncTaskSourcesNeedingSync(
 }
 
 /**
- * Process all pending task evaluations by publishing them to the queue
+ * Start the sync scheduler
  */
-export async function processTaskEvaluations(sql: Sql): Promise<{ tasksPublished: number; errors: string[] }> {
-  const result = {
-    tasksPublished: 0,
-    errors: [] as string[]
-  }
-
-  try {
-    // Fetch all tasks with pending evaluation status
-    const pendingTasks = await taskQueries.findTasksNeedingEvaluation(sql)
-
-    logger.info(`Found ${pendingTasks.length} tasks pending evaluation`)
-
-    // Publish each task to the evaluation queue
-    for (const task of pendingTasks) {
-      try {
-        await publishTaskEval({ taskId: task.id })
-        result.tasksPublished++
-        logger.debug(`Published task ${task.id} to eval queue`)
-      } catch (error) {
-        const errorMsg = `Failed to publish task ${task.id}: ${error instanceof Error ? error.message : String(error)}`
-        logger.error(errorMsg)
-        result.errors.push(errorMsg)
-      }
-    }
-
-    return result
-  } catch (error) {
-    logger.error('Failed to process pending evaluations:', error)
-    result.errors.push(error instanceof Error ? error.message : String(error))
-    return result
-  }
-}
-
-/**
- * Start the cron scheduler
- * Runs syncTaskSourcesNeedingSync at regular intervals
- */
-export function startCronScheduler(
+export function startSyncScheduler(
   sql: Sql,
   intervalMinutes: number = 15,
   syncThresholdMinutes: number = 30,
   queuedTimeoutMinutes: number = 120
 ): NodeJS.Timeout {
-  logger.info(`Starting cron scheduler:`)
+  logger.info(`Starting sync scheduler:`)
   logger.info(`  - Check interval: ${intervalMinutes} minutes`)
   logger.info(`  - Sync threshold: ${syncThresholdMinutes} minutes`)
   logger.info(`  - Stuck task timeout: ${queuedTimeoutMinutes} minutes`)
@@ -139,53 +101,15 @@ export function startCronScheduler(
     })
   }, intervalMs)
 
-  logger.info('Cron scheduler started successfully')
+  logger.info('Sync scheduler started successfully')
 
   return timer
 }
 
 /**
- * Stop the cron scheduler
+ * Stop the sync scheduler
  */
-export function stopCronScheduler(timer: NodeJS.Timeout): void {
+export function stopSyncScheduler(timer: NodeJS.Timeout): void {
   clearInterval(timer)
-  logger.info('Cron scheduler stopped')
-}
-
-/**
- * Start the evaluation scheduler
- * Runs processTaskEvaluations at regular intervals
- */
-export function startEvalScheduler(
-  sql: Sql,
-  intervalMinutes: number = 5
-): NodeJS.Timeout {
-  logger.info(`Starting evaluation scheduler with ${intervalMinutes} minute interval`)
-
-  // Run immediately on startup
-  processTaskEvaluations(sql).then(result => {
-    logger.info(`Initial evaluation run completed:`, result)
-  }).catch(error => {
-    logger.error('Initial evaluation run failed:', error)
-  })
-
-  // Schedule periodic runs
-  const intervalMs = intervalMinutes * 60 * 1000
-  const timer = setInterval(() => {
-    processTaskEvaluations(sql).catch(error => {
-      logger.error('Scheduled evaluation run failed:', error)
-    })
-  }, intervalMs)
-
-  logger.info('Evaluation scheduler started successfully')
-
-  return timer
-}
-
-/**
- * Stop the evaluation scheduler
- */
-export function stopEvalScheduler(timer: NodeJS.Timeout): void {
-  clearInterval(timer)
-  logger.info('Evaluation scheduler stopped')
+  logger.info('Sync scheduler stopped')
 }

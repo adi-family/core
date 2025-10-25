@@ -93,10 +93,26 @@ export interface GitLabSearchResult {
   project_id: number
 }
 
+export interface GitLabPersonalAccessToken {
+  id: number
+  name: string
+  revoked: boolean
+  created_at: string
+  scopes: string[]
+  user_id: number
+  last_used_at: string | null
+  active: boolean
+  expires_at: string | null
+}
+
 export class GitLabApiClient {
   private client: InstanceType<typeof Gitlab>
+  private host: string
+  private token: string
 
   constructor(host: string, token: string) {
+    this.host = host
+    this.token = token
     this.client = new Gitlab({
       host,
       token
@@ -116,6 +132,21 @@ export class GitLabApiClient {
     }) as unknown as GitLabProject
 
     return project
+  }
+
+  /**
+   * Update GitLab project settings to allow external pipeline triggers to set variables
+   * GitLab 17.1+ introduced pipeline variable restrictions. This sets the minimum role
+   * required to override pipeline variables to 'developer' (or can be set to allow all).
+   */
+  async enableExternalPipelineVariables(projectId: string): Promise<void> {
+    // Use the Projects.edit API with the ci_pipeline_variables_minimum_override_role setting
+    // Possible values: 'owner', 'maintainer', 'developer', 'reporter', 'guest', 'no_one_allowed'
+    // Setting to 'developer' allows developers and above to set pipeline variables
+    // Note: gitbeaker types may not include this option, so we cast to any
+    await this.client.Projects.edit(projectId, {
+      ciPipelineVariablesMinimumOverrideRole: 'developer',
+    } as any)
   }
 
   /**
@@ -236,6 +267,25 @@ export class GitLabApiClient {
   async getCurrentUserNamespaceId(): Promise<number> {
     const user = await this.getCurrentUser()
     return user.namespace_id
+  }
+
+  /**
+   * Get personal access token information including scopes
+   * This endpoint requires the token to have 'read_api' or 'api' scope
+   */
+  async getPersonalAccessTokenInfo(): Promise<GitLabPersonalAccessToken> {
+    const response = await fetch(`${this.host}/api/v4/personal_access_tokens/self`, {
+      headers: {
+        'PRIVATE-TOKEN': this.token
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`Failed to get token info: ${response.status} ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    return data as GitLabPersonalAccessToken
   }
 
   /**

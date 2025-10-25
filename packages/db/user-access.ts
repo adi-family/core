@@ -107,6 +107,12 @@ export const hasAccessToResource = async (
   entityId: string,
   requiredRole: Role
 ): Promise<boolean> => {
+  // Validate requiredRole is defined
+  if (!requiredRole) {
+    console.warn('[hasAccessToResource] requiredRole is undefined', { entityType, entityId, userId })
+    return false
+  }
+
   // First check direct resource access
   const directAccess = await hasResourceAccess(sql, userId, entityType, entityId, requiredRole)
   if (directAccess) {
@@ -119,6 +125,10 @@ export const hasAccessToResource = async (
     if (projectId) {
       // Map resource role to minimum required project role
       const minProjectRole = mapResourceRoleToProjectRole(requiredRole)
+      if (!minProjectRole) {
+        console.warn('[hasAccessToResource] minProjectRole is undefined after mapping', { requiredRole, entityType, entityId })
+        return false
+      }
       return hasProjectAccess(sql, userId, projectId, minProjectRole)
     }
   }
@@ -131,10 +141,23 @@ const getProjectIdForEntity = async (
   entityType: EntityType,
   entityId: string
 ): Promise<string | null> => {
-  if (entityType === 'task_source' || entityType === 'file_space' || entityType === 'secret') {
+  if (entityType === 'task_source') {
     const [result] = await get(sql<[{ project_id: string }]>`
-      SELECT project_id FROM ${sql(entityType === 'task_source' ? 'task_sources' : entityType === 'file_space' ? 'file_spaces' : 'secrets')}
-      WHERE id = ${entityId}
+      SELECT project_id FROM task_sources WHERE id = ${entityId}
+    `)
+    return result?.project_id ?? null
+  }
+
+  if (entityType === 'file_space') {
+    const [result] = await get(sql<[{ project_id: string }]>`
+      SELECT project_id FROM file_spaces WHERE id = ${entityId}
+    `)
+    return result?.project_id ?? null
+  }
+
+  if (entityType === 'secret') {
+    const [result] = await get(sql<[{ project_id: string }]>`
+      SELECT project_id FROM secrets WHERE id = ${entityId}
     `)
     return result?.project_id ?? null
   }

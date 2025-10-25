@@ -144,7 +144,9 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
               })
               if (res.ok) {
                 toast.success('Task source deleted successfully')
-                window.location.reload()
+                if (this.onRefresh) {
+                  await this.onRefresh()
+                }
               } else {
                 toast.error('Failed to delete task source')
               }

@@ -58,7 +58,7 @@ export function WorkerRepositorySelect({
       console.error("Error fetching worker repositories:", error)
       setLoading(false)
     })
-  }, [projectId])
+  }, [projectId, client])
 
   const formatWorkerRepositoryLabel = (workerRepository: WorkerRepository) => {
     const source = workerRepository.source_gitlab as any

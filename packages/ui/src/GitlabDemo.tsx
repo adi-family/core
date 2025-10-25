@@ -137,10 +137,11 @@ export function GitlabDemo() {
             </div>
 
             {/* Component Test */}
-            {selectedSecret ? (
+            {selectedSecret && selectedSecret.id ? (
               <GitlabRepositorySelect
+                client={mockApiClient}
                 host={host}
-                token={selectedSecret.value}
+                secretId={selectedSecret.id}
                 value={selectedRepositoryId}
                 onChange={(repoId, repo) => {
                   console.log("Selected repository ID:", repoId, repo)

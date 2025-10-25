@@ -150,11 +150,135 @@ export async function syncTaskSource(
     await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'completed', syncStartTime)
 
     logger.info(`Sync completed for task source ${taskSource.name}: ${result.tasksCreated} created, ${result.tasksUpdated} updated`)
+
+    // Revalidate existing tasks to detect closed issues
+    try {
+      logger.info(`Starting revalidation for task source ${taskSource.name}`)
+      const revalidationResult = await revalidateTasksStatus(sql, input)
+      logger.info(`Revalidation completed: ${revalidationResult.tasksUpdated} tasks updated`)
+      if (revalidationResult.errors.length > 0) {
+        result.errors.push(...revalidationResult.errors)
+      }
+    } catch (revalidationError) {
+      const errorMsg = `Revalidation failed: ${revalidationError instanceof Error ? revalidationError.message : String(revalidationError)}`
+      logger.error(errorMsg)
+      result.errors.push(errorMsg)
+    }
   } catch (error) {
     const errorMsg = `Failed to sync task source ${taskSourceId}: ${error instanceof Error ? error.message : String(error)}`
     logger.error(errorMsg)
     result.errors.push(errorMsg)
     await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'failed')
+  }
+
+  return result
+}
+
+/**
+ * Revalidate existing tasks - check if issues have been closed on remote
+ * This is called after the main sync to update task statuses
+ */
+export async function revalidateTasksStatus(
+  sql: Sql,
+  input: SyncTaskSourceInput
+): Promise<{ tasksUpdated: number; errors: string[] }> {
+  const { taskSourceId } = input
+  const result: { tasksUpdated: number; errors: string[] } = {
+    tasksUpdated: 0,
+    errors: []
+  }
+
+  try {
+    // Fetch task source
+    const taskSourceResult = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
+    if (!taskSourceResult.ok) {
+      result.errors.push(`Task source not found: ${taskSourceId}`)
+      return result
+    }
+
+    const taskSource = taskSourceResult.data
+
+    // Only GitLab and GitHub sources support revalidation for now
+    if (taskSource.type !== 'gitlab_issues') {
+      logger.debug(`Revalidation not supported for task source type: ${taskSource.type}`)
+      return result
+    }
+
+    // Get all tasks for this task source
+    const allTasks = await sql<Task[]>`
+      SELECT * FROM tasks
+      WHERE task_source_id = ${taskSourceId}
+    `
+
+    if (allTasks.length === 0) {
+      logger.debug(`No tasks found for task source ${taskSourceId}`)
+      return result
+    }
+
+    // Extract IIDs from GitLab tasks
+    const iids: number[] = []
+    for (const task of allTasks) {
+      if (task.source_gitlab_issue?.iid) {
+        iids.push(task.source_gitlab_issue.iid)
+      }
+    }
+
+    if (iids.length === 0) {
+      logger.debug(`No GitLab issue IIDs found for revalidation`)
+      return result
+    }
+
+    logger.info(`Revalidating ${iids.length} issues for task source ${taskSource.name}`)
+
+    // Fetch current status from GitLab
+    const taskSourceInstance = createTaskSource(taskSource)
+    if (!taskSourceInstance.revalidateIssues) {
+      logger.warn(`Task source does not support revalidation: ${taskSource.type}`)
+      return result
+    }
+
+    const issuesIterable = taskSourceInstance.revalidateIssues(iids)
+    const issueStatusMap = new Map<string, 'opened' | 'closed'>()
+
+    for await (const issue of issuesIterable) {
+      if (issue.state) {
+        issueStatusMap.set(issue.id, issue.state)
+      }
+    }
+
+    // Update tasks whose remote status has changed
+    for (const task of allTasks) {
+      const issueId = task.source_gitlab_issue?.id
+      if (!issueId) continue
+
+      const currentRemoteStatus = issueStatusMap.get(issueId)
+      if (!currentRemoteStatus) {
+        // Issue not found in revalidation - might be deleted
+        logger.debug(`Issue ${issueId} not found during revalidation`)
+        continue
+      }
+
+      if (task.remote_status !== currentRemoteStatus) {
+        // Status has changed - update the task
+        try {
+          await taskQueries.updateTask(sql, task.id, {
+            remote_status: currentRemoteStatus
+          })
+          result.tasksUpdated++
+          logger.info(`Updated task ${task.id} remote_status: ${task.remote_status} -> ${currentRemoteStatus}`)
+        } catch (error) {
+          const errorMsg = `Failed to update task ${task.id}: ${error instanceof Error ? error.message : String(error)}`
+          logger.error(errorMsg)
+          result.errors.push(errorMsg)
+        }
+      }
+    }
+
+    logger.info(`Revalidation completed: ${result.tasksUpdated} tasks updated`)
+  } catch (error) {
+    const errorMsg = `Failed to revalidate tasks for source ${taskSourceId}: ${error instanceof Error ? error.message : String(error)}`
+    logger.error(errorMsg)
+    result.errors.push(errorMsg)
   }
 
   return result
@@ -254,6 +378,7 @@ async function createTaskFromIssue(
       title: issue.title,
       description: issue.description,
       status: 'pending',
+      remote_status: issue.state || 'opened',
       project_id: projectId,
       task_source_id: taskSourceId,
       ...convertToBackendIssue()

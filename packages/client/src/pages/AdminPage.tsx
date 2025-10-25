@@ -17,6 +17,7 @@ interface RefreshResult {
   success: boolean
   error?: string
   filesUpdated?: number
+  fileErrors?: Array<{ file: string; error: string }>
 }
 
 interface RefreshResponse {
@@ -176,6 +177,16 @@ export function AdminPage() {
                     </div>
                     {result.error && (
                       <p className="text-xs text-red-600 mt-1">{result.error}</p>
+                    )}
+                    {result.fileErrors && result.fileErrors.length > 0 && (
+                      <div className="mt-2 text-xs space-y-1">
+                        <p className="font-medium text-orange-700">File errors:</p>
+                        {result.fileErrors.map((fe, idx) => (
+                          <div key={idx} className="text-orange-600 ml-2">
+                            • {fe.file}: {fe.error}
+                          </div>
+                        ))}
+                      </div>
                     )}
                   </div>
                 ))}

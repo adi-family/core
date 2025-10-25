@@ -1,8 +1,10 @@
-import { useState } from "react"
+import { useState, useMemo } from "react"
+import { useAuth } from "@clerk/clerk-react"
 import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
-import { GitlabSecretAutocomplete } from "./GitlabSecretAutocomplete"
-import { GitlabRepositorySelect } from "./GitlabRepositorySelect"
+import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocomplete'
+import { GitlabRepositorySelect } from '@adi-simple/ui/gitlab-repository-select'
+import { createAuthenticatedClient } from "@/lib/client"
 import type { Secret } from "../../../types"
 
 type GitlabIssuesConfig = {
@@ -19,6 +21,8 @@ type GitlabTaskSourceConfigProps = {
 }
 
 export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTaskSourceConfigProps) {
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const [gitlabHost, setGitlabHost] = useState(config.host || "https://gitlab.com")
   const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null)
   const [selectedRepositoryId, setSelectedRepositoryId] = useState<number | null>(null)
@@ -45,6 +49,7 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
       </div>
 
       <GitlabSecretAutocomplete
+        client={client}
         projectId={projectId}
         host={gitlabHost}
         value={config.access_token_secret_id || null}
@@ -52,15 +57,17 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
           onChange("access_token_secret_id", secretId || "")
           setSelectedSecret(secret || null)
         }}
+        label="GITLAB ACCESS TOKEN (requires: api scope)"
         requiredScopes={["api"]}
         required={true}
       />
 
-      {selectedSecret && (
+      {selectedSecret && config.access_token_secret_id && (
         <>
           <GitlabRepositorySelect
+            client={client}
             host={gitlabHost}
-            token={selectedSecret.value}
+            secretId={config.access_token_secret_id}
             value={selectedRepositoryId}
             onChange={(repoId, repo) => {
               setSelectedRepositoryId(repoId)
@@ -70,20 +77,6 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
             }}
             required={true}
           />
-
-          <div className="space-y-2">
-            <Label htmlFor="labels" className="text-xs uppercase tracking-wide">
-              LABELS (COMMA-SEPARATED)
-            </Label>
-            <Input
-              id="labels"
-              type="text"
-              value={config.labels.join(", ")}
-              onChange={(e) => onChange("labels", e.target.value.split(",").map(l => l.trim()).filter(l => l))}
-              className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-              placeholder="e.g., DOIT, TODO"
-            />
-          </div>
         </>
       )}
     </div>

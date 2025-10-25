@@ -5,9 +5,11 @@ import type {ReactNode} from "react";
  */
 export abstract class BasePresenter<T> {
   protected model: T
+  protected onRefresh?: () => void | Promise<void>
 
-  constructor(model: T) {
+  constructor(model: T, onRefresh?: () => void | Promise<void>) {
     this.model = model
+    this.onRefresh = onRefresh
   }
 
   /**

@@ -1,0 +1,429 @@
+import { type FormEvent, useState, useMemo } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "@clerk/clerk-react"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@adi-simple/ui/card'
+import { Input } from '@adi-simple/ui/input'
+import { Label } from '@adi-simple/ui/label'
+import { Button } from '@adi-simple/ui/button'
+import { ProjectSelect } from '@adi-simple/ui/project-select'
+import { GitlabFileSpaceConfig } from "@/components/GitlabFileSpaceConfig"
+import { createAuthenticatedClient } from "@/lib/client"
+import type { CreateFileSpaceInput, GitlabFileSpaceConfig as GitlabFileSpaceConfigType, GithubFileSpaceConfig } from "../../../types"
+import { ChevronRight, ChevronLeft, Check } from "lucide-react"
+
+type FileSpaceType = 'gitlab' | 'github'
+
+type Step = {
+  id: number
+  title: string
+  description: string
+}
+
+const STEPS: Step[] = [
+  { id: 1, title: "PROJECT", description: "Select project" },
+  { id: 2, title: "TYPE", description: "Choose repository type" },
+  { id: 3, title: "CONFIGURATION", description: "Repository settings" },
+]
+
+export function FileSpaceMultistageForm() {
+  const navigate = useNavigate()
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
+  const [currentStep, setCurrentStep] = useState(1)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  const [formData, setFormData] = useState({
+    project_id: "",
+    name: "",
+    type: "gitlab" as FileSpaceType,
+    enabled: true,
+  })
+
+  const [gitlabConfig, setGitlabConfig] = useState<GitlabFileSpaceConfigType>({
+    repo: "",
+    host: "https://gitlab.com",
+    access_token_secret_id: "",
+  })
+
+  const [githubConfig, setGithubConfig] = useState<GithubFileSpaceConfig>({
+    repo: "",
+    host: "https://github.com",
+    access_token_secret_id: "",
+  })
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+
+    // Auto-generate name if not set
+    let fileSpaceName = formData.name
+    if (!fileSpaceName) {
+      if (formData.type === "gitlab") {
+        fileSpaceName = `GitLab: ${gitlabConfig.repo}`
+      } else {
+        fileSpaceName = `GitHub: ${githubConfig.repo}`
+      }
+    }
+
+    try {
+      let payload: CreateFileSpaceInput
+      if (formData.type === "gitlab") {
+        payload = {
+          project_id: formData.project_id,
+          name: fileSpaceName,
+          type: formData.type,
+          config: gitlabConfig,
+          enabled: formData.enabled,
+        }
+      } else {
+        payload = {
+          project_id: formData.project_id,
+          name: fileSpaceName,
+          type: formData.type,
+          config: githubConfig,
+          enabled: formData.enabled,
+        }
+      }
+
+      const res = await client["file-spaces"].$post({
+        json: payload,
+      })
+
+      if (!res.ok) {
+        const errorText = await res.text()
+        setError(`Failed to create file space: ${errorText}`)
+        setLoading(false)
+        return
+      }
+
+      setSuccess(true)
+      setLoading(false)
+
+      setTimeout(() => {
+        navigate("/file-spaces")
+      }, 1500)
+    } catch {
+      setError("Error creating file space")
+      setLoading(false)
+    }
+  }
+
+  const handleInputChange = (field: string, value: string | boolean) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleGitlabConfigChange = (field: keyof GitlabFileSpaceConfigType, value: string) => {
+    setGitlabConfig((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const handleGithubConfigChange = (field: keyof GithubFileSpaceConfig, value: string) => {
+    setGithubConfig((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
+  }
+
+  const canProceedFromStep = (step: number): boolean => {
+    switch (step) {
+      case 1:
+        return formData.project_id !== ""
+      case 2:
+        return true
+      case 3:
+        if (formData.type === "gitlab") {
+          return gitlabConfig.repo !== ""
+        } else {
+          return githubConfig.repo !== ""
+        }
+      default:
+        return true
+    }
+  }
+
+  const handleNext = () => {
+    if (canProceedFromStep(currentStep)) {
+      const nextStep = Math.min(currentStep + 1, STEPS.length)
+      setCurrentStep(nextStep)
+      setError(null)
+    } else {
+      setError("Please fill in all required fields before proceeding")
+    }
+  }
+
+  const handleBack = () => {
+    setCurrentStep((prev) => Math.max(prev - 1, 1))
+    setError(null)
+  }
+
+  if (success) {
+    return (
+      <div className="mx-auto p-6 max-w-7xl">
+        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-md hover:shadow-lg transition-all duration-300">
+          <CardContent className="pt-6">
+            <div className="text-center py-8">
+              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mb-4">
+                <Check className="w-10 h-10 text-white" />
+              </div>
+              <div className="text-lg font-medium mb-2 bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent uppercase tracking-wide">
+                FILE SPACE CREATED SUCCESSFULLY
+              </div>
+              <p className="text-gray-600 text-xs uppercase tracking-wide">
+                Redirecting to file spaces list...
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mx-auto p-6 max-w-7xl">
+      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-md">
+        <CardHeader>
+          <CardTitle className="text-xl uppercase tracking-wide bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent">
+            CREATE FILE SPACE
+          </CardTitle>
+          <CardDescription className="text-xs uppercase tracking-wide">
+            Configure a new repository file space
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {/* Progress Steps */}
+          <div className="mb-8">
+            <div className="flex justify-between items-center">
+              {STEPS.map((step, index) => (
+                <div key={step.id} className="flex items-center flex-1">
+                  <div className="flex flex-col items-center flex-1">
+                    <div
+                      className={`w-10 h-10 flex items-center justify-center border-2 transition-all duration-200 ${
+                        currentStep === step.id
+                          ? "border-blue-500 bg-blue-500 text-white shadow-md scale-110"
+                          : currentStep > step.id
+                          ? "border-green-500 bg-green-500 text-white"
+                          : "border-gray-300 bg-white text-gray-400"
+                      }`}
+                    >
+                      {currentStep > step.id ? (
+                        <Check className="w-5 h-5" />
+                      ) : (
+                        <span className="text-sm font-medium">{step.id}</span>
+                      )}
+                    </div>
+                    <div className="mt-2 text-center">
+                      <div
+                        className={`text-xs uppercase tracking-wide font-medium ${
+                          currentStep === step.id
+                            ? "text-blue-500"
+                            : currentStep > step.id
+                            ? "text-green-500"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {step.title}
+                      </div>
+                      <div className="text-xs text-gray-500">{step.description}</div>
+                    </div>
+                  </div>
+                  {index < STEPS.length - 1 && (
+                    <div
+                      className={`flex-1 h-0.5 mx-2 mt-[-24px] transition-all duration-200 ${
+                        currentStep > step.id ? "bg-green-500" : "bg-gray-300"
+                      }`}
+                    />
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <form onSubmit={handleSubmit} className="space-y-6">
+            {error && (
+              <div className="bg-red-50/90 text-red-600 px-4 py-3 border border-red-200/60 backdrop-blur-sm text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Step 1: Project Selection */}
+            {currentStep === 1 && (
+              <div className="space-y-6 animate-fadeIn">
+                <ProjectSelect
+                  client={client}
+                  value={formData.project_id}
+                  onChange={(projectId) => handleInputChange("project_id", projectId)}
+                  required
+                />
+              </div>
+            )}
+
+            {/* Step 2: Type */}
+            {currentStep === 2 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange("type", "gitlab")}
+                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg ${
+                      formData.type === "gitlab"
+                        ? "border-orange-500 bg-orange-50/50 shadow-md scale-[1.02]"
+                        : "border-gray-200 bg-white/50"
+                    }`}
+                  >
+                    <div className="text-center">
+                      <div className="text-lg font-medium uppercase tracking-wide mb-2">GitLab</div>
+                      <div className="text-xs text-gray-600">Repository file space</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleInputChange("type", "github")}
+                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg opacity-60 cursor-not-allowed ${
+                      formData.type === "github"
+                        ? "border-purple-500 bg-purple-50/50 shadow-md scale-[1.02]"
+                        : "border-gray-200 bg-gray-50/50"
+                    }`}
+                    disabled
+                  >
+                    <div className="text-center">
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <div className="text-lg font-medium uppercase tracking-wide">GitHub</div>
+                        <span className="text-xs font-medium px-2 py-1 bg-amber-100 text-amber-700 rounded uppercase tracking-wide">
+                          Coming Soon
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">Available in future release</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Configuration */}
+            {currentStep === 3 && (
+              <div className="space-y-6 animate-fadeIn">
+                <div className="space-y-2">
+                  <Label htmlFor="name" className="text-xs uppercase tracking-wide">
+                    NAME (OPTIONAL)
+                  </Label>
+                  <Input
+                    id="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => handleInputChange("name", e.target.value)}
+                    className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                    placeholder="Auto-generated from repository name"
+                  />
+                </div>
+
+                {/* GitLab Configuration */}
+                {formData.type === "gitlab" && (
+                  <GitlabFileSpaceConfig
+                    projectId={formData.project_id}
+                    config={gitlabConfig}
+                    onChange={(field, value) => handleGitlabConfigChange(field, value)}
+                  />
+                )}
+
+                {/* GitHub Configuration */}
+                {formData.type === "github" && (
+                  <div className="space-y-4 p-4 border border-gray-200/60 bg-gray-50/50 backdrop-blur-sm">
+                    <h3 className="text-xs uppercase tracking-wide font-medium">GITHUB CONFIGURATION</h3>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="github_repo" className="text-xs uppercase tracking-wide">
+                        REPOSITORY
+                      </Label>
+                      <Input
+                        id="github_repo"
+                        type="text"
+                        value={githubConfig.repo}
+                        onChange={(e) => handleGithubConfigChange("repo", e.target.value)}
+                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        required
+                        placeholder="e.g., owner/repo"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="github_host" className="text-xs uppercase tracking-wide">
+                        HOST (OPTIONAL)
+                      </Label>
+                      <Input
+                        id="github_host"
+                        type="text"
+                        value={githubConfig.host || ""}
+                        onChange={(e) => handleGithubConfigChange("host", e.target.value)}
+                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="https://github.com"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Navigation Buttons */}
+            <div className="flex gap-2 pt-4 border-t border-gray-200">
+              <Button
+                type="button"
+                onClick={handleBack}
+                disabled={currentStep === 1}
+                variant="outline"
+                className="uppercase tracking-wide"
+              >
+                <ChevronLeft className="w-4 h-4 mr-1" />
+                BACK
+              </Button>
+
+              {currentStep < STEPS.length ? (
+                <Button
+                  type="button"
+                  onClick={handleNext}
+                  disabled={!canProceedFromStep(currentStep)}
+                  className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+                >
+                  NEXT
+                  <ChevronRight className="w-4 h-4 ml-1" />
+                </Button>
+              ) : (
+                <Button
+                  type="submit"
+                  disabled={loading || !canProceedFromStep(currentStep)}
+                  className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+                >
+                  {loading ? "CREATING..." : "CREATE FILE SPACE"}
+                  <Check className="w-4 h-4 ml-1" />
+                </Button>
+              )}
+
+              <Button
+                type="button"
+                onClick={() => navigate("/file-spaces")}
+                variant="outline"
+                className="uppercase tracking-wide ml-auto"
+              >
+                CANCEL
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+    </div>
+  )
+}

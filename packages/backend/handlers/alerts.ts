@@ -24,11 +24,8 @@ export const createAlertRoutes = (sql: Sql) => {
       try {
         // Get all projects the user has access to
         const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
-        console.log('[Alerts] User ID:', userId)
-        console.log('[Alerts] Accessible projects:', accessibleProjectIds)
 
         if (accessibleProjectIds.length === 0) {
-          console.log('[Alerts] No accessible projects')
           return c.json({ alerts })
         }
 
@@ -40,20 +37,16 @@ export const createAlertRoutes = (sql: Sql) => {
           // Get project details
           const projectResult = await projectQueries.findProjectById(sql, projectId)
           if (!projectResult.ok) {
-            console.log('[Alerts] Failed to get project details:', projectId)
             continue
           }
 
           const aiProvidersResult = await projectQueries.getProjectAIProviderConfigs(sql, projectId)
-          console.log('[Alerts] Project:', projectId, 'Result:', aiProvidersResult)
 
           if (!aiProvidersResult.ok) {
-            console.log('[Alerts] Failed to get configs for project:', projectId)
             continue
           }
 
           const configs = aiProvidersResult.data
-          console.log('[Alerts] Configs for project', projectId, ':', configs)
 
           // Check for missing providers
           const providers = ['anthropic', 'openai', 'google'] as const
@@ -61,7 +54,6 @@ export const createAlertRoutes = (sql: Sql) => {
 
           if (!configs) {
             // No configs at all means all providers are missing
-            console.log('[Alerts] No configs for project:', projectId, '- treating all providers as missing')
             for (const provider of providers) {
               allMissingProviders.add(provider)
               missingForThisProject.push(provider)
@@ -70,7 +62,6 @@ export const createAlertRoutes = (sql: Sql) => {
             // Check which specific providers are missing
             for (const provider of providers) {
               if (!configs[provider]) {
-                console.log('[Alerts] Missing provider:', provider, 'for project:', projectId)
                 allMissingProviders.add(provider)
                 missingForThisProject.push(provider)
               }

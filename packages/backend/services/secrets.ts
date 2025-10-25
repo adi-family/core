@@ -42,6 +42,51 @@ export async function createEncryptedSecret(
   return secret
 }
 
+export async function upsertEncryptedSecret(
+  sql: Sql,
+  input: CreateSecretInput
+): Promise<Secret> {
+  const encryptedValue = encrypt(input.value)
+
+  const secretData = {
+    project_id: input.project_id,
+    name: input.name,
+    value: '',
+    encrypted_value: encryptedValue,
+    encryption_version: ENCRYPTION_VERSION,
+    is_encrypted: true,
+    description: input.description || null
+  }
+
+  const [secret] = await sql<Secret[]>`
+    INSERT INTO secrets (project_id, name, value, encrypted_value, encryption_version, is_encrypted, description)
+    VALUES (
+      ${secretData.project_id},
+      ${secretData.name},
+      ${secretData.value},
+      ${secretData.encrypted_value},
+      ${secretData.encryption_version},
+      ${secretData.is_encrypted},
+      ${secretData.description}
+    )
+    ON CONFLICT (project_id, name)
+    DO UPDATE SET
+      value = EXCLUDED.value,
+      encrypted_value = EXCLUDED.encrypted_value,
+      encryption_version = EXCLUDED.encryption_version,
+      is_encrypted = EXCLUDED.is_encrypted,
+      description = COALESCE(EXCLUDED.description, secrets.description),
+      updated_at = NOW()
+    RETURNING *
+  `
+
+  if (!secret) {
+    throw new Error('Failed to upsert secret')
+  }
+
+  return secret
+}
+
 export async function updateEncryptedSecret(
   sql: Sql,
   id: string,

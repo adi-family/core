@@ -57,7 +57,7 @@ export function ProjectSelect({
       console.error("Error fetching projects:", error)
       setLoading(false)
     })
-  }, [])
+  }, [client])
 
   const options = projects.map((project) => ({
     value: project.id,

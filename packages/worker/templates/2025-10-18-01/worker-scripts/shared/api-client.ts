@@ -91,14 +91,31 @@ export class ApiClient {
     })
   }
 
-  async updateTaskEvaluationStatus(taskId: string, evaluationStatus: string, evaluationSessionId?: string): Promise<void> {
-    const body: Record<string, string> = { evaluation_status: evaluationStatus }
-    if (evaluationSessionId) {
-      body.evaluation_session_id = evaluationSessionId
-    }
-    await this.fetch<Task>(`/tasks/${taskId}`, {
+  async updateTaskEvaluationStatus(taskId: string, evaluationStatus: string): Promise<void> {
+    await this.fetch<void>(`/tasks/${taskId}/evaluation-status`, {
+      method: 'POST',
+      body: JSON.stringify({ status: evaluationStatus })
+    })
+  }
+
+  async updateTaskEvaluationResult(taskId: string, result: 'ready' | 'needs_clarification'): Promise<void> {
+    await this.fetch<void>(`/tasks/${taskId}/evaluation-result`, {
       method: 'PATCH',
-      body: JSON.stringify(body)
+      body: JSON.stringify({ result })
+    })
+  }
+
+  async updateTaskEvaluationSimple(taskId: string, simpleResult: unknown): Promise<void> {
+    await this.fetch<void>(`/tasks/${taskId}/evaluation-simple`, {
+      method: 'PATCH',
+      body: JSON.stringify({ simpleResult })
+    })
+  }
+
+  async updateTaskEvaluationAgentic(taskId: string, agenticResult: unknown): Promise<void> {
+    await this.fetch<void>(`/tasks/${taskId}/evaluation-agentic`, {
+      method: 'PATCH',
+      body: JSON.stringify({ agenticResult })
     })
   }
 }

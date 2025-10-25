@@ -12,7 +12,7 @@ import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
 import { Button } from '@adi-simple/ui/button'
 import { Select } from '@adi-simple/ui/select'
-import { ProjectSelect } from "@/components/ProjectSelect"
+import { ProjectSelect } from '@adi-simple/ui/project-select'
 import { SecretSelect } from "@/components/SecretSelect"
 import { GitlabTaskSourceConfig } from "@/components/GitlabTaskSourceConfig"
 import { createAuthenticatedClient } from "@/lib/client"
@@ -49,10 +49,9 @@ type Step = {
 }
 
 const STEPS: Step[] = [
-  { id: 1, title: "BASIC INFO", description: "Name and project" },
+  { id: 1, title: "PROJECT", description: "Select project" },
   { id: 2, title: "SOURCE TYPE", description: "Choose integration" },
   { id: 3, title: "CONFIGURATION", description: "Source settings" },
-  { id: 4, title: "REVIEW", description: "Confirm details" },
 ]
 
 export function TaskSourceMultistageForm() {
@@ -97,12 +96,24 @@ export function TaskSourceMultistageForm() {
     setError(null)
     setLoading(true)
 
+    // Auto-generate name if not set
+    let taskSourceName = formData.name
+    if (!taskSourceName) {
+      if (formData.type === "gitlab_issues") {
+        taskSourceName = `GitLab: ${gitlabConfig.repo}`
+      } else if (formData.type === "github_issues") {
+        taskSourceName = `GitHub: ${githubConfig.repo}`
+      } else {
+        taskSourceName = `Jira: ${jiraConfig.project_key}`
+      }
+    }
+
     try {
       let payload: CreateTaskSourceInput
       if (formData.type === "gitlab_issues") {
         payload = {
           project_id: formData.project_id,
-          name: formData.name,
+          name: taskSourceName,
           type: formData.type,
           config: gitlabConfig,
           enabled: formData.enabled,
@@ -110,7 +121,7 @@ export function TaskSourceMultistageForm() {
       } else if (formData.type === "github_issues") {
         payload = {
           project_id: formData.project_id,
-          name: formData.name,
+          name: taskSourceName,
           type: formData.type,
           config: githubConfig,
           enabled: formData.enabled,
@@ -118,7 +129,7 @@ export function TaskSourceMultistageForm() {
       } else {
         payload = {
           project_id: formData.project_id,
-          name: formData.name,
+          name: taskSourceName,
           type: formData.type,
           config: jiraConfig,
           enabled: formData.enabled,
@@ -179,7 +190,7 @@ export function TaskSourceMultistageForm() {
   const canProceedFromStep = (step: number): boolean => {
     switch (step) {
       case 1:
-        return formData.project_id !== "" && formData.name !== ""
+        return formData.project_id !== ""
       case 2:
         return true
       case 3:
@@ -197,7 +208,8 @@ export function TaskSourceMultistageForm() {
 
   const handleNext = () => {
     if (canProceedFromStep(currentStep)) {
-      setCurrentStep((prev) => Math.min(prev + 1, STEPS.length))
+      const nextStep = Math.min(currentStep + 1, STEPS.length)
+      setCurrentStep(nextStep)
       setError(null)
     } else {
       setError("Please fill in all required fields before proceeding")
@@ -207,12 +219,6 @@ export function TaskSourceMultistageForm() {
   const handleBack = () => {
     setCurrentStep((prev) => Math.max(prev - 1, 1))
     setError(null)
-  }
-
-  const getCurrentConfig = () => {
-    if (formData.type === "gitlab_issues") return gitlabConfig
-    if (formData.type === "github_issues") return githubConfig
-    return jiraConfig
   }
 
   if (success) {
@@ -304,42 +310,15 @@ export function TaskSourceMultistageForm() {
               </div>
             )}
 
-            {/* Step 1: Basic Info */}
+            {/* Step 1: Project Selection */}
             {currentStep === 1 && (
               <div className="space-y-6 animate-fadeIn">
                 <ProjectSelect
+                  client={client}
                   value={formData.project_id}
                   onChange={(projectId) => handleInputChange("project_id", projectId)}
                   required
                 />
-
-                <div className="space-y-2">
-                  <Label htmlFor="name" className="text-xs uppercase tracking-wide">
-                    NAME
-                  </Label>
-                  <Input
-                    id="name"
-                    type="text"
-                    value={formData.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                    className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                    required
-                    placeholder="e.g., Project Issues"
-                  />
-                </div>
-
-                <div className="flex items-center space-x-2">
-                  <input
-                    id="enabled"
-                    type="checkbox"
-                    checked={formData.enabled}
-                    onChange={(e) => handleInputChange("enabled", e.target.checked)}
-                    className="w-4 h-4 border-gray-300"
-                  />
-                  <Label htmlFor="enabled" className="text-xs uppercase tracking-wide">
-                    ENABLED
-                  </Label>
-                </div>
               </div>
             )}
 
@@ -382,30 +361,42 @@ export function TaskSourceMultistageForm() {
                   <button
                     type="button"
                     onClick={() => handleInputChange("type", "github_issues")}
-                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg ${
+                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg opacity-60 cursor-not-allowed ${
                       formData.type === "github_issues"
                         ? "border-purple-500 bg-purple-50/50 shadow-md scale-[1.02]"
-                        : "border-gray-200 bg-white/50"
+                        : "border-gray-200 bg-gray-50/50"
                     }`}
+                    disabled
                   >
                     <div className="text-center">
-                      <div className="text-lg font-medium uppercase tracking-wide mb-2">GitHub</div>
-                      <div className="text-xs text-gray-600">Issue tracking integration</div>
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <div className="text-lg font-medium uppercase tracking-wide">GitHub</div>
+                        <span className="text-xs font-medium px-2 py-1 bg-amber-100 text-amber-700 rounded uppercase tracking-wide">
+                          Private Beta
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">Available only in private beta</div>
                     </div>
                   </button>
 
                   <button
                     type="button"
                     onClick={() => handleInputChange("type", "jira")}
-                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg ${
+                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg opacity-60 cursor-not-allowed ${
                       formData.type === "jira"
                         ? "border-blue-500 bg-blue-50/50 shadow-md scale-[1.02]"
-                        : "border-gray-200 bg-white/50"
+                        : "border-gray-200 bg-gray-50/50"
                     }`}
+                    disabled
                   >
                     <div className="text-center">
-                      <div className="text-lg font-medium uppercase tracking-wide mb-2">Jira</div>
-                      <div className="text-xs text-gray-600">Issue tracking integration</div>
+                      <div className="flex items-center justify-center gap-2 mb-2">
+                        <div className="text-lg font-medium uppercase tracking-wide">Jira</div>
+                        <span className="text-xs font-medium px-2 py-1 bg-amber-100 text-amber-700 rounded uppercase tracking-wide">
+                          Private Beta
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-500">Available only in private beta</div>
                     </div>
                   </button>
                 </div>
@@ -441,20 +432,6 @@ export function TaskSourceMultistageForm() {
                         className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         required
                         placeholder="e.g., owner/repo"
-                      />
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="github_labels" className="text-xs uppercase tracking-wide">
-                        LABELS (COMMA-SEPARATED, OPTIONAL)
-                      </Label>
-                      <Input
-                        id="github_labels"
-                        type="text"
-                        value={githubConfig.labels?.join(", ") || ""}
-                        onChange={(e) => handleGithubConfigChange("labels", e.target.value.split(",").map(l => l.trim()).filter(l => l))}
-                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-                        placeholder="e.g., bug, enhancement"
                       />
                     </div>
 
@@ -545,43 +522,6 @@ export function TaskSourceMultistageForm() {
               </div>
             )}
 
-            {/* Step 4: Review */}
-            {currentStep === 4 && (
-              <div className="space-y-6 animate-fadeIn">
-                <div className="bg-gradient-to-br from-gray-50 to-white p-6 border border-gray-200/60 space-y-4">
-                  <h3 className="text-xs uppercase tracking-wide font-medium border-b border-gray-200 pb-2">
-                    TASK SOURCE DETAILS
-                  </h3>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-gray-500">NAME</div>
-                      <div className="font-medium">{formData.name}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-gray-500">TYPE</div>
-                      <div className="font-medium">{formData.type.replace(/_/g, " ").toUpperCase()}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-gray-500">STATUS</div>
-                      <div className="font-medium">{formData.enabled ? "ENABLED" : "DISABLED"}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs uppercase tracking-wide text-gray-500">PROJECT ID</div>
-                      <div className="font-mono text-sm">{formData.project_id.substring(0, 8)}...</div>
-                    </div>
-                  </div>
-
-                  <div className="border-t border-gray-200 pt-4 mt-4">
-                    <h4 className="text-xs uppercase tracking-wide font-medium mb-3">CONFIGURATION</h4>
-                    <div className="bg-white/90 p-4 font-mono text-xs border border-gray-200/60">
-                      <pre>{JSON.stringify(getCurrentConfig(), null, 2)}</pre>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
             {/* Navigation Buttons */}
             <div className="flex gap-2 pt-4 border-t border-gray-200">
               <Button
@@ -608,7 +548,7 @@ export function TaskSourceMultistageForm() {
               ) : (
                 <Button
                   type="submit"
-                  disabled={loading}
+                  disabled={loading || !canProceedFromStep(currentStep)}
                   className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
                 >
                   {loading ? "CREATING..." : "CREATE TASK SOURCE"}

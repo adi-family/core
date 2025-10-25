@@ -161,6 +161,7 @@ export type Task = {
   title: string
   description: string | null
   status: string
+  remote_status: 'opened' | 'closed'
   project_id: string | null
   task_source_id: string
   file_space_id: string | null
@@ -168,7 +169,24 @@ export type Task = {
   source_github_issue: GithubIssue | null
   source_jira_issue: JiraIssue | null
   ai_evaluation_status: 'pending' | 'queued' | 'evaluating' | 'completed' | 'failed'
+  ai_evaluation_result: 'ready' | 'needs_clarification' | null
+  ai_evaluation_simple_result: {
+    complexity?: number
+    cross_service_communication?: number
+    estimated_effort_hours?: number
+    [key: string]: unknown
+  } | null
+  ai_evaluation_agentic_result: {
+    report?: string
+    verdict?: string
+    can_implement?: boolean
+    blockers?: string[]
+    requirements?: string[]
+    [key: string]: unknown
+  } | null
   ai_evaluation_session_id: string | null
+  ai_implementation_status: 'pending' | 'queued' | 'implementing' | 'completed' | 'failed'
+  ai_implementation_session_id: string | null
   created_at: string
   updated_at: string
 }
@@ -199,6 +217,7 @@ export type CreateTaskInput = {
   title: string
   description?: string
   status: string
+  remote_status?: 'opened' | 'closed'
   project_id?: string
   task_source_id?: string
   file_space_id?: string
@@ -207,7 +226,7 @@ export type CreateTaskInput = {
   source_jira_issue?: JiraIssue
 }
 
-export type UpdateTaskInput = Partial<CreateTaskInput>
+export type UpdateTaskInput = Partial<Omit<Task, 'id' | 'created_at' | 'updated_at'>>
 
 export type CreateSessionInput = {
   task_id?: string
@@ -219,26 +238,42 @@ export type CreateMessageInput = {
   data: unknown
 }
 
+export type GitlabFileSpaceConfig = {
+  repo: string
+  host?: string
+  access_token_secret_id?: string
+}
+
+export type GithubFileSpaceConfig = {
+  repo: string
+  host?: string
+  access_token_secret_id?: string
+}
+
 export type FileSpace = {
   id: string
   project_id: string
   name: string
-  type: 'gitlab' | 'github'
-  config: unknown
   enabled: boolean
   created_at: string
   updated_at: string
-}
+} & (
+  | { type: 'gitlab'; config: GitlabFileSpaceConfig }
+  | { type: 'github'; config: GithubFileSpaceConfig }
+)
 
 export type CreateFileSpaceInput = {
   project_id: string
   name: string
-  type: 'gitlab' | 'github'
-  config: unknown
   enabled?: boolean
-}
+} & (
+  | { type: 'gitlab'; config: GitlabFileSpaceConfig }
+  | { type: 'github'; config: GithubFileSpaceConfig }
+)
 
-export type UpdateFileSpaceInput = Partial<CreateFileSpaceInput>
+export type UpdateFileSpaceInput =
+  | Partial<{ project_id: string; name: string; enabled: boolean } & { type: 'gitlab'; config: GitlabFileSpaceConfig }>
+  | Partial<{ project_id: string; name: string; enabled: boolean } & { type: 'github'; config: GithubFileSpaceConfig }>
 
 export type TaskSource = {
   id: string;
@@ -311,7 +346,7 @@ export type UpdatePipelineExecutionInput = {
 export type PipelineArtifact = {
   id: string
   pipeline_execution_id: string
-  artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text' | 'task_evaluation'
+  artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text' | 'task_evaluation' | 'task_implementation'
   reference_url: string
   metadata: unknown | null
   created_at: string
@@ -319,7 +354,7 @@ export type PipelineArtifact = {
 
 export type CreatePipelineArtifactInput = {
   pipeline_execution_id: string
-  artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text' | 'task_evaluation'
+  artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text' | 'task_evaluation' | 'task_implementation'
   reference_url: string
   metadata?: unknown
 }
@@ -411,6 +446,7 @@ export type TaskSourceIssue = {
   updatedAt: string;
   uniqueId: string;
   metadata: IssueMetadata;
+  state?: 'opened' | 'closed';
 };
 
 export type GitlabIssuesConfig = {

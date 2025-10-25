@@ -138,10 +138,11 @@ export function DebugGitlabSecretPage() {
             </div>
 
             {/* Component Test */}
-            {selectedSecret ? (
+            {selectedSecret && selectedSecret.id ? (
               <GitlabRepositorySelect
+                client={client}
                 host={host}
-                token={selectedSecret.value}
+                secretId={selectedSecret.id}
                 value={selectedRepositoryId}
                 onChange={(repoId, repo) => {
                   console.log("Selected repository ID:", repoId, repo)

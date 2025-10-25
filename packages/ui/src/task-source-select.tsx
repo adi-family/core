@@ -58,7 +58,7 @@ export function TaskSourceSelect({
       console.error("Error fetching task sources:", error)
       setLoading(false)
     })
-  }, [projectId])
+  }, [projectId, client])
 
   const getTaskSourceTypeLabel = (type: string) => {
     switch (type) {

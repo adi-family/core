@@ -38,9 +38,23 @@ export const createAdminRoutes = (sql: Sql) => {
         return c.json({ error: 'Authentication required' }, 401)
       }
 
-      // TODO: Add proper admin authorization check here
-      // For now, any authenticated user can refresh repos
-      // In production, check if user has admin role
+      // Check if user has admin privileges
+      // For now, we check if user has 'owner' or 'admin' role on any project
+      // In a more sophisticated setup, you might have a separate admin_users table
+      const hasAdminAccess = await sql<[{ has_admin: boolean }]>`
+        SELECT EXISTS(
+          SELECT 1 FROM user_access
+          WHERE user_id = ${userId}
+          AND entity_type = 'project'
+          AND role IN ('owner', 'admin')
+          AND (expires_at IS NULL OR expires_at > NOW())
+        ) as has_admin
+      `.then(rows => rows[0]?.has_admin ?? false)
+
+      if (!hasAdminAccess) {
+        logger.warn(`[Admin] Unauthorized access attempt by user: ${userId}`)
+        return c.json({ error: 'Admin privileges required' }, 403)
+      }
 
       logger.info(`[Admin] Worker repository refresh triggered by user: ${userId}`)
 

@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { Label } from './label'
 import { Input } from './input'
+import { Portal } from './portal'
 import { Loader2, Search, GitBranch } from "lucide-react"
 
 type Repository = {
@@ -12,8 +13,9 @@ type Repository = {
 }
 
 type GitlabRepositorySelectProps = {
+  client: any
   host: string
-  token: string
+  secretId: string
   value?: number | null
   onChange: (repositoryId: number | null, repository: Repository | null) => void
   label?: string
@@ -21,8 +23,9 @@ type GitlabRepositorySelectProps = {
 }
 
 export function GitlabRepositorySelect({
+  client,
   host,
-  token,
+  secretId,
   value,
   onChange,
   label = "GITLAB REPOSITORY",
@@ -34,10 +37,12 @@ export function GitlabRepositorySelect({
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [showDropdown, setShowDropdown] = useState(false)
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
+  const inputContainerRef = useRef<HTMLDivElement>(null)
 
-  // Load repositories from GitLab
+  // Load repositories from backend API
   useEffect(() => {
-    if (!token || !host) {
+    if (!secretId || !host) {
       setRepositories([])
       return
     }
@@ -47,14 +52,16 @@ export function GitlabRepositorySelect({
       setError(null)
 
       try {
-        const response = await fetch(`${host}/api/v4/projects?membership=true&per_page=100&order_by=last_activity_at`, {
-          headers: {
-            "PRIVATE-TOKEN": token,
-          },
+        const response = await client.secrets['gitlab-repositories'].$post({
+          json: {
+            secretId,
+            hostname: host
+          }
         })
 
         if (!response.ok) {
-          setError(`Failed to load repositories: ${response.statusText}`)
+          const errorData = await response.json()
+          setError(errorData.error || `Failed to load repositories: ${response.statusText}`)
           setRepositories([])
           return
         }
@@ -79,7 +86,7 @@ export function GitlabRepositorySelect({
     }
 
     loadRepositories()
-  }, [token, host, value])
+  }, [secretId, host, value, client])
 
   const handleSelectRepository = (repository: Repository) => {
     setSelectedRepository(repository)
@@ -92,6 +99,25 @@ export function GitlabRepositorySelect({
     setSelectedRepository(null)
     setSearch("")
     onChange(null, null)
+  }
+
+  const updateDropdownPosition = () => {
+    if (inputContainerRef.current) {
+      const rect = inputContainerRef.current.getBoundingClientRect()
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+      const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft
+
+      setDropdownPosition({
+        top: rect.bottom + scrollTop,
+        left: rect.left + scrollLeft,
+        width: rect.width
+      })
+    }
+  }
+
+  const handleFocus = () => {
+    updateDropdownPosition()
+    setShowDropdown(true)
   }
 
   // Filter repositories based on search
@@ -114,23 +140,24 @@ export function GitlabRepositorySelect({
         </div>
       )}
 
-      {!token || !host ? (
+      {!secretId || !host ? (
         <div className="bg-yellow-50/90 text-yellow-800 px-4 py-3 border border-yellow-200/60 backdrop-blur-sm text-sm">
-          Please provide GitLab host and token first
+          Please provide GitLab host and select a valid access token first
         </div>
       ) : (
-        <div className="relative">
+        <div ref={inputContainerRef} className="relative">
           <Input
             type="text"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value)
+              updateDropdownPosition()
               setShowDropdown(true)
               if (!e.target.value) {
                 handleClear()
               }
             }}
-            onFocus={() => setShowDropdown(true)}
+            onFocus={handleFocus}
             onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
             className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10"
             placeholder={loading ? "Loading repositories..." : "Search repositories..."}
@@ -146,7 +173,16 @@ export function GitlabRepositorySelect({
 
           {/* Dropdown */}
           {showDropdown && !loading && (
-            <div className="absolute z-10 w-full mt-1 bg-white border border-gray-200/60 shadow-lg max-h-80 overflow-auto">
+            <Portal>
+              <div
+                className="absolute bg-white border border-gray-200/60 shadow-lg max-h-80 overflow-auto"
+                style={{
+                  top: `${dropdownPosition.top}px`,
+                  left: `${dropdownPosition.left}px`,
+                  width: `${dropdownPosition.width}px`,
+                  zIndex: 9999
+                }}
+              >
               {filteredRepositories.length > 0 ? (
                 filteredRepositories.map((repo) => (
                   <button
@@ -171,7 +207,8 @@ export function GitlabRepositorySelect({
                   {repositories.length === 0 ? "No repositories found" : "Nothing found"}
                 </div>
               )}
-            </div>
+              </div>
+            </Portal>
           )}
         </div>
       )}

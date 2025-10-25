@@ -65,7 +65,7 @@ export function PipelineExecutionSelect({
       console.error("Error fetching pipeline executions:", error)
       setLoading(false)
     })
-  }, [sessionId, workerRepositoryId])
+  }, [sessionId, workerRepositoryId, client])
 
   const getStatusIcon = (status: string) => {
     const iconSize = 16

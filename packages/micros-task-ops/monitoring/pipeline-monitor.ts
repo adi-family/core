@@ -1,20 +1,24 @@
 /**
  * Pipeline Monitor
  * Monitors running GitLab pipelines and syncs status to database
+ * Uses ONLY direct database access (no API calls)
  */
 
-import type { BackendClient } from '../api-client'
+import type { Sql } from 'postgres'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { retry, isRetryableError } from '@utils/retry'
 import { createLogger } from '@utils/logger'
-import { validateGitLabSource, decryptGitLabToken } from './gitlab-utils'
+import { validateGitLabSource, decryptGitLabToken } from '@backend/worker-orchestration/gitlab-utils'
+import { syncTaskEvaluationStatus } from '../core/evaluation-sync-service'
+import * as pipelineExecutionQueries from '@db/pipeline-executions'
+import * as workerRepositoryQueries from '@db/worker-repositories'
 
 const logger = createLogger({ namespace: 'pipeline-monitor' })
 
 export interface PipelineMonitorConfig {
   timeoutMinutes?: number
   pollIntervalMs?: number
-  apiClient?: BackendClient
+  sql: Sql
 }
 
 const DEFAULT_TIMEOUT_MINUTES = 30
@@ -53,7 +57,7 @@ function mapGitLabStatus(
  * This is the fallback mechanism when pipelines don't report status
  */
 export async function checkStalePipelines(
-  config: PipelineMonitorConfig = {}
+  config: PipelineMonitorConfig
 ): Promise<void> {
   const timeoutMinutes =
     config.timeoutMinutes ||
@@ -62,18 +66,15 @@ export async function checkStalePipelines(
 
   logger.info(`🔍 Checking for stale pipelines (timeout: ${timeoutMinutes} minutes)`)
 
-  if (!config.apiClient) {
-    throw new Error('API client is required for checking stale pipelines')
+  if (!config.sql) {
+    throw new Error('SQL connection is required for checking stale pipelines')
   }
 
-  // Find stale pipeline executions
-  const staleRes = await config.apiClient['pipeline-executions'].stale.$get({
-    query: { timeoutMinutes: String(timeoutMinutes) }
-  })
-  if (!staleRes.ok) {
-    throw new Error('Failed to fetch stale pipeline executions')
-  }
-  const stalePipelines = await staleRes.json()
+  // Find stale pipeline executions (direct DB)
+  const stalePipelines = await pipelineExecutionQueries.findStalePipelineExecutions(
+    config.sql,
+    timeoutMinutes
+  )
 
   if (stalePipelines.length === 0) {
     logger.info('✓ No stale pipelines found')
@@ -84,7 +85,7 @@ export async function checkStalePipelines(
 
   for (const execution of stalePipelines) {
     try {
-      await updatePipelineStatus(execution.id, config.apiClient)
+      await updatePipelineStatus(execution.id, config.sql)
     } catch (error) {
       logger.error(
         `Failed to update stale pipeline ${execution.id}:`,
@@ -99,16 +100,16 @@ export async function checkStalePipelines(
 /**
  * Update pipeline status from GitLab
  */
-export async function updatePipelineStatus(executionId: string, apiClient: BackendClient): Promise<void> {
+export async function updatePipelineStatus(executionId: string, sql: Sql): Promise<void> {
   logger.info(`📊 Updating status for pipeline execution ${executionId}`)
 
   try {
-    // Fetch pipeline execution
-    const execRes = await apiClient['pipeline-executions'][':id'].$get({ param: { id: executionId } })
-    if (!execRes.ok) {
+    // Fetch pipeline execution (direct DB)
+    const execResult = await pipelineExecutionQueries.findPipelineExecutionById(sql, executionId)
+    if (!execResult.ok) {
       throw new Error(`Pipeline execution not found: ${executionId}`)
     }
-    const execution = await execRes.json()
+    const execution = execResult.data
 
     // Validate execution has pipeline_id
     if (!execution.pipeline_id) {
@@ -118,14 +119,17 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
       return
     }
 
-    // Fetch worker repository
-    const workerRepoRes = await apiClient['worker-repositories'][':id'].$get({ param: { id: execution.worker_repository_id } })
-    if (!workerRepoRes.ok) {
+    // Fetch worker repository (direct DB)
+    const workerRepoResult = await workerRepositoryQueries.findWorkerRepositoryById(
+      sql,
+      execution.worker_repository_id
+    )
+    if (!workerRepoResult.ok) {
       throw new Error(
         `Worker repository not found: ${execution.worker_repository_id}`
       )
     }
-    const workerRepo = await workerRepoRes.json()
+    const workerRepo = workerRepoResult.data
 
     // Parse source from JSONB
     const source = workerRepo.source_gitlab as unknown as {
@@ -188,31 +192,34 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
         `  Status changed: ${execution.status} → ${newStatus}`
       )
 
-      const updateRes = await apiClient['pipeline-executions'][':id'].$patch({
-        param: { id: execution.id },
-        json: {
-          status: newStatus,
-          last_status_update: new Date().toISOString(),
-        }
+      // Update pipeline execution (direct DB)
+      const updateResult = await pipelineExecutionQueries.updatePipelineExecution(sql, execution.id, {
+        status: newStatus,
+        last_status_update: new Date().toISOString(),
       })
 
-      if (!updateRes.ok) {
+      if (!updateResult.ok) {
         throw new Error(
           `Failed to update pipeline execution ${execution.id} status to ${newStatus}`
         )
       }
 
       logger.info(`✓ Updated pipeline execution status to: ${newStatus}`)
+
+      // Sync task evaluation status if pipeline completed (using DB)
+      await syncTaskEvaluationStatus(sql, execution, newStatus)
     } else {
       logger.info(`  No status change (still ${execution.status})`)
 
-      // Update last_status_update timestamp even if status didn't change
-      await apiClient['pipeline-executions'][':id'].$patch({
-        param: { id: execution.id },
-        json: {
-          last_status_update: new Date().toISOString(),
-        }
+      // Update last_status_update timestamp even if status didn't change (direct DB)
+      await pipelineExecutionQueries.updatePipelineExecution(sql, execution.id, {
+        last_status_update: new Date().toISOString(),
       })
+
+      // Also try to sync task status for completed pipelines we just discovered (using DB)
+      if (['success', 'failed', 'canceled'].includes(execution.status)) {
+        await syncTaskEvaluationStatus(sql, execution, execution.status as 'success' | 'failed' | 'canceled')
+      }
     }
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error)
@@ -227,7 +234,7 @@ export async function updatePipelineStatus(executionId: string, apiClient: Backe
  * Start periodic monitoring of stale pipelines
  */
 export function startPipelineMonitor(
-  config: PipelineMonitorConfig = {}
+  config: PipelineMonitorConfig
 ): NodeJS.Timeout {
   const pollIntervalMs =
     config.pollIntervalMs ||

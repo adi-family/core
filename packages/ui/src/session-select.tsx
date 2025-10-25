@@ -58,7 +58,7 @@ export function SessionSelect({
       console.error("Error fetching sessions:", error)
       setLoading(false)
     })
-  }, [taskId])
+  }, [taskId, client])
 
   const formatSessionLabel = (session: Session) => {
     const date = new Date(session.created_at).toLocaleDateString('en-US', {

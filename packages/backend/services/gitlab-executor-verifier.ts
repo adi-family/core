@@ -3,8 +3,10 @@
  * Verifies GitLab access tokens for project-level pipeline executors
  */
 
+import type { Sql } from 'postgres'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { createLogger } from '@utils/logger'
+import { getDecryptedSecretValue } from './secrets'
 
 const logger = createLogger({ namespace: 'gitlab-executor-verifier' })
 
@@ -53,6 +55,152 @@ export async function verifyGitLabExecutor(
     return {
       valid: false,
       error: errorMsg
+    }
+  }
+}
+
+export interface ValidateGitLabTokenInput {
+  secretId: string
+  scopes?: string[]
+  hostname: string
+}
+
+export interface ValidateGitLabTokenResult {
+  valid: boolean
+  user?: string
+  userId?: number
+  username?: string
+  namespaceId?: number
+  scopes?: string[]
+  tokenInfo?: {
+    name: string
+    expiresAt: string | null
+    active: boolean
+    revoked: boolean
+  }
+  error?: string
+  scopeValidation?: {
+    requested: string[]
+    actual: string[]
+    validated: boolean
+    missing?: string[]
+    message?: string
+  }
+}
+
+/**
+ * Validate GitLab token from secret storage
+ * Retrieves encrypted token, decrypts it, and validates against GitLab API
+ *
+ * @param sql - Database connection
+ * @param input - Validation parameters (secretId, optional scopes, hostname)
+ * @returns Validation result with user information if successful
+ */
+export async function validateGitLabToken(
+  sql: Sql,
+  input: ValidateGitLabTokenInput
+): Promise<ValidateGitLabTokenResult> {
+  const { secretId, scopes, hostname } = input
+
+  try {
+    logger.info(`Validating GitLab token from secret ${secretId} for host: ${hostname}`)
+
+    // Retrieve and decrypt the token from database
+    const accessToken = await getDecryptedSecretValue(sql, secretId)
+
+    if (!accessToken) {
+      logger.error(`✗ Secret ${secretId} has no value`)
+      return {
+        valid: false,
+        error: 'Secret has no value'
+      }
+    }
+
+    // Create GitLab client with the decrypted token
+    const client = new GitLabApiClient(hostname, accessToken)
+
+    // Validate token by fetching current user information
+    const user = await client.getCurrentUser()
+
+    logger.info(`✓ GitLab token validated: ${user.username} (${user.id})`)
+
+    const result: ValidateGitLabTokenResult = {
+      valid: true,
+      user: user.username,
+      userId: user.id,
+      username: user.username,
+      namespaceId: user.namespace_id
+    }
+
+    // Try to fetch token scopes from GitLab API
+    try {
+      const tokenInfo = await client.getPersonalAccessTokenInfo()
+      result.scopes = tokenInfo.scopes
+      result.tokenInfo = {
+        name: tokenInfo.name,
+        expiresAt: tokenInfo.expires_at,
+        active: tokenInfo.active,
+        revoked: tokenInfo.revoked
+      }
+
+      logger.info(`✓ Token scopes retrieved: ${tokenInfo.scopes.join(', ')}`)
+
+      // Handle scope validation if requested
+      if (scopes && scopes.length > 0) {
+        logger.info(`Validating required scopes: ${scopes.join(', ')}`)
+
+        const missingScopes = scopes.filter(reqScope => {
+          // Check if the required scope is present, or if 'api' or 'sudo' scope covers it
+          return !tokenInfo.scopes.includes(reqScope) &&
+                 !tokenInfo.scopes.includes('api') &&
+                 !tokenInfo.scopes.includes('sudo')
+        })
+
+        const validated = missingScopes.length === 0
+
+        result.scopeValidation = {
+          requested: scopes,
+          actual: tokenInfo.scopes,
+          validated,
+          missing: missingScopes.length > 0 ? missingScopes : undefined,
+          message: validated
+            ? 'All required scopes are present'
+            : `Missing scopes: ${missingScopes.join(', ')}`
+        }
+
+        if (!validated) {
+          logger.warn(`⚠ Token missing required scopes: ${missingScopes.join(', ')}`)
+        }
+      }
+    } catch (scopeError) {
+      logger.warn(`⚠ Could not fetch token scopes: ${scopeError instanceof Error ? scopeError.message : String(scopeError)}`)
+      logger.warn('Token does not have "read_api" or "api" scope, or endpoint is not available')
+
+      // If scopes were requested but we can't verify them, mark as uncertain
+      if (scopes && scopes.length > 0) {
+        result.scopeValidation = {
+          requested: scopes,
+          actual: [],
+          validated: false,
+          message: 'Cannot verify scopes: Token does not have "read_api" or "api" scope, or endpoint is not available. Token is valid for basic operations.'
+        }
+      }
+    }
+
+    return result
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    logger.error(`✗ GitLab token validation failed: ${errorMsg}`)
+
+    return {
+      valid: false,
+      error: errorMsg,
+      scopeValidation: scopes && scopes.length > 0 ? {
+        requested: scopes,
+        actual: [],
+        validated: false,
+        message: 'Token validation failed'
+      } : undefined
     }
   }
 }

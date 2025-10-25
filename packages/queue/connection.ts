@@ -6,7 +6,10 @@ import {
   TASK_SYNC_DLX,
   TASK_EVAL_CONFIG,
   TASK_EVAL_DLQ_CONFIG,
-  TASK_EVAL_DLX
+  TASK_EVAL_DLX,
+  TASK_IMPL_CONFIG,
+  TASK_IMPL_DLQ_CONFIG,
+  TASK_IMPL_DLX
 } from './queues'
 import {singleton} from "@utils/singleton.ts";
 
@@ -95,6 +98,27 @@ async function setupQueues(ch: amqp.Channel): Promise<void> {
     deadLetterExchange: TASK_EVAL_CONFIG.deadLetterExchange,
     arguments: {
       'x-message-ttl': TASK_EVAL_CONFIG.messageTtl
+    }
+  })
+
+  // Task Implementation Queues
+  // Create dead letter exchange
+  await ch.assertExchange(TASK_IMPL_DLX, 'direct', { durable: true })
+
+  // Create dead letter queue
+  await ch.assertQueue(TASK_IMPL_DLQ_CONFIG.name, {
+    durable: TASK_IMPL_DLQ_CONFIG.durable
+  })
+
+  // Bind DLQ to DLX
+  await ch.bindQueue(TASK_IMPL_DLQ_CONFIG.name, TASK_IMPL_DLX, TASK_IMPL_CONFIG.name)
+
+  // Create main queue with DLX
+  await ch.assertQueue(TASK_IMPL_CONFIG.name, {
+    durable: TASK_IMPL_CONFIG.durable,
+    deadLetterExchange: TASK_IMPL_CONFIG.deadLetterExchange,
+    arguments: {
+      'x-message-ttl': TASK_IMPL_CONFIG.messageTtl
     }
   })
 

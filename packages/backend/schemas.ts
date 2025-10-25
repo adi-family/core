@@ -84,6 +84,11 @@ export const aiProviderParamSchema = z.object({
   provider: aiProviderSchema
 })
 
+export const idAndProviderParamSchema = z.object({
+  id: z.string(),
+  provider: aiProviderSchema
+})
+
 // Enterprise AI Provider Configuration Schemas
 
 export const anthropicCloudConfigSchema = z.object({
@@ -255,7 +260,14 @@ export const createTaskSchema = z.object({
   source_jira_issue: jiraIssueSchema.optional()
 })
 
-export const updateTaskSchema = createTaskSchema.partial()
+export const updateTaskSchema = createTaskSchema.partial().extend({
+  remote_status: z.enum(['opened', 'closed']).optional(),
+  ai_evaluation_status: z.enum(['pending', 'queued', 'evaluating', 'completed', 'failed']).optional(),
+  ai_evaluation_session_id: z.string().optional(),
+  ai_evaluation_result: z.enum(['ready', 'needs_clarification']).optional(),
+  ai_evaluation_simple_result: z.any().optional(),
+  ai_evaluation_agentic_result: z.any().optional()
+})
 
 // Session schemas
 export const sessionSchema = z.object({
@@ -285,26 +297,74 @@ export const createMessageSchema = z.object({
 })
 
 // FileSpace schemas
-export const fileSpaceSchema = z.object({
-  id: z.string(),
-  project_id: z.string(),
-  name: z.string(),
-  type: z.enum(['gitlab', 'github']),
-  config: z.unknown(),
-  enabled: z.boolean(),
-  created_at: z.string(),
-  updated_at: z.string()
+export const gitlabFileSpaceConfigSchema = z.object({
+  repo: z.string(),
+  host: z.string().optional(),
+  access_token_secret_id: z.string().optional()
 })
 
-export const createFileSpaceSchema = z.object({
-  project_id: z.string(),
-  name: z.string(),
-  type: z.enum(['gitlab', 'github']),
-  config: z.unknown(),
-  enabled: z.boolean().optional()
+export const githubFileSpaceConfigSchema = z.object({
+  repo: z.string(),
+  host: z.string().optional(),
+  access_token_secret_id: z.string().optional()
 })
 
-export const updateFileSpaceSchema = createFileSpaceSchema.partial()
+export const fileSpaceSchema = z.discriminatedUnion('type', [
+  z.object({
+    id: z.string(),
+    project_id: z.string(),
+    name: z.string(),
+    type: z.literal('gitlab'),
+    config: gitlabFileSpaceConfigSchema,
+    enabled: z.boolean(),
+    created_at: z.string(),
+    updated_at: z.string()
+  }),
+  z.object({
+    id: z.string(),
+    project_id: z.string(),
+    name: z.string(),
+    type: z.literal('github'),
+    config: githubFileSpaceConfigSchema,
+    enabled: z.boolean(),
+    created_at: z.string(),
+    updated_at: z.string()
+  })
+])
+
+export const createFileSpaceSchema = z.discriminatedUnion('type', [
+  z.object({
+    project_id: z.string(),
+    name: z.string(),
+    type: z.literal('gitlab'),
+    config: gitlabFileSpaceConfigSchema,
+    enabled: z.boolean().optional()
+  }),
+  z.object({
+    project_id: z.string(),
+    name: z.string(),
+    type: z.literal('github'),
+    config: githubFileSpaceConfigSchema,
+    enabled: z.boolean().optional()
+  })
+])
+
+export const updateFileSpaceSchema = z.union([
+  z.object({
+    project_id: z.string().optional(),
+    name: z.string().optional(),
+    type: z.literal('gitlab').optional(),
+    config: gitlabFileSpaceConfigSchema.partial().optional(),
+    enabled: z.boolean().optional()
+  }),
+  z.object({
+    project_id: z.string().optional(),
+    name: z.string().optional(),
+    type: z.literal('github').optional(),
+    config: githubFileSpaceConfigSchema.partial().optional(),
+    enabled: z.boolean().optional()
+  })
+])
 
 // TaskSource schemas
 export const taskSourceSchema = z.object({

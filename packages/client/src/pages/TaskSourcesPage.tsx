@@ -18,21 +18,22 @@ export function TaskSourcesPage() {
   const [taskSources, setTaskSources] = useState<TaskSource[]>([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    const fetchTaskSources = async () => {
-      const res = await client["task-sources"].$get({
-        query: {}
-      })
-      if (!res.ok) {
-        console.error("Error fetching task sources:", await res.text())
-        setLoading(false)
-        return
-      }
-      const data = await res.json()
-      setTaskSources(data)
+  const fetchTaskSources = async () => {
+    setLoading(true)
+    const res = await client["task-sources"].$get({
+      query: {}
+    })
+    if (!res.ok) {
+      console.error("Error fetching task sources:", await res.text())
       setLoading(false)
+      return
     }
+    const data = await res.json()
+    setTaskSources(data)
+    setLoading(false)
+  }
 
+  useEffect(() => {
     fetchTaskSources().catch((error) => {
       console.error("Error fetching task sources:", error)
       setLoading(false)
@@ -66,6 +67,7 @@ export function TaskSourcesPage() {
             items={taskSources}
             loading={loading}
             emptyMessage="No task sources found"
+            buildPresenter={(item) => new TaskSourcePresenter(item, fetchTaskSources)}
           />
         </CardContent>
       </Card>

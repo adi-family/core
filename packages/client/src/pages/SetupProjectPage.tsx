@@ -9,7 +9,7 @@ import {
   CardTitle,
 } from '@adi-simple/ui/card'
 import { Button } from '@adi-simple/ui/button'
-import { GitlabSecretAutocomplete } from "@/components/GitlabSecretAutocomplete"
+import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocomplete'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateProjectInput, Secret } from "../../../types"
 
@@ -169,6 +169,7 @@ export function SetupProjectPage() {
                   </div>
 
                   <GitlabSecretAutocomplete
+                    client={client}
                     projectId={createdProjectId || undefined}
                     host={executorHost}
                     value={executorTokenSecretId}

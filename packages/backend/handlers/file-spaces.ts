@@ -3,7 +3,6 @@ import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/file-spaces'
 import { idParamSchema, createFileSpaceSchema, updateFileSpaceSchema, projectIdQuerySchema } from '../schemas'
-import { authMiddleware } from '../middleware/auth'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { getClerkUserId } from '../middleware/clerk'
 import * as userAccessQueries from '../../db/user-access'
@@ -56,9 +55,13 @@ export const createFileSpaceRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .post('/', zValidator('json', createFileSpaceSchema), authMiddleware, async (c) => {
+    .post('/', zValidator('json', createFileSpaceSchema), async (c) => {
       const body = c.req.valid('json')
       const userId = getClerkUserId(c)
+
+      if (!userId) {
+        return c.json({ error: 'Authentication required' }, 401)
+      }
 
       try {
         // Require developer access to project
@@ -85,7 +88,7 @@ export const createFileSpaceRoutes = (sql: Sql) => {
 
       return c.json(fileSpace, 201)
     })
-    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateFileSpaceSchema), authMiddleware, async (c) => {
+    .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateFileSpaceSchema), async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
 
@@ -99,7 +102,7 @@ export const createFileSpaceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.updateFileSpace(sql, id, body)
+      const result = await queries.updateFileSpace(sql, id, body as import('../../types').UpdateFileSpaceInput)
 
       if (!result.ok) {
         return c.json({ error: result.error }, 404)
@@ -107,7 +110,7 @@ export const createFileSpaceRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
-    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
+    .delete('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
       try {

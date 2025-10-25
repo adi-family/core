@@ -10,11 +10,10 @@ import {
 } from '@adi-simple/ui/card'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { Project } from "../../../types"
-import { GitlabConfiguration } from "@/components/GitlabConfiguration"
 import { GitlabExecutorConfig } from "@/components/GitlabExecutorConfig"
 import { AIProviderSettings } from "@/components/AIProviderSettings"
 
-type TabType = "overview" | "task-sources" | "configuration" | "ai-providers"
+type TabType = "overview" | "configuration" | "ai-providers"
 
 export function ProjectPage() {
   const { id } = useParams<{ id: string }>()
@@ -109,7 +108,6 @@ export function ProjectPage() {
 
   const tabs: { id: TabType; label: string }[] = [
     { id: "overview", label: "OVERVIEW" },
-    { id: "task-sources", label: "TASK SOURCES" },
     { id: "configuration", label: "SOURCE SETTINGS" },
     { id: "ai-providers", label: "AI PROVIDERS" },
   ]
@@ -208,19 +206,8 @@ export function ProjectPage() {
             </div>
           )}
 
-          {activeTab === "task-sources" && (
-            <div className="text-center py-8 text-gray-500">
-              <p className="text-xs uppercase tracking-wide">Task sources management coming soon</p>
-            </div>
-          )}
-
           {activeTab === "configuration" && (
-            <div className="space-y-8">
-              <GitlabExecutorConfig projectId={project.id} />
-              <div className="border-t border-gray-200/60 pt-8">
-                <GitlabConfiguration projectId={project.id} />
-              </div>
-            </div>
+            <GitlabExecutorConfig projectId={project.id} />
           )}
 
           {activeTab === "ai-providers" && (

@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@clerk/clerk-react"
 import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
+import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocomplete'
 import { createAuthenticatedClient } from "@/lib/client"
 import { CheckCircle2, XCircle, Loader2, Trash2 } from "lucide-react"
 
@@ -28,8 +29,8 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
   const [success, setSuccess] = useState<string | null>(null)
 
   // Form state
-  const [host, setHost] = useState("https://gitlab.the-ihor.com")
-  const [accessToken, setAccessToken] = useState("")
+  const [host, setHost] = useState("https://gitlab.com")
+  const [accessTokenSecretId, setAccessTokenSecretId] = useState<string | null>(null)
 
   // Load existing config
   useEffect(() => {
@@ -58,7 +59,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
   }, [projectId])
 
   const handleSave = async () => {
-    if (!host || !accessToken) {
+    if (!host || !accessTokenSecretId) {
       setError("Host and access token are required")
       return
     }
@@ -70,7 +71,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
     try {
       const res = await client.projects[":id"]["job-executor-gitlab"].$post({
         param: { id: projectId },
-        json: { host, access_token: accessToken },
+        json: { host, access_token_secret_id: accessTokenSecretId },
       })
 
       if (!res.ok) {
@@ -80,7 +81,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
 
       const data = await res.json() as ExecutorConfig
       setExistingConfig(data)
-      setAccessToken("") // Clear token after successful save
+      setAccessTokenSecretId(null) // Clear selection after successful save
       setSuccess("GitLab executor configured successfully!")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save executor config")
@@ -108,7 +109,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
       }
 
       setExistingConfig(null)
-      setAccessToken("")
+      setAccessTokenSecretId(null)
       setSuccess("GitLab executor configuration removed")
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to delete executor config")
@@ -202,33 +203,27 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
             value={host}
             onChange={(e) => setHost(e.target.value)}
             className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-            placeholder="https://gitlab.the-ihor.com"
+            placeholder="https://gitlab.com"
           />
           <p className="text-xs text-gray-500">
             The GitLab instance URL where pipelines will be executed
           </p>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="executor_token" className="text-xs uppercase tracking-wide">
-            ACCESS TOKEN
-          </Label>
-          <Input
-            id="executor_token"
-            type="password"
-            value={accessToken}
-            onChange={(e) => setAccessToken(e.target.value)}
-            className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-            placeholder={existingConfig ? "Enter new token to update" : "Enter GitLab access token"}
-          />
-          <p className="text-xs text-gray-500">
-            The token will be verified and stored securely. Required scopes: <code className="bg-gray-100 px-1">api</code>
-          </p>
-        </div>
+        <GitlabSecretAutocomplete
+          client={client}
+          projectId={projectId}
+          host={host}
+          value={accessTokenSecretId}
+          onChange={(secretId) => setAccessTokenSecretId(secretId)}
+          label="GITLAB ACCESS TOKEN"
+          required
+          requiredScopes={["api"]}
+        />
 
         <button
           onClick={handleSave}
-          disabled={saving || !host || !accessToken}
+          disabled={saving || !host || !accessTokenSecretId}
           className="px-4 py-2 bg-blue-500 text-white text-sm font-medium uppercase tracking-wide hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95 transition-all duration-200"
         >
           {saving ? (
@@ -242,16 +237,6 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
             "Configure Executor"
           )}
         </button>
-      </div>
-
-      <div className="bg-gray-50/50 p-4 border border-gray-200/60 text-xs text-gray-600 space-y-2">
-        <div className="font-medium text-gray-700 uppercase tracking-wide">ℹ️ ABOUT PIPELINE EXECUTORS</div>
-        <ul className="space-y-1 list-disc list-inside">
-          <li>Projects can use a custom GitLab instance for running CI/CD pipelines</li>
-          <li>If not configured, the project will use the default worker repository executor</li>
-          <li>The access token must have permissions to trigger pipelines</li>
-          <li>Token verification is performed when saving the configuration</li>
-        </ul>
       </div>
     </div>
   )

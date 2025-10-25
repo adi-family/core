@@ -1,12 +1,3 @@
-*
-!public
-!public/***
-!src
-!src/***
-!.gitignore
-!eslint.config.js
-!index.html
-!tsconfig.*
-!vite.config.ts
-!tailwind.config.ts
-!Dockerfile
+.turbo
+dist
+node_modules

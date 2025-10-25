@@ -12,6 +12,7 @@ import { SessionsPage } from "./pages/SessionsPage"
 import { MessagesPage } from "./pages/MessagesPage"
 import { WorkerCachePage } from "./pages/WorkerCachePage"
 import { FileSpacesPage } from "./pages/FileSpacesPage"
+import { CreateFileSpacePage } from "./pages/CreateFileSpacePage"
 import { TaskSourcesPage } from "./pages/TaskSourcesPage"
 import { CreateTaskSourcePage } from "./pages/CreateTaskSourcePage"
 import { PipelineExecutionsPage } from "./pages/PipelineExecutionsPage"
@@ -98,6 +99,7 @@ export function App() {
                     <Route path="messages" element={<MessagesPage />} />
                     <Route path="worker-cache" element={<WorkerCachePage />} />
                     <Route path="file-spaces" element={<FileSpacesPage />} />
+                    <Route path="create-file-space" element={<CreateFileSpacePage />} />
                     <Route path="task-sources" element={<TaskSourcesPage />} />
                     <Route path="create-task-source" element={<CreateTaskSourcePage />} />
                     <Route path="pipeline-executions" element={<PipelineExecutionsPage />} />

@@ -35,3 +35,21 @@ export const TASK_EVAL_DLQ_CONFIG: QueueConfig = {
   name: TASK_EVAL_DLQ,
   durable: true
 }
+
+export const TASK_IMPL_QUEUE = 'task-impl'
+export const TASK_IMPL_DLQ = 'task-impl.dlq'
+export const TASK_IMPL_DLX = 'task-impl.dlx'
+
+export const TASK_IMPL_CONFIG: QueueConfig = {
+  name: TASK_IMPL_QUEUE,
+  durable: true,
+  deadLetterExchange: TASK_IMPL_DLX,
+  deadLetterQueue: TASK_IMPL_DLQ,
+  messageTtl: 7200000, // 2 hours (longer for implementation)
+  maxRetries: 3
+}
+
+export const TASK_IMPL_DLQ_CONFIG: QueueConfig = {
+  name: TASK_IMPL_DLQ,
+  durable: true
+}

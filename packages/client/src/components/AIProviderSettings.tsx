@@ -7,6 +7,7 @@ import { createAuthenticatedClient } from "@/lib/client"
 import type { AIProviderConfig, AIProviderValidationResult } from "../../../types"
 import { CheckCircle2, XCircle, Loader2, AlertCircle, Trash2 } from "lucide-react"
 import { siAnthropic, siOpenai, siGoogle } from "simple-icons"
+import { toast } from "sonner"
 
 type AIProviderSettingsProps = {
   projectId: string
@@ -68,6 +69,19 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     fetchConfigs()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId])
+
+  // Auto-select first available provider when configs load
+  useEffect(() => {
+    if (!loading && currentConfigs && !selectedProvider) {
+      // Select first supported provider (currently only Anthropic)
+      const supportedProviders: Provider[] = ['anthropic', 'openai', 'google']
+      const firstSupported = supportedProviders.find(p => p === 'anthropic')
+      if (firstSupported) {
+        handleProviderSelect(firstSupported)
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, currentConfigs])
 
   const handleProviderSelect = (provider: Provider) => {
     setSelectedProvider(provider)
@@ -186,10 +200,10 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
           setSelectedProvider(null)
         }
       } else {
-        alert("Failed to delete configuration")
+        toast.error("Failed to delete configuration")
       }
     } catch (err) {
-      alert(`Delete error: ${err instanceof Error ? err.message : "Unknown error"}`)
+      toast.error(`Delete error: ${err instanceof Error ? err.message : "Unknown error"}`)
     }
   }
 
@@ -232,6 +246,21 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     }
   }
 
+  const getApiKeyUrl = (provider: Provider, type: ProviderType): string | null => {
+    if (type !== 'cloud') return null
+
+    switch (provider) {
+      case 'anthropic':
+        return 'https://console.anthropic.com/settings/keys'
+      case 'openai':
+        return 'https://platform.openai.com/api-keys'
+      case 'google':
+        return 'https://console.cloud.google.com/apis/credentials'
+      default:
+        return null
+    }
+  }
+
   const renderProviderForm = () => {
     if (!selectedProvider) return null
 
@@ -262,6 +291,18 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
             className="bg-white"
             required
           />
+          {getApiKeyUrl(selectedProvider, formData.type) && (
+            <p className="text-xs text-gray-500">
+              <a
+                href={getApiKeyUrl(selectedProvider, formData.type)!}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-500 hover:underline font-medium"
+              >
+                Create a new API key
+              </a>
+            </p>
+          )}
         </div>
 
         {/* Endpoint URL for self-hosted, azure, vertex */}

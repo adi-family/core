@@ -58,7 +58,7 @@ export function FileSpaceSelect({
       console.error("Error fetching file spaces:", error)
       setLoading(false)
     })
-  }, [projectId])
+  }, [projectId, client])
 
   const getFileSpaceTypeLabel = (type: string) => {
     switch (type) {

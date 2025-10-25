@@ -9,20 +9,22 @@ if (!process.env.SERVER_PORT) {
 
 const port = Number(process.env.SERVER_PORT)
 
-// Graceful shutdown
-process.on('SIGINT', () => {
-  logger.info('Shutting down...')
-  process.exit(0)
-})
+// Pipeline monitor moved to micros-task-ops service
+// Backend is now a pure stateless API server
 
-process.on('SIGTERM', () => {
+// Graceful shutdown
+const shutdown = () => {
   logger.info('Shutting down...')
   process.exit(0)
-})
+}
+
+process.on('SIGINT', shutdown)
+process.on('SIGTERM', shutdown)
 
 export default {
   port,
   fetch: app.fetch,
+  idleTimeout: 120, // 2 minutes timeout for long-running operations like file uploads
 }
 
 logger.info(`Server running on http://localhost:${port}`)

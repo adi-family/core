@@ -156,11 +156,31 @@ export const createWebhookRoutes = (sql: Sql) => {
     .post('/github', async (c) => {
     try {
       const event = c.req.header('X-GitHub-Event')
-      // const signature = c.req.header('X-Hub-Signature-256')
+      const signature = c.req.header('X-Hub-Signature-256')
 
       logger.info(`Received GitHub webhook: ${event}`)
 
-      // TODO: Verify webhook signature if GITHUB_WEBHOOK_SECRET is configured
+      // Verify webhook signature if GITHUB_WEBHOOK_SECRET is configured
+      const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET
+      if (webhookSecret && signature) {
+        const crypto = await import('crypto')
+        const body = await c.req.text()
+        const hmac = crypto.createHmac('sha256', webhookSecret)
+        const digest = 'sha256=' + hmac.update(body).digest('hex')
+
+        if (signature !== digest) {
+          logger.warn('GitHub webhook signature verification failed')
+          return c.json({ error: 'Invalid signature' }, 401)
+        }
+        logger.debug('GitHub webhook signature verified')
+
+        // Re-parse JSON since we consumed the body for signature verification
+        const payload = JSON.parse(body)
+        c.req.bodyCache.json = payload
+      } else if (webhookSecret && !signature) {
+        logger.warn('GitHub webhook secret configured but no signature provided')
+        return c.json({ error: 'Signature required' }, 401)
+      }
 
       // Only process issue events
       if (event !== 'issues') {

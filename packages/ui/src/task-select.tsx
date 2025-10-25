@@ -65,7 +65,7 @@ export function TaskSelect({
       console.error("Error fetching tasks:", error)
       setLoading(false)
     })
-  }, [projectId, taskSourceId])
+  }, [projectId, taskSourceId, client])
 
   const getStatusIcon = (status: string) => {
     const iconSize = 16

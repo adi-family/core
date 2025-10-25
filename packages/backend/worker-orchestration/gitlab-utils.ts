@@ -1,6 +1,6 @@
 /**
  * GitLab utility functions for pipeline operations
- * Shared utilities to eliminate duplication between pipeline-executor and pipeline-monitor
+ * Shared utilities for validating and decrypting GitLab credentials
  */
 
 import { decrypt } from '@shared/crypto-utils'
