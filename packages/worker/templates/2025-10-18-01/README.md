@@ -41,7 +41,7 @@ Pipelines are triggered via GitLab API with these variables:
 
 - `SESSION_ID` - UUID of session to process
 - `PIPELINE_EXECUTION_ID` - UUID of pipeline_executions record
-- `CI_CONFIG_PATH` - Path to CI file (e.g., `2025-10-18-01/.gitlab-ci-claude.yml`)
+- `CI_RUNNER` - Runner type to use (e.g., `evaluation`, `claude`, `codex`, `gemini`)
 
 ## How It Works
 

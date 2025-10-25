@@ -1,0 +1,17 @@
+# Main GitLab CI configuration that dynamically includes runner-specific configs
+# This file is used as the entry point for all pipelines
+# The CI_RUNNER variable is passed when triggering the pipeline to select the appropriate config
+
+include:
+  - local: '2025-10-18-01/.gitlab-ci-evaluation.yml'
+    rules:
+      - if: '$CI_RUNNER == "evaluation"'
+  - local: '2025-10-18-01/.gitlab-ci-claude.yml'
+    rules:
+      - if: '$CI_RUNNER == "claude"'
+  - local: '2025-10-18-01/.gitlab-ci-codex.yml'
+    rules:
+      - if: '$CI_RUNNER == "codex"'
+  - local: '2025-10-18-01/.gitlab-ci-gemini.yml'
+    rules:
+      - if: '$CI_RUNNER == "gemini"'
