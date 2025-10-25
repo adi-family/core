@@ -5,6 +5,7 @@ stages:
 
 variables:
   WORKER_IMAGE: "oven/bun:latest"
+  GIT_SUBMODULE_STRATEGY: recursive
 
 prepare:
   stage: prepare
@@ -15,6 +16,10 @@ prepare:
     - bun install
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
+
+    # Sync all workspace repositories
+    - echo "Syncing workspace repositories"
+    - bun run sync-workspaces.ts
   cache:
     paths:
       - worker-scripts/node_modules/

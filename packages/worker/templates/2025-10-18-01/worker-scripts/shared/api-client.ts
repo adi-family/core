@@ -23,6 +23,9 @@ export interface Task {
 
 export interface FileSpace {
   id: string
+  name: string
+  enabled: boolean
+  config: unknown
   [key: string]: unknown
 }
 
@@ -65,6 +68,10 @@ export class ApiClient {
 
   async getFileSpace(fileSpaceId: string): Promise<FileSpace> {
     return this.fetch<FileSpace>(`/file-spaces/${fileSpaceId}`)
+  }
+
+  async getFileSpacesByProject(projectId: string): Promise<FileSpace[]> {
+    return this.fetch<FileSpace[]>(`/file-spaces?project_id=${projectId}`)
   }
 
   async createPipelineArtifact(

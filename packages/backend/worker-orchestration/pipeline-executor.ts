@@ -502,6 +502,7 @@ async function preparePipelineConfig(
   const variables = {
     SESSION_ID: context.session.id,
     PIPELINE_EXECUTION_ID: executionId,
+    PROJECT_ID: context.project.id,
     CI_RUNNER: context.session.runner!, // Already validated in validateAndFetchPipelineContext
     API_BASE_URL: apiBaseUrl,
     API_TOKEN: apiToken,

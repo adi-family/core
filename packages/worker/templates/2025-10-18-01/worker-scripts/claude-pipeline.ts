@@ -119,13 +119,16 @@ async function main() {
       errors: [] as string[],
     }
 
-    // Clone repository if file space is provided
+    // Clone or pull repository if file space is provided
     if (fileSpace && fileSpace.config && typeof fileSpace.config === 'object' && 'repo' in fileSpace.config) {
       const repoUrl = (fileSpace.config as { repo: string }).repo
       const branchName = `issue/task-${task.id.slice(0, 8)}`
-      const workspacePath = `/tmp/workspace-${sessionId}`
 
-      logger.info(`📦 Cloning repository: ${repoUrl}`)
+      // Use workspaces directory in the worker repository instead of /tmp
+      const workspaceName = fileSpace.name.replace(/[^a-zA-Z0-9-]/g, '-').toLowerCase()
+      const workspacePath = `../workspaces/${workspaceName}`
+
+      logger.info(`📦 Setting up repository: ${repoUrl}`)
       try {
         // Validate repo URL format
         if (!repoUrl.startsWith('http://') && !repoUrl.startsWith('https://') && !repoUrl.startsWith('git@')) {
@@ -134,8 +137,25 @@ async function main() {
           )
         }
 
-        await exec(`git clone ${repoUrl} ${workspacePath}`)
-        logger.info(`✓ Repository cloned to ${workspacePath}`)
+        // Create workspaces directory if it doesn't exist
+        await mkdir('../workspaces', { recursive: true })
+
+        // Check if repository already exists
+        try {
+          await exec(`test -d ${workspacePath}/.git`)
+          logger.info(`✓ Repository already exists at ${workspacePath}`)
+
+          // Repository exists, pull latest changes
+          logger.info(`🔄 Pulling latest changes...`)
+          await exec(`cd ${workspacePath} && git fetch --all`)
+          await exec(`cd ${workspacePath} && git pull origin HEAD`)
+          logger.info(`✓ Repository updated`)
+        } catch {
+          // Repository doesn't exist, clone it
+          logger.info(`📦 Cloning repository: ${repoUrl}`)
+          await exec(`git clone ${repoUrl} ${workspacePath}`)
+          logger.info(`✓ Repository cloned to ${workspacePath}`)
+        }
 
         // Create and checkout branch
         logger.info(`🌿 Creating branch: ${branchName}`)
