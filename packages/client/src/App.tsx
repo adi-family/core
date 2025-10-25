@@ -7,6 +7,7 @@ import { ProjectsPage } from "./pages/ProjectsPage"
 import { ProjectPage } from "./pages/ProjectPage"
 import { SetupProjectPage } from "./pages/SetupProjectPage"
 import { TasksPage } from "./pages/TasksPage"
+import { TaskPage } from "./pages/TaskPage"
 import { SessionsPage } from "./pages/SessionsPage"
 import { MessagesPage } from "./pages/MessagesPage"
 import { WorkerCachePage } from "./pages/WorkerCachePage"
@@ -16,6 +17,7 @@ import { CreateTaskSourcePage } from "./pages/CreateTaskSourcePage"
 import { PipelineExecutionsPage } from "./pages/PipelineExecutionsPage"
 import { PipelineArtifactsPage } from "./pages/PipelineArtifactsPage"
 import { DebugGitlabSecretPage } from "./pages/DebugGitlabSecretPage"
+import { AdminPage } from "./pages/AdminPage"
 
 export function App() {
   return (
@@ -91,6 +93,7 @@ export function App() {
                     <Route path="projects/:id" element={<ProjectPage />} />
                     <Route path="setup-project" element={<SetupProjectPage />} />
                     <Route path="tasks" element={<TasksPage />} />
+                    <Route path="tasks/:id" element={<TaskPage />} />
                     <Route path="sessions" element={<SessionsPage />} />
                     <Route path="messages" element={<MessagesPage />} />
                     <Route path="worker-cache" element={<WorkerCachePage />} />
@@ -99,6 +102,7 @@ export function App() {
                     <Route path="create-task-source" element={<CreateTaskSourcePage />} />
                     <Route path="pipeline-executions" element={<PipelineExecutionsPage />} />
                     <Route path="pipeline-artifacts" element={<PipelineArtifactsPage />} />
+                    <Route path="admin" element={<AdminPage />} />
                     <Route path="debug" element={<DebugGitlabSecretPage />} />
                   </Route>
                 </Routes>

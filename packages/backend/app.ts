@@ -14,6 +14,8 @@ import { createPipelineArtifactRoutes } from './handlers/pipeline-artifacts'
 import { createWebhookRoutes } from './handlers/webhooks'
 import { createSecretRoutes } from './handlers/secrets'
 import { createUserAccessRoutes } from './handlers/user-access'
+import { createAlertRoutes } from './handlers/alerts'
+import { createAdminRoutes } from './handlers/admin'
 import { authMiddleware } from './middleware/auth'
 import { clerkAuth, optionalClerkAuth } from './middleware/clerk'
 import * as sessionQueries from '@db/sessions'
@@ -47,6 +49,8 @@ const app = new Hono()
   // Set userId in context if authenticated (optional for most routes)
   .use('*', optionalClerkAuth())
   // Mount main routes
+  .route('/admin', createAdminRoutes(sql))
+  .route('/alerts', createAlertRoutes(sql))
   .route('/projects', createProjectRoutes(sql))
   .route('/tasks', createTaskRoutes(sql))
   .route('/sessions', createSessionRoutes(sql))
