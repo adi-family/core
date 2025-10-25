@@ -74,42 +74,56 @@ export async function syncTaskSourcesNeedingSync(
   }
 }
 
+export interface Runner {
+  start: () => void | Promise<void>
+  stop: () => void | Promise<void>
+}
+
 /**
- * Start the sync scheduler
+ * Create sync scheduler runner
  */
-export function startSyncScheduler(
+export function createSyncScheduler(
   sql: Sql,
   intervalMinutes: number = 15,
   syncThresholdMinutes: number = 30,
   queuedTimeoutMinutes: number = 120
-): NodeJS.Timeout {
-  logger.info(`Starting sync scheduler:`)
-  logger.info(`  - Check interval: ${intervalMinutes} minutes`)
-  logger.info(`  - Sync threshold: ${syncThresholdMinutes} minutes`)
-  logger.info(`  - Stuck task timeout: ${queuedTimeoutMinutes} minutes`)
-
-  // Run immediately on startup
-  syncTaskSourcesNeedingSync(sql, syncThresholdMinutes, queuedTimeoutMinutes).catch(error => {
-    logger.error('Initial sync failed:', error)
-  })
-
-  // Schedule periodic runs
+): Runner {
   const intervalMs = intervalMinutes * 60 * 1000
-  const timer = setInterval(() => {
-    syncTaskSourcesNeedingSync(sql, syncThresholdMinutes, queuedTimeoutMinutes).catch(error => {
-      logger.error('Scheduled sync failed:', error)
-    })
-  }, intervalMs)
+  let timer: NodeJS.Timeout | null = null
 
-  logger.info('Sync scheduler started successfully')
+  return {
+    start: () => {
+      if (timer) {
+        logger.warn('Sync scheduler already running')
+        return
+      }
 
-  return timer
-}
+      logger.info(`Starting sync scheduler:`)
+      logger.info(`  - Check interval: ${intervalMinutes} minutes`)
+      logger.info(`  - Sync threshold: ${syncThresholdMinutes} minutes`)
+      logger.info(`  - Stuck task timeout: ${queuedTimeoutMinutes} minutes`)
 
-/**
- * Stop the sync scheduler
- */
-export function stopSyncScheduler(timer: NodeJS.Timeout): void {
-  clearInterval(timer)
-  logger.info('Sync scheduler stopped')
+      // Run immediately on startup
+      syncTaskSourcesNeedingSync(sql, syncThresholdMinutes, queuedTimeoutMinutes).catch(error => {
+        logger.error('Initial sync failed:', error)
+      })
+
+      // Schedule periodic runs
+      timer = setInterval(() => {
+        syncTaskSourcesNeedingSync(sql, syncThresholdMinutes, queuedTimeoutMinutes).catch(error => {
+          logger.error('Scheduled sync failed:', error)
+        })
+      }, intervalMs)
+
+      logger.info('Sync scheduler started successfully')
+    },
+
+    stop: () => {
+      if (timer) {
+        clearInterval(timer)
+        timer = null
+        logger.info('Sync scheduler stopped')
+      }
+    }
+  }
 }

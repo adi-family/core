@@ -230,41 +230,55 @@ export async function updatePipelineStatus(executionId: string, sql: Sql): Promi
   }
 }
 
+export interface Runner {
+  start: () => void | Promise<void>
+  stop: () => void | Promise<void>
+}
+
 /**
- * Start periodic monitoring of stale pipelines
+ * Create pipeline monitor runner
  */
-export function startPipelineMonitor(
+export function createPipelineMonitor(
   config: PipelineMonitorConfig
-): NodeJS.Timeout {
+): Runner {
   const pollIntervalMs =
     config.pollIntervalMs ||
     parseInt(process.env.PIPELINE_POLL_INTERVAL_MS || '') ||
     DEFAULT_POLL_INTERVAL_MS
 
-  logger.info(
-    `🔄 Starting pipeline monitor (interval: ${pollIntervalMs / 1000}s)`
-  )
+  let intervalId: NodeJS.Timeout | null = null
 
-  const intervalId = setInterval(async () => {
-    try {
-      await checkStalePipelines(config)
-    } catch (error) {
-      logger.error('Pipeline monitor error:', error)
+  return {
+    start: () => {
+      if (intervalId) {
+        logger.warn('Pipeline monitor already running')
+        return
+      }
+
+      logger.info(
+        `🔄 Starting pipeline monitor (interval: ${pollIntervalMs / 1000}s)`
+      )
+
+      intervalId = setInterval(async () => {
+        try {
+          await checkStalePipelines(config)
+        } catch (error) {
+          logger.error('Pipeline monitor error:', error)
+        }
+      }, pollIntervalMs)
+
+      // Run immediately on start
+      checkStalePipelines(config).catch((error) => {
+        logger.error('Pipeline monitor initial run error:', error)
+      })
+    },
+
+    stop: () => {
+      if (intervalId) {
+        clearInterval(intervalId)
+        intervalId = null
+        logger.info('⏹️  Pipeline monitor stopped')
+      }
     }
-  }, pollIntervalMs)
-
-  // Run immediately on start
-  checkStalePipelines(config).catch((error) => {
-    logger.error('Pipeline monitor initial run error:', error)
-  })
-
-  return intervalId
-}
-
-/**
- * Stop pipeline monitor
- */
-export function stopPipelineMonitor(intervalId: NodeJS.Timeout): void {
-  clearInterval(intervalId)
-  logger.info('⏹️  Pipeline monitor stopped')
+  }
 }

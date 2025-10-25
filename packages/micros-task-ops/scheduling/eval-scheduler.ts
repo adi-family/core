@@ -47,39 +47,53 @@ export async function processTaskEvaluations(sql: Sql): Promise<{ tasksPublished
   }
 }
 
-/**
- * Start the evaluation scheduler
- */
-export function startEvalScheduler(
-  sql: Sql,
-  intervalMinutes: number = 5
-): NodeJS.Timeout {
-  logger.info(`Starting evaluation scheduler with ${intervalMinutes} minute interval`)
-
-  // Run immediately on startup
-  processTaskEvaluations(sql).then(result => {
-    logger.info(`Initial evaluation run completed:`, result)
-  }).catch(error => {
-    logger.error('Initial evaluation run failed:', error)
-  })
-
-  // Schedule periodic runs
-  const intervalMs = intervalMinutes * 60 * 1000
-  const timer = setInterval(() => {
-    processTaskEvaluations(sql).catch(error => {
-      logger.error('Scheduled evaluation run failed:', error)
-    })
-  }, intervalMs)
-
-  logger.info('Evaluation scheduler started successfully')
-
-  return timer
+export interface Runner {
+  start: () => void | Promise<void>
+  stop: () => void | Promise<void>
 }
 
 /**
- * Stop the evaluation scheduler
+ * Create evaluation scheduler runner
  */
-export function stopEvalScheduler(timer: NodeJS.Timeout): void {
-  clearInterval(timer)
-  logger.info('Evaluation scheduler stopped')
+export function createEvalScheduler(
+  sql: Sql,
+  intervalMinutes: number = 5
+): Runner {
+  const intervalMs = intervalMinutes * 60 * 1000
+  let timer: NodeJS.Timeout | null = null
+
+  return {
+    start: () => {
+      if (timer) {
+        logger.warn('Evaluation scheduler already running')
+        return
+      }
+
+      logger.info(`Starting evaluation scheduler with ${intervalMinutes} minute interval`)
+
+      // Run immediately on startup
+      processTaskEvaluations(sql).then(result => {
+        logger.info(`Initial evaluation run completed:`, result)
+      }).catch(error => {
+        logger.error('Initial evaluation run failed:', error)
+      })
+
+      // Schedule periodic runs
+      timer = setInterval(() => {
+        processTaskEvaluations(sql).catch(error => {
+          logger.error('Scheduled evaluation run failed:', error)
+        })
+      }, intervalMs)
+
+      logger.info('Evaluation scheduler started successfully')
+    },
+
+    stop: () => {
+      if (timer) {
+        clearInterval(timer)
+        timer = null
+        logger.info('Evaluation scheduler stopped')
+      }
+    }
+  }
 }

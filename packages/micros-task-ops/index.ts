@@ -12,11 +12,11 @@
 import { sql } from '@db/client'
 import { createLogger } from '@utils/logger'
 import { loadConfig, logConfig } from './config'
-import { startSyncScheduler, stopSyncScheduler } from './scheduling/sync-scheduler'
-import { startEvalScheduler, stopEvalScheduler } from './scheduling/eval-scheduler'
-import { startPipelineMonitor, stopPipelineMonitor } from './monitoring/pipeline-monitor'
-import { startEvaluationRecovery, stopEvaluationRecovery } from './monitoring/evaluation-recovery'
-import { startTaskSyncConsumer, startTaskEvalConsumer, startTaskImplConsumer } from './consumer'
+import { createSyncScheduler, type Runner } from './scheduling/sync-scheduler'
+import { createEvalScheduler } from './scheduling/eval-scheduler'
+import { createPipelineMonitor } from './monitoring/pipeline-monitor'
+import { createEvaluationRecovery } from './monitoring/evaluation-recovery'
+import { createTaskSyncConsumer, createTaskEvalConsumer, createTaskImplConsumer } from './consumer'
 
 const logger = createLogger({ namespace: 'micros-task-ops' })
 
@@ -32,54 +32,41 @@ const config = loadConfig()
 logger.info('Starting Micros-Task-Ops service...')
 logConfig(config)
 
-// Store timer references for graceful shutdown
-let syncTimer: NodeJS.Timeout | null = null
-let evalTimer: NodeJS.Timeout | null = null
-let pipelineTimer: NodeJS.Timeout | null = null
-let recoveryTimer: NodeJS.Timeout | null = null
+// Create all runners
+const runners: Runner[] = [
+  // Queue consumers
+  createTaskSyncConsumer(sql),
+  createTaskEvalConsumer(sql),
+  createTaskImplConsumer(sql),
+  // Schedulers and monitors
+  createSyncScheduler(
+    sql,
+    config.syncIntervalMinutes,
+    config.syncThresholdMinutes,
+    config.queuedTimeoutMinutes
+  ),
+  createEvalScheduler(
+    sql,
+    config.evalIntervalMinutes
+  ),
+  createPipelineMonitor({
+    pollIntervalMs: config.pipelinePollIntervalMs,
+    timeoutMinutes: config.pipelineTimeoutMinutes,
+    sql
+  }),
+  createEvaluationRecovery({
+    sql,
+    timeoutMinutes: config.stuckEvalTimeoutMinutes,
+    checkIntervalMs: config.stuckEvalCheckIntervalMinutes * 60 * 1000
+  })
+]
 
 async function main() {
   try {
-    // Start all queue consumers
-    await startTaskSyncConsumer(sql)
-    await startTaskEvalConsumer(sql)
-    await startTaskImplConsumer(sql)
-
-    // Start all schedulers and monitors (using DB only)
-    syncTimer = startSyncScheduler(
-      sql,
-      config.syncIntervalMinutes,
-      config.syncThresholdMinutes,
-      config.queuedTimeoutMinutes
-    )
-
-    evalTimer = startEvalScheduler(
-      sql,
-      config.evalIntervalMinutes
-    )
-
-    pipelineTimer = startPipelineMonitor({
-      pollIntervalMs: config.pipelinePollIntervalMs,
-      timeoutMinutes: config.pipelineTimeoutMinutes,
-      sql
-    })
-
-    recoveryTimer = startEvaluationRecovery({
-      sql,
-      timeoutMinutes: config.stuckEvalTimeoutMinutes,
-      checkIntervalMs: config.stuckEvalCheckIntervalMinutes * 60 * 1000
-    })
-
-    logger.info('✅ Micros-Task-Ops service started successfully')
-    logger.info('All task operations are now running:')
-    logger.info('  ✓ Task sync queue consumer')
-    logger.info('  ✓ Task eval queue consumer')
-    logger.info('  ✓ Task impl queue consumer')
-    logger.info('  ✓ Task source sync scheduler')
-    logger.info('  ✓ Evaluation scheduler')
-    logger.info('  ✓ Pipeline monitor')
-    logger.info('  ✓ Evaluation recovery')
-
+    // Start all runners
+    for (const runner of runners) {
+      await runner.start()
+    }
   } catch (error) {
     logger.error('Failed to start Micros-Task-Ops service:', error)
     process.exit(1)
@@ -89,20 +76,12 @@ async function main() {
 main()
 
 // Graceful shutdown handlers
-const shutdown = (signal: string) => {
+const shutdown = async (signal: string) => {
   logger.info(`Received ${signal}, shutting down gracefully...`)
 
-  if (syncTimer) {
-    stopSyncScheduler(syncTimer)
-  }
-  if (evalTimer) {
-    stopEvalScheduler(evalTimer)
-  }
-  if (pipelineTimer) {
-    stopPipelineMonitor(pipelineTimer)
-  }
-  if (recoveryTimer) {
-    stopEvaluationRecovery(recoveryTimer)
+  // Stop all runners
+  for (const runner of runners) {
+    await runner.stop()
   }
 
   sql.end().then(() => {
