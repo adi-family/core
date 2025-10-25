@@ -142,15 +142,31 @@ async function agenticEvaluation(
     apiKey: process.env.ANTHROPIC_API_KEY!
   })
 
-  // Check if codebase is available
-  const codebasePath = '../../codebase'
-  const hasCodebase = await Bun.file(codebasePath + '/.git/config').exists()
+  // Check for workspace repositories (submodules)
+  const workspacesPath = '../../workspaces'
+  const workspaces: string[] = []
 
-  let codebaseInfo = 'No codebase cloned'
-  if (hasCodebase) {
-    logger.info('📦 Codebase detected, analyzing...')
-    // TODO: Add codebase structure analysis here
-    codebaseInfo = 'Codebase available for analysis'
+  try {
+    const { readdirSync } = await import('fs')
+    const entries = readdirSync(workspacesPath, { withFileTypes: true })
+
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
+        const gitConfigPath = `${workspacesPath}/${entry.name}/.git`
+        if (await Bun.file(gitConfigPath + '/config').exists() || await Bun.file(gitConfigPath).exists()) {
+          workspaces.push(entry.name)
+          logger.info(`✓ Found workspace: ${entry.name}`)
+        }
+      }
+    }
+  } catch {
+    logger.warn('No workspaces directory found')
+  }
+
+  let codebaseInfo = 'No workspace repositories available'
+  if (workspaces.length > 0) {
+    logger.info(`📦 Found ${workspaces.length} workspace(s): ${workspaces.join(', ')}`)
+    codebaseInfo = `${workspaces.length} workspace repository(ies) available for analysis:\n${workspaces.map(w => `- ${w} (../../workspaces/${w})`).join('\n')}`
   }
 
   const prompt = `You are evaluating a task and creating an instruction manual for an AI agent.

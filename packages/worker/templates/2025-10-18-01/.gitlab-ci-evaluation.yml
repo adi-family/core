@@ -5,6 +5,7 @@ stages:
 
 variables:
   WORKER_IMAGE: "oven/bun:latest"
+  GIT_SUBMODULE_STRATEGY: recursive
 
 prepare:
   stage: prepare
@@ -15,6 +16,10 @@ prepare:
     - bun install
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
+
+    # Sync all workspace repositories
+    - echo "Syncing workspace repositories"
+    - bun run sync-workspaces.ts
   cache:
     paths:
       - 2025-10-18-01/worker-scripts/node_modules/
@@ -22,17 +27,6 @@ prepare:
 execute:
   stage: execute
   image: $WORKER_IMAGE
-  before_script:
-    # Clone codebase for analysis (REQUIRED)
-    - |
-      if [ -z "$REPO_URL" ] || [ -z "$REPO_TOKEN" ]; then
-        echo "❌ ERROR: Repository is required for evaluation"
-        echo "   REPO_URL and REPO_TOKEN must be configured"
-        exit 1
-      fi
-      echo "📦 Cloning codebase from $REPO_URL"
-      git clone https://oauth2:${REPO_TOKEN}@${REPO_URL#https://} codebase
-      echo "✓ Codebase cloned successfully"
   script:
     - cd 2025-10-18-01/worker-scripts
 
