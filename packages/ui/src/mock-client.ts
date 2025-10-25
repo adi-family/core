@@ -209,6 +209,8 @@ const mockTasks: Task[] = [
     source_jira_issue: null,
     ai_evaluation_status: "completed",
     ai_evaluation_session_id: "session-1",
+    ai_implementation_status: "pending",
+    ai_implementation_session_id: null,
     created_at: "2024-01-15",
     updated_at: "2024-01-20"
   },
@@ -239,6 +241,8 @@ const mockTasks: Task[] = [
     },
     ai_evaluation_status: "evaluating",
     ai_evaluation_session_id: "session-2",
+    ai_implementation_status: "pending",
+    ai_implementation_session_id: null,
     created_at: "2024-01-18",
     updated_at: "2024-01-22"
   },
@@ -269,6 +273,8 @@ const mockTasks: Task[] = [
     source_jira_issue: null,
     ai_evaluation_status: "pending",
     ai_evaluation_session_id: null,
+    ai_implementation_status: "pending",
+    ai_implementation_session_id: null,
     created_at: "2024-01-20",
     updated_at: "2024-01-22"
   },
@@ -300,6 +306,8 @@ const mockTasks: Task[] = [
     source_jira_issue: null,
     ai_evaluation_status: "completed",
     ai_evaluation_session_id: "session-3",
+    ai_implementation_status: "pending",
+    ai_implementation_session_id: null,
     created_at: "2024-01-12",
     updated_at: "2024-01-19"
   },

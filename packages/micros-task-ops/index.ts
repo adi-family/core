@@ -16,6 +16,7 @@ import { startSyncScheduler, stopSyncScheduler } from './scheduling/sync-schedul
 import { startEvalScheduler, stopEvalScheduler } from './scheduling/eval-scheduler'
 import { startPipelineMonitor, stopPipelineMonitor } from './monitoring/pipeline-monitor'
 import { startEvaluationRecovery, stopEvaluationRecovery } from './monitoring/evaluation-recovery'
+import { startTaskSyncConsumer, startTaskEvalConsumer, startTaskImplConsumer } from './consumer'
 
 const logger = createLogger({ namespace: 'micros-task-ops' })
 
@@ -37,43 +38,55 @@ let evalTimer: NodeJS.Timeout | null = null
 let pipelineTimer: NodeJS.Timeout | null = null
 let recoveryTimer: NodeJS.Timeout | null = null
 
-try {
-  // Start all schedulers and monitors (using DB only)
-  syncTimer = startSyncScheduler(
-    sql,
-    config.syncIntervalMinutes,
-    config.syncThresholdMinutes,
-    config.queuedTimeoutMinutes
-  )
+async function main() {
+  try {
+    // Start all queue consumers
+    await startTaskSyncConsumer(sql)
+    await startTaskEvalConsumer(sql)
+    await startTaskImplConsumer(sql)
 
-  evalTimer = startEvalScheduler(
-    sql,
-    config.evalIntervalMinutes
-  )
+    // Start all schedulers and monitors (using DB only)
+    syncTimer = startSyncScheduler(
+      sql,
+      config.syncIntervalMinutes,
+      config.syncThresholdMinutes,
+      config.queuedTimeoutMinutes
+    )
 
-  pipelineTimer = startPipelineMonitor({
-    pollIntervalMs: config.pipelinePollIntervalMs,
-    timeoutMinutes: config.pipelineTimeoutMinutes,
-    sql
-  })
+    evalTimer = startEvalScheduler(
+      sql,
+      config.evalIntervalMinutes
+    )
 
-  recoveryTimer = startEvaluationRecovery({
-    sql,
-    timeoutMinutes: config.stuckEvalTimeoutMinutes,
-    checkIntervalMs: config.stuckEvalCheckIntervalMinutes * 60 * 1000
-  })
+    pipelineTimer = startPipelineMonitor({
+      pollIntervalMs: config.pipelinePollIntervalMs,
+      timeoutMinutes: config.pipelineTimeoutMinutes,
+      sql
+    })
 
-  logger.info('✅ Micros-Task-Ops service started successfully')
-  logger.info('All task operations are now running (using direct DB access):')
-  logger.info('  ✓ Task source sync scheduler')
-  logger.info('  ✓ Evaluation scheduler')
-  logger.info('  ✓ Pipeline monitor')
-  logger.info('  ✓ Evaluation recovery')
+    recoveryTimer = startEvaluationRecovery({
+      sql,
+      timeoutMinutes: config.stuckEvalTimeoutMinutes,
+      checkIntervalMs: config.stuckEvalCheckIntervalMinutes * 60 * 1000
+    })
 
-} catch (error) {
-  logger.error('Failed to start Micros-Task-Ops service:', error)
-  process.exit(1)
+    logger.info('✅ Micros-Task-Ops service started successfully')
+    logger.info('All task operations are now running:')
+    logger.info('  ✓ Task sync queue consumer')
+    logger.info('  ✓ Task eval queue consumer')
+    logger.info('  ✓ Task impl queue consumer')
+    logger.info('  ✓ Task source sync scheduler')
+    logger.info('  ✓ Evaluation scheduler')
+    logger.info('  ✓ Pipeline monitor')
+    logger.info('  ✓ Evaluation recovery')
+
+  } catch (error) {
+    logger.error('Failed to start Micros-Task-Ops service:', error)
+    process.exit(1)
+  }
 }
+
+main()
 
 // Graceful shutdown handlers
 const shutdown = (signal: string) => {

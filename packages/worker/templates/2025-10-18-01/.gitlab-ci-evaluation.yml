@@ -23,15 +23,16 @@ execute:
   stage: execute
   image: $WORKER_IMAGE
   before_script:
-    # Clone codebase for analysis
+    # Clone codebase for analysis (REQUIRED)
     - |
-      if [ -n "$REPO_URL" ] && [ -n "$REPO_TOKEN" ]; then
-        echo "📦 Cloning codebase from $REPO_URL"
-        git clone https://oauth2:${REPO_TOKEN}@${REPO_URL#https://} codebase
-        echo "✓ Codebase cloned successfully"
-      else
-        echo "⚠️  No repository configured (REPO_URL or REPO_TOKEN missing), skipping clone"
+      if [ -z "$REPO_URL" ] || [ -z "$REPO_TOKEN" ]; then
+        echo "❌ ERROR: Repository is required for evaluation"
+        echo "   REPO_URL and REPO_TOKEN must be configured"
+        exit 1
       fi
+      echo "📦 Cloning codebase from $REPO_URL"
+      git clone https://oauth2:${REPO_TOKEN}@${REPO_URL#https://} codebase
+      echo "✓ Codebase cloned successfully"
   script:
     - cd 2025-10-18-01/worker-scripts
 
@@ -43,11 +44,9 @@ execute:
         echo "⚠️  API_BASE_URL not set, skipping status update"
       fi
 
-    # Run evaluation pipeline (TypeScript with Bun)
-    - bun run evaluation-pipeline.ts
-
-    # Capture exit code
-    - EXIT_CODE=$?
+    # Run evaluation pipeline and capture exit code (use || true to prevent early exit)
+    - bun run evaluation-pipeline.ts || EXIT_CODE=$?
+    - EXIT_CODE=${EXIT_CODE:-0}
 
     # Update status based on exit code
     - |

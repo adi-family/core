@@ -76,6 +76,7 @@ async function main() {
     const files = [
       { remote: '.gitlab-ci.yml', local: '.gitlab-ci.yml' },
       { remote: '2025-10-18-01/.gitlab-ci-evaluation.yml', local: '.gitlab-ci-evaluation.yml' },
+      { remote: '2025-10-18-01/worker-scripts/evaluation-pipeline.ts', local: 'worker-scripts/evaluation-pipeline.ts' },
       { remote: '2025-10-18-01/worker-scripts/upload-evaluation-results.ts', local: 'worker-scripts/upload-evaluation-results.ts' },
       { remote: '2025-10-18-01/worker-scripts/shared/api-client.ts', local: 'worker-scripts/shared/api-client.ts' },
       { remote: '2025-10-18-01/README.md', local: 'README.md' },

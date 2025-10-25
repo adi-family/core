@@ -9,6 +9,23 @@
   "scripts": {
     "dev": "bun --env-file=../../.env --watch index.ts",
     "start": "bun --env-file=../../.env index.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@adi-simple/db": "workspace:*",
+    "@adi-simple/utils": "workspace:*",
+    "@adi-simple/types": "workspace:*",
+    "@adi/queue": "workspace:*",
+    "@adi/micros-task-sync": "workspace:*",
+    "@adi/micros-task-eval": "workspace:*",
+    "@adi/micros-task-impl": "workspace:*",
+    "amqplib": "^0.10.4"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.5",
+    "@types/bun": "latest",
+    "@types/node": "^24.7.1",
+    "typescript": "~5.9.3"
   }
 }

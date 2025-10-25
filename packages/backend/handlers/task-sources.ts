@@ -86,6 +86,18 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         })
       }
 
+      // Automatically enqueue sync for newly created task source
+      logger.info(`Automatically enqueuing sync for newly created task source ${taskSource.id}`)
+      try {
+        await syncTaskSource(sql, {
+          taskSourceId: taskSource.id
+        })
+        logger.info(`Successfully enqueued sync for task source ${taskSource.id}`)
+      } catch (error) {
+        logger.error(`Failed to enqueue sync for task source ${taskSource.id}:`, error)
+        // Don't fail the creation if sync enqueue fails
+      }
+
       return c.json(taskSource, 201)
     })
     .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateTaskSourceSchema), async (c) => {

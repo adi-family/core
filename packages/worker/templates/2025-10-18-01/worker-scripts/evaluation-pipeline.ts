@@ -12,6 +12,26 @@ import Anthropic from '@anthropic-ai/sdk'
 const logger = createLogger({ namespace: 'evaluation-pipeline' })
 
 /**
+ * Extract JSON from text that might contain markdown code blocks
+ */
+function extractJSON(text: string): string {
+  // Try to find JSON in markdown code blocks first
+  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)
+  if (codeBlockMatch && codeBlockMatch[1]) {
+    return codeBlockMatch[1].trim()
+  }
+
+  // Try to find JSON object directly
+  const jsonMatch = text.match(/\{[\s\S]*\}/)
+  if (jsonMatch) {
+    return jsonMatch[0]
+  }
+
+  // Return original text if no patterns found
+  return text.trim()
+}
+
+/**
  * Validate required environment variables
  */
 function validateEnvironment(): void {
@@ -68,7 +88,7 @@ Respond ONLY with valid JSON (no markdown, no extra text):
 }`
 
   const message = await anthropic.messages.create({
-    model: 'claude-3-5-haiku-20241022',
+    model: 'claude-sonnet-4-5',
     max_tokens: 512,
     messages: [{
       role: 'user',
@@ -81,10 +101,18 @@ Respond ONLY with valid JSON (no markdown, no extra text):
     throw new Error('Invalid response from Claude')
   }
 
-  const result = JSON.parse(content.text)
-  logger.info(`✓ Simple evaluation: should_evaluate=${result.should_evaluate}, clarity=${result.clarity_score}`)
+  const jsonText = extractJSON(content.text)
 
-  return result
+  try {
+    const result = JSON.parse(jsonText)
+    logger.info(`✓ Simple evaluation: should_evaluate=${result.should_evaluate}, clarity=${result.clarity_score}`)
+    return result
+  } catch (parseError) {
+    logger.error('Failed to parse simple evaluation response')
+    logger.error('Raw response:', content.text.substring(0, 500))
+    logger.error('Extracted JSON:', jsonText.substring(0, 500))
+    throw new Error(`JSON parse error in simple evaluation: ${parseError instanceof Error ? parseError.message : String(parseError)}`)
+  }
 }
 
 /**
@@ -175,7 +203,7 @@ Respond with JSON containing both:
 }`
 
   const message = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
+    model: 'claude-sonnet-4-5',
     max_tokens: 8192,
     messages: [{
       role: 'user',
@@ -188,10 +216,18 @@ Respond with JSON containing both:
     throw new Error('Invalid response from Claude')
   }
 
-  const result = JSON.parse(content.text)
-  logger.info(`✓ Agentic evaluation: can_implement=${result.verdict.can_implement}, confidence=${result.verdict.confidence}`)
+  const jsonText = extractJSON(content.text)
 
-  return result
+  try {
+    const result = JSON.parse(jsonText)
+    logger.info(`✓ Agentic evaluation: can_implement=${result.verdict.can_implement}, confidence=${result.verdict.confidence}`)
+    return result
+  } catch (parseError) {
+    logger.error('Failed to parse agentic evaluation response')
+    logger.error('Raw response (first 1000 chars):', content.text.substring(0, 1000))
+    logger.error('Extracted JSON (first 1000 chars):', jsonText.substring(0, 1000))
+    throw new Error(`JSON parse error in agentic evaluation: ${parseError instanceof Error ? parseError.message : String(parseError)}`)
+  }
 }
 
 async function main() {
@@ -264,6 +300,23 @@ async function main() {
     logger.info('✅ Evaluation pipeline completed successfully')
   } catch (error) {
     logger.error('❌ Evaluation pipeline failed:', error)
+
+    // Create results directory and error file for upload script
+    try {
+      await mkdir('../results', { recursive: true })
+      await writeFile(
+        '../results/error.json',
+        JSON.stringify({
+          error: error instanceof Error ? error.message : String(error),
+          timestamp: new Date().toISOString(),
+          stack: error instanceof Error ? error.stack : undefined
+        }, null, 2),
+        'utf-8'
+      )
+      logger.info('📝 Error file written to results/error.json')
+    } catch (writeError) {
+      logger.error('Failed to write error file:', writeError)
+    }
 
     // Try to mark the evaluation as failed
     try {

@@ -4,9 +4,6 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --env-file=../../.env --watch index.ts",
-    "start": "bun --env-file=../../.env index.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint ."
   },
   "exports": {
@@ -16,7 +13,6 @@
   "dependencies": {
     "@adi-simple/db": "workspace:*",
     "@adi-simple/utils": "workspace:*",
-    "@adi/queue": "workspace:*",
     "@adi-simple/types": "workspace:*",
     "@adi-simple/backend": "workspace:*"
   },

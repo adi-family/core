@@ -42,10 +42,26 @@ async function main() {
     const task = await apiClient.getTask(session.task_id)
     logger.info(`✓ Task loaded: ${task.title}`)
 
-    // Read simple verdict (always present)
+    // Check if evaluation failed (error.json exists)
+    const errorFileExists = await fileExists('../results/error.json')
+    if (errorFileExists) {
+      logger.warn('⚠️  Evaluation pipeline failed - error.json found')
+      const errorText = await readFile('../results/error.json', 'utf-8')
+      const errorData = JSON.parse(errorText)
+      logger.error(`Error details: ${errorData.error}`)
+
+      // Mark task as failed
+      await apiClient.updateTaskEvaluationStatus(task.id, 'failed')
+      logger.info('✓ Task evaluation status: failed')
+
+      logger.info('✅ Upload completed (evaluation failed)')
+      process.exit(0)
+    }
+
+    // Read simple verdict (always present for successful evaluations)
     const simpleVerdictExists = await fileExists('../results/simple-verdict.json')
     if (!simpleVerdictExists) {
-      throw new Error('Simple verdict file not found')
+      throw new Error('Simple verdict file not found (evaluation may have failed without creating error.json)')
     }
 
     const simpleVerdictText = await readFile('../results/simple-verdict.json', 'utf-8')

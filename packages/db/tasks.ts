@@ -33,12 +33,33 @@ export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task
 }
 
 const updateTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'ai_evaluation_status', 'ai_evaluation_session_id', 'ai_evaluation_result', 'ai_evaluation_simple_result', 'ai_evaluation_agentic_result', 'ai_implementation_status', 'ai_implementation_session_id'] as const
+
 export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): Promise<Result<Task>> => {
   const presentCols = filterPresentColumns(input, updateTaskCols)
 
+  if (presentCols.length === 0) {
+    // If no columns to update, just update the timestamp
+    const tasks = await get(sql<Task[]>`
+      UPDATE tasks
+      SET updated_at = NOW()
+      WHERE id = ${id}
+      RETURNING *
+    `)
+    const [task] = tasks
+    return task
+      ? { ok: true, data: task }
+      : { ok: false, error: 'Task not found' }
+  }
+
+  // Build update object with only present columns
+  const updateData: Record<string, unknown> = {}
+  for (const col of presentCols) {
+    updateData[col] = input[col as keyof UpdateTaskInput]
+  }
+
   const tasks = await get(sql<Task[]>`
     UPDATE tasks
-    SET ${presentCols.length > 0 ? sql`${sql(input, presentCols)},` : sql``} updated_at = NOW()
+    SET ${sql(updateData)}, updated_at = NOW()
     WHERE id = ${id}
     RETURNING *
   `)
