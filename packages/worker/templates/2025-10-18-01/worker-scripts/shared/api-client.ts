@@ -70,7 +70,7 @@ export class ApiClient {
   async createPipelineArtifact(
     executionId: string,
     data: {
-      artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit'
+      artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text'
       reference_url: string
       metadata?: unknown
     }
@@ -88,6 +88,17 @@ export class ApiClient {
     await this.fetch<Task>(`/tasks/${taskId}`, {
       method: 'PATCH',
       body: JSON.stringify({ status })
+    })
+  }
+
+  async updateTaskEvaluationStatus(taskId: string, evaluationStatus: string, evaluationSessionId?: string): Promise<void> {
+    const body: Record<string, string> = { evaluation_status: evaluationStatus }
+    if (evaluationSessionId) {
+      body.evaluation_session_id = evaluationSessionId
+    }
+    await this.fetch<Task>(`/tasks/${taskId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body)
     })
   }
 }

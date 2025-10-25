@@ -65,8 +65,8 @@ report:
   image: $WORKER_IMAGE
   script:
     - cd 2025-10-18-01/worker-scripts
-    # Upload artifacts via our API (TypeScript)
-    - bun run upload-results.ts
+    # Upload evaluation artifacts via our API (TypeScript)
+    - bun run upload-evaluation-results.ts
   dependencies:
     - execute
   cache:

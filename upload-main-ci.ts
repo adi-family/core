@@ -67,6 +67,48 @@ async function main() {
     )
 
     console.log('✅ README updated successfully')
+
+    // Upload updated .gitlab-ci-evaluation.yml
+    const evalCiPath = join(__dirname, 'packages/worker/templates/2025-10-18-01/.gitlab-ci-evaluation.yml')
+    const evalCiContent = await readFile(evalCiPath, 'utf-8')
+
+    await client.uploadFile(
+      source.project_id,
+      '2025-10-18-01/.gitlab-ci-evaluation.yml',
+      evalCiContent,
+      '🔧 Fix evaluation CI to use correct upload script',
+      'main'
+    )
+
+    console.log('✅ Evaluation CI config updated successfully')
+
+    // Upload new upload-evaluation-results.ts
+    const uploadEvalPath = join(__dirname, 'packages/worker/templates/2025-10-18-01/worker-scripts/upload-evaluation-results.ts')
+    const uploadEvalContent = await readFile(uploadEvalPath, 'utf-8')
+
+    await client.uploadFile(
+      source.project_id,
+      '2025-10-18-01/worker-scripts/upload-evaluation-results.ts',
+      uploadEvalContent,
+      '✨ Add upload script for evaluation results',
+      'main'
+    )
+
+    console.log('✅ Upload evaluation results script added successfully')
+
+    // Upload updated api-client.ts
+    const apiClientPath = join(__dirname, 'packages/worker/templates/2025-10-18-01/worker-scripts/shared/api-client.ts')
+    const apiClientContent = await readFile(apiClientPath, 'utf-8')
+
+    await client.uploadFile(
+      source.project_id,
+      '2025-10-18-01/worker-scripts/shared/api-client.ts',
+      apiClientContent,
+      '✨ Add evaluation status update method to API client',
+      'main'
+    )
+
+    console.log('✅ API client updated successfully')
   } finally {
     await sql.end()
   }
