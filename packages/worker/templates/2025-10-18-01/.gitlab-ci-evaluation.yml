@@ -16,6 +16,21 @@ prepare:
     - bun install
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
+    - echo "PROJECT_ID=$PROJECT_ID"
+
+    # Debug: Check if API credentials are available
+    - |
+      if [ -z "$API_BASE_URL" ]; then
+        echo "⚠️  Warning: API_BASE_URL is not set"
+      else
+        echo "✓ API_BASE_URL is set: $API_BASE_URL"
+      fi
+    - |
+      if [ -z "$API_TOKEN" ]; then
+        echo "❌ Error: API_TOKEN is not set - workspace sync will fail"
+      else
+        echo "✓ API_TOKEN is set (length: ${#API_TOKEN})"
+      fi
 
     # Sync all workspace repositories
     - echo "Syncing workspace repositories"
