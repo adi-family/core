@@ -35,37 +35,41 @@ function validateEnvironment(): void {
 }
 
 /**
- * Phase 1: Quick feasibility check
+ * Phase 1: Simple Filter - Quick gate check
  */
-async function quickCheck(task: { title: string; description: string | null }): Promise<{
-  proceed: boolean
-  reason: string
+async function simpleEvaluation(task: { title: string; description: string | null }): Promise<{
+  should_evaluate: boolean
+  clarity_score: number
+  has_acceptance_criteria: boolean
+  auto_reject_reason: string | null
 }> {
-  logger.info('🔍 Phase 1: Running quick feasibility check...')
+  logger.info('🔍 Phase 1: Running simple evaluation filter...')
 
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY!
   })
 
-  const prompt = `You are evaluating whether a task is actionable and specific enough for AI to implement.
+  const prompt = `You are a quick filter for task evaluation. Determine if this task is worth deep analysis.
 
 Task Title: ${task.title}
 Task Description: ${task.description || 'No description provided'}
 
-Analyze this task and determine:
-1. Is it clear what needs to be done?
-2. Is it specific enough to implement?
-3. Are there any obvious blockers?
+Evaluate:
+1. Clarity (1-100): How clear is what needs to be done?
+2. Has acceptance criteria: Are there clear success conditions?
+3. Should we proceed with deep evaluation?
 
-Respond in JSON format:
+Respond ONLY with valid JSON (no markdown, no extra text):
 {
-  "proceed": true/false,
-  "reason": "Brief explanation why this task is ready or not ready for AI implementation"
+  "should_evaluate": true/false,
+  "clarity_score": 1-100,
+  "has_acceptance_criteria": true/false,
+  "auto_reject_reason": "reason or null"
 }`
 
   const message = await anthropic.messages.create({
-    model: 'claude-3-5-sonnet-20241022',
-    max_tokens: 1024,
+    model: 'claude-3-5-haiku-20241022',
+    max_tokens: 512,
     messages: [{
       role: 'user',
       content: prompt
@@ -73,73 +77,106 @@ Respond in JSON format:
   })
 
   const content = message.content[0]
-  if (!content) {
-    throw new Error('No content in response from Claude')
-  }
-
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response format from Claude')
+  if (!content || content.type !== 'text') {
+    throw new Error('Invalid response from Claude')
   }
 
   const result = JSON.parse(content.text)
-  logger.info(`✓ Quick check completed: proceed=${result.proceed}`)
+  logger.info(`✓ Simple evaluation: should_evaluate=${result.should_evaluate}, clarity=${result.clarity_score}`)
 
   return result
 }
 
 /**
- * Phase 2: Deep analysis with code access
+ * Phase 2: Deep Agentic Evaluation - Generate agent instructions
  */
-async function deepAnalysis(
+async function agenticEvaluation(
   task: { id: string; title: string; description: string | null; file_space_id: string | null },
-  apiClient: ApiClient
-): Promise<string> {
-  logger.info('🔬 Phase 2: Running deep analysis with code access...')
+  _apiClient: ApiClient
+): Promise<{
+  verdict: {
+    can_implement: boolean
+    confidence: number
+    agent_instructions: {
+      required_context_files: string[]
+      suggested_steps: string[]
+      follow_patterns_from: string[]
+    }
+    missing_information: string[]
+    blockers: string[]
+    risks: string[]
+  }
+  report: string
+}> {
+  logger.info('🔬 Phase 2: Running deep agentic evaluation...')
 
   const anthropic = new Anthropic({
     apiKey: process.env.ANTHROPIC_API_KEY!
   })
 
-  // Build analysis prompt
-  let codebaseContext = ''
+  // Check if codebase is available
+  const codebasePath = '../../codebase'
+  const hasCodebase = await Bun.file(codebasePath + '/.git/config').exists()
 
-  if (task.file_space_id) {
-    logger.info(`📥 Fetching file space information...`)
-    const fileSpace = await apiClient.getFileSpace(task.file_space_id)
-    codebaseContext = `
-Repository: ${(fileSpace.config as any).repo || 'Unknown'}
-Note: This is read-only access for analysis purposes.
-`
-  } else {
-    codebaseContext = 'No code repository configured for this task.'
+  let codebaseInfo = 'No codebase cloned'
+  if (hasCodebase) {
+    logger.info('📦 Codebase detected, analyzing...')
+    // TODO: Add codebase structure analysis here
+    codebaseInfo = 'Codebase available for analysis'
   }
 
-  const prompt = `You are analyzing a software task to prepare context for another AI agent that will implement it.
+  const prompt = `You are evaluating a task and creating an instruction manual for an AI agent.
 
-# Task Information
+# Task
 **Title:** ${task.title}
 **Description:** ${task.description || 'No description provided'}
 
-# Codebase Context
-${codebaseContext}
+# Codebase Status
+${codebaseInfo}
 
-# Your Mission
-Create a comprehensive markdown analysis document that will help the implementing agent understand:
+# Your Job
+Generate TWO outputs:
 
-1. **Task Understanding** - What needs to be done
-2. **Relevant Files** - Which files are likely to need changes (use format: \`path/to/file.ts:45-89\`)
-3. **Key Components** - Important classes, functions, or patterns to understand
-4. **Dependencies** - What libraries or internal modules are relevant
-5. **Similar Patterns** - Examples of similar implementations in the codebase
-6. **Implementation Context** - Architectural patterns, conventions, or constraints
+## 1. STRUCTURED VERDICT (JSON)
+{
+  "can_implement": boolean,
+  "confidence": 1-100,
+  "agent_instructions": {
+    "required_context_files": ["src/file.ts:10-50"],
+    "suggested_steps": ["step 1", "step 2"],
+    "follow_patterns_from": ["src/example.ts:20-40"]
+  },
+  "missing_information": ["question 1"],
+  "blockers": ["hard stop 1"],
+  "risks": ["risk 1"]
+}
 
-Format the output as a well-structured markdown document. Be specific and actionable.
+## 2. AGENT-READABLE REPORT (Markdown)
+# Task: [title]
 
-Note: You don't have direct access to read files in this analysis, so provide educated guidance based on the task description and typical software architecture patterns. If the task mentions specific errors or files, reference those.`
+## RELEVANT FILES
+- \`src/auth/middleware.ts:45-120\` - Auth logic
+- \`src/types/user.ts:10-30\` - User type
+
+## DATABASE SCHEMA
+- Table: users
+- Current columns: ...
+
+## API PATTERNS
+- Auth endpoints: \`src/auth/routes.ts\`
+
+## TESTING SETUP
+- Mocks: \`tests/mocks/auth.ts\`
+
+Respond with JSON containing both:
+{
+  "verdict": { ... verdict object ... },
+  "report": "... markdown report ..."
+}`
 
   const message = await anthropic.messages.create({
     model: 'claude-3-5-sonnet-20241022',
-    max_tokens: 4096,
+    max_tokens: 8192,
     messages: [{
       role: 'user',
       content: prompt
@@ -147,16 +184,14 @@ Note: You don't have direct access to read files in this analysis, so provide ed
   })
 
   const content = message.content[0]
-  if (!content) {
-    throw new Error('No content in response from Claude')
+  if (!content || content.type !== 'text') {
+    throw new Error('Invalid response from Claude')
   }
 
-  if (content.type !== 'text') {
-    throw new Error('Unexpected response format from Claude')
-  }
+  const result = JSON.parse(content.text)
+  logger.info(`✓ Agentic evaluation: can_implement=${result.verdict.can_implement}, confidence=${result.verdict.confidence}`)
 
-  logger.info('✓ Deep analysis completed')
-  return content.text
+  return result
 }
 
 async function main() {
@@ -190,58 +225,62 @@ async function main() {
     const task = await apiClient.getTask(session.task_id)
     logger.info(`✓ Task loaded: ${task.title}`)
 
-    // Phase 1: Quick feasibility check
-    const quickCheckResult = await quickCheck(task)
-
     // Create results directory
     await mkdir('../results', { recursive: true })
 
-    if (!quickCheckResult.proceed) {
-      // Task is not ready - create simple report and exit successfully
-      const simpleReport = `# Task Evaluation: ${task.title}
+    // Phase 1: Simple Evaluation Filter
+    const simpleResult = await simpleEvaluation(task)
 
-## Quick Check Result
-**Status:** Not Ready for Implementation
-**Reason:** ${quickCheckResult.reason}
+    // Write simple verdict
+    await writeFile(
+      '../results/simple-verdict.json',
+      JSON.stringify(simpleResult, null, 2),
+      'utf-8'
+    )
+    logger.info('📝 Simple verdict written to results/simple-verdict.json')
 
-## Recommendation
-This task needs clarification or additional information before it can be implemented by AI.
-`
-      await writeFile('../results/evaluation.md', simpleReport, 'utf-8')
-      logger.info('⚠️  Task not ready for implementation (quick check failed)')
-      logger.info('✅ Evaluation completed successfully')
+    if (!simpleResult.should_evaluate) {
+      // Task rejected by simple filter - skip deep evaluation
+      logger.info('⚠️  Task rejected by simple filter')
+      logger.info('✅ Evaluation pipeline completed (early exit)')
       return
     }
 
-    // Phase 2: Deep analysis
-    const analysis = await deepAnalysis(task, apiClient)
+    // Phase 2: Deep Agentic Evaluation
+    const agenticResult = await agenticEvaluation(task, apiClient)
 
-    // Build final markdown report
-    const finalReport = `# Task Evaluation: ${task.title}
+    // Write agentic verdict JSON
+    await writeFile(
+      '../results/agentic-verdict.json',
+      JSON.stringify(agenticResult.verdict, null, 2),
+      'utf-8'
+    )
+    logger.info('📝 Agentic verdict written to results/agentic-verdict.json')
 
-## Quick Check
-**Status:** ✅ Ready for Implementation
-**Reason:** ${quickCheckResult.reason}
+    // Write agent-readable report
+    await writeFile('../results/evaluation-report.md', agenticResult.report, 'utf-8')
+    logger.info('📝 Evaluation report written to results/evaluation-report.md')
 
----
-
-${analysis}
-
----
-
-## Metadata
-- **Task ID:** ${task.id}
-- **Evaluated At:** ${new Date().toISOString()}
-- **Model:** claude-3-5-sonnet-20241022
-`
-
-    // Write evaluation markdown
-    await writeFile('../results/evaluation.md', finalReport, 'utf-8')
-
-    logger.info('📝 Evaluation report written to results/evaluation.md')
     logger.info('✅ Evaluation pipeline completed successfully')
   } catch (error) {
     logger.error('❌ Evaluation pipeline failed:', error)
+
+    // Try to mark the evaluation as failed
+    try {
+      const sessionId = process.env.SESSION_ID!
+      const apiClient = new ApiClient(
+        process.env.API_BASE_URL!,
+        process.env.API_TOKEN!
+      )
+      const session = await apiClient.getSession(sessionId)
+      if (session.task_id) {
+        await apiClient.updateTaskEvaluationStatus(session.task_id, 'failed')
+        logger.info('Task evaluation status updated to failed')
+      }
+    } catch (statusError) {
+      logger.error('Failed to update task evaluation status to failed:', statusError)
+    }
+
     throw error
   }
 }
