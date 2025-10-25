@@ -20,19 +20,13 @@ export function Layout() {
   useEffect(() => {
     const fetchAlerts = async () => {
       try {
-        console.log('[Alerts] Fetching alerts...')
         const res = await client.alerts.$get()
-        console.log('[Alerts] Response status:', res.status)
         if (res.ok) {
           const data = await res.json()
-          console.log('[Alerts] Data received:', data)
           setAlerts(data.alerts)
-        } else {
-          const errorText = await res.text()
-          console.error('[Alerts] Error response:', errorText)
         }
-      } catch (err) {
-        console.error("[Alerts] Failed to fetch alerts:", err)
+      } catch {
+        // Failed to fetch alerts
       }
     }
 
