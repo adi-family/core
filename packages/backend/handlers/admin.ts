@@ -5,7 +5,6 @@
 
 import { Hono } from 'hono'
 import type { Sql } from 'postgres'
-import { CIRepositoryManager } from '../../worker/ci-repository-manager'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { decrypt } from '@shared/crypto-utils'
 import { createLogger } from '@utils/logger'
@@ -104,16 +103,22 @@ export const createAdminRoutes = (sql: Sql) => {
 
             // Read and upload each file
             const { readFile } = await import('fs/promises')
-            const { join } = await import('path')
-            const templateDir = join(process.cwd(), 'packages/worker/templates', templateVersion)
+            const { join, resolve } = await import('path')
+
+            // Get project root (go up from packages/backend to project root)
+            const projectRoot = resolve(process.cwd(), '../..')
+            const templateDir = join(projectRoot, 'packages/worker/templates', templateVersion)
 
             let uploadedCount = 0
+            const fileErrors: Array<{ file: string; error: string }> = []
 
             for (const file of filesToUpdate) {
               try {
                 const filePath = join(templateDir, file.local)
+                logger.info(`[Admin] Reading file: ${filePath}`)
                 const content = await readFile(filePath, 'utf-8')
 
+                logger.info(`[Admin] Uploading to ${file.remote} in project ${repo.source_gitlab.project_id}`)
                 await client.uploadFile(
                   repo.source_gitlab.project_id,
                   file.remote,
@@ -123,8 +128,11 @@ export const createAdminRoutes = (sql: Sql) => {
                 )
 
                 uploadedCount++
+                logger.info(`[Admin] ✓ Uploaded ${file.remote}`)
               } catch (fileError) {
-                logger.warn(`[Admin] Failed to update ${file.remote} for ${repo.project_name}:`, fileError)
+                const errorMsg = fileError instanceof Error ? fileError.message : String(fileError)
+                logger.warn(`[Admin] Failed to update ${file.remote} for ${repo.project_name}:`, errorMsg)
+                fileErrors.push({ file: file.remote, error: errorMsg })
                 // Continue with other files even if one fails
               }
             }
@@ -132,10 +140,11 @@ export const createAdminRoutes = (sql: Sql) => {
             results.push({
               project: repo.project_name,
               success: true,
-              filesUpdated: uploadedCount
-            })
+              filesUpdated: uploadedCount,
+              ...(fileErrors.length > 0 && { fileErrors })
+            } as any)
 
-            logger.info(`[Admin] ✓ Refreshed ${repo.project_name} (${uploadedCount} files)`)
+            logger.info(`[Admin] ✓ Refreshed ${repo.project_name} (${uploadedCount} files, ${fileErrors.length} errors)`)
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : String(error)
             logger.error(`[Admin] Failed to refresh ${repo.project_name}:`, errorMessage)

@@ -4,10 +4,10 @@ import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/projects'
 import * as secretQueries from '../../db/secrets'
 import * as userAccessQueries from '../../db/user-access'
-import { idParamSchema, createProjectSchema, updateProjectSchema, setJobExecutorSchema, setAIProviderEnterpriseConfigSchema, aiProviderParamSchema } from '../schemas'
+import { idParamSchema, createProjectSchema, updateProjectSchema, setJobExecutorSchema, setAIProviderEnterpriseConfigSchema, idAndProviderParamSchema } from '../schemas'
 import { getClerkUserId, requireClerkAuth } from '../middleware/clerk'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
-import { verifyGitLabExecutor } from '../services/gitlab-executor-verifier'
+import { validateGitLabToken } from '../services/gitlab-executor-verifier'
 import * as secretsService from '../services/secrets'
 import * as aiProviderValidator from '../services/ai-provider-validator'
 
@@ -154,8 +154,7 @@ export const createProjectRoutes = (sql: Sql) => {
         throw error
       }
 
-      // Get the actual access token value
-      let tokenValue: string
+      // Get or create the secret
       let secretId: string
 
       if (access_token_secret_id) {
@@ -164,33 +163,30 @@ export const createProjectRoutes = (sql: Sql) => {
         if (!secretResult.ok) {
           return c.json({ error: 'Secret not found' }, 404)
         }
-        tokenValue = secretResult.data.value
         secretId = access_token_secret_id
       } else if (access_token) {
-        // Create new secret from raw token
-        const secret = await secretQueries.createSecret(sql, {
+        // Upsert encrypted secret from raw token
+        const secret = await secretsService.upsertEncryptedSecret(sql, {
           project_id: id,
           name: `gitlab-executor-token-${id}`,
           value: access_token,
           description: `GitLab executor token for ${host}`
         })
-        tokenValue = access_token
         secretId = secret.id
       } else {
         return c.json({ error: 'Either access_token or access_token_secret_id is required' }, 400)
       }
 
-      // Verify the GitLab executor
-      const verificationResult = await verifyGitLabExecutor({ host, access_token: tokenValue })
+      // Validate the GitLab token using the new validation method
+      const validationResult = await validateGitLabToken(sql, {
+        secretId,
+        hostname: host
+      })
 
-      if (!verificationResult.valid) {
-        // Only cleanup if we created a new secret
-        if (access_token && !access_token_secret_id) {
-          await secretQueries.deleteSecret(sql, secretId)
-        }
+      if (!validationResult.valid) {
         return c.json({
-          error: 'GitLab executor verification failed',
-          details: verificationResult.error
+          error: 'GitLab token validation failed',
+          details: validationResult.error
         }, 400)
       }
 
@@ -199,16 +195,12 @@ export const createProjectRoutes = (sql: Sql) => {
         host,
         access_token_secret_id: secretId,
         verified_at: new Date().toISOString(),
-        user: verificationResult.user
+        user: validationResult.username
       }
 
       const result = await queries.setProjectJobExecutor(sql, id, executorConfig)
 
       if (!result.ok) {
-        // Cleanup secret if project update failed and we created it
-        if (access_token && !access_token_secret_id) {
-          await secretQueries.deleteSecret(sql, secretId)
-        }
         return c.json({ error: result.error }, 500)
       }
 
@@ -279,7 +271,7 @@ export const createProjectRoutes = (sql: Sql) => {
         google: result.data.google || null
       })
     })
-    .put('/:id/ai-providers/:provider', zValidator('param', idParamSchema), zValidator('param', aiProviderParamSchema), zValidator('json', setAIProviderEnterpriseConfigSchema), requireClerkAuth(), async (c) => {
+    .put('/:id/ai-providers/:provider', zValidator('param', idAndProviderParamSchema), zValidator('json', setAIProviderEnterpriseConfigSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')
       const { provider } = c.req.valid('param')
       const config = c.req.valid('json')
@@ -294,7 +286,6 @@ export const createProjectRoutes = (sql: Sql) => {
       }
 
       let secretId: string
-      let createdSecretId: string | null = null
 
       // Check if api_key_secret_id is provided or if we need to create a secret from api_key
       const configWithSecretId = config as any
@@ -306,14 +297,14 @@ export const createProjectRoutes = (sql: Sql) => {
         }
         secretId = configWithSecretId.api_key_secret_id
       } else if (configWithSecretId.api_key) {
-        const secret = await secretsService.createEncryptedSecret(sql, {
+        // Upsert secret (insert or update if exists)
+        const secret = await secretsService.upsertEncryptedSecret(sql, {
           project_id: id,
           name: `${provider}-api-key-${id}-${config.type}`,
           value: configWithSecretId.api_key,
           description: `${provider.charAt(0).toUpperCase() + provider.slice(1)} ${config.type} API key`
         })
         secretId = secret.id
-        createdSecretId = secret.id
       } else {
         return c.json({ error: 'Either api_key or api_key_secret_id is required' }, 400)
       }
@@ -328,9 +319,6 @@ export const createProjectRoutes = (sql: Sql) => {
       const result = await queries.setProjectAIProviderConfig(sql, id, provider, finalConfig as any)
 
       if (!result.ok) {
-        if (createdSecretId) {
-          await secretQueries.deleteSecret(sql, createdSecretId)
-        }
         return c.json({ error: result.error }, 500)
       }
 
@@ -340,7 +328,7 @@ export const createProjectRoutes = (sql: Sql) => {
         configured: true
       })
     })
-    .delete('/:id/ai-providers/:provider', zValidator('param', idParamSchema), zValidator('param', aiProviderParamSchema), requireClerkAuth(), async (c) => {
+    .delete('/:id/ai-providers/:provider', zValidator('param', idAndProviderParamSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')
       const { provider } = c.req.valid('param')
 
@@ -369,7 +357,7 @@ export const createProjectRoutes = (sql: Sql) => {
 
       return c.json({ success: true })
     })
-    .post('/:id/ai-providers/:provider/validate', zValidator('param', idParamSchema), zValidator('param', aiProviderParamSchema), zValidator('json', setAIProviderEnterpriseConfigSchema), requireClerkAuth(), async (c) => {
+    .post('/:id/ai-providers/:provider/validate', zValidator('param', idAndProviderParamSchema), zValidator('json', setAIProviderEnterpriseConfigSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')
       const { provider } = c.req.valid('param')
       const config = c.req.valid('json')
