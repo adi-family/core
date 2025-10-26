@@ -93,6 +93,12 @@ execute:
   stage: execute
   image: $WORKER_IMAGE
   script:
+    # Install git if not available
+    - echo "Installing git..."
+    - apt-get update && apt-get install -y git
+    - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
+    - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
+
     # Ensure all submodules are up to date before execution
     - echo "Updating git submodules..."
     - git submodule sync --recursive
