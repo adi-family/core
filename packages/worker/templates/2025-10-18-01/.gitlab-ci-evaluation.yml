@@ -105,6 +105,10 @@ execute:
     - git submodule update --init --recursive
     - echo "✓ Submodules updated"
 
+    # Clean up old results from previous runs
+    - rm -rf 2025-10-18-01/results
+    - echo "✓ Cleaned up old results directory"
+
     - cd 2025-10-18-01/worker-scripts
 
     # Debug: Check if required variables are set

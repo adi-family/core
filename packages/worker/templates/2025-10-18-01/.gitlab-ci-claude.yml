@@ -90,6 +90,10 @@ execute:
     - git submodule update --init --recursive
     - echo "✓ Submodules updated"
 
+    # Clean up old results from previous runs
+    - rm -rf results
+    - echo "✓ Cleaned up old results directory"
+
     - cd worker-scripts
 
     # Update status to 'running'
