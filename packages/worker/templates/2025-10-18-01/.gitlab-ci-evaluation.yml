@@ -107,6 +107,29 @@ execute:
 
     - cd 2025-10-18-01/worker-scripts
 
+    # Debug: Check if required variables are set
+    - echo "SESSION_ID=$SESSION_ID"
+    - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
+    - echo "PROJECT_ID=$PROJECT_ID"
+    - |
+      if [ -z "$API_BASE_URL" ]; then
+        echo "⚠️  Warning: API_BASE_URL is not set"
+      else
+        echo "✓ API_BASE_URL is set: $API_BASE_URL"
+      fi
+    - |
+      if [ -z "$API_TOKEN" ]; then
+        echo "❌ Error: API_TOKEN is not set"
+      else
+        echo "✓ API_TOKEN is set (length: ${#API_TOKEN})"
+      fi
+    - |
+      if [ -z "$ANTHROPIC_API_KEY" ]; then
+        echo "❌ Error: ANTHROPIC_API_KEY is not set"
+      else
+        echo "✓ ANTHROPIC_API_KEY is set (length: ${#ANTHROPIC_API_KEY})"
+      fi
+
     # Update status to 'running'
     - |
       if [ -n "$API_BASE_URL" ]; then
