@@ -8,8 +8,27 @@ import { ApiClient } from './shared/api-client'
 import { mkdir, writeFile } from 'fs/promises'
 import { createLogger } from './shared/logger'
 import Anthropic from '@anthropic-ai/sdk'
+import { HttpsProxyAgent } from 'https-proxy-agent'
 
 const logger = createLogger({ namespace: 'evaluation-pipeline' })
+
+/**
+ * Create Anthropic client with optional proxy support
+ */
+function createAnthropicClient(): Anthropic {
+  const config: any = {
+    apiKey: process.env.ANTHROPIC_API_KEY!
+  }
+
+  // Configure proxy if credentials are provided
+  if (process.env.PROXY_HOST && process.env.PROXY_USER && process.env.PROXY_PASS) {
+    const proxyUrl = `http://${process.env.PROXY_USER}:${process.env.PROXY_PASS}@${process.env.PROXY_HOST}`
+    config.httpAgent = new HttpsProxyAgent(proxyUrl)
+    logger.info(`✓ Using proxy: ${process.env.PROXY_HOST}`)
+  }
+
+  return new Anthropic(config)
+}
 
 /**
  * Extract JSON from text that might contain markdown code blocks
@@ -66,9 +85,7 @@ async function simpleEvaluation(task: { title: string; description: string | nul
 }> {
   logger.info('🔍 Phase 1: Running simple evaluation filter...')
 
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY!
-  })
+  const anthropic = createAnthropicClient()
 
   const prompt = `You are a quick filter for task evaluation. Determine if this task is worth deep analysis.
 
@@ -139,9 +156,7 @@ async function agenticEvaluation(
 }> {
   logger.info('🔬 Phase 2: Running deep agentic evaluation...')
 
-  const anthropic = new Anthropic({
-    apiKey: process.env.ANTHROPIC_API_KEY!
-  })
+  const anthropic = createAnthropicClient()
 
   // Check for workspace repositories (submodules)
   const workspacesPath = '../../workspaces'

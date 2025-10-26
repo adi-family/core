@@ -279,7 +279,8 @@ async function getAIProviderEnvVars(
 
           if (apiKey && apiKey.trim()) {
             envVars.ANTHROPIC_API_KEY = apiKey
-            logger.info(`✓ Loaded ANTHROPIC_API_KEY from secret ${config.api_key_secret_id}`)
+            const maskedKey = apiKey.substring(0, 10) + '...' + apiKey.substring(apiKey.length - 4)
+            logger.info(`✓ Loaded ANTHROPIC_API_KEY from secret ${config.api_key_secret_id} (${maskedKey}, length: ${apiKey.length})`)
 
             // Set additional configuration only if API key is valid
             if (config.type === 'self-hosted' && config.endpoint_url) {
@@ -499,6 +500,15 @@ async function preparePipelineConfig(
     }
   }
 
+  // Add proxy configuration from environment variables (optional)
+  const proxyVars: Record<string, string> = {}
+  if (process.env.PROXY_HOST && process.env.PROXY_USER && process.env.PROXY_PASS) {
+    proxyVars.PROXY_HOST = process.env.PROXY_HOST
+    proxyVars.PROXY_USER = process.env.PROXY_USER
+    proxyVars.PROXY_PASS = process.env.PROXY_PASS
+    logger.info(`✓ Proxy configuration will be passed to pipeline: ${process.env.PROXY_HOST}`)
+  }
+
   const variables = {
     SESSION_ID: context.session.id,
     PIPELINE_EXECUTION_ID: executionId,
@@ -507,7 +517,8 @@ async function preparePipelineConfig(
     API_BASE_URL: apiBaseUrl,
     API_TOKEN: apiToken,
     ...aiEnvVars,
-    ...repoVars
+    ...repoVars,
+    ...proxyVars
   }
 
   return { variables }

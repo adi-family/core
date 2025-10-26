@@ -5,6 +5,7 @@
   "type": "module",
   "dependencies": {
     "@anthropic-ai/sdk": "^0.67.0",
-    "@types/node": "^20.10.0"
+    "@types/node": "^20.10.0",
+    "https-proxy-agent": "^7.0.5"
   }
 }
