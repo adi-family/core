@@ -137,7 +137,7 @@ Respond ONLY with valid JSON (no markdown, no extra text):
  * Phase 2: Deep Agentic Evaluation - Generate agent instructions
  */
 async function agenticEvaluation(
-  task: { id: string; title: string; description: string | null; file_space_id: string | null },
+  task: { id: string; title: string; description: string | null },
   _apiClient: ApiClient
 ): Promise<{
   verdict: {
@@ -159,7 +159,7 @@ async function agenticEvaluation(
   const anthropic = createAnthropicClient()
 
   // Check for workspace repositories (submodules)
-  const workspacesPath = '../../workspaces'
+  const workspacesPath = '../workspaces'
   const workspaces: string[] = []
 
   try {
@@ -167,7 +167,7 @@ async function agenticEvaluation(
     const entries = readdirSync(workspacesPath, { withFileTypes: true })
 
     for (const entry of entries) {
-      if (entry.isDirectory()) {
+      if (entry.isDirectory() && !entry.name.startsWith('.')) {
         const gitConfigPath = `${workspacesPath}/${entry.name}/.git`
         if (await Bun.file(gitConfigPath + '/config').exists() || await Bun.file(gitConfigPath).exists()) {
           workspaces.push(entry.name)
@@ -175,14 +175,14 @@ async function agenticEvaluation(
         }
       }
     }
-  } catch {
-    logger.warn('No workspaces directory found')
+  } catch (error) {
+    logger.warn('No workspaces directory found:', error instanceof Error ? error.message : String(error))
   }
 
   let codebaseInfo = 'No workspace repositories available'
   if (workspaces.length > 0) {
     logger.info(`📦 Found ${workspaces.length} workspace(s): ${workspaces.join(', ')}`)
-    codebaseInfo = `${workspaces.length} workspace repository(ies) available for analysis:\n${workspaces.map(w => `- ${w} (../../workspaces/${w})`).join('\n')}`
+    codebaseInfo = `${workspaces.length} workspace repository(ies) available for analysis:\n${workspaces.map(w => `- workspaces/${w}/`).join('\n')}`
   }
 
   const prompt = `You are evaluating a task and creating an instruction manual for an AI agent.

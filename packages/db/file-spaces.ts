@@ -43,6 +43,16 @@ export const findFileSpacesByProjectIds = async (sql: Sql, projectIds: string[])
   return grouped
 }
 
+export const findFileSpacesByTaskId = async (sql: Sql, taskId: string): Promise<FileSpace[]> => {
+  return get(sql<FileSpace[]>`
+    SELECT fs.*
+    FROM file_spaces fs
+    INNER JOIN task_file_spaces tfs ON tfs.file_space_id = fs.id
+    WHERE tfs.task_id = ${taskId}
+    ORDER BY fs.created_at DESC
+  `)
+}
+
 const createFileSpaceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
 export const createFileSpace = async (sql: Sql, input: CreateFileSpaceInput): Promise<FileSpace> => {
   const [fileSpace] = await get(sql<FileSpace[]>`

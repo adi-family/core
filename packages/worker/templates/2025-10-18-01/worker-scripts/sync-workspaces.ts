@@ -230,7 +230,7 @@ async function main() {
                 pushUrl = url.toString()
                 logger.info(`✓ Replaced authentication in push URL`)
               }
-            } catch (e) {
+            } catch {
               logger.warn('Could not get/modify remote URL, using origin')
             }
           }

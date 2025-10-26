@@ -49,12 +49,20 @@ async function main() {
     }
     logger.info('✓ Traffic check passed')
 
-    // Fetch file space if available
+    // Fetch file spaces associated with this task via junction table
     let fileSpace = null
-    if (task.file_space_id) {
-      logger.info('📥 Fetching file space from API...')
-      fileSpace = await apiClient.getFileSpace(task.file_space_id)
-      logger.info(`✓ File space loaded: ${fileSpace.name} (${fileSpace.type})`)
+    logger.info('📥 Fetching task file spaces from API...')
+    const fileSpaces = await apiClient.getFileSpacesByTask(task.id)
+
+    if (fileSpaces.length > 0) {
+      // Use the first file space if multiple are configured
+      const firstFileSpace = fileSpaces[0]
+      if (firstFileSpace) {
+        fileSpace = firstFileSpace
+        logger.info(`✓ File space loaded: ${fileSpace.name} (${fileSpace.type})`)
+      }
+    } else {
+      logger.info('ℹ️  No file space configured for this task')
     }
 
     // Create results directory

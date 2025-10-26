@@ -8,7 +8,7 @@ import { ApiClient } from './shared/api-client'
 import { runTrafficCheck } from './shared/traffic-check'
 import { runCompletionCheck } from './shared/completion-check'
 import { runClarificationCheck } from './shared/clarification-check'
-import { mkdir } from 'fs/promises'
+import { mkdir, readdir } from 'fs/promises'
 import { spawn } from 'child_process'
 import { promisify } from 'util'
 import { exec as execCallback } from 'child_process'
@@ -78,20 +78,39 @@ async function main() {
     }
     logger.info('✓ Traffic check passed')
 
-    // Fetch file space if available
-    let fileSpace = null
-    if (task.file_space_id) {
-      logger.info('📥 Fetching file space from API...')
-      fileSpace = await apiClient.getFileSpace(task.file_space_id)
-      logger.info(`✓ File space loaded: ${fileSpace.name} (${fileSpace.type})`)
+    // Read available workspaces from disk (already synced as git submodules)
+    let availableWorkspaces: string[] = []
+    try {
+      const workspacesPath = '../workspaces'
+      const entries = await readdir(workspacesPath, { withFileTypes: true })
+      availableWorkspaces = entries
+        .filter(entry => entry.isDirectory() && !entry.name.startsWith('.'))
+        .map(entry => entry.name)
+      logger.info(`✓ Found ${availableWorkspaces.length} workspace(s) on disk: ${availableWorkspaces.join(', ')}`)
+    } catch (error) {
+      logger.warn('⚠️  Could not read workspaces directory:', error instanceof Error ? error.message : String(error))
+    }
 
-      // Validate file space configuration
-      if (fileSpace.config && typeof fileSpace.config === 'object' && 'repo' in fileSpace.config) {
-        const repoUrl = (fileSpace.config as { repo: string }).repo
-        if (!repoUrl || typeof repoUrl !== 'string') {
-          throw new Error(`Invalid file space configuration: 'repo' must be a non-empty string`)
+    // Fetch file spaces associated with this task via junction table
+    let fileSpace = null
+    logger.info('📥 Fetching task file spaces from API...')
+    const fileSpaces = await apiClient.getFileSpacesByTask(task.id)
+
+    if (fileSpaces.length > 0) {
+      // Use the first file space if multiple are configured
+      const firstFileSpace = fileSpaces[0]
+      if (firstFileSpace) {
+        fileSpace = firstFileSpace
+        logger.info(`✓ File space loaded: ${fileSpace.name} (${fileSpace.type})`)
+
+        // Validate file space configuration
+        if (fileSpace.config && typeof fileSpace.config === 'object' && 'repo' in fileSpace.config) {
+          const repoUrl = (fileSpace.config as { repo: string }).repo
+          if (!repoUrl || typeof repoUrl !== 'string') {
+            throw new Error(`Invalid file space configuration: 'repo' must be a non-empty string`)
+          }
+          logger.info(`✓ File space configuration validated`)
         }
-        logger.info(`✓ File space configuration validated`)
       }
     } else {
       logger.info('ℹ️  No file space configured for this task')
@@ -137,42 +156,42 @@ async function main() {
           )
         }
 
-        // Create workspaces directory if it doesn't exist
-        await mkdir('../workspaces', { recursive: true })
+        // Repository should already exist as a git submodule (synced in prepare stage)
+        // Update to latest and create feature branch
+        logger.info(`🔄 Updating workspace to latest...`)
+        await exec(`cd ${workspacePath} && git fetch --all`)
+        await exec(`cd ${workspacePath} && git checkout main || git checkout master`)
+        await exec(`cd ${workspacePath} && git pull origin HEAD`)
+        logger.info(`✓ Workspace updated`)
 
-        // Check if repository already exists
-        try {
-          await exec(`test -d ${workspacePath}/.git`)
-          logger.info(`✓ Repository already exists at ${workspacePath}`)
-
-          // Repository exists, pull latest changes
-          logger.info(`🔄 Pulling latest changes...`)
-          await exec(`cd ${workspacePath} && git fetch --all`)
-          await exec(`cd ${workspacePath} && git pull origin HEAD`)
-          logger.info(`✓ Repository updated`)
-        } catch {
-          // Repository doesn't exist, clone it
-          logger.info(`📦 Cloning repository: ${repoUrl}`)
-          await exec(`git clone ${repoUrl} ${workspacePath}`)
-          logger.info(`✓ Repository cloned to ${workspacePath}`)
-        }
-
-        // Create and checkout branch
+        // Create and checkout feature branch
         logger.info(`🌿 Creating branch: ${branchName}`)
         await exec(`cd ${workspacePath} && git checkout -b ${branchName}`)
         logger.info(`✓ Branch created and checked out`)
 
         // Execute Claude Code CLI
         logger.info('🤖 Executing Claude Code...')
-        const prompt = `${task.title}\n\n${task.description || ''}`
 
-        // Run Claude Code CLI (assuming it's installed globally or in PATH)
+        // Build prompt with all available workspaces context
+        let workspaceContext = 'Available workspace repositories:\n'
+        if (availableWorkspaces.length > 0) {
+          for (const ws of availableWorkspaces) {
+            workspaceContext += `- workspaces/${ws}/\n`
+          }
+        } else {
+          workspaceContext += '(No workspaces configured)\n'
+        }
+        workspaceContext += '\n'
+
+        const prompt = `${workspaceContext}${task.title}\n\n${task.description || ''}`
+
+        // Run Claude Code CLI from root directory
         // Using spawn to capture real-time output
         const claudeProcess = spawn(
           'claude',
           [prompt],
           {
-            cwd: workspacePath,
+            cwd: '..',  // Set to root of worker repository
             env: {
               ...process.env,
               ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
@@ -255,7 +274,19 @@ async function main() {
 
       // Run Claude Code without repository (for general tasks)
       logger.info('🤖 Executing Claude Code...')
-      const prompt = `${task.title}\n\n${task.description || ''}`
+
+      // Build prompt with all available workspaces context
+      let workspaceContext = 'Available workspace repositories:\n'
+      if (availableWorkspaces.length > 0) {
+        for (const ws of availableWorkspaces) {
+          workspaceContext += `- workspaces/${ws}/\n`
+        }
+      } else {
+        workspaceContext += '(No workspaces configured)\n'
+      }
+      workspaceContext += '\n'
+
+      const prompt = `${workspaceContext}${task.title}\n\n${task.description || ''}`
 
       if (!process.env.ANTHROPIC_API_KEY) {
         throw new Error('ANTHROPIC_API_KEY environment variable not set')
@@ -265,6 +296,7 @@ async function main() {
         'claude',
         [prompt],
         {
+          cwd: '..',  // Set to root of worker repository
           env: {
             ...process.env,
             ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,

@@ -26,7 +26,7 @@ export interface TriggerPipelineResult {
 
 interface PipelineContext {
   session: { id: string; task_id: string | null; runner: string | null }
-  task: { id: string; project_id: string | null; file_space_id: string | null }
+  task: { id: string; project_id: string | null }
   project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null; ai_provider_configs: AIProviderConfig | null }
   workerRepo: { id: string; current_version: string | null; source_gitlab: unknown }
   source: GitLabSource
@@ -467,17 +467,24 @@ async function preparePipelineConfig(
 
   // Prepare repository access variables for codebase cloning
   const repoVars: Record<string, string> = {}
-  if (context.task.file_space_id) {
-    try {
-      const fileSpaceRes = await apiClient['file-spaces'][':id'].$get({
-        param: { id: context.task.file_space_id }
-      })
+  try {
+    // Get file spaces associated with this task via junction table
+    const fileSpacesRes = await apiClient.tasks[':id']['file-spaces'].$get({
+      param: { id: context.task.id }
+    })
 
-      if (fileSpaceRes.ok) {
-        const fileSpace = await fileSpaceRes.json()
-        const config = fileSpace.config as any
+    if (fileSpacesRes.ok) {
+      const fileSpaces = await fileSpacesRes.json()
 
-        if (config.repo) {
+      // Use the first file space if multiple are configured
+      if (fileSpaces.length > 0) {
+        const fileSpace = fileSpaces[0]
+        if (!fileSpace) {
+          logger.warn('⚠️  File space is undefined')
+        } else {
+          const config = fileSpace.config as any
+
+          if (config.repo) {
           repoVars.REPO_URL = config.repo
           logger.info(`✓ Repository URL configured: ${config.repo}`)
 
@@ -494,10 +501,11 @@ async function preparePipelineConfig(
             }
           }
         }
+        }
       }
-    } catch (error) {
-      logger.warn(`⚠️  Failed to load file space configuration: ${error}`)
     }
+  } catch (error) {
+    logger.warn(`⚠️  Failed to load file space configuration: ${error}`)
   }
 
   // Add proxy configuration from environment variables (optional)

@@ -6,19 +6,23 @@ const logger = createLogger({ namespace: 'upload-worker' })
 async function main() {
   logger.info('Uploading updated worker files to GitLab...')
 
-  const manager = new CIRepositoryManager()
-  const version = '2025-10-18-01'
-
-  const source = {
-    type: 'gitlab' as const,
-    project_id: '75530560',
-    project_path: 'artifical-developer/adi-worker-nosh',
-    host: 'https://gitlab.com',
-    user: 'artifical-developer',
-    access_token_encrypted: '', // Will use decrypted token from env
+  // Get GitLab token from environment
+  const gitlabToken = process.env.GITLAB_TOKEN
+  if (!gitlabToken) {
+    throw new Error('GITLAB_TOKEN environment variable is required')
   }
 
-  await manager.uploadCIFiles({ source, version })
+  // Use a fake encrypted token and directly access the GitLab API
+  const { GitLabApiClient } = await import('./packages/shared/gitlab-api-client')
+  const client = new GitLabApiClient('https://gitlab.com', gitlabToken)
+
+  const version = '2025-10-18-01'
+  const projectId = '75530560'
+
+  const { CIFilesUploader } = await import('./packages/worker/ci-files-uploader')
+  const uploader = new CIFilesUploader(client, projectId)
+
+  await uploader.uploadDirectory(version, `./packages/worker/templates/${version}`)
 
   logger.info('✅ Worker files uploaded successfully!')
 }

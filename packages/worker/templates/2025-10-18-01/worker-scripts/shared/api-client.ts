@@ -16,7 +16,6 @@ export interface Task {
   title: string
   description: string | null
   project_id: string | null
-  file_space_id: string | null
   status?: string
   [key: string]: unknown
 }
@@ -77,6 +76,10 @@ export class ApiClient {
 
   async getFileSpacesByProject(projectId: string): Promise<FileSpace[]> {
     return this.fetch<FileSpace[]>(`/file-spaces?project_id=${projectId}`)
+  }
+
+  async getFileSpacesByTask(taskId: string): Promise<FileSpace[]> {
+    return this.fetch<FileSpace[]>(`/tasks/${taskId}/file-spaces`)
   }
 
   async createPipelineArtifact(

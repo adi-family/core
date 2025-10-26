@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/tasks'
+import * as fileSpaceQueries from '../../db/file-spaces'
 import { idParamSchema, createTaskSchema, updateTaskSchema } from '../schemas'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { getClerkUserId } from '../middleware/clerk'
@@ -344,5 +345,22 @@ export const createTaskRoutes = (sql: Sql) => {
         message: 'Agentic evaluation result updated successfully',
         task: updateResult.data
       })
+    })
+    .get('/:id/file-spaces', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+
+      try {
+        // Require read access to the task
+        await acl.task(id).read.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
+      // Get file spaces associated with this task via the junction table
+      const fileSpaces = await fileSpaceQueries.findFileSpacesByTaskId(sql, id)
+      return c.json(fileSpaces)
     })
 }
