@@ -15,16 +15,17 @@ const logger = createLogger({ namespace: 'evaluation-pipeline' })
  * Extract JSON from text that might contain markdown code blocks
  */
 function extractJSON(text: string): string {
-  // Try to find JSON in markdown code blocks first
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*?)\n?```/)
+  // Try to find JSON in markdown code blocks first - use greedy match
+  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*)\n?```/)
   if (codeBlockMatch && codeBlockMatch[1]) {
     return codeBlockMatch[1].trim()
   }
 
-  // Try to find JSON object directly
-  const jsonMatch = text.match(/\{[\s\S]*\}/)
-  if (jsonMatch) {
-    return jsonMatch[0]
+  // Try to find JSON object directly - match the outermost braces
+  const firstBrace = text.indexOf('{')
+  const lastBrace = text.lastIndexOf('}')
+  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+    return text.substring(firstBrace, lastBrace + 1).trim()
   }
 
   // Return original text if no patterns found
