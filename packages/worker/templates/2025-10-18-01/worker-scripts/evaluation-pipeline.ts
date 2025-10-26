@@ -181,9 +181,9 @@ async function agenticEvaluation(
 ${codebaseInfo}
 
 # Your Job
-Create TWO files in the ../results directory:
+Create TWO files in the results directory:
 
-## 1. ../results/agentic-verdict.json
+## 1. results/agentic-verdict.json
 {
   "can_implement": boolean,
   "confidence": 1-100,
@@ -197,7 +197,7 @@ Create TWO files in the ../results directory:
   "risks": ["risk 1"]
 }
 
-## 2. ../results/evaluation-report.md
+## 2. results/evaluation-report.md
 # Task: [title]
 
 ## RELEVANT FILES
@@ -222,17 +222,39 @@ IMPORTANT: Use Write tool to create these files. Do NOT return JSON in your resp
   try {
     logger.info('🤖 Starting Claude Agent SDK for evaluation...')
 
+    // Ensure ANTHROPIC_API_KEY is in process.env for Claude Code
+    if (env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+      process.env.ANTHROPIC_API_KEY = env.ANTHROPIC_API_KEY
+    }
+
+    // Construct absolute path to local claude executable
+    const { resolve } = await import('path')
+    const { fileURLToPath } = await import('url')
+    const __dirname = fileURLToPath(new URL('.', import.meta.url))
+    const claudePath = resolve(__dirname, 'node_modules/.bin/claude')
+    logger.info(`Using Claude executable: ${claudePath}`)
+
+    // Prepare environment for Claude Code
+    // Convert custom proxy vars to standard HTTP_PROXY format if needed
+    const claudeEnv = { ...process.env }
+    if (process.env.PROXY_HOST && process.env.PROXY_USER && process.env.PROXY_PASS) {
+      const proxyUrl = `http://${process.env.PROXY_USER}:${process.env.PROXY_PASS}@${process.env.PROXY_HOST}`
+      claudeEnv.HTTP_PROXY = proxyUrl
+      claudeEnv.HTTPS_PROXY = proxyUrl
+      logger.info(`✓ Configured standard proxy environment variables for Claude Code`)
+    }
+
     const iterator = query({
       prompt,
       options: {
-        permissionMode: 'bypassPermissions',
-        env: {
-          ...process.env,
-          ...env,
-        },
-        executable: 'bun',
+        permissionMode: 'acceptEdits',
+        env: claudeEnv,
+        pathToClaudeCodeExecutable: claudePath,
         cwd: '..',
         allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
+        stderr: (data: string) => {
+          logger.error(`[Claude Code stderr] ${data}`)
+        },
       },
     })
 
@@ -261,14 +283,30 @@ IMPORTANT: Use Write tool to create these files. Do NOT return JSON in your resp
     logger.info('✓ Claude Agent SDK execution completed')
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error)
+    const errorStack = error instanceof Error ? error.stack : undefined
+
     logger.error(`❌ Claude Agent SDK error: ${errorMsg}`)
+    if (errorStack) {
+      logger.error(`Stack trace:\n${errorStack}`)
+    }
+    logger.error(`Total iterations before failure: ${iterations}`)
+
     throw new Error(`Claude Agent SDK execution failed: ${errorMsg}`)
   }
 
   // Read the files created by the agent
-  const { readFile } = await import('fs/promises')
+  const { readFile, readdir } = await import('fs/promises')
 
   try {
+    // First, check what files were actually created
+    logger.info('Checking results directory...')
+    try {
+      const files = await readdir('../results')
+      logger.info(`Files in results directory: ${files.join(', ')}`)
+    } catch {
+      logger.error('Results directory not found or empty')
+    }
+
     const verdictJson = await readFile('../results/agentic-verdict.json', 'utf-8')
     const verdict = JSON.parse(verdictJson)
 
