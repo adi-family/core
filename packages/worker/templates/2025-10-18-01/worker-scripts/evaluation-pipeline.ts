@@ -171,50 +171,45 @@ async function agenticEvaluation(
     codebaseInfo = `${workspaces.length} workspace repository(ies) available for analysis:\n${workspaces.map(w => `- workspaces/${w}/`).join('\n')}`
   }
 
-  const prompt = `You are evaluating a task and creating an instruction manual for an AI agent.
+  const prompt = `You MUST evaluate a task by exploring the codebase and creating two files.
 
-# Task
+# Task to Evaluate
 **Title:** ${task.title}
 **Description:** ${task.description || 'No description provided'}
 
-# Codebase Status
+# Available Codebase
 ${codebaseInfo}
 
-# Your Job
-Create TWO files in the results directory:
+# CRITICAL INSTRUCTIONS - YOU MUST FOLLOW THESE EXACTLY:
 
-## 1. results/agentic-verdict.json
+1. **EXPLORE THE CODEBASE FIRST**: Use Read, Glob, and Grep tools to find relevant files
+2. **ANALYZE THE CODE**: Understand existing patterns, database schema, and architecture
+3. **CREATE FILE 1**: Use the Write tool to create \`results/agentic-verdict.json\` with this EXACT structure:
+\`\`\`json
 {
   "can_implement": boolean,
   "confidence": 1-100,
   "agent_instructions": {
-    "required_context_files": ["src/file.ts:10-50"],
-    "suggested_steps": ["step 1", "step 2"],
-    "follow_patterns_from": ["src/example.ts:20-40"]
+    "required_context_files": ["path/to/file.ts:10-50"],
+    "suggested_steps": ["concrete step 1", "concrete step 2"],
+    "follow_patterns_from": ["path/to/example.ts:20-40"]
   },
-  "missing_information": ["question 1"],
-  "blockers": ["hard stop 1"],
-  "risks": ["risk 1"]
+  "missing_information": ["specific question 1"],
+  "blockers": ["specific blocker 1"],
+  "risks": ["specific risk 1"]
 }
+\`\`\`
 
-## 2. results/evaluation-report.md
-# Task: [title]
+4. **CREATE FILE 2**: Use the Write tool to create \`results/evaluation-report.md\` with detailed findings including:
+   - RELEVANT FILES (with specific line numbers and descriptions)
+   - DATABASE SCHEMA (current state and required changes)
+   - EXISTING PATTERNS (how similar features are implemented)
+   - TESTING APPROACH (what tests exist and what's needed)
+   - Any other relevant technical details
 
-## RELEVANT FILES
-- \`src/auth/middleware.ts:45-120\` - Auth logic
-- \`src/types/user.ts:10-30\` - User type
+**CRITICAL**: You MUST use the Write tool TWICE - once for each file. Do NOT just describe what the files should contain. ACTUALLY CREATE THEM using Write tool calls.
 
-## DATABASE SCHEMA
-- Table: users
-- Current columns: ...
-
-## API PATTERNS
-- Auth endpoints: \`src/auth/routes.ts\`
-
-## TESTING SETUP
-- Mocks: \`tests/mocks/auth.ts\`
-
-IMPORTANT: Use Write tool to create these files. Do NOT return JSON in your response.`
+Your final message should be brief (1-2 sentences) confirming files were created. The actual content goes IN the files, not in your response.`
 
   // Execute Claude Agent SDK
   let iterations = 0
