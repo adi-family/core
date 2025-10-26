@@ -64,6 +64,7 @@ async function simpleEvaluation(task: { title: string; description: string | nul
 }> {
   logger.info('🔍 Phase 1: Running simple evaluation filter...')
 
+  const pipelineStart = Date.now()
   const anthropic = createAnthropicClient()
 
   const prompt = `You are a quick filter for automated task evaluation. Your job is to REJECT tasks that cannot be solved by an autonomous agent.
@@ -112,6 +113,27 @@ Respond ONLY with valid JSON (no markdown, no extra text):
   try {
     const result = JSON.parse(jsonText)
     logger.info(`✓ Simple evaluation: should_evaluate=${result.should_evaluate}, clarity=${result.clarity_score}`)
+
+    // Track usage for simple evaluation
+    const simpleUsage = {
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      goal: 'evaluation',
+      phase: 'simple_eval',
+      input_tokens: message.usage.input_tokens,
+      output_tokens: message.usage.output_tokens,
+      cache_creation_input_tokens: message.usage.cache_creation_input_tokens || 0,
+      cache_read_input_tokens: message.usage.cache_read_input_tokens || 0,
+      ci_duration_seconds: Math.floor((Date.now() - pipelineStart) / 1000)
+    }
+
+    await writeFile(
+      '../results/simple-usage.json',
+      JSON.stringify(simpleUsage, null, 2),
+      'utf-8'
+    )
+    logger.info('📊 Simple evaluation usage tracked')
+
     return result
   } catch (parseError) {
     logger.error('Failed to parse simple evaluation response')
@@ -213,6 +235,7 @@ Your final message should be brief (1-2 sentences) confirming files were created
 
   // Execute Claude Agent SDK
   let iterations = 0
+  const agenticStart = Date.now()
 
   try {
     logger.info('🤖 Starting Claude Agent SDK for evaluation...')
@@ -273,6 +296,28 @@ Your final message should be brief (1-2 sentences) confirming files were created
       if (chunk.type === 'result') {
         const cost = chunk.total_cost_usd || 0
         logger.info(`✓ Claude Agent completed - Cost: $${cost.toFixed(4)}, Iterations: ${iterations}`)
+
+        // Track agentic evaluation usage
+        const agenticUsage = {
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          goal: 'evaluation',
+          phase: 'agentic_eval',
+          input_tokens: chunk.usage?.input_tokens || 0,
+          output_tokens: chunk.usage?.output_tokens || 0,
+          cache_creation_input_tokens: chunk.usage?.cache_creation_input_tokens || 0,
+          cache_read_input_tokens: chunk.usage?.cache_read_input_tokens || 0,
+          ci_duration_seconds: Math.floor((Date.now() - agenticStart) / 1000),
+          iteration_number: iterations,
+          metadata: { iterations, sdk_cost_usd: cost }
+        }
+
+        await writeFile(
+          '../results/agentic-usage.json',
+          JSON.stringify(agenticUsage, null, 2),
+          'utf-8'
+        )
+        logger.info('📊 Agentic evaluation usage tracked')
       }
     }
 

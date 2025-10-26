@@ -42,22 +42,6 @@ async function main() {
     const task = await apiClient.getTask(session.task_id)
     logger.info(`✓ Task loaded: ${task.title}`)
 
-    // Check if evaluation failed (error.json exists)
-    const errorFileExists = await fileExists('../results/error.json')
-    if (errorFileExists) {
-      logger.warn('⚠️  Evaluation pipeline failed - error.json found')
-      const errorText = await readFile('../results/error.json', 'utf-8')
-      const errorData = JSON.parse(errorText)
-      logger.error(`Error details: ${errorData.error}`)
-
-      // Mark task as failed
-      await apiClient.updateTaskEvaluationStatus(task.id, 'failed')
-      logger.info('✓ Task evaluation status: failed')
-
-      logger.info('✅ Upload completed (evaluation failed)')
-      process.exit(0)
-    }
-
     // Read simple verdict (always present for successful evaluations)
     const simpleVerdictExists = await fileExists('../results/simple-verdict.json')
     if (!simpleVerdictExists) {
@@ -71,6 +55,25 @@ async function main() {
     // Update task with simple evaluation result
     await apiClient.updateTaskEvaluationSimple(task.id, simpleVerdict)
     logger.info('✓ Task simple evaluation updated')
+
+    // Upload usage metrics
+    const usageFiles = [
+      { file: '../results/simple-usage.json', phase: 'simple_eval' },
+      { file: '../results/agentic-usage.json', phase: 'agentic_eval' }
+    ]
+
+    for (const { file, phase } of usageFiles) {
+      if (await fileExists(file)) {
+        try {
+          const usageText = await readFile(file, 'utf-8')
+          const usage = JSON.parse(usageText)
+          await apiClient.saveApiUsage(executionId, sessionId, task.id, usage)
+          logger.info(`✓ ${phase} usage metrics uploaded`)
+        } catch (usageError) {
+          logger.error(`Failed to upload ${phase} usage:`, usageError)
+        }
+      }
+    }
 
     // Check if deep evaluation was performed
     const agenticVerdictExists = await fileExists('../results/agentic-verdict.json')

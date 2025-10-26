@@ -133,4 +133,32 @@ export class ApiClient {
       body: JSON.stringify({ agenticResult })
     })
   }
+
+  async saveApiUsage(
+    executionId: string,
+    sessionId: string,
+    taskId: string,
+    usage: {
+      provider: string
+      model: string
+      goal: string
+      phase: string
+      input_tokens?: number
+      output_tokens?: number
+      cache_creation_input_tokens?: number
+      cache_read_input_tokens?: number
+      ci_duration_seconds: number
+      iteration_number?: number
+      metadata?: unknown
+    }
+  ): Promise<void> {
+    await this.fetch<void>(`/pipeline-executions/${executionId}/usage`, {
+      method: 'POST',
+      body: JSON.stringify({
+        session_id: sessionId,
+        task_id: taskId,
+        ...usage
+      })
+    })
+  }
 }

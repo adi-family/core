@@ -13,8 +13,13 @@ const apiClient = new ApiClient(
   process.env.API_TOKEN!
 )
 
+async function fileExists(path: string): Promise<boolean> {
+  return Bun.file(path).exists()
+}
+
 async function main() {
   const executionId = process.env.PIPELINE_EXECUTION_ID!
+  const sessionId = process.env.SESSION_ID!
 
   logger.info('📤 Upload Results Started')
   logger.info(`Execution ID: ${executionId}`)
@@ -26,6 +31,18 @@ async function main() {
     const results = JSON.parse(resultsText)
 
     logger.info('✓ Results loaded')
+
+    // Upload implementation usage metrics
+    if (await fileExists('../results/implementation-usage.json')) {
+      try {
+        const usageText = await readFile('../results/implementation-usage.json', 'utf-8')
+        const usage = JSON.parse(usageText)
+        await apiClient.saveApiUsage(executionId, sessionId, results.task.id, usage)
+        logger.info('✓ Implementation usage metrics uploaded')
+      } catch (usageError) {
+        logger.error('Failed to upload implementation usage:', usageError)
+      }
+    }
 
     logger.info('📝 Creating pipeline artifacts...')
 

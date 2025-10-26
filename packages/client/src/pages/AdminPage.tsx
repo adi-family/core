@@ -1,6 +1,14 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { createAuthenticatedClient } from '@/lib/client'
+import {
+  PRICING,
+  calculateCostBreakdown,
+  formatCost,
+  formatTokens,
+  formatDuration,
+  type ApiUsageMetric
+} from '@/config/pricing'
 
 interface WorkerRepository {
   id: string
@@ -35,11 +43,16 @@ export function AdminPage() {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
 
+  const [activeTab, setActiveTab] = useState<'repositories' | 'usage'>('repositories')
   const [repositories, setRepositories] = useState<WorkerRepository[]>([])
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshResults, setRefreshResults] = useState<RefreshResponse | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Usage metrics state
+  const [usageMetrics, setUsageMetrics] = useState<ApiUsageMetric[]>([])
+  const [usageLoading, setUsageLoading] = useState(false)
 
   // Load worker repositories
   const loadRepositories = async () => {
@@ -62,16 +75,12 @@ export function AdminPage() {
 
   // Refresh all worker repositories
   const handleRefresh = async () => {
-    if (!confirm('This will update CI templates in all worker repositories. Continue?')) {
-      return
-    }
-
     setRefreshing(true)
     setError(null)
     setRefreshResults(null)
 
     try {
-      const response = await client.admin['refresh-worker-repos'].$post()
+      const response = await client.admin['refresh-worker-repos'].$post({})
       if (response.ok) {
         const data = await response.json() as RefreshResponse
         setRefreshResults(data)
@@ -88,21 +97,97 @@ export function AdminPage() {
     }
   }
 
+  // Load usage metrics
+  const loadUsageMetrics = async () => {
+    setUsageLoading(true)
+    setError(null)
+    try {
+      const response = await client.admin['usage-metrics'].$get()
+      if (response.ok) {
+        const data = await response.json()
+        setUsageMetrics(data.recent as ApiUsageMetric[])
+      } else {
+        setError('Failed to load usage metrics')
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setUsageLoading(false)
+    }
+  }
+
   // Load on mount
   useEffect(() => {
     loadRepositories()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Load usage metrics when tab changes
+  useEffect(() => {
+    if (activeTab === 'usage' && usageMetrics.length === 0) {
+      loadUsageMetrics()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab])
+
+  // Calculate totals
+  const totals = useMemo(() => {
+    if (usageMetrics.length === 0) {
+      return { totalCost: 0, tokenCost: 0, ciCost: 0, totalTokens: 0, ciHours: 0 }
+    }
+
+    return usageMetrics.reduce(
+      (acc, metric) => {
+        const breakdown = calculateCostBreakdown(metric)
+        return {
+          totalCost: acc.totalCost + breakdown.totalCost,
+          tokenCost: acc.tokenCost + breakdown.tokenCost,
+          ciCost: acc.ciCost + breakdown.ciCost,
+          totalTokens: acc.totalTokens + breakdown.totalTokens,
+          ciHours: acc.ciHours + breakdown.ciHours
+        }
+      },
+      { totalCost: 0, tokenCost: 0, ciCost: 0, totalTokens: 0, ciHours: 0 }
+    )
+  }, [usageMetrics])
+
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <div className="mb-8">
         <h1 className="text-3xl font-bold mb-2">System Administration</h1>
         <p className="text-gray-600">
-          Manage worker repositories and system configuration
+          Manage worker repositories and API usage tracking
         </p>
       </div>
 
+      {/* Tabs */}
+      <div className="mb-6 border-b border-gray-200">
+        <div className="flex gap-4">
+          <button
+            onClick={() => setActiveTab('repositories')}
+            className={`pb-4 px-2 font-medium border-b-2 transition-colors ${
+              activeTab === 'repositories'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Worker Repositories
+          </button>
+          <button
+            onClick={() => setActiveTab('usage')}
+            className={`pb-4 px-2 font-medium border-b-2 transition-colors ${
+              activeTab === 'usage'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            API Usage
+          </button>
+        </div>
+      </div>
+
+      {/* Worker Repositories Tab */}
+      {activeTab === 'repositories' && (<div>
       {/* Worker Repositories Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
         <div className="flex items-center justify-between mb-6">
@@ -122,7 +207,7 @@ export function AdminPage() {
             </button>
             <button
               onClick={handleRefresh}
-              disabled={refreshing || repositories.length === 0}
+              disabled={refreshing}
               className="px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {refreshing ? 'Refreshing...' : 'Refresh All Repositories'}
@@ -270,6 +355,105 @@ export function AdminPage() {
           </li>
         </ul>
       </div>
+      </div>)}
+
+      {/* API Usage Tab */}
+      {activeTab === 'usage' && (<div>
+        {/* Pricing Info */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <h3 className="font-semibold text-blue-900 mb-2">Platform Pricing</h3>
+          <div className="text-sm text-blue-800 space-y-1">
+            <div>💰 <strong>${PRICING.PER_MILLION_TOKENS}</strong> per 1M tokens</div>
+            <div>⏱️ <strong>${PRICING.PER_CI_HOUR.toFixed(8)}</strong> per hour CI time (≈ ${(PRICING.PER_CI_HOUR / 60).toFixed(6)} per minute)</div>
+          </div>
+        </div>
+
+        {/* Usage Summary Cards */}
+        <div className="grid grid-cols-4 gap-4 mb-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="text-sm text-gray-600 mb-1">Total Cost</div>
+            <div className="text-2xl font-bold">{formatCost(totals.totalCost)}</div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="text-sm text-gray-600 mb-1">Token Cost</div>
+            <div className="text-2xl font-bold">{formatCost(totals.tokenCost)}</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {formatTokens(totals.totalTokens)} @ ${PRICING.PER_MILLION_TOKENS}/M
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="text-sm text-gray-600 mb-1">CI Cost</div>
+            <div className="text-2xl font-bold">{formatCost(totals.ciCost)}</div>
+            <div className="text-xs text-gray-500 mt-1">
+              {totals.ciHours.toFixed(2)}h @ ${PRICING.PER_CI_HOUR.toFixed(4)}/h
+            </div>
+          </div>
+
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div className="text-sm text-gray-600 mb-1">API Calls</div>
+            <div className="text-2xl font-bold">{usageMetrics.length}</div>
+            <div className="text-xs text-gray-500 mt-1">Last 100 calls</div>
+          </div>
+        </div>
+
+        {/* Recent Usage Table */}
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">Recent API Usage</h2>
+            <button
+              onClick={loadUsageMetrics}
+              disabled={usageLoading}
+              className="px-4 py-2 text-sm border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50"
+            >
+              {usageLoading ? 'Loading...' : 'Refresh'}
+            </button>
+          </div>
+
+          {usageLoading ? (
+            <div className="text-center py-8 text-gray-500">Loading...</div>
+          ) : usageMetrics.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              No usage data available yet.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 text-left">
+                    <th className="pb-3 font-semibold">Date</th>
+                    <th className="pb-3 font-semibold">Provider</th>
+                    <th className="pb-3 font-semibold">Goal</th>
+                    <th className="pb-3 font-semibold">Phase</th>
+                    <th className="pb-3 font-semibold">Tokens</th>
+                    <th className="pb-3 font-semibold">CI Time</th>
+                    <th className="pb-3 font-semibold">Cost</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {usageMetrics.map((metric) => {
+                    const breakdown = calculateCostBreakdown(metric)
+                    return (
+                      <tr key={metric.id} className="border-b border-gray-100">
+                        <td className="py-3 text-gray-600">
+                          {new Date(metric.created_at).toLocaleString()}
+                        </td>
+                        <td className="py-3 capitalize">{metric.provider}</td>
+                        <td className="py-3 capitalize">{metric.goal}</td>
+                        <td className="py-3 text-gray-600 text-xs">{metric.operation_phase}</td>
+                        <td className="py-3">{formatTokens(breakdown.totalTokens)}</td>
+                        <td className="py-3">{formatDuration(metric.ci_duration_seconds)}</td>
+                        <td className="py-3 font-medium">{formatCost(breakdown.totalCost)}</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>)}
     </div>
   )
 }

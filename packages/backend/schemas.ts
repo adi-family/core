@@ -527,3 +527,20 @@ export const isSignaledBodySchema = z.object({
 export const releaseLockBodySchema = z.object({
   issueId: z.string()
 })
+
+// API Usage Metrics schemas
+export const saveApiUsageSchema = z.object({
+  session_id: z.string().uuid(),
+  task_id: z.string().uuid(),
+  provider: z.string(),
+  model: z.string(),
+  goal: z.string(),
+  phase: z.string(),
+  input_tokens: z.number().int().min(0).optional().default(0),
+  output_tokens: z.number().int().min(0).optional().default(0),
+  cache_creation_input_tokens: z.number().int().min(0).optional().default(0),
+  cache_read_input_tokens: z.number().int().min(0).optional().default(0),
+  ci_duration_seconds: z.number().int().min(0),
+  iteration_number: z.number().int().min(0).optional(),
+  metadata: z.any().optional()
+})

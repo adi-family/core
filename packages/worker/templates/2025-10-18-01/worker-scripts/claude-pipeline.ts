@@ -3,7 +3,7 @@ import { ApiClient } from './shared/api-client'
 import { runCompletionCheck } from './shared/completion-check'
 import { runClarificationCheck } from './shared/clarification-check'
 import { validateEnvironment } from './shared/env-validator'
-import { mkdir, readdir } from 'fs/promises'
+import { mkdir, readdir, writeFile } from 'fs/promises'
 import { promisify } from 'util'
 import { exec as execCallback } from 'child_process'
 import { createLogger } from './shared/logger'
@@ -80,6 +80,7 @@ async function executeClaudeAgent(
   let output = ''
   let cost = 0
   let iterations = 0
+  const implementationStart = Date.now()
 
   try {
     logger.info('🤖 Starting Claude Agent SDK...')
@@ -120,6 +121,28 @@ async function executeClaudeAgent(
         const resultText = ('result' in chunk ? chunk?.result : undefined) || 'No result available'
         output += `\n\nFinal Result: ${resultText}`
         logger.info(`✓ Claude Agent completed - Cost: $${cost.toFixed(4)}, Iterations: ${iterations}`)
+
+        // Track implementation usage
+        const implementationUsage = {
+          provider: 'anthropic',
+          model: 'claude-sonnet-4-5',
+          goal: 'implementation',
+          phase: 'implementation',
+          input_tokens: chunk.usage?.input_tokens || 0,
+          output_tokens: chunk.usage?.output_tokens || 0,
+          cache_creation_input_tokens: chunk.usage?.cache_creation_input_tokens || 0,
+          cache_read_input_tokens: chunk.usage?.cache_read_input_tokens || 0,
+          ci_duration_seconds: Math.floor((Date.now() - implementationStart) / 1000),
+          iteration_number: iterations,
+          metadata: { iterations, sdk_cost_usd: cost }
+        }
+
+        await writeFile(
+          '../results/implementation-usage.json',
+          JSON.stringify(implementationUsage, null, 2),
+          'utf-8'
+        )
+        logger.info('📊 Implementation usage tracked')
       }
     }
 

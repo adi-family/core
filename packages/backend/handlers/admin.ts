@@ -83,30 +83,43 @@ export const createAdminRoutes = (sql: Sql) => {
 
         logger.info(`[Admin] Found ${repos.length} worker repositories to refresh`)
 
-        // Files to update (from current template version)
+        // Discover all files to update from template directory
         const templateVersion = '2025-10-18-01' // TODO: Make this configurable
-        const filesToUpdate = [
-          { remote: '.gitlab-ci.yml', local: '.gitlab-ci.yml' },
-          { remote: `${templateVersion}/.gitignore`, local: '.gitignore' },
-          { remote: `${templateVersion}/.gitlab-ci-evaluation.yml`, local: '.gitlab-ci-evaluation.yml' },
-          { remote: `${templateVersion}/.gitlab-ci-claude.yml`, local: '.gitlab-ci-claude.yml' },
-          { remote: `${templateVersion}/.gitlab-ci-codex.yml`, local: '.gitlab-ci-codex.yml' },
-          { remote: `${templateVersion}/.gitlab-ci-gemini.yml`, local: '.gitlab-ci-gemini.yml' },
-          { remote: `${templateVersion}/worker-scripts/package.json`, local: 'worker-scripts/package.json' },
-          { remote: `${templateVersion}/worker-scripts/sync-workspaces.ts`, local: 'worker-scripts/sync-workspaces.ts' },
-          { remote: `${templateVersion}/worker-scripts/claude-pipeline.ts`, local: 'worker-scripts/claude-pipeline.ts' },
-          { remote: `${templateVersion}/worker-scripts/codex-pipeline.ts`, local: 'worker-scripts/codex-pipeline.ts' },
-          { remote: `${templateVersion}/worker-scripts/gemini-pipeline.ts`, local: 'worker-scripts/gemini-pipeline.ts' },
-          { remote: `${templateVersion}/worker-scripts/evaluation-pipeline.ts`, local: 'worker-scripts/evaluation-pipeline.ts' },
-          { remote: `${templateVersion}/worker-scripts/upload-evaluation-results.ts`, local: 'worker-scripts/upload-evaluation-results.ts' },
-          { remote: `${templateVersion}/worker-scripts/upload-results.ts`, local: 'worker-scripts/upload-results.ts' },
-          { remote: `${templateVersion}/worker-scripts/shared/api-client.ts`, local: 'worker-scripts/shared/api-client.ts' },
-          { remote: `${templateVersion}/worker-scripts/shared/logger.ts`, local: 'worker-scripts/shared/logger.ts' },
-          { remote: `${templateVersion}/worker-scripts/shared/traffic-check.ts`, local: 'worker-scripts/shared/traffic-check.ts' },
-          { remote: `${templateVersion}/worker-scripts/shared/completion-check.ts`, local: 'worker-scripts/shared/completion-check.ts' },
-          { remote: `${templateVersion}/worker-scripts/shared/clarification-check.ts`, local: 'worker-scripts/shared/clarification-check.ts' },
-          { remote: `${templateVersion}/README.md`, local: 'README.md' },
-        ]
+        const { readdir, readFile } = await import('fs/promises')
+        const { join, resolve, relative } = await import('path')
+
+        // Get project root (go up from packages/backend to project root)
+        const projectRoot = resolve(process.cwd(), '../..')
+        const templateDir = join(projectRoot, 'packages/worker/templates', templateVersion)
+
+        // Recursively find all files in template directory
+        async function findAllFiles(dir: string, baseDir: string): Promise<string[]> {
+          const entries = await readdir(dir, { withFileTypes: true })
+          const files = await Promise.all(
+            entries.map(async (entry) => {
+              const fullPath = join(dir, entry.name)
+              if (entry.isDirectory()) {
+                // Skip node_modules
+                if (entry.name === 'node_modules') {
+                  return []
+                }
+                return findAllFiles(fullPath, baseDir)
+              } else {
+                // Return relative path from baseDir
+                return [relative(baseDir, fullPath)]
+              }
+            })
+          )
+          return files.flat()
+        }
+
+        const templateFiles = await findAllFiles(templateDir, templateDir)
+        logger.info(`[Admin] Found ${templateFiles.length} files in template directory`)
+
+        const filesToUpdate = templateFiles.map(filePath => ({
+          local: join(templateVersion, filePath), // Destination path in worker repo (includes version dir)
+          remote: join(templateVersion, filePath) // Source path in template repo
+        }))
 
         const results: Array<{
           project: string
@@ -126,34 +139,28 @@ export const createAdminRoutes = (sql: Sql) => {
             // Create GitLab client
             const client = new GitLabApiClient(repo.source_gitlab.host, accessToken)
 
-            // Read and upload each file
-            const { readFile } = await import('fs/promises')
-            const { join, resolve } = await import('path')
-
-            // Get project root (go up from packages/backend to project root)
-            const projectRoot = resolve(process.cwd(), '../..')
-            const templateDir = join(projectRoot, 'packages/worker/templates', templateVersion)
-
             // Prepare all files for batch upload
             const filesToUploadBatch: Array<{ path: string; content: string }> = []
             const fileErrors: Array<{ file: string; error: string }> = []
 
             for (const file of filesToUpdate) {
               try {
-                const filePath = join(templateDir, file.local)
+                // Read from template directory using remote path (source)
+                const filePath = join(projectRoot, 'packages/worker/templates', file.remote)
                 logger.info(`[Admin] Reading file: ${filePath}`)
                 const content = await readFile(filePath, 'utf-8')
 
+                // Upload to worker repo using local path (destination)
                 filesToUploadBatch.push({
-                  path: file.remote,
+                  path: file.local,
                   content,
                 })
 
-                logger.info(`[Admin] 📄 Prepared ${file.remote}`)
+                logger.info(`[Admin] 📄 Prepared ${file.remote} → ${file.local}`)
               } catch (fileError) {
                 const errorMsg = fileError instanceof Error ? fileError.message : String(fileError)
                 logger.warn(`[Admin] Failed to read ${file.remote} for ${repo.project_name}:`, errorMsg)
-                fileErrors.push({ file: file.remote, error: errorMsg })
+                fileErrors.push({ file: file.local, error: errorMsg })
                 // Continue with other files even if one fails
               }
             }
@@ -298,6 +305,92 @@ export const createAdminRoutes = (sql: Sql) => {
       } catch (error) {
         logger.error('[Admin] Failed to fetch worker repositories:', error)
         return c.json({ error: 'Failed to fetch worker repositories' }, 500)
+      }
+    })
+
+    /**
+     * Get API usage metrics
+     * GET /admin/usage-metrics
+     */
+    .get('/usage-metrics', async (c) => {
+      const userId = getClerkUserId(c)
+
+      if (!userId) {
+        return c.json({ error: 'Authentication required' }, 401)
+      }
+
+      try {
+        const { start_date, end_date, provider, goal } = c.req.query()
+
+        // Build query fragments
+        let whereClause = sql`WHERE 1=1`
+
+        if (start_date) {
+          whereClause = sql`${whereClause} AND created_at >= ${start_date}`
+        }
+
+        if (end_date) {
+          whereClause = sql`${whereClause} AND created_at <= ${end_date}`
+        }
+
+        if (provider) {
+          whereClause = sql`${whereClause} AND provider = ${provider}`
+        }
+
+        if (goal) {
+          whereClause = sql`${whereClause} AND goal = ${goal}`
+        }
+
+        // Get aggregated metrics
+        const metrics = await sql`
+          SELECT
+            provider,
+            goal,
+            operation_phase,
+            DATE(created_at) as date,
+            SUM(input_tokens + output_tokens + cache_creation_input_tokens + cache_read_input_tokens) as total_tokens,
+            SUM(input_tokens) as input_tokens,
+            SUM(output_tokens) as output_tokens,
+            SUM(cache_creation_input_tokens) as cache_creation_tokens,
+            SUM(cache_read_input_tokens) as cache_read_tokens,
+            SUM(ci_duration_seconds) as total_ci_duration,
+            COUNT(*) as api_calls
+          FROM api_usage_metrics
+          ${whereClause}
+          GROUP BY provider, goal, operation_phase, DATE(created_at)
+          ORDER BY date DESC, provider, goal
+        `
+
+        // Get detailed recent metrics (last 100)
+        const recentMetrics = await sql`
+          SELECT
+            id,
+            session_id,
+            task_id,
+            provider,
+            model,
+            goal,
+            operation_phase,
+            input_tokens,
+            output_tokens,
+            cache_creation_input_tokens,
+            cache_read_input_tokens,
+            ci_duration_seconds,
+            iteration_number,
+            created_at
+          FROM api_usage_metrics
+          ${whereClause}
+          ORDER BY created_at DESC
+          LIMIT 100
+        `
+
+        return c.json({
+          aggregated: metrics,
+          recent: recentMetrics
+        })
+      } catch (error) {
+        logger.error('[Admin] Failed to fetch usage metrics:', error)
+        return c.json({ error: 'Failed to fetch usage metrics' }, 500)
       }
     })
 }
