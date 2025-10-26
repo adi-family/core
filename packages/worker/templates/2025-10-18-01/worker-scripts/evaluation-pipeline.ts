@@ -66,15 +66,24 @@ async function simpleEvaluation(task: { title: string; description: string | nul
 
   const anthropic = createAnthropicClient()
 
-  const prompt = `You are a quick filter for task evaluation. Determine if this task is worth deep analysis.
+  const prompt = `You are a quick filter for automated task evaluation. Your job is to REJECT tasks that cannot be solved by an autonomous agent.
 
 Task Title: ${task.title}
 Task Description: ${task.description || 'No description provided'}
 
-Evaluate:
-1. Clarity (1-100): How clear is what needs to be done?
-2. Has acceptance criteria: Are there clear success conditions?
-3. Should we proceed with deep evaluation?
+IMMEDIATELY REJECT if the task:
+- Requires manual testing or manual verification
+- Needs complex/uncommon third-party integrations
+- Requires human interaction or approval during execution
+- Involves external services without clear API documentation
+- Needs UI/UX testing or visual verification
+- Requires access to systems not available to the agent
+
+ONLY PROCEED if the task:
+- Can be solved with code changes only
+- Has clear, testable success criteria
+- Uses common, well-documented integrations
+- Can be verified programmatically
 
 Respond ONLY with valid JSON (no markdown, no extra text):
 {
@@ -172,9 +181,9 @@ async function agenticEvaluation(
 ${codebaseInfo}
 
 # Your Job
-Generate TWO outputs:
+Create TWO files in the ../results directory:
 
-## 1. STRUCTURED VERDICT (JSON)
+## 1. ../results/agentic-verdict.json
 {
   "can_implement": boolean,
   "confidence": 1-100,
@@ -188,7 +197,7 @@ Generate TWO outputs:
   "risks": ["risk 1"]
 }
 
-## 2. AGENT-READABLE REPORT (Markdown)
+## 2. ../results/evaluation-report.md
 # Task: [title]
 
 ## RELEVANT FILES
@@ -205,14 +214,9 @@ Generate TWO outputs:
 ## TESTING SETUP
 - Mocks: \`tests/mocks/auth.ts\`
 
-Respond with JSON containing both:
-{
-  "verdict": { ... verdict object ... },
-  "report": "... markdown report ..."
-}`
+IMPORTANT: Use Write tool to create these files. Do NOT return JSON in your response.`
 
   // Execute Claude Agent SDK
-  let agentOutput = ''
   let iterations = 0
 
   try {
@@ -228,7 +232,7 @@ Respond with JSON containing both:
         },
         executable: 'bun',
         cwd: '..',
-        allowedTools: ['Bash', 'Read', 'Glob', 'Grep'],
+        allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
       },
     })
 
@@ -242,7 +246,6 @@ Respond with JSON containing both:
       if (chunk.type === 'assistant') {
         const message = JSON.stringify(chunk.message)
         logger.info(`[Assistant] ${message}`)
-        agentOutput += message + '\n'
       }
 
       if (chunk.type === 'stream_event') {
@@ -251,8 +254,6 @@ Respond with JSON containing both:
 
       if (chunk.type === 'result') {
         const cost = chunk.total_cost_usd || 0
-        const resultText = ('result' in chunk ? chunk?.result : undefined) || 'No result available'
-        agentOutput += `\n\nFinal Result: ${resultText}`
         logger.info(`✓ Claude Agent completed - Cost: $${cost.toFixed(4)}, Iterations: ${iterations}`)
       }
     }
@@ -264,18 +265,20 @@ Respond with JSON containing both:
     throw new Error(`Claude Agent SDK execution failed: ${errorMsg}`)
   }
 
-  // Extract JSON from agent output
-  const jsonText = extractJSON(agentOutput)
+  // Read the files created by the agent
+  const { readFile } = await import('fs/promises')
 
   try {
-    const result = JSON.parse(jsonText)
-    logger.info(`✓ Agentic evaluation: can_implement=${result.verdict.can_implement}, confidence=${result.verdict.confidence}`)
-    return result
-  } catch (parseError) {
-    logger.error('Failed to parse agentic evaluation response')
-    logger.error('Agent output (first 1000 chars):', agentOutput.substring(0, 1000))
-    logger.error('Extracted JSON (first 1000 chars):', jsonText.substring(0, 1000))
-    throw new Error(`JSON parse error in agentic evaluation: ${parseError instanceof Error ? parseError.message : String(parseError)}`)
+    const verdictJson = await readFile('../results/agentic-verdict.json', 'utf-8')
+    const verdict = JSON.parse(verdictJson)
+
+    const report = await readFile('../results/evaluation-report.md', 'utf-8')
+
+    logger.info(`✓ Agentic evaluation: can_implement=${verdict.can_implement}, confidence=${verdict.confidence}`)
+    return { verdict, report }
+  } catch (readError) {
+    logger.error('Failed to read agent-created files')
+    throw new Error(`Failed to read evaluation files: ${readError instanceof Error ? readError.message : String(readError)}`)
   }
 }
 
@@ -334,20 +337,8 @@ async function main() {
       return
     }
 
-    // Phase 2: Deep Agentic Evaluation
-    const agenticResult = await agenticEvaluation(task, { ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY })
-
-    // Write agentic verdict JSON
-    await writeFile(
-      '../results/agentic-verdict.json',
-      JSON.stringify(agenticResult.verdict, null, 2),
-      'utf-8'
-    )
-    logger.info('📝 Agentic verdict written to results/agentic-verdict.json')
-
-    // Write agent-readable report
-    await writeFile('../results/evaluation-report.md', agenticResult.report, 'utf-8')
-    logger.info('📝 Evaluation report written to results/evaluation-report.md')
+    // Phase 2: Deep Agentic Evaluation (agent creates files directly)
+    await agenticEvaluation(task, { ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY })
 
     logger.info('✅ Evaluation pipeline completed successfully')
   } catch (error) {
