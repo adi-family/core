@@ -95,7 +95,37 @@ async function main() {
         continue
       }
 
-      const repoUrl = (fileSpace.config as { repo: string }).repo
+      const config = fileSpace.config as { repo: string; host?: string; access_token_secret_id?: string }
+      let repoUrl = config.repo
+
+      // If repo is not a full URL, construct it from host + repo path
+      if (
+        !repoUrl.startsWith('http://') &&
+        !repoUrl.startsWith('https://') &&
+        !repoUrl.startsWith('git@')
+      ) {
+        const host = config.host || 'https://gitlab.com'
+        // Ensure host doesn't end with slash
+        const cleanHost = host.replace(/\/$/, '')
+        // Ensure repo doesn't start with slash
+        const cleanRepo = repoUrl.replace(/^\//, '')
+        repoUrl = `${cleanHost}/${cleanRepo}.git`
+        logger.info(`   Constructed URL from host: ${repoUrl}`)
+      }
+
+      // Inject authentication token into HTTPS URLs for private repos
+      // For GitLab, use oauth2 token format: https://oauth2:TOKEN@gitlab.com/repo.git
+      if (repoUrl.startsWith('https://') && process.env.GITLAB_TOKEN) {
+        const url = new URL(repoUrl)
+        // Only inject if no auth is already present
+        if (!url.username && !url.password) {
+          url.username = 'oauth2'
+          url.password = process.env.GITLAB_TOKEN
+          repoUrl = url.toString()
+          logger.info(`   ✓ Added authentication to URL`)
+        }
+      }
+
       const workspaceName = fileSpace.name
         .replace(/[^a-zA-Z0-9-]/g, '-')
         .toLowerCase()
@@ -107,7 +137,7 @@ async function main() {
       logger.info(`   Repository: ${repoUrl}`)
 
       try {
-        // Validate repo URL format
+        // Final validation - should now always be a valid URL
         if (
           !repoUrl.startsWith('http://') &&
           !repoUrl.startsWith('https://') &&
@@ -162,17 +192,79 @@ async function main() {
       }
     }
 
-    // Commit changes to .gitmodules if any
+    // Commit and push changes to .gitmodules and workspaces if any
     try {
-      const { stdout: statusOutput } = await exec('cd .. && git status --porcelain .gitmodules')
+      const { stdout: statusOutput } = await exec('cd .. && git status --porcelain')
       if (statusOutput.trim()) {
-        logger.info('\n💾 Committing .gitmodules changes...')
-        await exec('cd .. && git add .gitmodules')
-        await exec('cd .. && git commit -m "🔧 Update workspace submodules"')
-        logger.info('✓ Changes committed')
+        logger.info('\n💾 Committing workspace changes...')
+
+        // Add .gitmodules and workspaces directory
+        await exec('cd .. && git add .gitmodules workspaces/ 2>/dev/null || true')
+
+        // Check if there are changes to commit
+        const { stdout: diffOutput } = await exec('cd .. && git diff --cached --name-only')
+        if (diffOutput.trim()) {
+          await exec('cd .. && git commit -m "🔧 Update workspace submodules"')
+          logger.info('✓ Changes committed')
+
+          // Get current remote URL and inject token if needed
+          let pushUrl = 'origin'
+          if (process.env.WORKER_REPO_TOKEN) {
+            try {
+              const { stdout: remoteUrl } = await exec('cd .. && git remote get-url origin')
+              const originalUrl = remoteUrl.trim()
+              logger.info(`📍 Original remote URL: ${originalUrl}`)
+
+              // If URL is HTTPS and doesn't have auth, inject the token
+              if (originalUrl.startsWith('https://') && !originalUrl.includes('@')) {
+                const url = new URL(originalUrl)
+                url.username = 'oauth2'
+                url.password = process.env.WORKER_REPO_TOKEN
+                pushUrl = url.toString()
+                logger.info(`✓ Injected authentication into push URL`)
+              } else if (originalUrl.startsWith('https://') && originalUrl.includes('@')) {
+                // URL already has auth, replace it
+                const url = new URL(originalUrl)
+                url.username = 'oauth2'
+                url.password = process.env.WORKER_REPO_TOKEN
+                pushUrl = url.toString()
+                logger.info(`✓ Replaced authentication in push URL`)
+              }
+            } catch (e) {
+              logger.warn('Could not get/modify remote URL, using origin')
+            }
+          }
+
+          // Push changes to remote
+          logger.info('📤 Pushing changes to remote...')
+          // When pushing to a URL, we need to specify the full refspec
+          // Get current branch name - handle detached HEAD state in CI
+          const { stdout: branchName } = await exec('cd .. && git rev-parse --abbrev-ref HEAD')
+          let branch = branchName.trim()
+
+          // In CI, we might be in detached HEAD state
+          // Use CI_COMMIT_REF_NAME or fall back to main/master
+          if (branch === 'HEAD') {
+            branch = process.env.CI_COMMIT_REF_NAME || 'main'
+            logger.info(`⚠️  Detached HEAD detected, using branch: ${branch}`)
+          }
+
+          if (pushUrl === 'origin') {
+            // Push to named remote
+            await exec(`cd .. && git push origin ${branch}`)
+          } else {
+            // Push to URL with full refspec
+            await exec(`cd .. && git push ${pushUrl} HEAD:refs/heads/${branch}`)
+          }
+          logger.info('✓ Changes pushed successfully')
+        } else {
+          logger.info('ℹ️  No changes staged for commit')
+        }
+      } else {
+        logger.info('\nℹ️  No changes detected')
       }
     } catch (error) {
-      logger.warn(`⚠️  Could not commit .gitmodules: ${error instanceof Error ? error.message : String(error)}`)
+      logger.warn(`⚠️  Could not commit/push changes: ${error instanceof Error ? error.message : String(error)}`)
     }
 
     logger.info('\n✅ Workspace sync completed successfully')

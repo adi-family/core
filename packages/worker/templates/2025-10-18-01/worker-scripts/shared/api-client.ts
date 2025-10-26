@@ -24,8 +24,13 @@ export interface Task {
 export interface FileSpace {
   id: string
   name: string
+  type: 'gitlab' | 'github'
   enabled: boolean
-  config: unknown
+  config: {
+    repo: string
+    host?: string
+    access_token_secret_id?: string
+  }
   [key: string]: unknown
 }
 

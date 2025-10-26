@@ -3,6 +3,11 @@
 # The CI_RUNNER variable is passed when triggering the pipeline to select the appropriate config
 
 include:
+  # Sync-only mode: When SYNC_ONLY=true, use Claude config (any config works as they all have sync-only job)
+  - local: '2025-10-18-01/.gitlab-ci-claude.yml'
+    rules:
+      - if: '$SYNC_ONLY == "true"'
+  # Runner-specific configs
   - local: '2025-10-18-01/.gitlab-ci-evaluation.yml'
     rules:
       - if: '$CI_RUNNER == "evaluation"'
