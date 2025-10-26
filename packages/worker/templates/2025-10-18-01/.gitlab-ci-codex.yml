@@ -7,11 +7,57 @@ variables:
   WORKER_IMAGE: "oven/bun:latest"
   GIT_SUBMODULE_STRATEGY: recursive
 
+workflow:
+  rules:
+    # Only run on API/pipeline triggers or when SYNC_ONLY is set
+    - if: '$CI_PIPELINE_SOURCE == "api"'
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+    - if: '$SYNC_ONLY == "true"'
+    # Block all other automatic triggers (push, merge_request, etc.)
+    - when: never
+
+sync-only:
+  stage: prepare
+  image: $WORKER_IMAGE
+  script:
+    - echo "Syncing workspace repositories only (SYNC_ONLY mode)"
+    - echo "Installing git..."
+    - apt-get update && apt-get install -y git
+    - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
+    - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
+    # Configure git credentials for pushing
+    - |
+      if [ -n "$WORKER_REPO_TOKEN" ]; then
+        # Use worker repo token for pushing to this repository
+        git config --global credential.helper store
+        echo "https://oauth2:${WORKER_REPO_TOKEN}@gitlab.com" > ~/.git-credentials
+        echo "✓ Worker repository credentials configured"
+      fi
+      if [ -n "$GITLAB_TOKEN" ]; then
+        # Also add GITLAB_TOKEN for cloning workspace repositories
+        echo "https://oauth2:${GITLAB_TOKEN}@gitlab.com" >> ~/.git-credentials
+        echo "✓ Workspace credentials configured"
+      fi
+    - cd worker-scripts
+    - bun install
+    - bun run sync-workspaces.ts
+    - echo "✓ Submodules synced successfully"
+  cache:
+    paths:
+      - worker-scripts/node_modules/
+  rules:
+    - if: '$SYNC_ONLY == "true"'
+
 prepare:
   stage: prepare
   image: $WORKER_IMAGE
   script:
     - echo "Installing dependencies"
+    - echo "Installing git..."
+    - apt-get update && apt-get install -y git
+    - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
+    - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
     - cd worker-scripts
     - bun install
     - echo "SESSION_ID=$SESSION_ID"
@@ -23,13 +69,21 @@ prepare:
   cache:
     paths:
       - worker-scripts/node_modules/
-  only:
-    - pipelines
+  rules:
+    - if: '$SYNC_ONLY == "true"'
+      when: never
+    - when: always
 
 execute:
   stage: execute
   image: $WORKER_IMAGE
   script:
+    # Ensure all submodules are up to date before execution
+    - echo "Updating git submodules..."
+    - git submodule sync --recursive
+    - git submodule update --init --recursive
+    - echo "✓ Submodules updated"
+
     - cd worker-scripts
 
     # Update status to 'running'
@@ -67,8 +121,10 @@ execute:
     paths:
       - worker-scripts/node_modules/
     policy: pull
-  only:
-    - pipelines
+  rules:
+    - if: '$SYNC_ONLY == "true"'
+      when: never
+    - when: always
 
 report:
   stage: report
@@ -83,5 +139,7 @@ report:
     paths:
       - worker-scripts/node_modules/
     policy: pull
-  only:
-    - pipelines
+  rules:
+    - if: '$SYNC_ONLY == "true"'
+      when: never
+    - when: always
