@@ -5,15 +5,17 @@
  */
 
 import { ApiClient } from './shared/api-client'
+import { validateEnvironment } from './shared/env-validator'
 import { mkdir, writeFile } from 'fs/promises'
 import { createLogger } from './shared/logger'
 import Anthropic from '@anthropic-ai/sdk'
 import { HttpsProxyAgent } from 'https-proxy-agent'
+import { query } from '@anthropic-ai/claude-agent-sdk'
 
 const logger = createLogger({ namespace: 'evaluation-pipeline' })
 
 /**
- * Create Anthropic client with optional proxy support
+ * Create Anthropic client with optional proxy support (used for simple evaluation)
  */
 function createAnthropicClient(): Anthropic {
   const config: any = {
@@ -49,29 +51,6 @@ function extractJSON(text: string): string {
 
   // Return original text if no patterns found
   return text.trim()
-}
-
-/**
- * Validate required environment variables
- */
-function validateEnvironment(): void {
-  const required = [
-    'SESSION_ID',
-    'PIPELINE_EXECUTION_ID',
-    'API_BASE_URL',
-    'API_TOKEN',
-    'ANTHROPIC_API_KEY'
-  ]
-
-  const missing = required.filter((key) => !process.env[key])
-
-  if (missing.length > 0) {
-    throw new Error(
-      `Missing required environment variables: ${missing.join(', ')}`
-    )
-  }
-
-  logger.info('✓ Environment variables validated')
 }
 
 /**
@@ -134,11 +113,11 @@ Respond ONLY with valid JSON (no markdown, no extra text):
 }
 
 /**
- * Phase 2: Deep Agentic Evaluation - Generate agent instructions
+ * Phase 2: Deep Agentic Evaluation - Generate agent instructions using Claude Code Agent SDK
  */
 async function agenticEvaluation(
   task: { id: string; title: string; description: string | null },
-  _apiClient: ApiClient
+  env: Record<string, string>
 ): Promise<{
   verdict: {
     can_implement: boolean
@@ -155,8 +134,6 @@ async function agenticEvaluation(
   report: string
 }> {
   logger.info('🔬 Phase 2: Running deep agentic evaluation...')
-
-  const anthropic = createAnthropicClient()
 
   // Check for workspace repositories (submodules)
   const workspacesPath = '../workspaces'
@@ -234,21 +211,61 @@ Respond with JSON containing both:
   "report": "... markdown report ..."
 }`
 
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 8192,
-    messages: [{
-      role: 'user',
-      content: prompt
-    }]
-  })
+  // Execute Claude Agent SDK
+  let agentOutput = ''
+  let iterations = 0
 
-  const content = message.content[0]
-  if (!content || content.type !== 'text') {
-    throw new Error('Invalid response from Claude')
+  try {
+    logger.info('🤖 Starting Claude Agent SDK for evaluation...')
+
+    const iterator = query({
+      prompt,
+      options: {
+        permissionMode: 'bypassPermissions',
+        env: {
+          ...process.env,
+          ...env,
+        },
+        executable: 'bun',
+        cwd: '..',
+        allowedTools: ['Bash', 'Read', 'Glob', 'Grep'],
+      },
+    })
+
+    for await (const chunk of iterator) {
+      iterations++
+
+      if (chunk.type === 'system') {
+        logger.info(`[System] ${JSON.stringify(chunk.subtype)}`)
+      }
+
+      if (chunk.type === 'assistant') {
+        const message = JSON.stringify(chunk.message)
+        logger.info(`[Assistant] ${message}`)
+        agentOutput += message + '\n'
+      }
+
+      if (chunk.type === 'stream_event') {
+        logger.info(`[Stream] ${JSON.stringify(chunk.event)}`)
+      }
+
+      if (chunk.type === 'result') {
+        const cost = chunk.total_cost_usd || 0
+        const resultText = ('result' in chunk ? chunk?.result : undefined) || 'No result available'
+        agentOutput += `\n\nFinal Result: ${resultText}`
+        logger.info(`✓ Claude Agent completed - Cost: $${cost.toFixed(4)}, Iterations: ${iterations}`)
+      }
+    }
+
+    logger.info('✓ Claude Agent SDK execution completed')
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error)
+    logger.error(`❌ Claude Agent SDK error: ${errorMsg}`)
+    throw new Error(`Claude Agent SDK execution failed: ${errorMsg}`)
   }
 
-  const jsonText = extractJSON(content.text)
+  // Extract JSON from agent output
+  const jsonText = extractJSON(agentOutput)
 
   try {
     const result = JSON.parse(jsonText)
@@ -256,7 +273,7 @@ Respond with JSON containing both:
     return result
   } catch (parseError) {
     logger.error('Failed to parse agentic evaluation response')
-    logger.error('Raw response (first 1000 chars):', content.text.substring(0, 1000))
+    logger.error('Agent output (first 1000 chars):', agentOutput.substring(0, 1000))
     logger.error('Extracted JSON (first 1000 chars):', jsonText.substring(0, 1000))
     throw new Error(`JSON parse error in agentic evaluation: ${parseError instanceof Error ? parseError.message : String(parseError)}`)
   }
@@ -267,22 +284,25 @@ async function main() {
 
   try {
     // Validate environment
-    validateEnvironment()
+    const env = validateEnvironment([
+      'SESSION_ID',
+      'PIPELINE_EXECUTION_ID',
+      'API_BASE_URL',
+      'API_TOKEN',
+      'ANTHROPIC_API_KEY',
+    ] as const)
 
-    const sessionId = process.env.SESSION_ID!
-    const executionId = process.env.PIPELINE_EXECUTION_ID!
+    const sessionId = env.SESSION_ID
+    const executionId = env.PIPELINE_EXECUTION_ID
 
     logger.info(`Session ID: ${sessionId}`)
     logger.info(`Execution ID: ${executionId}`)
 
-    const apiClient = new ApiClient(
-      process.env.API_BASE_URL!,
-      process.env.API_TOKEN!
-    )
+    const apiClient = new ApiClient(env.API_BASE_URL, env.API_TOKEN)
 
     // Fetch session and task via API
     logger.info('📥 Fetching session from API...')
-    const session = await apiClient.getSession(sessionId)
+    const session = await apiClient.getSession(env.SESSION_ID)
     logger.info(`✓ Session loaded: runner=${session.runner}`)
 
     if (!session.task_id) {
@@ -315,7 +335,7 @@ async function main() {
     }
 
     // Phase 2: Deep Agentic Evaluation
-    const agenticResult = await agenticEvaluation(task, apiClient)
+    const agenticResult = await agenticEvaluation(task, { ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY })
 
     // Write agentic verdict JSON
     await writeFile(
