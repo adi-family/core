@@ -243,6 +243,7 @@ Your final message should be brief (1-2 sentences) confirming files were created
       prompt,
       options: {
         permissionMode: 'acceptEdits',
+        systemPrompt: 'You are a code evaluation assistant. Your job is to explore codebases, analyze task feasibility, and create structured evaluation reports. Always use the Write tool to create files - never just describe what files should contain. Be thorough in your analysis and concrete in your recommendations.',
         env: claudeEnv,
         pathToClaudeCodeExecutable: claudePath,
         cwd: '..',
