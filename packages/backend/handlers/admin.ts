@@ -172,6 +172,49 @@ export const createAdminRoutes = (sql: Sql) => {
                 )
                 uploadedCount = filesToUploadBatch.length
                 logger.info(`[Admin] ✓ Batch uploaded ${uploadedCount} files in a single commit`)
+
+                // Trigger a pipeline to sync git submodules
+                try {
+                  logger.info(`[Admin] Triggering pipeline to sync submodules for ${repo.project_name}`)
+
+                  // Get API credentials for the pipeline (same pattern as pipeline-executor.ts)
+                  const apiBaseUrl = process.env.API_BASE_URL || process.env.GITLAB_RUNNER_API_URL || 'http://localhost:5174'
+                  const apiToken = process.env.API_TOKEN || process.env.BACKEND_API_TOKEN || ''
+                  const gitlabToken = process.env.GITLAB_TOKEN || ''
+
+                  if (!apiToken) {
+                    logger.warn(`[Admin] API_TOKEN not set, skipping submodule sync for ${repo.project_name}`)
+                  } else {
+                    const pipelineVariables: Record<string, string> = {
+                      PROJECT_ID: repo.project_id,
+                      API_BASE_URL: apiBaseUrl,
+                      API_TOKEN: apiToken,
+                      SYNC_ONLY: 'true', // Flag to indicate we only want to sync submodules
+                    }
+
+                    // Add GITLAB_TOKEN if available (for cloning private repos)
+                    if (gitlabToken) {
+                      pipelineVariables.GITLAB_TOKEN = gitlabToken
+                    }
+
+                    // Add WORKER_REPO_TOKEN - the access token for this specific worker repository
+                    // This token has write permissions to push changes back to the worker repo
+                    pipelineVariables.WORKER_REPO_TOKEN = accessToken
+
+                    await client.triggerPipeline(
+                      repo.source_gitlab.project_id,
+                      {
+                        ref: 'main',
+                        variables: pipelineVariables
+                      }
+                    )
+                    logger.info(`[Admin] ✓ Pipeline triggered for submodule sync`)
+                  }
+                } catch (pipelineError) {
+                  const errorMsg = pipelineError instanceof Error ? pipelineError.message : String(pipelineError)
+                  logger.warn(`[Admin] Failed to trigger pipeline for ${repo.project_name}:`, errorMsg)
+                  // Don't add to fileErrors as this is not critical - submodules will sync on next regular pipeline run
+                }
               } catch (uploadError) {
                 const errorMsg = uploadError instanceof Error ? uploadError.message : String(uploadError)
                 logger.error(`[Admin] Failed to batch upload files for ${repo.project_name}:`, errorMsg)
