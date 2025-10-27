@@ -104,12 +104,14 @@ async function processWorkspace(path: string, taskId?: string): Promise<Workspac
  * @param prompt - The prompt to send to Claude
  * @param workspacePath - Path to the workspace directory
  * @param env - Environment variables
+ * @param workspaces - Array of workspace data for mock mode
  * @returns Object containing output, errors, cost, and iterations
  */
 async function executeClaudeAgent(
   prompt: string,
   workspacePath: string,
-  env: Record<string, string>
+  env: Record<string, string>,
+  workspaces?: WorkspaceData[]
 ): Promise<{ output: string; errors: string[]; cost: number; iterations: number }> {
   const errors: string[] = []
   let output = ''
@@ -140,17 +142,23 @@ async function executeClaudeAgent(
     iterations = 1
     cost = 0.0001 // Mock minimal cost
 
-    // Make a small change to README.md in the workspace for testing
-    logger.info('📝 Making test change to README.md in workspace...')
-    try {
-      const readmePath = `${workspacePath}/README.md`
-      const { stdout: readmeContent } = await exec(`cat "${readmePath}" 2>/dev/null || echo "# README"`)
-      const timestamp = new Date().toISOString()
-      const updatedContent = readmeContent.trim() + `\n\n<!-- Mock test change: ${timestamp} -->\n`
-      await writeFile(readmePath, updatedContent, 'utf-8')
-      logger.info(`  ✓ Updated README.md`)
-    } catch (error) {
-      logger.warn(`  ⚠️  Could not update README.md: ${error instanceof Error ? error.message : String(error)}`)
+    // Make changes to README.md in each workspace for testing
+    if (workspaces && workspaces.length > 0) {
+      logger.info('📝 Making test changes to README.md in workspaces...')
+      for (const workspace of workspaces) {
+        try {
+          const readmePath = `${workspace.path}/README.md`
+          const { stdout: readmeContent } = await exec(`cat "${readmePath}" 2>/dev/null || echo "# README"`)
+          const timestamp = new Date().toISOString()
+          const updatedContent = readmeContent.trim() + `\n\n<!-- Mock test change: ${timestamp} -->\n`
+          await writeFile(readmePath, updatedContent, 'utf-8')
+          logger.info(`  ✓ Updated ${workspace.dirName}/README.md`)
+        } catch (error) {
+          logger.warn(`  ⚠️  Could not update ${workspace.dirName}/README.md: ${error instanceof Error ? error.message : String(error)}`)
+        }
+      }
+    } else {
+      logger.warn('  ⚠️  No workspaces provided to mock mode, skipping file changes')
     }
 
     // Create mock usage data
@@ -354,7 +362,8 @@ async function main() {
     const { output, errors, cost, iterations } = await executeClaudeAgent(
       prompt,
       '..',  // Root directory
-      { ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY }
+      { ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY },
+      workspaces  // Pass workspaces for mock mode
     )
     agentResults.output = output
     agentResults.errors = errors
@@ -380,22 +389,6 @@ async function main() {
       )
     }
 
-    // Run clarification check
-    logger.info('❓ Running clarification check...')
-    const clarificationCheck = await runClarificationCheck(agentResults)
-    if (clarificationCheck.needsClarification) {
-      logger.warn(
-        `⚠️  Clarification needed: ${clarificationCheck.reason}`
-      )
-      if (clarificationCheck.questions) {
-        for (const question of clarificationCheck.questions) {
-          logger.info(`  - ${question}`)
-        }
-      }
-    } else {
-      logger.info('✓ No clarification needed')
-    }
-
     // Push changes to file spaces and create merge requests
     let pushResult = null
     try {
@@ -417,7 +410,9 @@ async function main() {
           task,
           agentResults,
           completionCheck,
-          clarificationCheck,
+          clarificationCheck: {
+            needsClarification: false,
+          },
           pushResult,
         },
         null,
