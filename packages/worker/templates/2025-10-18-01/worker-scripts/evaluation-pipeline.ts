@@ -248,9 +248,20 @@ Your final message should be brief (1-2 sentences) confirming files were created
     // Construct absolute path to local claude executable
     const { resolve } = await import('path')
     const { fileURLToPath } = await import('url')
+    const { existsSync } = await import('fs')
     const __dirname = fileURLToPath(new URL('.', import.meta.url))
     const claudePath = resolve(__dirname, 'node_modules/.bin/claude')
     logger.info(`Using Claude executable: ${claudePath}`)
+
+    // Check if claude executable exists
+    if (!existsSync(claudePath)) {
+      logger.error(`❌ Claude executable not found at: ${claudePath}`)
+      logger.info('Checking alternative locations...')
+      const altPath = resolve(__dirname, '../node_modules/.bin/claude')
+      logger.info(`Alternative path: ${altPath} - exists: ${existsSync(altPath)}`)
+    } else {
+      logger.info(`✓ Claude executable found at: ${claudePath}`)
+    }
 
     // Prepare environment for Claude Code
     // Convert custom proxy vars to standard HTTP_PROXY format if needed
@@ -261,6 +272,13 @@ Your final message should be brief (1-2 sentences) confirming files were created
       claudeEnv.HTTPS_PROXY = proxyUrl
       logger.info(`✓ Configured standard proxy environment variables for Claude Code`)
     }
+
+    logger.info(`📋 Query options:`)
+    logger.info(`  - permissionMode: acceptEdits`)
+    logger.info(`  - claudePath: ${claudePath}`)
+    logger.info(`  - cwd: ..`)
+    logger.info(`  - allowedTools: Bash, Read, Glob, Grep, Write`)
+    logger.info(`  - ANTHROPIC_API_KEY set: ${!!claudeEnv.ANTHROPIC_API_KEY}`)
 
     const iterator = query({
       prompt,
@@ -277,11 +295,17 @@ Your final message should be brief (1-2 sentences) confirming files were created
       },
     })
 
+    logger.info('✓ Query iterator created, starting iteration...')
+
     for await (const chunk of iterator) {
       iterations++
+      logger.info(`📥 Iteration ${iterations}: chunk type = ${chunk.type}`)
 
       if (chunk.type === 'system') {
-        logger.info(`[System] ${JSON.stringify(chunk.subtype)}`)
+        logger.info(`[System] subtype=${chunk.subtype}`)
+        if ('message' in chunk) {
+          logger.info(`[System] message=${JSON.stringify(chunk.message)}`)
+        }
       }
 
       if (chunk.type === 'assistant') {
@@ -290,7 +314,7 @@ Your final message should be brief (1-2 sentences) confirming files were created
       }
 
       if (chunk.type === 'stream_event') {
-        logger.info(`[Stream] ${JSON.stringify(chunk.event)}`)
+        logger.info(`[Stream] event=${JSON.stringify(chunk.event)}`)
       }
 
       if (chunk.type === 'result') {

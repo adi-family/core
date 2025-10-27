@@ -85,10 +85,17 @@ async function executeClaudeAgent(
   try {
     logger.info('🤖 Starting Claude Agent SDK...')
 
+    logger.info(`📋 Query options:`)
+    logger.info(`  - permissionMode: acceptEdits`)
+    logger.info(`  - executable: bun`)
+    logger.info(`  - cwd: ${workspacePath}`)
+    logger.info(`  - allowedTools: Bash, Read, Write, Edit, Glob, Grep`)
+    logger.info(`  - ANTHROPIC_API_KEY set: ${!!env.ANTHROPIC_API_KEY}`)
+
     const iterator = query({
       prompt,
       options: {
-        permissionMode: 'bypassPermissions',
+        permissionMode: 'acceptEdits',
         env: {
           ...process.env,
           ...env,
@@ -96,14 +103,23 @@ async function executeClaudeAgent(
         executable: 'bun',
         cwd: workspacePath,
         allowedTools: ['Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep'],
+        stderr: (data: string) => {
+          logger.error(`[Claude Code stderr] ${data}`)
+        },
       },
     })
 
+    logger.info('✓ Query iterator created, starting iteration...')
+
     for await (const chunk of iterator) {
       iterations++
+      logger.info(`📥 Iteration ${iterations}: chunk type = ${chunk.type}`)
 
       if (chunk.type === 'system') {
-        logger.info(`[System] ${JSON.stringify(chunk.subtype)}`)
+        logger.info(`[System] subtype=${chunk.subtype}`)
+        if ('message' in chunk) {
+          logger.info(`[System] message=${JSON.stringify(chunk.message)}`)
+        }
       }
 
       if (chunk.type === 'assistant') {
@@ -113,7 +129,7 @@ async function executeClaudeAgent(
       }
 
       if (chunk.type === 'stream_event') {
-        logger.info(`[Stream] ${JSON.stringify(chunk.event)}`)
+        logger.info(`[Stream] event=${JSON.stringify(chunk.event)}`)
       }
 
       if (chunk.type === 'result') {
