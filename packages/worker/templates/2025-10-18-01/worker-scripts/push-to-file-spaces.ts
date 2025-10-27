@@ -185,6 +185,17 @@ async function pushWorkspaceToFileSpace(
   await exec(`cd "${absoluteWorkspacePath}" && git push -f origin ${branchName}`)
   logger.info(`   ✓ Branch pushed`)
 
+  // Detect default branch (main or master)
+  logger.info(`   🔍 Detecting default branch...`)
+  let defaultBranch = 'main'
+  try {
+    await exec(`cd "${absoluteWorkspacePath}" && git rev-parse --verify origin/main`)
+    logger.info(`   ✓ Default branch: main`)
+  } catch {
+    defaultBranch = 'master'
+    logger.info(`   ✓ Default branch: master`)
+  }
+
   // Create merge request using GitLab API
   logger.info(`   🔀 Creating merge request...`)
 
@@ -212,7 +223,7 @@ async function pushWorkspaceToFileSpace(
   const mr = await gitlabClient['client'].MergeRequests.create(
     projectPath,
     branchName,
-    'main', // target branch
+    defaultBranch, // target branch (dynamically detected)
     taskTitle,
     {
       description: mrDescription,
