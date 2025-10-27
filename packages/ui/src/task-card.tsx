@@ -1,7 +1,7 @@
 import { Badge } from './badge'
 import { Button } from './button'
 import { Card, CardContent, CardHeader } from './card'
-import { Circle, Calendar, ExternalLink, CheckCircle2, Loader2, XCircle, Clock, RefreshCw, Play } from "lucide-react"
+import { Circle, Calendar, ExternalLink, CheckCircle2, Loader2, XCircle, Clock, RefreshCw } from "lucide-react"
 import type { Task, TaskSource } from "@adi-simple/types"
 
 interface TaskCardProps {
@@ -209,15 +209,28 @@ export function TaskCard({
 
         {/* Actions */}
         <div className="flex gap-2 pt-2">
-          {onStartProcessing && task.ai_implementation_status !== 'implementing' && task.ai_implementation_status !== 'queued' && task.ai_implementation_status !== 'completed' && (
+          {/* Re-evaluate button - always shown */}
+          {onRetryEvaluation && (
             <Button
-              variant="default"
+              variant="outline"
+              size="sm"
+              onClick={onRetryEvaluation}
+              className="flex-1 border-purple-500 text-purple-600 hover:bg-purple-50"
+            >
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Re-evaluate
+            </Button>
+          )}
+          {/* Re-implement button - always shown */}
+          {onStartProcessing && (
+            <Button
+              variant="outline"
               size="sm"
               onClick={onStartProcessing}
-              className="flex-1 bg-gradient-to-r from-accent-teal to-accent-cyan hover:from-accent-teal/90 hover:to-accent-cyan/90"
+              className="flex-1 border-accent-teal text-accent-teal hover:bg-teal-50"
             >
-              <Play className="h-4 w-4 mr-1" />
-              Implement with AI
+              <RefreshCw className="h-3 w-3 mr-1" />
+              Re-implement
             </Button>
           )}
           {onViewDetails && (
