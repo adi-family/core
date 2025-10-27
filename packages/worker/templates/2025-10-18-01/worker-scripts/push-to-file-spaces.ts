@@ -237,19 +237,42 @@ async function pushWorkspaceToFileSpace(
   mrDescription += `🤖 Automated by ADI Pipeline\n`
 
   // Create the merge request using gitbeaker
-  const mr = await gitlabClient['client'].MergeRequests.create(
-    projectPath,
-    branchName,
-    defaultBranch, // target branch (dynamically detected)
-    taskTitle,
-    {
-      description: mrDescription,
-      removeSourceBranch: true,
-    }
-  ) as any
+  let mr: any
+  let mrAlreadyExists = false
+  try {
+    mr = await gitlabClient['client'].MergeRequests.create(
+      projectPath,
+      branchName,
+      defaultBranch, // target branch (dynamically detected)
+      taskTitle,
+      {
+        description: mrDescription,
+        removeSourceBranch: true,
+      }
+    ) as any
 
-  logger.info(`   ✓ Merge request created: !${mr.iid}`)
-  logger.info(`   🔗 URL: ${mr.web_url}`)
+    logger.info(`   ✓ Merge request created: !${mr.iid}`)
+    logger.info(`   🔗 URL: ${mr.web_url}`)
+  } catch (error: any) {
+    // Check if MR already exists (409 Conflict)
+    if (error?.cause?.response?.statusCode === 409 || error?.message?.includes('409') || error?.message?.includes('already exists')) {
+      // Extract MR number from error message if available
+      const mrMatch = error.message?.match(/!(\d+)/)
+      const existingMrNumber = mrMatch ? mrMatch[1] : 'unknown'
+
+      logger.info(`   ℹ️  Merge request already exists: !${existingMrNumber}, skipping creation`)
+      mrAlreadyExists = true
+
+      // Create a minimal mr object for return value
+      mr = {
+        iid: existingMrNumber,
+        web_url: `${gitlabClient['host']}/${projectPath}/-/merge_requests/${existingMrNumber}`
+      }
+    } else {
+      // Re-throw if it's a different error
+      throw error
+    }
+  }
 
   return {
     fileSpaceId: fileSpace.id,
