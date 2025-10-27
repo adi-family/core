@@ -1,3 +1,6 @@
+# GitLab CI configuration for Claude AI implementation
+# This pipeline implements tasks using Claude Agent SDK
+
 stages:
   - prepare
   - execute
@@ -20,55 +23,76 @@ workflow:
 sync-only:
   stage: prepare
   image: $WORKER_IMAGE
+  tags:
+    - claude
   script:
     - echo "Syncing workspace repositories only (SYNC_ONLY mode)"
     - echo "Installing git..."
     - apt-get update && apt-get install -y git
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
+
     # Configure git credentials for pushing
     - |
       if [ -n "$WORKER_REPO_TOKEN" ]; then
-        # Use worker repo token for pushing to this repository
         git config --global credential.helper store
         echo "https://oauth2:${WORKER_REPO_TOKEN}@gitlab.com" > ~/.git-credentials
         echo "✓ Worker repository credentials configured"
       fi
       if [ -n "$GITLAB_TOKEN" ]; then
-        # Also add GITLAB_TOKEN for cloning workspace repositories
         echo "https://oauth2:${GITLAB_TOKEN}@gitlab.com" >> ~/.git-credentials
         echo "✓ Workspace credentials configured"
       fi
-    - cd worker-scripts
+
+    - cd 2025-10-18-01/worker-scripts
     - bun install
     - bun run sync-workspaces.ts
     - echo "✓ Submodules synced successfully"
   cache:
     paths:
-      - worker-scripts/node_modules/
+      - 2025-10-18-01/worker-scripts/node_modules/
   rules:
     - if: '$SYNC_ONLY == "true"'
 
 prepare:
   stage: prepare
   image: $WORKER_IMAGE
+  tags:
+    - claude
   script:
-    - echo "Installing dependencies"
+    - echo "Installing dependencies for Claude implementation pipeline"
     - echo "Installing git..."
     - apt-get update && apt-get install -y git
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
-    - cd worker-scripts
+
+    - cd 2025-10-18-01/worker-scripts
     - bun install
+
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
+    - echo "PROJECT_ID=$PROJECT_ID"
+
+    # Debug: Check if API credentials are available
+    - |
+      if [ -z "$API_BASE_URL" ]; then
+        echo "⚠️  Warning: API_BASE_URL is not set"
+      else
+        echo "✓ API_BASE_URL is set: $API_BASE_URL"
+      fi
+    - |
+      if [ -z "$API_TOKEN" ]; then
+        echo "❌ Error: API_TOKEN is not set - workspace sync will fail"
+      else
+        echo "✓ API_TOKEN is set (length: ${#API_TOKEN})"
+      fi
 
     # Sync all workspace repositories
     - echo "Syncing workspace repositories"
     - bun run sync-workspaces.ts
   cache:
     paths:
-      - worker-scripts/node_modules/
+      - 2025-10-18-01/worker-scripts/node_modules/
   rules:
     - if: '$SYNC_ONLY == "true"'
       when: never
@@ -77,10 +101,12 @@ prepare:
 execute:
   stage: execute
   image: $WORKER_IMAGE
+  tags:
+    - claude
   script:
     # Install git if not available
     - echo "Installing git..."
-    - apt-get update && apt-get install -y git
+    - apt-get update && apt-get install -y git curl
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
 
@@ -91,45 +117,65 @@ execute:
     - echo "✓ Submodules updated"
 
     # Clean up old results from previous runs
-    - rm -rf results
+    - rm -rf 2025-10-18-01/results
     - echo "✓ Cleaned up old results directory"
 
-    - cd worker-scripts
+    - cd 2025-10-18-01/worker-scripts
+
+    # Debug: Check if required variables are set
+    - echo "SESSION_ID=$SESSION_ID"
+    - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
+    - echo "PROJECT_ID=$PROJECT_ID"
+    - |
+      if [ -z "$API_BASE_URL" ]; then
+        echo "⚠️  Warning: API_BASE_URL is not set"
+      else
+        echo "✓ API_BASE_URL is set: $API_BASE_URL"
+      fi
+    - |
+      if [ -z "$API_TOKEN" ]; then
+        echo "❌ Error: API_TOKEN is not set"
+      else
+        echo "✓ API_TOKEN is set (length: ${#API_TOKEN})"
+      fi
+    - |
+      if [ -z "$ANTHROPIC_API_KEY" ]; then
+        echo "❌ Error: ANTHROPIC_API_KEY is not set"
+      else
+        echo "✓ ANTHROPIC_API_KEY is set (length: ${#ANTHROPIC_API_KEY})"
+      fi
 
     # Update status to 'running'
     - |
-      curl -X PATCH "$API_BASE_URL/pipeline-executions/$PIPELINE_EXECUTION_ID" \
-        -H "Authorization: Bearer $API_TOKEN" \
-        -H "Content-Type: application/json" \
-        -d '{"status":"running"}'
+      if [ -n "$API_BASE_URL" ]; then
+        bun -e "await fetch(process.env.API_BASE_URL + '/pipeline-executions/' + process.env.PIPELINE_EXECUTION_ID, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + process.env.API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({status:'running'}) })"
+      else
+        echo "⚠️  API_BASE_URL not set, skipping status update"
+      fi
 
-    # Run Claude pipeline (TypeScript with Bun)
-    - bun run claude-pipeline.ts
-
-    # Capture exit code
-    - EXIT_CODE=$?
+    # Run Claude implementation pipeline and capture exit code
+    - bun run claude-pipeline.ts || EXIT_CODE=$?
+    - EXIT_CODE=${EXIT_CODE:-0}
 
     # Update status based on exit code
     - |
-      if [ $EXIT_CODE -eq 0 ]; then
-        curl -X PATCH "$API_BASE_URL/pipeline-executions/$PIPELINE_EXECUTION_ID" \
-          -H "Authorization: Bearer $API_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d '{"status":"success"}'
+      if [ -n "$API_BASE_URL" ]; then
+        if [ $EXIT_CODE -eq 0 ]; then
+          bun -e "await fetch(process.env.API_BASE_URL + '/pipeline-executions/' + process.env.PIPELINE_EXECUTION_ID, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + process.env.API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({status:'success'}) })"
+        else
+          bun -e "await fetch(process.env.API_BASE_URL + '/pipeline-executions/' + process.env.PIPELINE_EXECUTION_ID, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + process.env.API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({status:'failed'}) })"
+        fi
       else
-        curl -X PATCH "$API_BASE_URL/pipeline-executions/$PIPELINE_EXECUTION_ID" \
-          -H "Authorization: Bearer $API_TOKEN" \
-          -H "Content-Type: application/json" \
-          -d '{"status":"failed"}'
-        exit $EXIT_CODE
+        echo "⚠️  API_BASE_URL not set, skipping status update"
       fi
+      exit $EXIT_CODE
   artifacts:
     paths:
-      - results/
+      - 2025-10-18-01/results/
     expire_in: 7 days
   cache:
     paths:
-      - worker-scripts/node_modules/
+      - 2025-10-18-01/worker-scripts/node_modules/
     policy: pull
   rules:
     - if: '$SYNC_ONLY == "true"'
@@ -139,15 +185,22 @@ execute:
 report:
   stage: report
   image: $WORKER_IMAGE
+  tags:
+    - claude
   script:
-    - cd worker-scripts
-    # Upload artifacts via our API (TypeScript)
+    # Debug: Check if artifacts were downloaded
+    - ls -la 2025-10-18-01/ || echo "Directory not found"
+    - ls -la 2025-10-18-01/results/ || echo "Results directory not found"
+
+    - cd 2025-10-18-01/worker-scripts
+
+    # Upload implementation artifacts via our API
     - bun run upload-results.ts
   dependencies:
     - execute
   cache:
     paths:
-      - worker-scripts/node_modules/
+      - 2025-10-18-01/worker-scripts/node_modules/
     policy: pull
   rules:
     - if: '$SYNC_ONLY == "true"'

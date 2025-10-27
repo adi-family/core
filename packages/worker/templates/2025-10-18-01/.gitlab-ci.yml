@@ -7,16 +7,24 @@ include:
   - local: '2025-10-18-01/.gitlab-ci-claude.yml'
     rules:
       - if: '$SYNC_ONLY == "true"'
+
   # Runner-specific configs
   - local: '2025-10-18-01/.gitlab-ci-evaluation.yml'
     rules:
       - if: '$CI_RUNNER == "evaluation"'
+
   - local: '2025-10-18-01/.gitlab-ci-claude.yml'
     rules:
       - if: '$CI_RUNNER == "claude"'
+
+  - local: '2025-10-18-01/.gitlab-ci-claude.yml'
+    rules:
+      - if: '$CI_RUNNER == "implementation"'
+
   - local: '2025-10-18-01/.gitlab-ci-codex.yml'
     rules:
       - if: '$CI_RUNNER == "codex"'
+
   - local: '2025-10-18-01/.gitlab-ci-gemini.yml'
     rules:
       - if: '$CI_RUNNER == "gemini"'

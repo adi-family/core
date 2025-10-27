@@ -1,3 +1,6 @@
+# GitLab CI configuration for AI task evaluation
+# This pipeline evaluates tasks to determine if they're ready for implementation
+
 stages:
   - prepare
   - execute
@@ -20,25 +23,27 @@ workflow:
 sync-only:
   stage: prepare
   image: $WORKER_IMAGE
+  tags:
+    - evaluation
   script:
     - echo "Syncing workspace repositories only (SYNC_ONLY mode)"
     - echo "Installing git..."
     - apt-get update && apt-get install -y git
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
+
     # Configure git credentials for pushing
     - |
       if [ -n "$WORKER_REPO_TOKEN" ]; then
-        # Use worker repo token for pushing to this repository
         git config --global credential.helper store
         echo "https://oauth2:${WORKER_REPO_TOKEN}@gitlab.com" > ~/.git-credentials
         echo "✓ Worker repository credentials configured"
       fi
       if [ -n "$GITLAB_TOKEN" ]; then
-        # Also add GITLAB_TOKEN for cloning workspace repositories
         echo "https://oauth2:${GITLAB_TOKEN}@gitlab.com" >> ~/.git-credentials
         echo "✓ Workspace credentials configured"
       fi
+
     - cd 2025-10-18-01/worker-scripts
     - bun install
     - bun run sync-workspaces.ts
@@ -52,14 +57,18 @@ sync-only:
 prepare:
   stage: prepare
   image: $WORKER_IMAGE
+  tags:
+    - evaluation
   script:
-    - echo "Installing dependencies"
+    - echo "Installing dependencies for evaluation pipeline"
     - echo "Installing git..."
     - apt-get update && apt-get install -y git
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
+
     - cd 2025-10-18-01/worker-scripts
     - bun install
+
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
     - echo "PROJECT_ID=$PROJECT_ID"
@@ -92,6 +101,8 @@ prepare:
 execute:
   stage: execute
   image: $WORKER_IMAGE
+  tags:
+    - evaluation
   script:
     # Install git if not available
     - echo "Installing git..."
@@ -142,7 +153,7 @@ execute:
         echo "⚠️  API_BASE_URL not set, skipping status update"
       fi
 
-    # Run evaluation pipeline and capture exit code (use || true to prevent early exit)
+    # Run evaluation pipeline and capture exit code
     - bun run evaluation-pipeline.ts || EXIT_CODE=$?
     - EXIT_CODE=${EXIT_CODE:-0}
 
@@ -174,12 +185,16 @@ execute:
 report:
   stage: report
   image: $WORKER_IMAGE
+  tags:
+    - evaluation
   script:
     # Debug: Check if artifacts were downloaded
     - ls -la 2025-10-18-01/ || echo "Directory not found"
     - ls -la 2025-10-18-01/results/ || echo "Results directory not found"
+
     - cd 2025-10-18-01/worker-scripts
-    # Upload evaluation artifacts via our API (TypeScript)
+
+    # Upload evaluation artifacts via our API
     - bun run upload-evaluation-results.ts
   dependencies:
     - execute
