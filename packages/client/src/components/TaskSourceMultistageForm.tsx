@@ -15,6 +15,7 @@ import { Select } from '@adi-simple/ui/select'
 import { ProjectSelect } from '@adi-simple/ui/project-select'
 import { SecretSelect } from "@/components/SecretSelect"
 import { GitlabTaskSourceConfig } from "@/components/GitlabTaskSourceConfig"
+import { JiraSecretAutocomplete } from '@adi-simple/ui/jira-secret-autocomplete'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateTaskSourceInput } from "../../../types"
 import { ChevronRight, ChevronLeft, Check } from "lucide-react"
@@ -199,7 +200,7 @@ export function TaskSourceMultistageForm() {
         } else if (formData.type === "github_issues") {
           return githubConfig.repo !== ""
         } else {
-          return jiraConfig.host !== "" && jiraConfig.project_key !== ""
+          return jiraConfig.host !== "" && jiraConfig.project_key !== "" && jiraConfig.access_token_secret_id !== ""
         }
       default:
         return true
@@ -223,38 +224,35 @@ export function TaskSourceMultistageForm() {
 
   if (success) {
     return (
-      <div className="mx-auto p-6 max-w-7xl">
-        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-md hover:shadow-lg transition-all duration-300">
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mb-4">
-                <Check className="w-10 h-10 text-white" />
-              </div>
-              <div className="text-lg font-medium mb-2 bg-gradient-to-r from-green-600 to-green-700 bg-clip-text text-transparent uppercase tracking-wide">
-                TASK SOURCE CREATED SUCCESSFULLY
-              </div>
-              <p className="text-gray-600 text-xs uppercase tracking-wide">
-                Redirecting to task sources list...
-              </p>
+      <Card className="border-slate-700/50 bg-slate-800/50 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300">
+        <CardContent className="pt-6">
+          <div className="text-center py-8">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mb-4">
+              <Check className="w-10 h-10 text-white" />
             </div>
-          </CardContent>
-        </Card>
-      </div>
+            <div className="text-lg font-medium mb-2 text-green-400 uppercase tracking-wide">
+              TASK SOURCE CREATED SUCCESSFULLY
+            </div>
+            <p className="text-gray-400 text-xs uppercase tracking-wide">
+              Redirecting to task sources list...
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     )
   }
 
   return (
-    <div className="mx-auto p-6 max-w-7xl">
-      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-md">
-        <CardHeader>
-          <CardTitle className="text-xl uppercase tracking-wide bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent">
-            CREATE TASK SOURCE
-          </CardTitle>
-          <CardDescription className="text-xs uppercase tracking-wide">
-            Configure a new issue tracking integration
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <Card className="border-slate-700/50 bg-slate-800/50 backdrop-blur-sm shadow-md">
+      <CardHeader>
+        <CardTitle className="text-xl uppercase tracking-wide text-gray-100">
+          CREATE TASK SOURCE
+        </CardTitle>
+        <CardDescription className="text-xs uppercase tracking-wide text-gray-400">
+          Configure a new issue tracking integration
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
           {/* Progress Steps */}
           <div className="mb-8">
             <div className="flex justify-between items-center">
@@ -267,7 +265,7 @@ export function TaskSourceMultistageForm() {
                           ? "border-blue-500 bg-blue-500 text-white shadow-md scale-110"
                           : currentStep > step.id
                           ? "border-green-500 bg-green-500 text-white"
-                          : "border-gray-300 bg-white text-gray-400"
+                          : "border-slate-600 bg-slate-700 text-gray-400"
                       }`}
                     >
                       {currentStep > step.id ? (
@@ -288,13 +286,13 @@ export function TaskSourceMultistageForm() {
                       >
                         {step.title}
                       </div>
-                      <div className="text-xs text-gray-500">{step.description}</div>
+                      <div className="text-xs text-gray-400">{step.description}</div>
                     </div>
                   </div>
                   {index < STEPS.length - 1 && (
                     <div
                       className={`flex-1 h-0.5 mx-2 mt-[-24px] transition-all duration-200 ${
-                        currentStep > step.id ? "bg-green-500" : "bg-gray-300"
+                        currentStep > step.id ? "bg-green-500" : "bg-slate-600"
                       }`}
                     />
                   )}
@@ -305,7 +303,7 @@ export function TaskSourceMultistageForm() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="bg-red-50/90 text-red-600 px-4 py-3 border border-red-200/60 backdrop-blur-sm text-sm">
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg backdrop-blur-sm">
                 {error}
               </div>
             )}
@@ -326,14 +324,13 @@ export function TaskSourceMultistageForm() {
             {currentStep === 2 && (
               <div className="space-y-6 animate-fadeIn">
                 <div className="space-y-2">
-                  <Label htmlFor="type" className="text-xs uppercase tracking-wide">
+                  <Label htmlFor="type" className="text-xs uppercase tracking-wide text-gray-200">
                     TYPE
                   </Label>
                   <Select
                     id="type"
                     value={formData.type}
                     onChange={(e) => handleInputChange("type", e.target.value as TaskSourceType)}
-                    className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                     required
                   >
                     <option value="gitlab_issues">GitLab Issues</option>
@@ -348,13 +345,13 @@ export function TaskSourceMultistageForm() {
                     onClick={() => handleInputChange("type", "gitlab_issues")}
                     className={`p-6 border-2 transition-all duration-200 hover:shadow-lg ${
                       formData.type === "gitlab_issues"
-                        ? "border-orange-500 bg-orange-50/50 shadow-md scale-[1.02]"
-                        : "border-gray-200 bg-white/50"
+                        ? "border-orange-500 bg-orange-500/20 shadow-md scale-[1.02]"
+                        : "border-slate-600 bg-slate-700/50"
                     }`}
                   >
                     <div className="text-center">
-                      <div className="text-lg font-medium uppercase tracking-wide mb-2">GitLab</div>
-                      <div className="text-xs text-gray-600">Issue tracking integration</div>
+                      <div className="text-lg font-medium uppercase tracking-wide mb-2 text-gray-100">GitLab</div>
+                      <div className="text-xs text-gray-400">Issue tracking integration</div>
                     </div>
                   </button>
 
@@ -363,15 +360,15 @@ export function TaskSourceMultistageForm() {
                     onClick={() => handleInputChange("type", "github_issues")}
                     className={`p-6 border-2 transition-all duration-200 hover:shadow-lg opacity-60 cursor-not-allowed ${
                       formData.type === "github_issues"
-                        ? "border-purple-500 bg-purple-50/50 shadow-md scale-[1.02]"
-                        : "border-gray-200 bg-gray-50/50"
+                        ? "border-purple-500 bg-purple-500/20 shadow-md scale-[1.02]"
+                        : "border-slate-600 bg-slate-700/30"
                     }`}
                     disabled
                   >
                     <div className="text-center">
                       <div className="flex items-center justify-center gap-2 mb-2">
-                        <div className="text-lg font-medium uppercase tracking-wide">GitHub</div>
-                        <span className="text-xs font-medium px-2 py-1 bg-amber-100 text-amber-700 rounded uppercase tracking-wide">
+                        <div className="text-lg font-medium uppercase tracking-wide text-gray-100">GitHub</div>
+                        <span className="text-xs font-medium px-2 py-1 bg-amber-500/20 text-amber-400 rounded uppercase tracking-wide">
                           Private Beta
                         </span>
                       </div>
@@ -382,21 +379,15 @@ export function TaskSourceMultistageForm() {
                   <button
                     type="button"
                     onClick={() => handleInputChange("type", "jira")}
-                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg opacity-60 cursor-not-allowed ${
+                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg ${
                       formData.type === "jira"
-                        ? "border-blue-500 bg-blue-50/50 shadow-md scale-[1.02]"
-                        : "border-gray-200 bg-gray-50/50"
+                        ? "border-blue-500 bg-blue-500/20 shadow-md scale-[1.02]"
+                        : "border-slate-600 bg-slate-700/50"
                     }`}
-                    disabled
                   >
                     <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <div className="text-lg font-medium uppercase tracking-wide">Jira</div>
-                        <span className="text-xs font-medium px-2 py-1 bg-amber-100 text-amber-700 rounded uppercase tracking-wide">
-                          Private Beta
-                        </span>
-                      </div>
-                      <div className="text-xs text-gray-500">Available only in private beta</div>
+                      <div className="text-lg font-medium uppercase tracking-wide mb-2 text-gray-100">Jira</div>
+                      <div className="text-xs text-gray-400">Issue tracking integration</div>
                     </div>
                   </button>
                 </div>
@@ -417,11 +408,11 @@ export function TaskSourceMultistageForm() {
 
                 {/* GitHub Issues Configuration */}
                 {formData.type === "github_issues" && (
-                  <div className="space-y-4 p-4 border border-gray-200/60 bg-gray-50/50 backdrop-blur-sm">
-                    <h3 className="text-xs uppercase tracking-wide font-medium">GITHUB CONFIGURATION</h3>
+                  <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-700/30 backdrop-blur-sm">
+                    <h3 className="text-xs uppercase tracking-wide font-medium text-gray-200">GITHUB CONFIGURATION</h3>
 
                     <div className="space-y-2">
-                      <Label htmlFor="github_repo" className="text-xs uppercase tracking-wide">
+                      <Label htmlFor="github_repo" className="text-xs uppercase tracking-wide text-gray-200">
                         REPOSITORY
                       </Label>
                       <Input
@@ -429,14 +420,13 @@ export function TaskSourceMultistageForm() {
                         type="text"
                         value={githubConfig.repo}
                         onChange={(e) => handleGithubConfigChange("repo", e.target.value)}
-                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         required
                         placeholder="e.g., owner/repo"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="github_host" className="text-xs uppercase tracking-wide">
+                      <Label htmlFor="github_host" className="text-xs uppercase tracking-wide text-gray-200">
                         HOST (OPTIONAL)
                       </Label>
                       <Input
@@ -444,7 +434,6 @@ export function TaskSourceMultistageForm() {
                         type="text"
                         value={githubConfig.host || ""}
                         onChange={(e) => handleGithubConfigChange("host", e.target.value)}
-                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         placeholder="https://github.com"
                       />
                     </div>
@@ -462,11 +451,11 @@ export function TaskSourceMultistageForm() {
 
                 {/* Jira Configuration */}
                 {formData.type === "jira" && (
-                  <div className="space-y-4 p-4 border border-gray-200/60 bg-gray-50/50 backdrop-blur-sm">
-                    <h3 className="text-xs uppercase tracking-wide font-medium">JIRA CONFIGURATION</h3>
+                  <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-700/30 backdrop-blur-sm">
+                    <h3 className="text-xs uppercase tracking-wide font-medium text-gray-200">JIRA CONFIGURATION</h3>
 
                     <div className="space-y-2">
-                      <Label htmlFor="jira_host" className="text-xs uppercase tracking-wide">
+                      <Label htmlFor="jira_host" className="text-xs uppercase tracking-wide text-gray-200">
                         HOST
                       </Label>
                       <Input
@@ -474,14 +463,25 @@ export function TaskSourceMultistageForm() {
                         type="text"
                         value={jiraConfig.host}
                         onChange={(e) => handleJiraConfigChange("host", e.target.value)}
-                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         required
                         placeholder="e.g., https://your-domain.atlassian.net"
                       />
                     </div>
 
+                    <JiraSecretAutocomplete
+                      client={client}
+                      projectId={formData.project_id}
+                      host={jiraConfig.host}
+                      value={jiraConfig.access_token_secret_id || null}
+                      onChange={(secretId) => {
+                        handleJiraConfigChange("access_token_secret_id", secretId || "")
+                      }}
+                      label="JIRA API TOKEN (REQUIRED)"
+                      required={true}
+                    />
+
                     <div className="space-y-2">
-                      <Label htmlFor="jira_project_key" className="text-xs uppercase tracking-wide">
+                      <Label htmlFor="jira_project_key" className="text-xs uppercase tracking-wide text-gray-200">
                         PROJECT KEY
                       </Label>
                       <Input
@@ -489,14 +489,13 @@ export function TaskSourceMultistageForm() {
                         type="text"
                         value={jiraConfig.project_key}
                         onChange={(e) => handleJiraConfigChange("project_key", e.target.value)}
-                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         required
                         placeholder="e.g., PROJ"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="jira_jql_filter" className="text-xs uppercase tracking-wide">
+                      <Label htmlFor="jira_jql_filter" className="text-xs uppercase tracking-wide text-gray-200">
                         JQL FILTER (OPTIONAL)
                       </Label>
                       <Input
@@ -504,26 +503,16 @@ export function TaskSourceMultistageForm() {
                         type="text"
                         value={jiraConfig.jql_filter || ""}
                         onChange={(e) => handleJiraConfigChange("jql_filter", e.target.value)}
-                        className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
                         placeholder="e.g., labels = DOIT AND status != Done"
                       />
                     </div>
-
-                    <SecretSelect
-                      projectId={formData.project_id}
-                      value={jiraConfig.access_token_secret_id || ""}
-                      onChange={(secretId) => handleJiraConfigChange("access_token_secret_id", secretId)}
-                      label="ACCESS TOKEN SECRET (OPTIONAL)"
-                      placeholder="Select access token secret"
-                      required={false}
-                    />
                   </div>
                 )}
               </div>
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex gap-2 pt-4 border-t border-gray-200">
+            <div className="flex gap-2 pt-4 border-t border-slate-700/50">
               <Button
                 type="button"
                 onClick={handleBack}
@@ -567,7 +556,6 @@ export function TaskSourceMultistageForm() {
             </div>
           </form>
         </CardContent>
-      </Card>
-    </div>
+    </Card>
   )
 }

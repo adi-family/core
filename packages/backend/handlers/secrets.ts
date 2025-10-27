@@ -41,6 +41,17 @@ const validateGitLabRawTokenSchema = z.object({
   hostname: z.string()
 })
 
+const validateJiraRawTokenSchema = z.object({
+  token: z.string(),
+  email: z.string().email().optional(),
+  hostname: z.string()
+})
+
+const validateJiraTokenSchema = z.object({
+  secretId: z.string(),
+  hostname: z.string()
+})
+
 const getGitLabRepositoriesSchema = z.object({
   secretId: z.string(),
   hostname: z.string(),
@@ -373,6 +384,122 @@ export const createSecretRoutes = (sql: Sql) => {
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error)
         return c.json({ error: `Error fetching repositories: ${errorMsg}` }, 500)
+      }
+    })
+    .post('/validate-jira-raw-token', zValidator('json', validateJiraRawTokenSchema), requireClerkAuth(), async (c) => {
+      const { token, email, hostname } = c.req.valid('json')
+
+      const { createLogger } = await import('@utils/logger')
+      const logger = createLogger({ namespace: 'jira-token-validation' })
+
+      try {
+        // Jira Cloud uses email + API token authentication
+        // Try to fetch current user information to validate the token
+        const authHeader = email
+          ? `Basic ${Buffer.from(`${email}:${token}`).toString('base64')}`
+          : `Bearer ${token}`
+
+        const response = await fetch(`${hostname}/rest/api/2/myself`, {
+          headers: {
+            'Authorization': authHeader,
+            'Accept': 'application/json'
+          }
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          logger.error(`✗ Jira token validation failed: ${response.status} ${response.statusText} - ${errorText}`)
+          return c.json({
+            valid: false,
+            error: `Token validation failed: ${response.status} ${response.statusText}`
+          }, 400)
+        }
+
+        const user = await response.json()
+
+        logger.info(`✓ Jira token validated: ${user.displayName} (${user.accountId})`)
+
+        const result: any = {
+          valid: true,
+          username: user.displayName,
+          accountId: user.accountId,
+          email: user.emailAddress
+        }
+
+        return c.json(result)
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        logger.error(`✗ Jira token validation error: ${errorMsg}`)
+
+        return c.json({
+          valid: false,
+          error: errorMsg
+        }, 400)
+      }
+    })
+    .post('/validate-jira-token', zValidator('json', validateJiraTokenSchema), requireClerkAuth(), async (c) => {
+      const { secretId, hostname } = c.req.valid('json')
+
+      try {
+        // Require read access to the secret
+        await acl.secret(secretId).read.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
+      const { createLogger } = await import('@utils/logger')
+      const logger = createLogger({ namespace: 'jira-token-validation' })
+
+      try {
+        // Get decrypted token
+        const token = await secretsService.getDecryptedSecretValue(sql, secretId)
+
+        // Try to parse if it's email:token format
+        let authHeader: string
+        if (token.includes(':')) {
+          const [email, apiToken] = token.split(':', 2)
+          authHeader = `Basic ${Buffer.from(`${email}:${apiToken}`).toString('base64')}`
+        } else {
+          authHeader = `Bearer ${token}`
+        }
+
+        const response = await fetch(`${hostname}/rest/api/2/myself`, {
+          headers: {
+            'Authorization': authHeader,
+            'Accept': 'application/json'
+          }
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          logger.error(`✗ Jira token validation failed: ${response.status} ${response.statusText} - ${errorText}`)
+          return c.json({
+            valid: false,
+            error: `Token validation failed: ${response.status} ${response.statusText}. The token may be invalid or expired.`
+          }, 400)
+        }
+
+        const user = await response.json()
+
+        logger.info(`✓ Jira token validated: ${user.displayName} (${user.accountId})`)
+
+        return c.json({
+          valid: true,
+          username: user.displayName,
+          accountId: user.accountId,
+          email: user.emailAddress
+        })
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error)
+        logger.error(`✗ Jira token validation error: ${errorMsg}`)
+
+        return c.json({
+          valid: false,
+          error: `Failed to validate token: ${errorMsg}`
+        }, 400)
       }
     })
 }
