@@ -180,9 +180,9 @@ async function pushWorkspaceToFileSpace(
     logger.info(`   ✓ Authentication injected`)
   }
 
-  // Push branch to remote with explicit origin
-  logger.info(`   📤 Pushing branch to remote...`)
-  await exec(`cd "${absoluteWorkspacePath}" && git push origin ${branchName}`)
+  // Push branch to remote with explicit origin (force push to handle retries/conflicts)
+  logger.info(`   📤 Pushing branch to remote (force)...`)
+  await exec(`cd "${absoluteWorkspacePath}" && git push -f origin ${branchName}`)
   logger.info(`   ✓ Branch pushed`)
 
   // Create merge request using GitLab API
