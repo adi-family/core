@@ -185,15 +185,15 @@ async function pushWorkspaceToFileSpace(
   await exec(`cd "${absoluteWorkspacePath}" && git push -f origin ${branchName}`)
   logger.info(`   ✓ Branch pushed`)
 
-  // Detect default branch (main or master)
+  // Detect default branch from remote HEAD
   logger.info(`   🔍 Detecting default branch...`)
-  let defaultBranch = 'main'
+  let defaultBranch = 'main' // fallback
   try {
-    await exec(`cd "${absoluteWorkspacePath}" && git rev-parse --verify origin/main`)
-    logger.info(`   ✓ Default branch: main`)
-  } catch {
-    defaultBranch = 'master'
-    logger.info(`   ✓ Default branch: master`)
+    const { stdout } = await exec(`cd "${absoluteWorkspacePath}" && git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'`)
+    defaultBranch = stdout.trim()
+    logger.info(`   ✓ Default branch: ${defaultBranch}`)
+  } catch (error) {
+    logger.warn(`   ⚠️  Could not detect default branch, using fallback: ${defaultBranch}`)
   }
 
   // Create merge request using GitLab API
