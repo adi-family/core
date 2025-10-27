@@ -79,6 +79,10 @@ export const createQuotaRoutes = (sql: Sql) => {
 
         const task = taskResult.data
 
+        if (!task.project_id) {
+          return c.json({ error: 'Task has no associated project' }, 400)
+        }
+
         // Check quota
         const quotaCheck = await quotaQueries.checkQuotaAvailable(sql, userId!, evaluationType)
 
@@ -140,6 +144,10 @@ export const createQuotaRoutes = (sql: Sql) => {
         }
 
         const task = taskResult.data
+
+        if (!task.project_id) {
+          return c.json({ error: 'Task has no associated project' }, 400)
+        }
 
         // Select AI provider based on quota
         const selection = await selectAIProviderForEvaluation(
