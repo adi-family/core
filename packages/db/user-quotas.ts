@@ -41,7 +41,7 @@ export async function getUserQuota(sql: Sql, userId: string): Promise<UserQuota>
     SELECT * FROM user_quotas WHERE user_id = ${userId}
   `)
 
-  if (quotas.length > 0) {
+  if (quotas.length > 0 && quotas[0]) {
     return quotas[0]
   }
 

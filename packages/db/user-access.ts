@@ -40,6 +40,27 @@ export const findAllUserAccessForEntity = async (
   `)
 }
 
+/**
+ * Get project owner user ID
+ * Returns the first owner found, or null if no owner exists
+ */
+export const getProjectOwnerId = async (
+  sql: Sql,
+  projectId: string
+): Promise<string | null> => {
+  const accesses = await get(sql<UserAccess[]>`
+    SELECT * FROM user_access
+    WHERE entity_type = 'project'
+    AND entity_id = ${projectId}
+    AND role = 'owner'
+    AND (expires_at IS NULL OR expires_at > NOW())
+    ORDER BY created_at ASC
+    LIMIT 1
+  `)
+
+  return accesses.length > 0 && accesses[0] ? accesses[0].user_id : null
+}
+
 export const findAllUserAccessForUser = async (
   sql: Sql,
   userId: string
