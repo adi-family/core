@@ -1,7 +1,6 @@
 #!/usr/bin/env bun
 import { ApiClient } from './shared/api-client'
 import { runCompletionCheck } from './shared/completion-check'
-import { runClarificationCheck } from './shared/clarification-check'
 import { validateEnvironment } from './shared/env-validator'
 import { mkdir, readdir, writeFile } from 'fs/promises'
 import { promisify } from 'util'

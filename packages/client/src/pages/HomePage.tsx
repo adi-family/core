@@ -5,7 +5,6 @@ import { createAuthenticatedClient } from "@/lib/client"
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from '@adi-simple/ui/card'
@@ -16,30 +15,104 @@ import {
   formatTokens,
   type ApiUsageMetric
 } from '@/config/pricing'
+import { Folder, ListTodo, Database, GitBranch, Plus } from "lucide-react"
+import type { Project, Task, TaskSource, FileSpace } from "@adi-simple/types"
+import { designTokens } from "@/theme/tokens"
+import { useProject } from "@/contexts/ProjectContext"
 
 export function HomePage() {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
+  const { selectedProjectId } = useProject()
   const [usageMetrics, setUsageMetrics] = useState<ApiUsageMetric[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [taskSources, setTaskSources] = useState<TaskSource[]>([])
+  const [fileSpaces, setFileSpaces] = useState<FileSpace[]>([])
+  const [projectStats, setProjectStats] = useState<{
+    total_tasks: number
+    completed_tasks: number
+    in_progress_tasks: number
+    failed_tasks: number
+    pending_tasks: number
+    task_sources: number
+    file_spaces: number
+  } | null>(null)
   const [loading, setLoading] = useState(true)
+  const [loadingStats, setLoadingStats] = useState(false)
 
-  // Load usage metrics
+  // Load all data
   useEffect(() => {
-    const loadMetrics = async () => {
+    const loadData = async () => {
       try {
-        const response = await client.admin['usage-metrics'].$get()
-        if (response.ok) {
-          const data = await response.json()
+        const [usageRes, projectsRes, tasksRes, taskSourcesRes, fileSpacesRes] = await Promise.all([
+          client.admin['usage-metrics'].$get(),
+          client.projects.$get(),
+          client.tasks.$get(),
+          client["task-sources"].$get({ query: {} }),
+          client["file-spaces"].$get({ query: {} })
+        ])
+
+        if (usageRes.ok) {
+          const data = await usageRes.json()
           setUsageMetrics(data.recent as ApiUsageMetric[])
         }
+
+        if (projectsRes.ok) {
+          const data = await projectsRes.json()
+          setProjects(data)
+        }
+
+        if (tasksRes.ok) {
+          const data = await tasksRes.json()
+          setTasks(Array.isArray(data) ? data : [])
+        }
+
+        if (taskSourcesRes.ok) {
+          const data = await taskSourcesRes.json()
+          setTaskSources(data)
+        }
+
+        if (fileSpacesRes.ok) {
+          const data = await fileSpacesRes.json()
+          setFileSpaces(data)
+        }
       } catch (error) {
-        console.error('Failed to load usage metrics:', error)
+        console.error('Failed to load dashboard data:', error)
       } finally {
         setLoading(false)
       }
     }
-    loadMetrics()
+    loadData()
   }, [client])
+
+  // Load project stats when selected project changes
+  useEffect(() => {
+    if (!selectedProjectId) {
+      setProjectStats(null)
+      return
+    }
+
+    const loadProjectStats = async () => {
+      setLoadingStats(true)
+      try {
+        const statsRes = await client.projects[':id'].stats.$get({
+          param: { id: selectedProjectId }
+        })
+
+        if (statsRes.ok) {
+          const data = await statsRes.json()
+          setProjectStats(data)
+        }
+      } catch (error) {
+        console.error('Failed to load project stats:', error)
+      } finally {
+        setLoadingStats(false)
+      }
+    }
+
+    loadProjectStats()
+  }, [selectedProjectId, client])
 
   // Calculate totals
   const totals = useMemo(() => {
@@ -61,65 +134,276 @@ export function HomePage() {
     )
   }, [usageMetrics])
 
+  // Get selected project
+  const selectedProject = useMemo(() => {
+    return projects.find(p => p.id === selectedProjectId)
+  }, [projects, selectedProjectId])
+
+  // Filter data by selected project
+  const filteredTasks = useMemo(() => {
+    if (!selectedProjectId) return tasks
+    return tasks.filter(t => t.project_id === selectedProjectId)
+  }, [tasks, selectedProjectId])
+
+  const filteredTaskSources = useMemo(() => {
+    if (!selectedProjectId) return taskSources
+    return taskSources.filter(ts => ts.project_id === selectedProjectId)
+  }, [taskSources, selectedProjectId])
+
+  const filteredFileSpaces = useMemo(() => {
+    if (!selectedProjectId) return fileSpaces
+    return fileSpaces.filter(fs => fs.project_id === selectedProjectId)
+  }, [fileSpaces, selectedProjectId])
+
+  // Get latest tasks (last 5)
+  const latestTasks = useMemo(() => {
+    return filteredTasks.slice(0, 5)
+  }, [filteredTasks])
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed': return 'text-green-400 bg-green-500/10 border-green-500/20'
+      case 'failed': return 'text-red-400 bg-red-500/10 border-red-500/20'
+      case 'in_progress': return 'text-blue-400 bg-blue-500/10 border-blue-500/20'
+      default: return 'text-gray-400 bg-gray-500/10 border-gray-500/20'
+    }
+  }
+
   return (
     <div className="mx-auto p-6 max-w-7xl min-h-[calc(100vh-3.5rem)]">
-      <div className="mb-12 pt-8">
-        <div className="flex items-start justify-between">
-          <div>
-            <h1 className="text-6xl font-bold tracking-tight uppercase mb-4 bg-gradient-to-r from-gray-900 via-gray-700 to-gray-900 bg-clip-text text-transparent">ADI</h1>
-            <p className="text-gray-600 text-sm uppercase tracking-wide">
-              Database entity viewer for projects, tasks, sessions, and messages
-            </p>
-          </div>
+      <div className="mb-8 pt-8">
+        <div className="mb-6">
+          <h1 className="text-6xl font-bold tracking-tight uppercase mb-4 bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent">ADI Dashboard</h1>
+          <p className="text-gray-400 text-sm uppercase tracking-wide">
+            {selectedProject ? selectedProject.name : 'Task automation platform overview'}
+          </p>
+        </div>
 
-          {/* Cost Counter */}
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 rounded-lg p-6 min-w-[280px]">
-            <div className="text-sm font-medium text-blue-900 mb-2">Platform Cost (Last 100 API calls)</div>
+        {/* Cost Counter - Full Width */}
+        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-medium text-gray-300">Platform Cost (Last 100 API calls)</div>
             {loading ? (
-              <div className="text-2xl font-bold text-blue-600">Loading...</div>
+              <div className="text-2xl font-bold text-blue-400">Loading...</div>
             ) : (
-              <>
-                <div className="text-4xl font-bold text-blue-600 mb-3">{formatCost(totals.totalCost)}</div>
-                <div className="space-y-1 text-xs text-blue-800">
-                  <div className="flex justify-between">
-                    <span>Tokens:</span>
-                    <span className="font-medium">{formatTokens(totals.totalTokens)} ({formatCost(totals.tokenCost)})</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>CI Time:</span>
-                    <span className="font-medium">{formatCost(totals.ciCost)}</span>
-                  </div>
-                  <div className="flex justify-between pt-2 border-t border-blue-200">
-                    <span>API Calls:</span>
-                    <span className="font-medium">{usageMetrics.length}</span>
-                  </div>
+              <div className="flex items-center gap-8">
+                <div className="text-center">
+                  <div className="text-3xl font-bold text-blue-400">{formatCost(totals.totalCost)}</div>
+                  <div className="text-xs text-gray-400 uppercase mt-1">Total Cost</div>
                 </div>
-                <div className="mt-3 pt-3 border-t border-blue-200 text-xs text-blue-700">
-                  <div>💰 ${PRICING.PER_MILLION_TOKENS}/M tokens</div>
-                  <div>⏱️ ${PRICING.PER_CI_HOUR.toFixed(4)}/hour CI</div>
+                <div className="h-12 w-px bg-slate-600"></div>
+                <div className="text-center">
+                  <div className="text-lg font-semibold text-gray-300">{formatTokens(totals.totalTokens)}</div>
+                  <div className="text-xs text-gray-400 uppercase mt-1">Tokens ({formatCost(totals.tokenCost)})</div>
                 </div>
-              </>
+                <div className="h-12 w-px bg-slate-600"></div>
+                <div className="text-center">
+                  <div className="text-lg font-semibold text-gray-300">{formatCost(totals.ciCost)}</div>
+                  <div className="text-xs text-gray-400 uppercase mt-1">CI Time</div>
+                </div>
+                <div className="h-12 w-px bg-slate-600"></div>
+                <div className="text-center">
+                  <div className="text-lg font-semibold text-gray-300">{usageMetrics.length}</div>
+                  <div className="text-xs text-gray-400 uppercase mt-1">API Calls</div>
+                </div>
+                <div className="h-12 w-px bg-slate-600"></div>
+                <div className="text-right text-xs text-gray-400">
+                  <div>${PRICING.PER_MILLION_TOKENS}/M tokens</div>
+                  <div>${PRICING.PER_CI_HOUR.toFixed(4)}/hour CI</div>
+                </div>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      <div className="max-w-md">
-        <Link to="/setup-project">
-          <Card className="cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border-2 border-gray-300 hover:border-blue-500">
-            <CardHeader>
-              <CardTitle className="text-gray-900">Setup Project</CardTitle>
-              <CardDescription>
-                Create a new project in the system
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600">
-                Create GitLab, Jira, or Parent projects with custom configuration
-              </p>
+      {/* Project Stats Section */}
+      {selectedProject && !loading && (
+        <div className="mb-8">
+          <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+            <CardContent className="p-6">
+              {loadingStats ? (
+                <div className="text-center text-gray-500 py-4">Loading stats...</div>
+              ) : projectStats ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-white">{projectStats.total_tasks}</div>
+                    <div className="text-xs text-gray-400 uppercase mt-1">Total Tasks</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-green-400">{projectStats.completed_tasks}</div>
+                    <div className="text-xs text-gray-400 uppercase mt-1">Completed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-blue-400">{projectStats.in_progress_tasks}</div>
+                    <div className="text-xs text-gray-400 uppercase mt-1">In Progress</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-yellow-400">{projectStats.pending_tasks}</div>
+                    <div className="text-xs text-gray-400 uppercase mt-1">Pending</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-red-400">{projectStats.failed_tasks}</div>
+                    <div className="text-xs text-gray-400 uppercase mt-1">Failed</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-purple-400">{projectStats.task_sources}</div>
+                    <div className="text-xs text-gray-400 uppercase mt-1">Task Sources</div>
+                  </div>
+                  <div className="text-center">
+                    <div className="text-3xl font-bold text-orange-400">{projectStats.file_spaces}</div>
+                    <div className="text-xs text-gray-400 uppercase mt-1">Repositories</div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-gray-500 py-4">No stats available</div>
+              )}
             </CardContent>
           </Card>
-        </Link>
+        </div>
+      )}
+
+      {/* Projects Section */}
+      <div className="mb-8">
+        <div className="flex items-center mb-4">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <Folder className="h-6 w-6 text-blue-400" />
+            Projects
+          </h2>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {loading ? (
+            <div className="text-gray-500">Loading projects...</div>
+          ) : (
+            <>
+              {projects.map((project) => (
+                <Link key={project.id} to={`/projects/${project.id}`}>
+                  <Card className={`cursor-pointer bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 hover:border-slate-600/60 ${designTokens.animations.hover} transition-all h-[120px]`}>
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-white text-lg">{project.name}</CardTitle>
+                    </CardHeader>
+                  </Card>
+                </Link>
+              ))}
+              {/* New Project Card */}
+              <Link to="/setup-project">
+                <Card className={`cursor-pointer bg-slate-800/40 backdrop-blur-xl border-2 border-dashed border-slate-600/50 hover:border-blue-500/60 hover:bg-slate-700/40 ${designTokens.animations.hover} transition-all flex items-center justify-center h-[120px]`}>
+                  <CardContent className="flex flex-col items-center justify-center p-6">
+                    <Plus className="h-8 w-8 text-blue-400 mb-2" />
+                    <span className="text-white font-medium">New Project</span>
+                  </CardContent>
+                </Card>
+              </Link>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Latest Tasks */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+            <ListTodo className="h-6 w-6 text-green-400" />
+            Latest Tasks
+          </h2>
+          <Link to="/tasks" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+            View All
+          </Link>
+        </div>
+        <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+          <CardContent className="p-6">
+            {loading ? (
+              <div className="text-gray-500">Loading tasks...</div>
+            ) : latestTasks.length === 0 ? (
+              <div className="text-gray-500">No tasks found</div>
+            ) : (
+              <div className="space-y-3">
+                {latestTasks.map((task) => (
+                  <Link key={task.id} to={`/tasks/${task.id}`}>
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 transition-colors border border-slate-600/30">
+                      <div className="flex-1">
+                        <div className="text-white font-medium text-sm">{task.title}</div>
+                        <div className="text-gray-400 text-xs mt-1">{task.description?.substring(0, 80)}...</div>
+                      </div>
+                      <div className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(task.status)}`}>
+                        {task.status}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Task Sources & File Spaces Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        {/* Task Sources */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Database className="h-6 w-6 text-purple-400" />
+              Task Sources
+            </h2>
+            <Link to="/task-sources" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+              View All
+            </Link>
+          </div>
+          <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+            <CardContent className="p-6">
+              {loading ? (
+                <div className="text-gray-500">Loading task sources...</div>
+              ) : filteredTaskSources.length === 0 ? (
+                <div className="text-gray-500">No task sources found</div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredTaskSources.slice(0, 5).map((source) => (
+                    <div key={source.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 border border-slate-600/30">
+                      <div>
+                        <div className="text-white font-medium text-sm">{source.name}</div>
+                        <div className="text-gray-400 text-xs uppercase">{source.type}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* File Spaces */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
+              <GitBranch className="h-6 w-6 text-orange-400" />
+              Repositories
+            </h2>
+            <Link to="/file-spaces" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+              View All
+            </Link>
+          </div>
+          <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+            <CardContent className="p-6">
+              {loading ? (
+                <div className="text-gray-500">Loading file spaces...</div>
+              ) : filteredFileSpaces.length === 0 ? (
+                <div className="text-gray-500">No file spaces found</div>
+              ) : (
+                <div className="space-y-2">
+                  {filteredFileSpaces.slice(0, 5).map((space) => (
+                    <div key={space.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 border border-slate-600/30">
+                      <div>
+                        <div className="text-white font-medium text-sm">{space.name}</div>
+                        <div className="text-gray-400 text-xs">{space.git_url}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   )

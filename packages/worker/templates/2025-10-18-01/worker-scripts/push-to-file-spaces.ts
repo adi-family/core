@@ -192,7 +192,7 @@ async function pushWorkspaceToFileSpace(
     const { stdout } = await exec(`cd "${absoluteWorkspacePath}" && git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'`)
     defaultBranch = stdout.trim()
     logger.info(`   ✓ Default branch: ${defaultBranch}`)
-  } catch (error) {
+  } catch {
     // Fallback: try common default branch names in order
     logger.warn(`   ⚠️  Could not detect via symbolic-ref, trying common branch names...`)
     const fallbackBranches = ['develop', 'dev', 'development', 'main', 'master']
@@ -238,7 +238,7 @@ async function pushWorkspaceToFileSpace(
 
   // Create the merge request using gitbeaker
   let mr: any
-  let mrAlreadyExists = false
+  let _mrAlreadyExists = false
   try {
     mr = await gitlabClient['client'].MergeRequests.create(
       projectPath,
@@ -261,7 +261,7 @@ async function pushWorkspaceToFileSpace(
       const existingMrNumber = mrMatch ? mrMatch[1] : 'unknown'
 
       logger.info(`   ℹ️  Merge request already exists: !${existingMrNumber}, skipping creation`)
-      mrAlreadyExists = true
+      _mrAlreadyExists = true
 
       // Create a minimal mr object for return value
       mr = {
