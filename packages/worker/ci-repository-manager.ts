@@ -190,6 +190,19 @@ export class CIRepositoryManager {
       logger.info(`  📄 Prepared ${remotePath}`)
     }
 
+    // Also upload root .gitlab-ci.yml that routes to versioned config
+    const rootCiPath = join(basePath, '.gitlab-ci.yml')
+    try {
+      const rootCiContent = await readFile(rootCiPath, 'utf-8')
+      filesToUpload.push({
+        path: '.gitlab-ci.yml',
+        content: rootCiContent,
+      })
+      logger.info(`  📄 Prepared .gitlab-ci.yml (root router)`)
+    } catch {
+      logger.warn(`⚠️  Root .gitlab-ci.yml not found at ${rootCiPath}, skipping`)
+    }
+
     // Upload all files in a single batch commit
     const commitMessage = `📦 Upload CI files for version ${versionPath} (${allFiles.length} files)`
     await client.uploadFiles(projectId, filesToUpload, commitMessage, 'main')
