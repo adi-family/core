@@ -187,13 +187,30 @@ async function pushWorkspaceToFileSpace(
 
   // Detect default branch from remote HEAD
   logger.info(`   🔍 Detecting default branch...`)
-  let defaultBranch = 'main' // fallback
+  let defaultBranch = 'main' // final fallback
   try {
     const { stdout } = await exec(`cd "${absoluteWorkspacePath}" && git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'`)
     defaultBranch = stdout.trim()
     logger.info(`   ✓ Default branch: ${defaultBranch}`)
   } catch (error) {
-    logger.warn(`   ⚠️  Could not detect default branch, using fallback: ${defaultBranch}`)
+    // Fallback: try common default branch names in order
+    logger.warn(`   ⚠️  Could not detect via symbolic-ref, trying common branch names...`)
+    const fallbackBranches = ['develop', 'dev', 'development', 'main', 'master']
+
+    for (const branch of fallbackBranches) {
+      try {
+        await exec(`cd "${absoluteWorkspacePath}" && git rev-parse --verify origin/${branch}`)
+        defaultBranch = branch
+        logger.info(`   ✓ Default branch (fallback): ${defaultBranch}`)
+        break
+      } catch {
+        // Branch doesn't exist, try next
+      }
+    }
+
+    if (!fallbackBranches.includes(defaultBranch)) {
+      logger.warn(`   ⚠️  No common branches found, using final fallback: ${defaultBranch}`)
+    }
   }
 
   // Create merge request using GitLab API
