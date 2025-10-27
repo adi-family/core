@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react"
 import { useParams } from "react-router-dom"
+import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import {
   Card,
   CardContent,
@@ -9,12 +10,13 @@ import {
 } from '@adi-simple/ui/card'
 import { Badge } from '@adi-simple/ui/badge'
 import { Button } from '@adi-simple/ui/button'
-import { Calendar, ExternalLink, ArrowLeft, Circle, CheckCircle2, Loader2, XCircle, Clock, RefreshCw } from "lucide-react"
+import { Calendar, ExternalLink, ArrowLeft, Circle, CheckCircle2, Loader2, XCircle, Clock, RefreshCw, GitMerge, Star, AlertTriangle, Shield, Eye, TrendingUp, Zap } from "lucide-react"
 import { client } from "@/lib/client"
 import { navigateTo } from "@/utils/navigation"
 import { apiCall } from "@/utils/apiCall"
 import { useAuth } from "@clerk/clerk-react"
 import { toast } from "sonner"
+import { getComputedMetrics } from '@adi-simple/shared/task-scoring'
 import type { Task, TaskSource, PipelineArtifact } from "../../../types"
 
 export function TaskPage() {
@@ -22,6 +24,7 @@ export function TaskPage() {
   const [task, setTask] = useState<Task | null>(null)
   const [taskSource, setTaskSource] = useState<TaskSource | null>(null)
   const [evaluationReport, setEvaluationReport] = useState<string | null>(null)
+  const [mergeRequestArtifacts, setMergeRequestArtifacts] = useState<PipelineArtifact[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const { getToken } = useAuth()
@@ -84,6 +87,22 @@ export function TaskPage() {
           }
         }
 
+        // Fetch all artifacts for this task
+        try {
+          const artifactsRes = await client.tasks[":taskId"].artifacts.$get({
+            param: { taskId: taskData.id }
+          })
+
+          if (artifactsRes.ok) {
+            const artifacts = await artifactsRes.json() as PipelineArtifact[]
+            // Filter for merge request artifacts
+            const mrArtifacts = artifacts.filter(a => a.artifact_type === 'merge_request')
+            setMergeRequestArtifacts(mrArtifacts)
+          }
+        } catch (err) {
+          console.error('Failed to fetch artifacts:', err)
+        }
+
         setLoading(false)
       } catch {
         setError("Error fetching task")
@@ -119,10 +138,10 @@ export function TaskPage() {
 
   const getStepColor = (status: string) => {
     const statusLower = status.toLowerCase()
-    if (statusLower === "completed" || statusLower === "success") return "text-green-600"
-    if (statusLower === "failed" || statusLower === "error") return "text-red-600"
-    if (statusLower.includes("ing") || statusLower === "running") return "text-blue-600"
-    if (statusLower === "queued") return "text-yellow-600"
+    if (statusLower === "completed" || statusLower === "success") return "text-green-400"
+    if (statusLower === "failed" || statusLower === "error") return "text-red-400"
+    if (statusLower.includes("ing") || statusLower === "running") return "text-blue-400"
+    if (statusLower === "queued") return "text-yellow-400"
     if (statusLower === "pending") return "text-gray-400"
     return "text-gray-400"
   }
@@ -249,22 +268,22 @@ export function TaskPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto">
-        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+      <AnimatedPageContainer>
+        <Card>
           <CardContent className="pt-6">
-            <div className="text-center py-4">Loading task...</div>
+            <div className="text-center py-4 text-gray-300">Loading task...</div>
           </CardContent>
         </Card>
-      </div>
+      </AnimatedPageContainer>
     )
   }
 
   if (error || !task) {
     return (
-      <div className="mx-auto">
-        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+      <AnimatedPageContainer>
+        <Card>
           <CardContent className="pt-6">
-            <div className="text-center py-4 text-red-600">{error || "Task not found"}</div>
+            <div className="text-center py-4 text-red-400">{error || "Task not found"}</div>
             <div className="text-center mt-4">
               <Button onClick={() => navigateTo("/tasks")} variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -273,44 +292,43 @@ export function TaskPage() {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </AnimatedPageContainer>
     )
   }
 
   return (
-    <div className="mx-auto space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <Button onClick={() => navigateTo("/tasks")} variant="outline" size="sm">
-          <ArrowLeft className="h-4 w-4 mr-2" />
-          Back to Tasks
-        </Button>
-        <div className="flex gap-2">
-          {/* Re-evaluate button - always shown */}
-          <Button
-            onClick={handleRetryEvaluation}
-            variant="outline"
-            size="sm"
-            className="border-purple-500 text-purple-600 hover:bg-purple-50"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Re-evaluate
+    <AnimatedPageContainer>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <Button onClick={() => navigateTo("/tasks")} variant="outline" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            Back to Tasks
           </Button>
-          {/* Re-implement button - always shown */}
-          <Button
-            onClick={handleStartImplementation}
-            variant="outline"
-            size="sm"
-            className="border-accent-teal text-accent-teal hover:bg-teal-50"
-          >
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Re-implement
-          </Button>
+          <div className="flex gap-2">
+            {/* Re-evaluate button - always shown */}
+            <Button
+              onClick={handleRetryEvaluation}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Re-evaluate
+            </Button>
+            {/* Re-implement button - always shown */}
+            <Button
+              onClick={handleStartImplementation}
+              variant="outline"
+              size="sm"
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Re-implement
+            </Button>
+          </div>
         </div>
-      </div>
 
-      {/* Task Details Card */}
-      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+        {/* Task Details Card */}
+        <Card>
         <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
           <CardTitle className="text-2xl uppercase tracking-wide">{task.title}</CardTitle>
           <CardDescription className="text-gray-300">
@@ -321,16 +339,16 @@ export function TaskPage() {
           {/* Description */}
           {task.description && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
                 Description
               </h3>
-              <p className="text-gray-800">{task.description}</p>
+              <p className="text-gray-100">{task.description}</p>
             </div>
           )}
 
           {/* Step Indicator */}
-          <div className="bg-gradient-to-r from-gray-50 to-gray-100/50 rounded-lg p-4 border border-gray-200/60">
-            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
+            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">
               Pipeline Status
             </h3>
             <div className="flex items-center justify-between gap-2">
@@ -348,13 +366,13 @@ export function TaskPage() {
                         />
                         <span className="text-sm font-medium">{step.label}</span>
                       </div>
-                      <span className="text-xs text-gray-500">
+                      <span className="text-xs text-gray-400">
                         {step.status}
                       </span>
                       {isFailed && step.onRetry && (
                         <button
                           onClick={step.onRetry}
-                          className="flex items-center gap-0.5 text-xs text-blue-600 hover:text-blue-800 disabled:opacity-50 mt-1"
+                          className="flex items-center gap-0.5 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 mt-1"
                           title="Retry this step"
                         >
                           <RefreshCw className="h-3 w-3" />
@@ -363,7 +381,7 @@ export function TaskPage() {
                       )}
                     </div>
                     {index < steps.length - 1 && (
-                      <div className="h-px bg-gray-300 flex-shrink-0 w-8 mx-2" />
+                      <div className="h-px bg-white/20 flex-shrink-0 w-8 mx-2" />
                     )}
                   </div>
                 )
@@ -374,7 +392,7 @@ export function TaskPage() {
           {/* Status Information */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
                 Status
               </h3>
               <Badge variant="blue" className="text-sm">
@@ -383,7 +401,7 @@ export function TaskPage() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
                 Remote Status
               </h3>
               <Badge variant={getRemoteStatusVariant(task.remote_status)} className="text-sm">
@@ -392,7 +410,7 @@ export function TaskPage() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
                 AI Evaluation Status
               </h3>
               <Badge variant="gray" className="text-sm">
@@ -401,7 +419,7 @@ export function TaskPage() {
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
                 AI Implementation Status
               </h3>
               <Badge variant="gray" className="text-sm">
@@ -411,7 +429,7 @@ export function TaskPage() {
 
             {task.ai_evaluation_result && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
                   Evaluation Result
                 </h3>
                 <Badge
@@ -425,10 +443,10 @@ export function TaskPage() {
 
             {taskSource && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
                   Task Source
                 </h3>
-                <p className="text-gray-800">{taskSource.name}</p>
+                <p className="text-gray-100">{taskSource.name}</p>
                 <Badge variant="orange" className="text-xs mt-1">
                   {taskSource.type}
                 </Badge>
@@ -439,26 +457,26 @@ export function TaskPage() {
           {/* Source Issue Information */}
           {task.source_gitlab_issue && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
                 GitLab Issue
               </h3>
-              <div className="bg-gray-50 p-4 rounded-md space-y-2">
+              <div className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Issue IID:</span>
-                  <span className="font-mono text-sm">{task.source_gitlab_issue.iid}</span>
+                  <span className="text-sm text-gray-300">Issue IID:</span>
+                  <span className="font-mono text-sm text-gray-100">{task.source_gitlab_issue.iid}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Repository:</span>
-                  <span className="font-mono text-sm">{task.source_gitlab_issue.metadata.repo}</span>
+                  <span className="text-sm text-gray-300">Repository:</span>
+                  <span className="font-mono text-sm text-gray-100">{task.source_gitlab_issue.metadata.repo}</span>
                 </div>
                 {task.source_gitlab_issue.metadata.host && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Host:</span>
+                    <span className="text-sm text-gray-300">Host:</span>
                     <a
                       href={`${task.source_gitlab_issue.metadata.host}/${task.source_gitlab_issue.metadata.repo}/-/issues/${task.source_gitlab_issue.iid}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-accent-teal hover:underline flex items-center gap-1 text-sm"
+                      className="text-teal-400 hover:text-teal-300 hover:underline flex items-center gap-1 text-sm"
                     >
                       View on GitLab
                       <ExternalLink className="h-3 w-3" />
@@ -471,17 +489,17 @@ export function TaskPage() {
 
           {task.source_github_issue && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
                 GitHub Issue
               </h3>
-              <div className="bg-gray-50 p-4 rounded-md space-y-2">
+              <div className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Issue IID:</span>
-                  <span className="font-mono text-sm">{task.source_github_issue.iid}</span>
+                  <span className="text-sm text-gray-300">Issue IID:</span>
+                  <span className="font-mono text-sm text-gray-100">{task.source_github_issue.iid}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Repository:</span>
-                  <span className="font-mono text-sm">{task.source_github_issue.metadata.repo}</span>
+                  <span className="text-sm text-gray-300">Repository:</span>
+                  <span className="font-mono text-sm text-gray-100">{task.source_github_issue.metadata.repo}</span>
                 </div>
               </div>
             </div>
@@ -489,68 +507,316 @@ export function TaskPage() {
 
           {task.source_jira_issue && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
                 Jira Issue
               </h3>
-              <div className="bg-gray-50 p-4 rounded-md space-y-2">
+              <div className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Key:</span>
-                  <span className="font-mono text-sm">{task.source_jira_issue.metadata.key}</span>
+                  <span className="text-sm text-gray-300">Key:</span>
+                  <span className="font-mono text-sm text-gray-100">{task.source_jira_issue.metadata.key}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Project:</span>
-                  <span className="font-mono text-sm">{task.source_jira_issue.metadata.project_key}</span>
+                  <span className="text-sm text-gray-300">Project:</span>
+                  <span className="font-mono text-sm text-gray-100">{task.source_jira_issue.metadata.project_key}</span>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Merge Request Artifacts */}
+          {mergeRequestArtifacts.length > 0 && (
+            <div>
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-2">
+                <GitMerge className="h-4 w-4" />
+                Merge Requests
+              </h3>
+              <div className="space-y-3">
+                {mergeRequestArtifacts.map((artifact) => {
+                  const metadata = artifact.metadata as any
+                  return (
+                    <div key={artifact.id} className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-200">
+                          {metadata?.file_space_name || 'Merge Request'}
+                        </span>
+                        <a
+                          href={artifact.reference_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-teal-400 hover:text-teal-300 hover:underline flex items-center gap-1 text-sm"
+                        >
+                          View MR
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      </div>
+                      {metadata?.branch && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-300">Branch:</span>
+                          <span className="font-mono text-sm text-gray-100">{metadata.branch}</span>
+                        </div>
+                      )}
+                      {metadata?.mr_iid && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-300">MR IID:</span>
+                          <span className="font-mono text-sm text-gray-100">{metadata.mr_iid}</span>
+                        </div>
+                      )}
+                      {metadata?.completed !== undefined && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-300">Status:</span>
+                          <Badge variant={metadata.completed ? 'green' : 'yellow'} className="text-xs">
+                            {metadata.completed ? 'Completed' : 'Needs Clarification'}
+                          </Badge>
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-400 pt-2 border-t border-white/10">
+                        Created: {new Date(artifact.created_at).toLocaleString()}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
 
           {/* Simple Evaluation Results */}
-          {task.ai_evaluation_simple_result && (
-            <div className="pt-4 border-t border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
-                Quick Evaluation
-              </h3>
-              <div className="bg-gray-50 p-4 rounded-md space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Clarity Score:</span>
-                  <div className="flex items-center gap-2">
-                    <div className="w-32 h-2 bg-gray-200 rounded-full overflow-hidden">
+          {task.ai_evaluation_simple_result && (() => {
+            const metrics = getComputedMetrics(task.ai_evaluation_simple_result)
+            const result = task.ai_evaluation_simple_result
+
+            return (
+              <div className="pt-4 border-t border-white/10 space-y-6">
+                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-yellow-400" />
+                  Quick Evaluation
+                </h3>
+
+                {/* Quick Win Score & Priority */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 p-4 rounded-lg border border-yellow-500/30">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-yellow-200 flex items-center gap-2">
+                        <Star className="h-4 w-4" />
+                        Quick Win Score
+                      </span>
+                      <span className="text-3xl font-bold text-yellow-400">{metrics.quick_win_score}</span>
+                    </div>
+                    <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-blue-500"
-                        style={{ width: `${task.ai_evaluation_simple_result.clarity_score || 0}%` }}
+                        className="h-full bg-yellow-400"
+                        style={{ width: `${metrics.quick_win_score}%` }}
                       />
                     </div>
-                    <span className="text-sm font-medium">{task.ai_evaluation_simple_result.clarity_score || 0}/100</span>
+                    <p className="text-xs text-gray-400 mt-2">
+                      {metrics.quick_win_score >= 75 ? 'Excellent candidate!' :
+                       metrics.quick_win_score >= 50 ? 'Good candidate' :
+                       metrics.quick_win_score >= 25 ? 'Moderate effort' : 'Complex task'}
+                    </p>
+                  </div>
+
+                  <div className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                        <TrendingUp className="h-4 w-4" />
+                        Priority
+                      </span>
+                      <Badge
+                        variant={
+                          metrics.priority_quadrant === 'quick_win' ? 'green' :
+                          metrics.priority_quadrant === 'major_project' ? 'blue' :
+                          metrics.priority_quadrant === 'fill_in' ? 'yellow' : 'gray'
+                        }
+                        className="text-sm"
+                      >
+                        {metrics.priority_quadrant === 'quick_win' ? 'Quick Win' :
+                         metrics.priority_quadrant === 'major_project' ? 'Major Project' :
+                         metrics.priority_quadrant === 'fill_in' ? 'Fill In' : 'Low Priority'}
+                      </Badge>
+                    </div>
+                    <div className="space-y-2 text-sm text-gray-300">
+                      <div className="flex justify-between">
+                        <span>Impact:</span>
+                        <span className="font-medium capitalize">{result.estimated_impact}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Effort:</span>
+                        <span className="font-medium capitalize">{result.estimated_effort}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Has Acceptance Criteria:</span>
-                  <Badge variant={task.ai_evaluation_simple_result.has_acceptance_criteria ? 'green' : 'gray'}>
-                    {task.ai_evaluation_simple_result.has_acceptance_criteria ? 'Yes' : 'No'}
-                  </Badge>
+
+                {/* Status Badges */}
+                <div className="flex flex-wrap gap-2">
+                  {metrics.is_ai_blocked && (
+                    <Badge variant="red" className="flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      AI Blocked
+                    </Badge>
+                  )}
+                  {!metrics.is_ai_blocked && metrics.implementation_status.confidence === 'low' && (
+                    <Badge variant="orange" className="flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" />
+                      Low Confidence
+                    </Badge>
+                  )}
+                  {!metrics.is_ai_blocked && !metrics.implementation_status.can_verify && (
+                    <Badge variant="blue" className="flex items-center gap-1">
+                      <Shield className="h-3 w-3" />
+                      Can't Test
+                    </Badge>
+                  )}
+                  {metrics.requires_human_oversight && (
+                    <Badge variant="purple" className="flex items-center gap-1">
+                      <Eye className="h-3 w-3" />
+                      Needs Review
+                    </Badge>
+                  )}
                 </div>
-                {task.ai_evaluation_simple_result.auto_reject_reason && (
-                  <div className="pt-2 border-t border-gray-200">
-                    <span className="text-sm font-semibold text-gray-600">Rejection Reason:</span>
-                    <p className="text-sm text-gray-800 mt-1">{task.ai_evaluation_simple_result.auto_reject_reason}</p>
+
+                {/* Detailed Metrics */}
+                <div className="bg-white/5 backdrop-blur-sm p-4 rounded-md space-y-3">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div>
+                      <span className="text-xs text-gray-400">Task Type</span>
+                      <p className="text-sm font-medium text-gray-100 capitalize">{result.task_type.replace('_', ' ')}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400">Effort Estimate</span>
+                      <p className="text-sm font-medium text-gray-100 uppercase">{result.effort_estimate}</p>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400">Risk Level</span>
+                      <Badge variant={result.risk_level === 'high' ? 'red' : result.risk_level === 'medium' ? 'yellow' : 'green'} className="text-xs">
+                        {result.risk_level}
+                      </Badge>
+                    </div>
+                    <div>
+                      <span className="text-xs text-gray-400">Confidence</span>
+                      <Badge
+                        variant={
+                          metrics.implementation_status.confidence === 'high' ? 'green' :
+                          metrics.implementation_status.confidence === 'medium' ? 'yellow' : 'orange'
+                        }
+                        className="text-xs"
+                      >
+                        {metrics.implementation_status.confidence}
+                      </Badge>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                    <span className="text-sm text-gray-300">Clarity Score:</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-blue-400"
+                          style={{ width: `${result.clarity_score}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium">{result.clarity_score}/100</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-300">Complexity Score:</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-purple-400"
+                          style={{ width: `${result.complexity_score}%` }}
+                        />
+                      </div>
+                      <span className="text-sm font-medium">{result.complexity_score}/100</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-gray-300">Has Acceptance Criteria:</span>
+                    <Badge variant={result.has_acceptance_criteria ? 'green' : 'gray'}>
+                      {result.has_acceptance_criteria ? 'Yes' : 'No'}
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Blockers Summary */}
+                {result.blockers_summary && result.blockers_summary.length > 0 && (
+                  <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
+                    <h4 className="text-sm font-semibold text-red-200 mb-2 flex items-center gap-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      Blockers
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1">
+                      {result.blockers_summary.map((blocker, idx) => (
+                        <li key={idx} className="text-sm text-red-300">{blocker}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Verification Summary */}
+                {result.verification_summary && result.verification_summary.length > 0 && (
+                  <div className="bg-purple-500/10 p-4 rounded-lg border border-purple-500/30">
+                    <h4 className="text-sm font-semibold text-purple-200 mb-2 flex items-center gap-2">
+                      <Eye className="h-4 w-4" />
+                      Post-Implementation Verification Needed
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1">
+                      {result.verification_summary.map((verification, idx) => (
+                        <li key={idx} className="text-sm text-purple-300">{verification}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Risk Summary */}
+                {result.risk_summary && result.risk_summary.length > 0 && (
+                  <div className="bg-orange-500/10 p-4 rounded-lg border border-orange-500/30">
+                    <h4 className="text-sm font-semibold text-orange-200 mb-2 flex items-center gap-2">
+                      <Shield className="h-4 w-4" />
+                      Implementation Risks
+                    </h4>
+                    <ul className="list-disc list-inside space-y-1">
+                      {result.risk_summary.map((risk, idx) => (
+                        <li key={idx} className="text-sm text-orange-300">{risk}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {/* Caveats */}
+                {metrics.implementation_status.caveats.length > 0 && (
+                  <div className="bg-blue-500/10 p-4 rounded-lg border border-blue-500/30">
+                    <h4 className="text-sm font-semibold text-blue-200 mb-2">Implementation Caveats</h4>
+                    <ul className="list-disc list-inside space-y-1">
+                      {metrics.implementation_status.caveats.map((caveat, idx) => (
+                        <li key={idx} className="text-sm text-blue-300">{caveat}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {result.auto_reject_reason && (
+                  <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
+                    <span className="text-sm font-semibold text-red-200 block mb-2">Rejection Reason:</span>
+                    <p className="text-sm text-red-300">{result.auto_reject_reason}</p>
                   </div>
                 )}
               </div>
-            </div>
-          )}
+            )
+          })()}
 
           {/* Agentic Evaluation Results */}
           {task.ai_evaluation_agentic_result && (
             <div className="pt-4 border-t border-gray-200 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
                 Deep Evaluation
               </h3>
 
               {/* Confidence */}
-              <div className="bg-gray-50 p-4 rounded-md">
+              <div className="bg-white/5 backdrop-blur-sm p-4 rounded-md">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-gray-600">Confidence:</span>
+                  <span className="text-sm font-semibold text-gray-300">Confidence:</span>
                   <span className="text-lg font-bold">{task.ai_evaluation_agentic_result.confidence || 0}%</span>
                 </div>
                 <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
@@ -563,11 +829,11 @@ export function TaskPage() {
 
               {/* Blockers */}
               {task.ai_evaluation_agentic_result.blockers && task.ai_evaluation_agentic_result.blockers.length > 0 && (
-                <div className="bg-red-50 p-4 rounded-md border border-red-200">
-                  <h4 className="text-sm font-semibold text-red-800 mb-2">Blockers</h4>
+                <div className="bg-red-500/10 p-4 rounded-md border border-red-500/30">
+                  <h4 className="text-sm font-semibold text-red-200 mb-2">Blockers</h4>
                   <ul className="list-disc list-inside space-y-1">
                     {task.ai_evaluation_agentic_result.blockers.map((blocker, idx) => (
-                      <li key={idx} className="text-sm text-red-700">{blocker}</li>
+                      <li key={idx} className="text-sm text-red-300">{blocker}</li>
                     ))}
                   </ul>
                 </div>
@@ -575,11 +841,11 @@ export function TaskPage() {
 
               {/* Missing Information */}
               {task.ai_evaluation_agentic_result.missing_information && task.ai_evaluation_agentic_result.missing_information.length > 0 && (
-                <div className="bg-yellow-50 p-4 rounded-md border border-yellow-200">
-                  <h4 className="text-sm font-semibold text-yellow-800 mb-2">Missing Information</h4>
+                <div className="bg-yellow-500/10 p-4 rounded-md border border-yellow-500/30">
+                  <h4 className="text-sm font-semibold text-yellow-200 mb-2">Missing Information</h4>
                   <ul className="list-disc list-inside space-y-1">
                     {task.ai_evaluation_agentic_result.missing_information.map((info, idx) => (
-                      <li key={idx} className="text-sm text-yellow-700">{info}</li>
+                      <li key={idx} className="text-sm text-yellow-300">{info}</li>
                     ))}
                   </ul>
                 </div>
@@ -587,11 +853,11 @@ export function TaskPage() {
 
               {/* Risks */}
               {task.ai_evaluation_agentic_result.risks && task.ai_evaluation_agentic_result.risks.length > 0 && (
-                <div className="bg-orange-50 p-4 rounded-md border border-orange-200">
-                  <h4 className="text-sm font-semibold text-orange-800 mb-2">Implementation Risks</h4>
+                <div className="bg-orange-500/10 p-4 rounded-md border border-orange-500/30">
+                  <h4 className="text-sm font-semibold text-orange-200 mb-2">Implementation Risks</h4>
                   <ul className="list-disc list-inside space-y-1">
                     {task.ai_evaluation_agentic_result.risks.map((risk, idx) => (
-                      <li key={idx} className="text-sm text-orange-700">{risk}</li>
+                      <li key={idx} className="text-sm text-orange-300">{risk}</li>
                     ))}
                   </ul>
                 </div>
@@ -599,15 +865,15 @@ export function TaskPage() {
 
               {/* Agent Instructions */}
               {task.ai_evaluation_agentic_result.agent_instructions && (
-                <div className="bg-blue-50 p-4 rounded-md border border-blue-200">
-                  <h4 className="text-sm font-semibold text-blue-800 mb-3">Agent Instructions</h4>
+                <div className="bg-blue-500/10 p-4 rounded-md border border-blue-500/30">
+                  <h4 className="text-sm font-semibold text-blue-200 mb-3">Agent Instructions</h4>
 
                   {task.ai_evaluation_agentic_result.agent_instructions.required_context_files && (
                     <div className="mb-3">
-                      <span className="text-xs font-semibold text-blue-700 uppercase">Required Files:</span>
+                      <span className="text-xs font-semibold text-blue-300 uppercase">Required Files:</span>
                       <ul className="list-disc list-inside mt-1 space-y-1">
                         {task.ai_evaluation_agentic_result.agent_instructions.required_context_files.map((file, idx) => (
-                          <li key={idx} className="text-sm text-blue-600 font-mono">{file}</li>
+                          <li key={idx} className="text-sm text-blue-400 font-mono">{file}</li>
                         ))}
                       </ul>
                     </div>
@@ -615,10 +881,10 @@ export function TaskPage() {
 
                   {task.ai_evaluation_agentic_result.agent_instructions.suggested_steps && (
                     <div className="mb-3">
-                      <span className="text-xs font-semibold text-blue-700 uppercase">Suggested Steps:</span>
+                      <span className="text-xs font-semibold text-blue-300 uppercase">Suggested Steps:</span>
                       <ol className="list-decimal list-inside mt-1 space-y-1">
                         {task.ai_evaluation_agentic_result.agent_instructions.suggested_steps.map((step, idx) => (
-                          <li key={idx} className="text-sm text-blue-600">{step}</li>
+                          <li key={idx} className="text-sm text-blue-400">{step}</li>
                         ))}
                       </ol>
                     </div>
@@ -626,10 +892,10 @@ export function TaskPage() {
 
                   {task.ai_evaluation_agentic_result.agent_instructions.follow_patterns_from && (
                     <div>
-                      <span className="text-xs font-semibold text-blue-700 uppercase">Follow Patterns From:</span>
+                      <span className="text-xs font-semibold text-blue-300 uppercase">Follow Patterns From:</span>
                       <ul className="list-disc list-inside mt-1 space-y-1">
                         {task.ai_evaluation_agentic_result.agent_instructions.follow_patterns_from.map((pattern, idx) => (
-                          <li key={idx} className="text-sm text-blue-600 font-mono">{pattern}</li>
+                          <li key={idx} className="text-sm text-blue-400 font-mono">{pattern}</li>
                         ))}
                       </ul>
                     </div>
@@ -639,9 +905,9 @@ export function TaskPage() {
 
               {/* Agent Report */}
               {task.ai_evaluation_agentic_result.report && (
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <h4 className="text-sm font-semibold text-gray-600 mb-2">Agent Context Report</h4>
-                  <pre className="whitespace-pre-wrap text-xs text-gray-700 font-mono">
+                <div className="bg-white/5 backdrop-blur-sm p-4 rounded-md">
+                  <h4 className="text-sm font-semibold text-gray-300 mb-2">Agent Context Report</h4>
+                  <pre className="whitespace-pre-wrap text-xs text-gray-200 font-mono">
                     {task.ai_evaluation_agentic_result.report}
                   </pre>
                 </div>
@@ -651,12 +917,12 @@ export function TaskPage() {
 
           {/* Legacy Evaluation Report */}
           {evaluationReport && !task.ai_evaluation_agentic_result && (
-            <div className="pt-4 border-t border-gray-200">
-              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-3">
+            <div className="pt-4 border-t border-white/10">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">
                 AI Evaluation Report
               </h3>
-              <div className="bg-gray-50 p-4 rounded-md">
-                <pre className="whitespace-pre-wrap text-sm text-gray-800 font-sans">
+              <div className="bg-white/5 backdrop-blur-sm p-4 rounded-md">
+                <pre className="whitespace-pre-wrap text-sm text-gray-100 font-sans">
                   {evaluationReport}
                 </pre>
               </div>
@@ -664,28 +930,29 @@ export function TaskPage() {
           )}
 
           {/* Timestamps */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-gray-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/10">
             <div className="flex items-start gap-3">
-              <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
+              <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
               <div>
-                <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
                   Created
                 </h3>
-                <p className="text-sm text-gray-700">{formatDate(task.created_at)}</p>
+                <p className="text-sm text-gray-200">{formatDate(task.created_at)}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Calendar className="h-5 w-5 text-gray-400 mt-0.5" />
+              <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
               <div>
-                <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
                   Updated
                 </h3>
-                <p className="text-sm text-gray-700">{formatDate(task.updated_at)}</p>
+                <p className="text-sm text-gray-200">{formatDate(task.updated_at)}</p>
               </div>
             </div>
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </AnimatedPageContainer>
   )
 }

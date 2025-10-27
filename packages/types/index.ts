@@ -156,6 +156,50 @@ export type Project = {
   updated_at: string
 }
 
+export type AICapabilityCriteria = {
+  // HARD BLOCKERS
+  cannot_determine_what_to_implement: boolean
+  has_contradictory_requirements: boolean
+  requires_undefined_integration: boolean
+  requires_human_subjective_choice: boolean
+  requires_missing_information: boolean
+  // UNCERTAINTY
+  integration_has_no_documentation: boolean
+  requires_proprietary_knowledge: boolean
+  requires_advanced_domain_expertise: boolean
+  // VERIFICATION LIMITATIONS
+  cannot_test_without_credentials: boolean
+  cannot_test_without_paid_account: boolean
+  cannot_test_without_hardware: boolean
+  requires_production_access_to_test: boolean
+  // POST-IMPLEMENTATION VERIFICATION
+  should_verify_visually: boolean
+  should_verify_ux_flow: boolean
+  should_verify_performance: boolean
+  should_verify_security: boolean
+  should_verify_accessibility: boolean
+  // RISK FLAGS
+  high_risk_breaking_change: boolean
+  requires_manual_testing: boolean
+}
+
+export type SimpleEvaluationResult = {
+  should_evaluate: boolean
+  clarity_score: number
+  has_acceptance_criteria: boolean
+  auto_reject_reason: string | null
+  ai_capability: AICapabilityCriteria
+  blockers_summary: string[]
+  verification_summary: string[]
+  risk_summary: string[]
+  complexity_score: number
+  effort_estimate: 'xs' | 's' | 'm' | 'l' | 'xl'
+  risk_level: 'low' | 'medium' | 'high'
+  task_type: 'bug_fix' | 'feature' | 'refactor' | 'docs' | 'test' | 'config' | 'other'
+  estimated_impact: 'low' | 'medium' | 'high'
+  estimated_effort: 'low' | 'medium' | 'high'
+}
+
 export type Task = {
   id: string
   title: string
@@ -169,12 +213,7 @@ export type Task = {
   source_jira_issue: JiraIssue | null
   ai_evaluation_status: 'pending' | 'queued' | 'evaluating' | 'completed' | 'failed'
   ai_evaluation_result: 'ready' | 'needs_clarification' | null
-  ai_evaluation_simple_result: {
-    complexity?: number
-    cross_service_communication?: number
-    estimated_effort_hours?: number
-    [key: string]: unknown
-  } | null
+  ai_evaluation_simple_result: SimpleEvaluationResult | null
   ai_evaluation_agentic_result: {
     report?: string
     verdict?: string
