@@ -415,7 +415,7 @@ export const createSecretRoutes = (sql: Sql) => {
           }, 400)
         }
 
-        const user = await response.json()
+        const user = await response.json() as any
 
         logger.info(`✓ Jira token validated: ${user.displayName} (${user.accountId})`)
 
@@ -482,7 +482,7 @@ export const createSecretRoutes = (sql: Sql) => {
           }, 400)
         }
 
-        const user = await response.json()
+        const user = await response.json() as any
 
         logger.info(`✓ Jira token validated: ${user.displayName} (${user.accountId})`)
 
