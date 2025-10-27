@@ -23,7 +23,7 @@ export interface ImplementTaskResult {
 }
 
 /**
- * Implement a task: create session with runner="implementation" and trigger pipeline
+ * Implement a task: create session with runner="claude" and trigger pipeline
  */
 export async function implementTask(
   sql: Sql,
@@ -52,13 +52,17 @@ export async function implementTask(
     const task = taskResult.data
     logger.info(`Implementing task: ${task.title}`)
 
-    // Create implementation session
+    // Create implementation session with runner="claude" (claude-pipeline.ts handles implementation)
     const session = await sessionQueries.createSession(sql, {
       task_id: taskId,
-      runner: 'implementation'
+      runner: 'claude'
     })
     result.sessionId = session.id
-    logger.info(`Created implementation session: ${session.id}`)
+    logger.info(`🔍 DEBUG - Created implementation session:`)
+    logger.info(`  Session ID: ${session.id}`)
+    logger.info(`  Runner type: ${session.runner}`)
+    logger.info(`  Task ID: ${session.task_id}`)
+    logger.info(`  Expected RUNNER_TYPE in pipeline: ${session.runner}`)
 
     // Update task with session ID and mark as implementing
     await taskQueries.updateTaskImplementationStatus(sql, taskId, 'implementing', session.id)

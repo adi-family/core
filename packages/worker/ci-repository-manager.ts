@@ -130,6 +130,10 @@ export class CIRepositoryManager {
       const fullPath = join(dirPath, entry.name)
 
       if (entry.isDirectory()) {
+        // Skip node_modules and other common directories that should not be uploaded
+        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === 'dist' || entry.name === 'build') {
+          continue
+        }
         const subFiles = await this.getAllFiles(fullPath, baseDir)
         files.push(...subFiles)
       } else if (entry.isFile()) {

@@ -1,10 +1,8 @@
 /**
  * GitLab API Client
  * Handles GitLab repository management, file operations, and pipeline triggers
- * Uses @gitbeaker/rest for API interactions
+ * Uses native fetch API for API interactions (no external dependencies)
  */
-
-import { Gitlab } from '@gitbeaker/rest'
 
 export interface GitLabProjectCreateInput {
   name: string
@@ -122,48 +120,115 @@ export interface GitLabBatchCommitInput {
   authorName?: string
 }
 
+export interface GitLabMergeRequest {
+  id: number
+  iid: number
+  project_id: number
+  title: string
+  description: string
+  state: string
+  web_url: string
+  source_branch: string
+  target_branch: string
+  author: {
+    id: number
+    username: string
+    name: string
+  }
+}
+
+export interface GitLabMergeRequestCreateInput {
+  source_branch: string
+  target_branch: string
+  title: string
+  description?: string
+  remove_source_branch?: boolean
+}
+
 export class GitLabApiClient {
-  private client: InstanceType<typeof Gitlab>
   private host: string
   private token: string
 
   constructor(host: string, token: string) {
-    this.host = host
+    this.host = host.replace(/\/$/, '')
     this.token = token
-    this.client = new Gitlab({
-      host,
-      token
-    })
+  }
+
+  /**
+   * Make a GitLab API request
+   */
+  private async request<T>(
+    method: string,
+    endpoint: string,
+    body?: any
+  ): Promise<T> {
+    const url = `${this.host}/api/v4${endpoint}`
+    const headers: Record<string, string> = {
+      'PRIVATE-TOKEN': this.token,
+      'Content-Type': 'application/json',
+    }
+
+    const options: RequestInit = {
+      method,
+      headers,
+    }
+
+    if (body) {
+      options.body = JSON.stringify(body)
+    }
+
+    const response = await fetch(url, options)
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      throw new Error(
+        `GitLab API error: ${response.status} ${response.statusText} - ${errorText}`
+      )
+    }
+
+    return response.json() as Promise<T>
   }
 
   /**
    * Create a new GitLab project
    */
   async createProject(input: GitLabProjectCreateInput): Promise<GitLabProject> {
-    const project = await this.client.Projects.create({
+    return this.request<GitLabProject>('POST', '/projects', {
       name: input.name,
       path: input.path,
-      namespaceId: input.namespace_id,
+      namespace_id: input.namespace_id,
       visibility: input.visibility,
-      description: input.description
-    }) as unknown as GitLabProject
-
-    return project
+      description: input.description,
+    })
   }
 
   /**
    * Update GitLab project settings to allow external pipeline triggers to set variables
-   * GitLab 17.1+ introduced pipeline variable restrictions. This sets the minimum role
-   * required to override pipeline variables to 'developer' (or can be set to allow all).
    */
   async enableExternalPipelineVariables(projectId: string): Promise<void> {
-    // Use the Projects.edit API with the ci_pipeline_variables_minimum_override_role setting
-    // Possible values: 'owner', 'maintainer', 'developer', 'reporter', 'guest', 'no_one_allowed'
-    // Setting to 'developer' allows developers and above to set pipeline variables
-    // Note: gitbeaker types may not include this option, so we cast to any
-    await this.client.Projects.edit(projectId, {
-      ciPipelineVariablesMinimumOverrideRole: 'developer',
-    } as any)
+    await this.request('PUT', `/projects/${encodeURIComponent(projectId)}`, {
+      ci_pipeline_variables_minimum_override_role: 'developer',
+    })
+  }
+
+  /**
+   * Enable CI/CD pipelines for a project
+   */
+  async enableCICD(projectId: string): Promise<void> {
+    await this.request('PUT', `/projects/${encodeURIComponent(projectId)}`, {
+      builds_access_level: 'enabled',
+      jobs_enabled: true,
+    })
+  }
+
+  /**
+   * Get project details by ID
+   */
+  async getProject(projectId: string): Promise<GitLabProject> {
+    return this.request<GitLabProject>(
+      'GET',
+      `/projects/${encodeURIComponent(projectId)}`
+    )
   }
 
   /**
@@ -174,14 +239,14 @@ export class GitLabApiClient {
     filePath: string,
     input: GitLabFileCreateInput
   ): Promise<void> {
-    await this.client.RepositoryFiles.create(
-      projectId,
-      filePath,
-      input.branch,
-      input.content,
-      input.commit_message,
+    await this.request(
+      'POST',
+      `/projects/${encodeURIComponent(projectId)}/repository/files/${encodeURIComponent(filePath)}`,
       {
-        encoding: input.encoding || 'text'
+        branch: input.branch,
+        content: input.content,
+        commit_message: input.commit_message,
+        encoding: input.encoding || 'text',
       }
     )
   }
@@ -194,14 +259,14 @@ export class GitLabApiClient {
     filePath: string,
     input: GitLabFileCreateInput
   ): Promise<void> {
-    await this.client.RepositoryFiles.edit(
-      projectId,
-      filePath,
-      input.branch,
-      input.content,
-      input.commit_message,
+    await this.request(
+      'PUT',
+      `/projects/${encodeURIComponent(projectId)}/repository/files/${encodeURIComponent(filePath)}`,
       {
-        encoding: input.encoding || 'text'
+        branch: input.branch,
+        content: input.content,
+        commit_message: input.commit_message,
+        encoding: input.encoding || 'text',
       }
     )
   }
@@ -242,15 +307,18 @@ export class GitLabApiClient {
     projectId: string,
     input: GitLabPipelineTriggerInput
   ): Promise<GitLabPipeline> {
-    const pipeline = await this.client.Pipelines.create(projectId, input.ref, {
-      variables: Object.entries(input.variables).map(([key, value]) => ({
-        key,
-        value,
-        variable_type: 'env_var' as const
-      }))
-    }) as unknown as GitLabPipeline
-
-    return pipeline
+    return this.request<GitLabPipeline>(
+      'POST',
+      `/projects/${encodeURIComponent(projectId)}/pipeline`,
+      {
+        ref: input.ref,
+        variables: Object.entries(input.variables).map(([key, value]) => ({
+          key,
+          value,
+          variable_type: 'env_var',
+        })),
+      }
+    )
   }
 
   /**
@@ -260,22 +328,27 @@ export class GitLabApiClient {
     projectId: string,
     pipelineId: string
   ): Promise<GitLabPipeline> {
-    const pipeline = await this.client.Pipelines.show(projectId, Number(pipelineId)) as unknown as GitLabPipeline
-
-    return pipeline
+    return this.request<GitLabPipeline>(
+      'GET',
+      `/projects/${encodeURIComponent(projectId)}/pipelines/${pipelineId}`
+    )
   }
 
   /**
    * Get current user information
    */
-  async getCurrentUser(): Promise<{ id: number; username: string; name: string; namespace_id: number }> {
-    const user = await this.client.Users.showCurrentUser() as unknown as {
+  async getCurrentUser(): Promise<{
+    id: number
+    username: string
+    name: string
+    namespace_id: number
+  }> {
+    return this.request<{
       id: number
       username: string
       name: string
       namespace_id: number
-    }
-    return user
+    }>('GET', '/user')
   }
 
   /**
@@ -288,21 +361,12 @@ export class GitLabApiClient {
 
   /**
    * Get personal access token information including scopes
-   * This endpoint requires the token to have 'read_api' or 'api' scope
    */
   async getPersonalAccessTokenInfo(): Promise<GitLabPersonalAccessToken> {
-    const response = await fetch(`${this.host}/api/v4/personal_access_tokens/self`, {
-      headers: {
-        'PRIVATE-TOKEN': this.token
-      }
-    })
-
-    if (!response.ok) {
-      throw new Error(`Failed to get token info: ${response.status} ${response.statusText}`)
-    }
-
-    const data = await response.json()
-    return data as GitLabPersonalAccessToken
+    return this.request<GitLabPersonalAccessToken>(
+      'GET',
+      '/personal_access_tokens/self'
+    )
   }
 
   /**
@@ -310,11 +374,16 @@ export class GitLabApiClient {
    */
   async findProjectByPath(path: string): Promise<GitLabProject | null> {
     try {
-      const project = await this.client.Projects.show(path) as unknown as GitLabProject
-      return project
+      return await this.request<GitLabProject>(
+        'GET',
+        `/projects/${encodeURIComponent(path)}`
+      )
     } catch (error) {
       // Project not found
-      if (error instanceof Error && (error.message.includes('404') || error.message.includes('Not Found'))) {
+      if (
+        error instanceof Error &&
+        (error.message.includes('404') || error.message.includes('Not Found'))
+      ) {
         return null
       }
       throw error
@@ -329,11 +398,10 @@ export class GitLabApiClient {
     filePath: string,
     ref: string = 'main'
   ): Promise<GitLabFileContent> {
-    const file = await this.client.RepositoryFiles.show(
-      projectId,
-      filePath,
-      ref
-    ) as unknown as GitLabFileContent
+    const file = await this.request<GitLabFileContent>(
+      'GET',
+      `/projects/${encodeURIComponent(projectId)}/repository/files/${encodeURIComponent(filePath)}?ref=${encodeURIComponent(ref)}`
+    )
 
     // Decode content if base64 encoded
     if (file.encoding === 'base64') {
@@ -350,10 +418,10 @@ export class GitLabApiClient {
     projectId: string,
     branch: string = 'main'
   ): Promise<string> {
-    const commits = await this.client.Commits.all(projectId, {
-      refName: branch,
-      perPage: 1
-    }) as unknown as GitLabCommit[]
+    const commits = await this.request<GitLabCommit[]>(
+      'GET',
+      `/projects/${encodeURIComponent(projectId)}/repository/commits?ref_name=${encodeURIComponent(branch)}&per_page=1`
+    )
 
     if (commits.length === 0) {
       throw new Error(`No commits found for branch: ${branch}`)
@@ -369,7 +437,6 @@ export class GitLabApiClient {
 
   /**
    * Search code in repository
-   * Note: GitLab search API requires specific scope configuration
    */
   async searchCode(
     _projectId: string,
@@ -377,14 +444,12 @@ export class GitLabApiClient {
     _ref?: string
   ): Promise<GitLabSearchResult[]> {
     // TODO: Implement code search when evaluation pipeline needs it
-    // The Search API in gitbeaker has limited typing support
     console.warn('searchCode not yet implemented')
     return []
   }
 
   /**
    * List directory contents (tree)
-   * Note: Tree API method signature varies by GitLab version
    */
   async getTree(
     _projectId: string,
@@ -392,7 +457,6 @@ export class GitLabApiClient {
     _ref: string = 'main'
   ): Promise<GitLabTreeEntry[]> {
     // TODO: Implement tree listing when evaluation pipeline needs it
-    // The tree method signature varies across gitbeaker versions
     console.warn('getTree not yet implemented')
     return []
   }
@@ -411,23 +475,33 @@ export class GitLabApiClient {
 
   /**
    * Create a batch commit with multiple file actions (create/update/delete)
-   * This allows uploading multiple files in a single commit, reducing commit clutter
    */
   async batchCommit(
     projectId: string,
     input: GitLabBatchCommitInput
   ): Promise<GitLabCommit> {
-    const commit = await this.client.Commits.create(projectId, input.branch, input.commitMessage, input.actions, {
-      authorEmail: input.authorEmail,
-      authorName: input.authorName,
-    }) as unknown as GitLabCommit
-
-    return commit
+    return this.request<GitLabCommit>(
+      'POST',
+      `/projects/${encodeURIComponent(projectId)}/repository/commits`,
+      {
+        branch: input.branch,
+        commit_message: input.commitMessage,
+        actions: input.actions.map((action) => ({
+          action: action.action,
+          file_path: action.filePath,
+          content: action.content,
+          encoding: action.encoding,
+          previous_path: action.previousPath,
+          execute_filemode: action.executeFilemode,
+        })),
+        author_email: input.authorEmail,
+        author_name: input.authorName,
+      }
+    )
   }
 
   /**
    * Upload multiple files in a single commit
-   * Automatically detects if files need to be created or updated
    */
   async uploadFiles(
     projectId: string,
@@ -465,5 +539,121 @@ export class GitLabApiClient {
       commitMessage: commitMessage,
       actions,
     })
+  }
+
+  /**
+   * Create a merge request
+   */
+  async createMergeRequest(
+    projectId: string,
+    input: GitLabMergeRequestCreateInput
+  ): Promise<GitLabMergeRequest> {
+    return this.request<GitLabMergeRequest>(
+      'POST',
+      `/projects/${encodeURIComponent(projectId)}/merge_requests`,
+      {
+        source_branch: input.source_branch,
+        target_branch: input.target_branch,
+        title: input.title,
+        description: input.description,
+        remove_source_branch: input.remove_source_branch,
+      }
+    )
+  }
+
+  /**
+   * Legacy client property for backward compatibility with code accessing client.MergeRequests
+   */
+  get client() {
+    return {
+      MergeRequests: {
+        create: async (
+          projectId: string,
+          sourceBranch: string,
+          targetBranch: string,
+          title: string,
+          options?: {
+            description?: string
+            removeSourceBranch?: boolean
+          }
+        ) => {
+          return this.createMergeRequest(projectId, {
+            source_branch: sourceBranch,
+            target_branch: targetBranch,
+            title,
+            description: options?.description,
+            remove_source_branch: options?.removeSourceBranch,
+          })
+        },
+      },
+      Projects: {
+        create: async (input: any) => this.createProject(input),
+        edit: async (projectId: string, options: any) =>
+          this.request('PUT', `/projects/${encodeURIComponent(projectId)}`, options),
+        show: async (path: string) => this.findProjectByPath(path),
+      },
+      RepositoryFiles: {
+        create: async (
+          projectId: string,
+          filePath: string,
+          branch: string,
+          content: string,
+          commitMessage: string,
+          options?: any
+        ) =>
+          this.createFile(projectId, filePath, {
+            branch,
+            content,
+            commit_message: commitMessage,
+            encoding: options?.encoding,
+          }),
+        edit: async (
+          projectId: string,
+          filePath: string,
+          branch: string,
+          content: string,
+          commitMessage: string,
+          options?: any
+        ) =>
+          this.updateFile(projectId, filePath, {
+            branch,
+            content,
+            commit_message: commitMessage,
+            encoding: options?.encoding,
+          }),
+        show: async (projectId: string, filePath: string, ref: string) =>
+          this.getFile(projectId, filePath, ref),
+      },
+      Pipelines: {
+        create: async (projectId: string, ref: string, _options: any) =>
+          this.triggerPipeline(projectId, { ref, variables: {} }),
+        show: async (projectId: string, pipelineId: number) =>
+          this.getPipeline(projectId, String(pipelineId)),
+      },
+      Users: {
+        showCurrentUser: async () => this.getCurrentUser(),
+      },
+      Commits: {
+        all: async (projectId: string, options: any) =>
+          this.request<GitLabCommit[]>(
+            'GET',
+            `/projects/${encodeURIComponent(projectId)}/repository/commits?ref_name=${encodeURIComponent(options.refName)}&per_page=${options.perPage}`
+          ),
+        create: async (
+          projectId: string,
+          branch: string,
+          commitMessage: string,
+          actions: any[],
+          options?: any
+        ) =>
+          this.batchCommit(projectId, {
+            branch,
+            commitMessage,
+            actions,
+            authorEmail: options?.authorEmail,
+            authorName: options?.authorName,
+          }),
+      },
+    }
   }
 }

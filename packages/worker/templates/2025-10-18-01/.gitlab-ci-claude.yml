@@ -110,11 +110,25 @@ execute:
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
 
-    # Ensure all submodules are up to date before execution
-    - echo "Updating git submodules..."
-    - git submodule sync --recursive
-    - git submodule update --init --recursive
-    - echo "✓ Submodules updated"
+    # Clean up orphaned .git/modules entries before initializing submodules
+    - echo "🧹 Cleaning up orphaned .git/modules entries..."
+    - |
+      if [ -d ".git/modules/2025-10-18-01/workspaces" ]; then
+        REGISTERED=$(git config --file .gitmodules --get-regexp path | grep "2025-10-18-01/workspaces" | awk '{print $2}' | xargs -I {} basename {} || true)
+        for entry in $(ls -1 .git/modules/2025-10-18-01/workspaces 2>/dev/null || true); do
+          IS_REGISTERED=$(echo "$REGISTERED" | grep -x "$entry" || true)
+          if [ -z "$IS_REGISTERED" ]; then
+            echo "   Removing orphaned: $entry"
+            rm -rf ".git/modules/2025-10-18-01/workspaces/$entry"
+          fi
+        done
+      fi
+    - echo "✓ Cleanup completed"
+
+    # Initialize submodules
+    - echo "🔄 Initializing submodules..."
+    - git submodule update --init --recursive 2025-10-18-01/workspaces/
+    - echo "✓ Submodules initialized"
 
     # Clean up old results from previous runs
     - rm -rf 2025-10-18-01/results
@@ -192,9 +206,15 @@ report:
     - ls -la 2025-10-18-01/ || echo "Directory not found"
     - ls -la 2025-10-18-01/results/ || echo "Results directory not found"
 
+    # Install git for pushing changes to file spaces
+    - echo "Installing git..."
+    - apt-get update && apt-get install -y git
+    - git config --global user.email "${GITLAB_USER_EMAIL:-ci@adi-pipeline.dev}"
+    - git config --global user.name "${GITLAB_USER_NAME:-ADI Pipeline}"
+
     - cd 2025-10-18-01/worker-scripts
 
-    # Upload implementation artifacts via our API
+    # Upload implementation artifacts via our API (includes pushing to file spaces and creating MRs)
     - bun run upload-results.ts
   dependencies:
     - execute

@@ -5,7 +5,7 @@ stages:
 
 variables:
   WORKER_IMAGE: "oven/bun:latest"
-  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_STRATEGY: none
 
 workflow:
   rules:
@@ -20,6 +20,8 @@ workflow:
 sync-only:
   stage: prepare
   image: $WORKER_IMAGE
+  tags:
+    - implementation
   script:
     - echo "Syncing workspace repositories only (SYNC_ONLY mode)"
     - echo "Installing git..."
@@ -52,6 +54,8 @@ sync-only:
 prepare:
   stage: prepare
   image: $WORKER_IMAGE
+  tags:
+    - implementation
   script:
     - echo "Installing dependencies"
     - echo "Installing git..."
@@ -77,6 +81,8 @@ prepare:
 execute:
   stage: execute
   image: $WORKER_IMAGE
+  tags:
+    - implementation
   script:
     # Install git if not available
     - echo "Installing git..."
@@ -84,11 +90,6 @@ execute:
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
 
-    # Ensure all submodules are up to date before execution
-    - echo "Updating git submodules..."
-    - git submodule sync --recursive
-    - git submodule update --init --recursive
-    - echo "✓ Submodules updated"
 
     # Clean up old results from previous runs
     - rm -rf results
@@ -139,6 +140,8 @@ execute:
 report:
   stage: report
   image: $WORKER_IMAGE
+  tags:
+    - implementation
   script:
     - cd worker-scripts
     # Upload artifacts via our API (TypeScript)

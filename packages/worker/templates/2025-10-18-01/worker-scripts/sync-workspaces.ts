@@ -9,6 +9,7 @@ import { promisify } from 'util'
 import { readFile, mkdir } from 'fs/promises'
 import { ApiClient } from './shared/api-client'
 import { createLogger } from './shared/logger'
+import { getWorkspaceName } from './shared/workspace-utils'
 
 const exec = promisify(execCallback)
 const logger = createLogger({ namespace: 'sync-workspaces' })
@@ -30,6 +31,84 @@ function validateEnvironment(): void {
   logger.info('✓ Environment variables validated')
 }
 
+/**
+ * Clean up orphaned submodule data from .git/modules directory
+ * This function aggressively removes ALL workspace-related .git/modules entries
+ * and lets the sync process recreate them fresh
+ */
+async function cleanupOrphanedGitModules(): Promise<void> {
+  logger.info('🧹 Cleaning up orphaned .git/modules entries...')
+
+  try {
+    // Determine the git root directory (go up to parent since we're in 2025-10-18-01/)
+    // Git root is the parent of the template directory
+    const gitRoot = '../..'
+
+    // Get the template directory name (e.g., "2025-10-18-01")
+    const templateDir = '..'
+    const { stdout: templateDirName } = await exec(`cd ${templateDir} && basename $(pwd)`)
+    const templateName = templateDirName.trim()
+
+    logger.info(`   Template directory: ${templateName}`)
+
+    // Get list of currently registered submodules in .gitmodules
+    const { stdout: submodulesOutput } = await exec(`cd ${gitRoot} && git config --file .gitmodules --get-regexp path 2>/dev/null || true`)
+    const registeredSubmodules = new Set<string>()
+
+    if (submodulesOutput.trim()) {
+      const lines = submodulesOutput.trim().split('\n')
+      for (const line of lines) {
+        const match = line.match(/submodule\.(.+?)\.path\s+(.+)/)
+        if (match && match[2]) {
+          registeredSubmodules.add(match[2])
+        }
+      }
+    }
+
+    logger.info(`   Found ${registeredSubmodules.size} registered submodule(s) in .gitmodules`)
+
+    // Check if .git/modules/<template>/workspaces exists
+    const gitModulesPath = `.git/modules/${templateName}/workspaces`
+    const { stdout: modulesDirCheck } = await exec(`cd ${gitRoot} && test -d ${gitModulesPath} && echo "exists" || echo "not found"`)
+
+    if (modulesDirCheck.trim() === 'exists') {
+      // List all entries in .git/modules/<template>/workspaces directory
+      const { stdout: modulesOutput } = await exec(`cd ${gitRoot} && ls -1 ${gitModulesPath} 2>/dev/null || true`)
+
+      if (modulesOutput.trim()) {
+        const moduleEntries = modulesOutput.trim().split('\n')
+        let cleanedCount = 0
+
+        for (const entry of moduleEntries) {
+          const submodulePath = `${templateName}/workspaces/${entry}`
+
+          // Remove if not registered in .gitmodules
+          if (!registeredSubmodules.has(submodulePath)) {
+            logger.info(`   🗑️  Removing orphaned .git/modules entry: ${submodulePath}`)
+            try {
+              await exec(`cd ${gitRoot} && rm -rf ${gitModulesPath}/${entry}`)
+              logger.info(`   ✓ Orphaned entry removed`)
+              cleanedCount++
+            } catch (error) {
+              logger.warn(`   ⚠️  Failed to remove: ${error instanceof Error ? error.message : String(error)}`)
+            }
+          }
+        }
+
+        if (cleanedCount > 0) {
+          logger.info(`✅ Cleaned up ${cleanedCount} orphaned .git/modules entr${cleanedCount === 1 ? 'y' : 'ies'}`)
+        } else {
+          logger.info('✓ No orphaned .git/modules entries found')
+        }
+      }
+    } else {
+      logger.info(`   ℹ️  No ${gitModulesPath} directory found (this is normal for fresh repos)`)
+    }
+  } catch (error) {
+    logger.warn(`⚠️  Orphaned cleanup warning: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
 async function main() {
   logger.info('🔄 Workspace Sync Started')
 
@@ -45,6 +124,9 @@ async function main() {
       process.env.API_BASE_URL!,
       process.env.API_TOKEN!
     )
+
+    // Clean up orphaned git modules before starting
+    await cleanupOrphanedGitModules()
 
     // Fetch all file spaces for this project
     logger.info('📥 Fetching file spaces from API...')
@@ -126,9 +208,7 @@ async function main() {
         }
       }
 
-      const workspaceName = fileSpace.name
-        .replace(/[^a-zA-Z0-9-]/g, '-')
-        .toLowerCase()
+      const workspaceName = getWorkspaceName(fileSpace.name, fileSpace.id)
       const workspacePath = `workspaces/${workspaceName}`
 
       desiredSubmodules.add(workspacePath)
@@ -158,6 +238,22 @@ async function main() {
         } else {
           // Add new submodule
           logger.info(`   📦 Adding submodule...`)
+
+          // Check if there's an orphaned .git/modules entry for this specific submodule
+          // Git root is parent of template directory, and modules are at .git/modules/<template>/workspaces/
+          const workspaceName = workspacePath.split('/')[1]
+          const { stdout: templateDirName } = await exec('cd .. && basename $(pwd)')
+          const templateName = templateDirName.trim()
+          const gitModulePath = `.git/modules/${templateName}/workspaces/${workspaceName}`
+
+          const { stdout: gitModuleCheck } = await exec(`cd ../.. && test -d ${gitModulePath} && echo "exists" || echo "not found"`)
+
+          if (gitModuleCheck.trim() === 'exists') {
+            logger.info(`   🧹 Found orphaned .git/modules entry, cleaning up...`)
+            await exec(`cd ../.. && rm -rf ${gitModulePath}`)
+            logger.info(`   ✓ Cleaned up orphaned entry`)
+          }
+
           await exec(`cd .. && git submodule add ${repoUrl} ${workspacePath}`)
           logger.info(`   ✓ Submodule added`)
         }
@@ -175,14 +271,31 @@ async function main() {
     }
 
     // Remove submodules that are no longer in the file spaces list
+    logger.info('\n🔍 Checking for old submodules to remove...')
+    let removedCount = 0
+
     for (const existingModule of existingModules) {
       if (existingModule.startsWith('workspaces/') && !desiredSubmodules.has(existingModule)) {
         logger.info(`\n🗑️  Removing old submodule: ${existingModule}`)
         try {
+          // Step 1: Deinitialize the submodule
           await exec(`cd .. && git submodule deinit -f ${existingModule}`)
+          logger.info(`   ✓ Submodule deinitialized`)
+
+          // Step 2: Remove from git index and working tree
           await exec(`cd .. && git rm -f ${existingModule}`)
+          logger.info(`   ✓ Removed from git index`)
+
+          // Step 3: Remove .git/modules entry
           await exec(`cd .. && rm -rf .git/modules/${existingModule}`)
-          logger.info(`   ✓ Submodule removed`)
+          logger.info(`   ✓ Removed .git/modules entry`)
+
+          // Step 4: Clean up any remaining directory
+          await exec(`cd .. && rm -rf ${existingModule}`)
+          logger.info(`   ✓ Cleaned up directory`)
+
+          removedCount++
+          logger.info(`   ✅ Submodule completely removed`)
         } catch (error) {
           logger.warn(
             `   ⚠️  Failed to remove submodule ${existingModule}:`,
@@ -190,6 +303,50 @@ async function main() {
           )
         }
       }
+    }
+
+    if (removedCount > 0) {
+      logger.info(`\n✅ Removed ${removedCount} old submodule(s)`)
+    } else {
+      logger.info(`\nℹ️  No old submodules to remove`)
+    }
+
+    // Clean up orphaned physical directories in workspaces folder
+    logger.info('\n🧹 Cleaning up orphaned workspace directories...')
+    try {
+      const { stdout: workspacesList } = await exec('cd .. && ls -1 workspaces 2>/dev/null || true')
+
+      if (workspacesList.trim()) {
+        const physicalDirs = workspacesList.trim().split('\n')
+        let cleanedDirs = 0
+
+        for (const dir of physicalDirs) {
+          const workspacePath = `workspaces/${dir}`
+
+          // If this directory is not in our desired submodules list, remove it
+          if (!desiredSubmodules.has(workspacePath)) {
+            logger.info(`   🗑️  Removing orphaned directory: ${workspacePath}`)
+            try {
+              await exec(`cd .. && rm -rf ${workspacePath}`)
+              logger.info(`   ✓ Directory removed`)
+              cleanedDirs++
+            } catch (error) {
+              logger.warn(
+                `   ⚠️  Failed to remove directory ${workspacePath}:`,
+                error instanceof Error ? error.message : String(error)
+              )
+            }
+          }
+        }
+
+        if (cleanedDirs > 0) {
+          logger.info(`✅ Cleaned up ${cleanedDirs} orphaned workspace director${cleanedDirs === 1 ? 'y' : 'ies'}`)
+        } else {
+          logger.info(`ℹ️  No orphaned workspace directories found`)
+        }
+      }
+    } catch (error) {
+      logger.warn(`⚠️  Failed to clean up workspace directories: ${error instanceof Error ? error.message : String(error)}`)
     }
 
     // Commit and push changes to .gitmodules and workspaces if any

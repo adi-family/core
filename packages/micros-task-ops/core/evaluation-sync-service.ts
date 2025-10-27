@@ -48,7 +48,7 @@ export async function syncTaskEvaluationStatus(
   }
 
   try {
-    // Fetch session to get task_id (direct DB)
+    // Fetch session to get task_id and runner type (direct DB)
     const sessionResult = await sessionQueries.findSessionById(sql, execution.session_id)
     if (!sessionResult.ok) {
       logger.warn(`⚠️  Session not found for execution ${execution.id}`)
@@ -57,7 +57,7 @@ export async function syncTaskEvaluationStatus(
 
     const session = sessionResult.data
     if (!session.task_id) {
-      // Session has no task - this is normal for non-evaluation pipelines
+      // Session has no task - this is normal for non-task pipelines
       return
     }
 
@@ -70,25 +70,54 @@ export async function syncTaskEvaluationStatus(
 
     const task = taskResult.data
 
-    // Only update if task is still in 'evaluating' state
-    // This means the upload script didn't run or failed
-    if (task.ai_evaluation_status !== 'evaluating') {
-      logger.info(`  Task ${task.id} already in status '${task.ai_evaluation_status}', skipping sync`)
-      return
-    }
+    // Determine if this is an evaluation or implementation pipeline based on runner type
+    const isEvaluationPipeline = session.runner === 'evaluation'
+    const isImplementationPipeline = session.runner === 'claude' || session.runner === 'implementation'
 
-    logger.info(`🔄 Syncing task ${task.id} evaluation status (pipeline: ${pipelineStatus})`)
+    if (isEvaluationPipeline) {
+      // Only update if task is still in 'evaluating' state
+      if (task.ai_evaluation_status !== 'evaluating') {
+        logger.info(`  Task ${task.id} already in status '${task.ai_evaluation_status}', skipping evaluation sync`)
+        return
+      }
 
-    if (pipelineStatus === 'success') {
-      await handleSuccessfulPipeline(sql, execution, task)
-    } else if (pipelineStatus === 'failed') {
-      await handleFailedPipeline(sql, task)
-    } else if (pipelineStatus === 'canceled') {
-      await handleCanceledPipeline(sql, task)
+      logger.info(`🔄 Syncing task ${task.id} evaluation status (pipeline: ${pipelineStatus})`)
+
+      if (pipelineStatus === 'success') {
+        await handleSuccessfulPipeline(sql, execution, task)
+      } else if (pipelineStatus === 'failed') {
+        await handleFailedPipeline(sql, task)
+      } else if (pipelineStatus === 'canceled') {
+        await handleCanceledPipeline(sql, task)
+      }
+    } else if (isImplementationPipeline) {
+      // Only update if task is still in 'implementing' state
+      if (task.ai_implementation_status !== 'implementing') {
+        logger.info(`  Task ${task.id} already in status '${task.ai_implementation_status}', skipping implementation sync`)
+        return
+      }
+
+      logger.info(`🔄 Syncing task ${task.id} implementation status (pipeline: ${pipelineStatus})`)
+
+      if (pipelineStatus === 'success') {
+        // Use transaction to update both implementation status and overall task status
+        await sql.begin(async (sql) => {
+          await taskQueries.updateTaskImplementationStatus(sql, task.id, 'completed')
+          // Update overall task status to 'done' when implementation succeeds
+          await taskQueries.updateTask(sql, task.id, { status: 'done' })
+        })
+        logger.info(`✅ Task ${task.id} implementation completed successfully (status: done)`)
+      } else if (pipelineStatus === 'failed') {
+        await taskQueries.updateTaskImplementationStatus(sql, task.id, 'failed')
+        logger.info(`❌ Task ${task.id} implementation failed`)
+      } else if (pipelineStatus === 'canceled') {
+        await taskQueries.updateTaskImplementationStatus(sql, task.id, 'pending')
+        logger.info(`🔄 Task ${task.id} implementation reset to pending (pipeline canceled)`)
+      }
     }
 
   } catch (error) {
-    logger.error(`Failed to sync task evaluation status for execution ${execution.id}:`, error)
+    logger.error(`Failed to sync task status for execution ${execution.id}:`, error)
   }
 }
 
@@ -172,7 +201,7 @@ export async function recoverStuckEvaluationsFromDatabase(
     logger.info(`🔍 Checking for stuck evaluations (timeout: ${timeoutMinutes} min)`)
 
     // Find tasks stuck in 'evaluating' for > timeout (direct DB)
-    const stuckTasks = await get(sql<any[]>`
+    const stuckEvalTasks = await get(sql<any[]>`
       SELECT
         t.*,
         pe.id as pipeline_execution_id,
@@ -186,20 +215,38 @@ export async function recoverStuckEvaluationsFromDatabase(
       ORDER BY t.updated_at ASC
     `)
 
-    if (stuckTasks.length === 0) {
-      logger.info('✓ No stuck evaluations found')
+    // Find tasks stuck in 'implementing' for > timeout (direct DB)
+    const stuckImplTasks = await get(sql<any[]>`
+      SELECT
+        t.*,
+        pe.id as pipeline_execution_id,
+        pe.status as pipeline_status,
+        pe.last_status_update as pipeline_last_update
+      FROM tasks t
+      LEFT JOIN sessions s ON t.ai_implementation_session_id = s.id
+      LEFT JOIN pipeline_executions pe ON s.id = pe.session_id
+      WHERE t.ai_implementation_status = 'implementing'
+        AND t.updated_at < NOW() - INTERVAL '1 minute' * ${timeoutMinutes}
+      ORDER BY t.updated_at ASC
+    `)
+
+    const totalStuckTasks = stuckEvalTasks.length + stuckImplTasks.length
+
+    if (totalStuckTasks === 0) {
+      logger.info('✓ No stuck evaluations or implementations found')
       return result
     }
 
-    logger.warn(`⚠️  Found ${stuckTasks.length} stuck evaluation(s)`)
+    logger.warn(`⚠️  Found ${stuckEvalTasks.length} stuck evaluation(s) and ${stuckImplTasks.length} stuck implementation(s)`)
 
-    for (const task of stuckTasks) {
+    // Process stuck evaluation tasks
+    for (const task of stuckEvalTasks) {
       try {
         if (!task.pipeline_execution_id) {
           // No pipeline found - reset to pending (direct DB)
           await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'pending')
           result.tasksRecovered++
-          logger.info(`🔄 Task ${task.id} reset to pending (no pipeline found)`)
+          logger.info(`🔄 Task ${task.id} evaluation reset to pending (no pipeline found)`)
 
         } else if (task.pipeline_status === 'success') {
           // Pipeline succeeded but upload failed - sync using DB
@@ -218,31 +265,73 @@ export async function recoverStuckEvaluationsFromDatabase(
           // Pipeline failed - mark task as failed (direct DB)
           await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'failed')
           result.tasksRecovered++
-          logger.info(`❌ Task ${task.id} marked failed (pipeline failed)`)
+          logger.info(`❌ Task ${task.id} evaluation marked failed (pipeline failed)`)
 
         } else if (task.pipeline_status === 'canceled') {
           // Pipeline canceled - reset to pending for retry (direct DB)
           await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'pending')
           result.tasksRecovered++
-          logger.info(`🔄 Task ${task.id} reset to pending (pipeline canceled)`)
+          logger.info(`🔄 Task ${task.id} evaluation reset to pending (pipeline canceled)`)
 
         } else {
           // Pipeline still running or stuck - log and skip
-          logger.info(`⏳ Task ${task.id} pipeline still ${task.pipeline_status}, waiting...`)
+          logger.info(`⏳ Task ${task.id} evaluation pipeline still ${task.pipeline_status}, waiting...`)
         }
 
       } catch (error) {
-        const errorMsg = `Failed to recover stuck task ${task.id}: ${error instanceof Error ? error.message : String(error)}`
+        const errorMsg = `Failed to recover stuck evaluation task ${task.id}: ${error instanceof Error ? error.message : String(error)}`
         logger.error(errorMsg)
         result.errors.push(errorMsg)
       }
     }
 
-    logger.info(`✅ Finished checking stuck evaluations: ${result.tasksRecovered} recovered, ${result.errors.length} errors`)
+    // Process stuck implementation tasks
+    for (const task of stuckImplTasks) {
+      try {
+        if (!task.pipeline_execution_id) {
+          // No pipeline found - reset to pending (direct DB)
+          await taskQueries.updateTaskImplementationStatus(sql, task.id, 'pending')
+          result.tasksRecovered++
+          logger.info(`🔄 Task ${task.id} implementation reset to pending (no pipeline found)`)
+
+        } else if (task.pipeline_status === 'success') {
+          // Pipeline succeeded - mark as completed and update overall task status
+          await sql.begin(async (sql) => {
+            await taskQueries.updateTaskImplementationStatus(sql, task.id, 'completed')
+            await taskQueries.updateTask(sql, task.id, { status: 'done' })
+          })
+          result.tasksRecovered++
+          logger.info(`✅ Task ${task.id} implementation marked completed (status: done)`)
+
+        } else if (task.pipeline_status === 'failed') {
+          // Pipeline failed - mark task as failed (direct DB)
+          await taskQueries.updateTaskImplementationStatus(sql, task.id, 'failed')
+          result.tasksRecovered++
+          logger.info(`❌ Task ${task.id} implementation marked failed (pipeline failed)`)
+
+        } else if (task.pipeline_status === 'canceled') {
+          // Pipeline canceled - reset to pending for retry (direct DB)
+          await taskQueries.updateTaskImplementationStatus(sql, task.id, 'pending')
+          result.tasksRecovered++
+          logger.info(`🔄 Task ${task.id} implementation reset to pending (pipeline canceled)`)
+
+        } else {
+          // Pipeline still running or stuck - log and skip
+          logger.info(`⏳ Task ${task.id} implementation pipeline still ${task.pipeline_status}, waiting...`)
+        }
+
+      } catch (error) {
+        const errorMsg = `Failed to recover stuck implementation task ${task.id}: ${error instanceof Error ? error.message : String(error)}`
+        logger.error(errorMsg)
+        result.errors.push(errorMsg)
+      }
+    }
+
+    logger.info(`✅ Finished checking stuck tasks: ${result.tasksRecovered} recovered, ${result.errors.length} errors`)
     return result
 
   } catch (error) {
-    logger.error('Failed to recover stuck evaluations:', error)
+    logger.error('Failed to recover stuck tasks:', error)
     result.errors.push(error instanceof Error ? error.message : String(error))
     return result
   }

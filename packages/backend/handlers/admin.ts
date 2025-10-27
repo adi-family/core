@@ -121,6 +121,14 @@ export const createAdminRoutes = (sql: Sql) => {
           remote: join(templateVersion, filePath) // Source path in template repo
         }))
 
+        // Add root .gitlab-ci.yml file (routes to versioned configs)
+        const rootCiFilePath = '.gitlab-ci.yml'
+        filesToUpdate.push({
+          local: rootCiFilePath, // Destination: root of worker repo
+          remote: rootCiFilePath // Source: root of templates directory
+        })
+        logger.info(`[Admin] Added root ${rootCiFilePath} to files list`)
+
         const results: Array<{
           project: string
           success: boolean
@@ -192,6 +200,19 @@ export const createAdminRoutes = (sql: Sql) => {
                   if (!apiToken) {
                     logger.warn(`[Admin] API_TOKEN not set, skipping submodule sync for ${repo.project_name}`)
                   } else {
+                    // Verify project exists and enable CI/CD
+                    try {
+                      logger.info(`[Admin] Verifying project ${repo.source_gitlab.project_id} exists and enabling CI/CD`)
+                      await client.getProject(repo.source_gitlab.project_id)
+                      await client.enableCICD(repo.source_gitlab.project_id)
+                      await client.enableExternalPipelineVariables(repo.source_gitlab.project_id)
+                      logger.info(`[Admin] ✓ CI/CD enabled for ${repo.project_name}`)
+                    } catch (setupError) {
+                      const setupErrorMsg = setupError instanceof Error ? setupError.message : String(setupError)
+                      logger.warn(`[Admin] Failed to setup CI/CD for ${repo.project_name}:`, setupErrorMsg)
+                      throw new Error(`CI/CD setup failed: ${setupErrorMsg}`)
+                    }
+
                     const pipelineVariables: Record<string, string> = {
                       PROJECT_ID: repo.project_id,
                       API_BASE_URL: apiBaseUrl,
@@ -208,18 +229,19 @@ export const createAdminRoutes = (sql: Sql) => {
                     // This token has write permissions to push changes back to the worker repo
                     pipelineVariables.WORKER_REPO_TOKEN = accessToken
 
-                    await client.triggerPipeline(
+                    logger.info(`[Admin] Triggering pipeline on project ${repo.source_gitlab.project_id} (${repo.source_gitlab.project_path})`)
+                    const pipeline = await client.triggerPipeline(
                       repo.source_gitlab.project_id,
                       {
                         ref: 'main',
                         variables: pipelineVariables
                       }
                     )
-                    logger.info(`[Admin] ✓ Pipeline triggered for submodule sync`)
+                    logger.info(`[Admin] ✓ Pipeline #${pipeline.id} triggered for submodule sync: ${pipeline.web_url}`)
                   }
                 } catch (pipelineError) {
                   const errorMsg = pipelineError instanceof Error ? pipelineError.message : String(pipelineError)
-                  logger.warn(`[Admin] Failed to trigger pipeline for ${repo.project_name}:`, errorMsg)
+                  logger.warn(`[Admin] Failed to trigger pipeline for ${repo.project_name} (project_id: ${repo.source_gitlab.project_id}):`, errorMsg)
                   // Don't add to fileErrors as this is not critical - submodules will sync on next regular pipeline run
                 }
               } catch (uploadError) {
@@ -391,6 +413,241 @@ export const createAdminRoutes = (sql: Sql) => {
       } catch (error) {
         logger.error('[Admin] Failed to fetch usage metrics:', error)
         return c.json({ error: 'Failed to fetch usage metrics' }, 500)
+      }
+    })
+
+    /**
+     * Trigger pipeline status check
+     * POST /admin/operations/check-stale-pipelines
+     */
+    .post('/operations/check-stale-pipelines', async (c) => {
+      const userId = getClerkUserId(c)
+
+      if (!userId) {
+        return c.json({ error: 'Authentication required' }, 401)
+      }
+
+      // Check admin access
+      const hasAdminAccess = await sql<[{ has_admin: boolean }]>`
+        SELECT EXISTS(
+          SELECT 1 FROM user_access
+          WHERE user_id = ${userId}
+          AND entity_type = 'project'
+          AND role IN ('owner', 'admin')
+          AND (expires_at IS NULL OR expires_at > NOW())
+        ) as has_admin
+      `.then(rows => rows[0]?.has_admin ?? false)
+
+      if (!hasAdminAccess) {
+        return c.json({ error: 'Admin privileges required' }, 403)
+      }
+
+      try {
+        logger.info(`[Admin] Check stale pipelines triggered by user: ${userId}`)
+
+        // Import dynamically to avoid circular dependency
+        const { checkStalePipelines } = await import('../../micros-task-ops/monitoring/pipeline-monitor.ts')
+        await checkStalePipelines({ sql })
+
+        return c.json({
+          success: true,
+          message: 'Pipeline status check completed successfully'
+        })
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        logger.error('[Admin] Failed to check stale pipelines:', errorMessage)
+
+        return c.json({
+          error: 'Failed to check stale pipelines',
+          details: errorMessage
+        }, 500)
+      }
+    })
+
+    /**
+     * Recover stuck tasks
+     * POST /admin/operations/recover-stuck-tasks
+     */
+    .post('/operations/recover-stuck-tasks', async (c) => {
+      const userId = getClerkUserId(c)
+
+      if (!userId) {
+        return c.json({ error: 'Authentication required' }, 401)
+      }
+
+      // Check admin access
+      const hasAdminAccess = await sql<[{ has_admin: boolean }]>`
+        SELECT EXISTS(
+          SELECT 1 FROM user_access
+          WHERE user_id = ${userId}
+          AND entity_type = 'project'
+          AND role IN ('owner', 'admin')
+          AND (expires_at IS NULL OR expires_at > NOW())
+        ) as has_admin
+      `.then(rows => rows[0]?.has_admin ?? false)
+
+      if (!hasAdminAccess) {
+        return c.json({ error: 'Admin privileges required' }, 403)
+      }
+
+      try {
+        logger.info(`[Admin] Recover stuck tasks triggered by user: ${userId}`)
+
+        // Import dynamically to avoid circular dependency
+        const { recoverStuckEvaluationsFromDatabase } = await import('../../micros-task-ops/core/evaluation-sync-service.ts')
+        const result = await recoverStuckEvaluationsFromDatabase(sql, 30)
+
+        return c.json({
+          success: true,
+          message: `Recovered ${result.tasksRecovered} stuck tasks (${result.errors.length} errors)`,
+          tasksRecovered: result.tasksRecovered,
+          errors: result.errors
+        })
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        logger.error('[Admin] Failed to recover stuck tasks:', errorMessage)
+
+        return c.json({
+          error: 'Failed to recover stuck tasks',
+          details: errorMessage
+        }, 500)
+      }
+    })
+
+    /**
+     * Create missing worker repositories
+     * POST /admin/operations/create-missing-worker-repos
+     */
+    .post('/operations/create-missing-worker-repos', async (c) => {
+      const userId = getClerkUserId(c)
+
+      if (!userId) {
+        return c.json({ error: 'Authentication required' }, 401)
+      }
+
+      // Check admin access
+      const hasAdminAccess = await sql<[{ has_admin: boolean }]>`
+        SELECT EXISTS(
+          SELECT 1 FROM user_access
+          WHERE user_id = ${userId}
+          AND entity_type = 'project'
+          AND role IN ('owner', 'admin')
+          AND (expires_at IS NULL OR expires_at > NOW())
+        ) as has_admin
+      `.then(rows => rows[0]?.has_admin ?? false)
+
+      if (!hasAdminAccess) {
+        return c.json({ error: 'Admin privileges required' }, 403)
+      }
+
+      try {
+        logger.info(`[Admin] Create missing worker repositories triggered by user: ${userId}`)
+
+        // Validate environment
+        const requiredEnv = ['GITLAB_HOST', 'GITLAB_TOKEN', 'GITLAB_USER', 'ENCRYPTION_KEY']
+        const missing = requiredEnv.filter((key) => !process.env[key])
+
+        if (missing.length > 0) {
+          return c.json(
+            { error: `Missing required environment variables: ${missing.join(', ')}` },
+            500
+          )
+        }
+
+        // Find all projects without worker repositories
+        const projectsWithoutRepos = await sql`
+          SELECT p.id, p.name
+          FROM projects p
+          LEFT JOIN worker_repositories wr ON wr.project_id = p.id
+          WHERE wr.id IS NULL
+          ORDER BY p.name
+        `
+
+        if (projectsWithoutRepos.length === 0) {
+          logger.info('[Admin] All projects already have worker repositories')
+          return c.json({
+            success: true,
+            message: 'All projects already have worker repositories',
+            created: 0,
+            results: []
+          })
+        }
+
+        logger.info(`[Admin] Found ${projectsWithoutRepos.length} projects without worker repositories - starting background creation`)
+
+        // Return immediately and process in background to avoid timeout
+        // Start background processing
+        const processInBackground = async () => {
+          const { CIRepositoryManager } = await import('../../worker/ci-repository-manager.ts')
+          const manager = new CIRepositoryManager()
+          const version = '2025-10-18-01'
+
+          let successCount = 0
+          let failCount = 0
+
+          // Create worker repository for each project
+          for (const project of projectsWithoutRepos) {
+            try {
+              logger.info(`[Admin] Creating worker repository for project: ${project.name}`)
+
+              const customPath = `adi-worker-${project.name.toLowerCase()}`
+
+              // Create worker repository in GitLab
+              const source = await manager.createWorkerRepository({
+                projectName: project.name,
+                sourceType: 'gitlab',
+                host: process.env.GITLAB_HOST!,
+                accessToken: process.env.GITLAB_TOKEN!,
+                user: process.env.GITLAB_USER!,
+                customPath,
+              })
+
+              logger.info(`[Admin] Created GitLab repository: ${source.project_path}`)
+
+              // Upload CI files
+              await manager.uploadCIFiles({
+                source,
+                version,
+              })
+
+              logger.info(`[Admin] Uploaded CI files (version: ${version})`)
+
+              // Save to database
+              await sql`
+                INSERT INTO worker_repositories (project_id, source_gitlab, current_version)
+                VALUES (${project.id}, ${source as any}, ${version})
+              `
+
+              logger.info(`[Admin] ✓ Created worker repository for ${project.name}`)
+              successCount++
+            } catch (error) {
+              const errorMessage = error instanceof Error ? error.message : String(error)
+              logger.error(`[Admin] Failed to create worker repository for ${project.name}:`, errorMessage)
+              failCount++
+            }
+          }
+
+          logger.info(`[Admin] Worker repository creation complete: ${successCount} succeeded, ${failCount} failed`)
+        }
+
+        // Don't await - let it run in background
+        processInBackground().catch((error) => {
+          logger.error('[Admin] Background worker repository creation failed:', error)
+        })
+
+        return c.json({
+          success: true,
+          message: `Creating ${projectsWithoutRepos.length} worker repositories in the background. Check server logs for progress.`,
+          processing: projectsWithoutRepos.length
+        })
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : String(error)
+        logger.error('[Admin] Failed to create missing worker repositories:', errorMessage)
+
+        return c.json({
+          error: 'Failed to create missing worker repositories',
+          details: errorMessage
+        }, 500)
       }
     })
 }

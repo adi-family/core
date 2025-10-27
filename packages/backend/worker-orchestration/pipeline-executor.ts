@@ -427,6 +427,7 @@ function validateRequiredApiKeys(
   const runnerKeyMap: Record<string, { key: string; provider: string }> = {
     'evaluation': { key: 'ANTHROPIC_API_KEY', provider: 'Anthropic (Claude)' },
     'claude': { key: 'ANTHROPIC_API_KEY', provider: 'Anthropic (Claude)' },
+    'implementation': { key: 'ANTHROPIC_API_KEY', provider: 'Anthropic (Claude)' }, // Legacy support
   }
 
   const requirement = runnerKeyMap[runner]
@@ -517,16 +518,33 @@ async function preparePipelineConfig(
     logger.info(`✓ Proxy configuration will be passed to pipeline: ${process.env.PROXY_HOST}`)
   }
 
-  const variables = {
+  // Add MOCK_MODE configuration from environment (optional)
+  const mockModeVars: Record<string, string> = {}
+  if (process.env.MOCK_MODE === 'true') {
+    mockModeVars.MOCK_MODE = 'true'
+    logger.info(`🎭 MOCK_MODE enabled - AI API calls will be mocked`)
+  }
+
+  const variables: Record<string, string> = {
     SESSION_ID: context.session.id,
     PIPELINE_EXECUTION_ID: executionId,
     PROJECT_ID: context.project.id,
-    CI_RUNNER: context.session.runner!, // Already validated in validateAndFetchPipelineContext
+    RUNNER_TYPE: context.session.runner!, // Already validated in validateAndFetchPipelineContext
     API_BASE_URL: apiBaseUrl,
     API_TOKEN: apiToken,
     ...aiEnvVars,
     ...repoVars,
-    ...proxyVars
+    ...proxyVars,
+    ...mockModeVars
+  }
+
+  // 🔍 DEBUG: Log pipeline variables being sent
+  logger.info(`🔍 DEBUG - Pipeline variables to be sent:`)
+  logger.info(`  RUNNER_TYPE = ${variables.RUNNER_TYPE}`)
+  logger.info(`  SESSION_ID = ${variables.SESSION_ID}`)
+  logger.info(`  PIPELINE_EXECUTION_ID = ${variables.PIPELINE_EXECUTION_ID}`)
+  if (variables.MOCK_MODE) {
+    logger.info(`  🎭 MOCK_MODE = ${variables.MOCK_MODE}`)
   }
 
   return { variables }
@@ -605,6 +623,14 @@ export async function triggerPipeline(
   try {
     // Validate and fetch all required context
     const context = await validateAndFetchPipelineContext(input.apiClient, input.sessionId)
+
+    // 🔍 DEBUG: Log session details
+    logger.info(`🔍 DEBUG - Session details:`)
+    logger.info(`  Session ID: ${context.session.id}`)
+    logger.info(`  Session runner: ${context.session.runner}`)
+    logger.info(`  Task ID: ${context.session.task_id}`)
+    logger.info(`  Task title: ${context.task.id}`)
+    logger.info(`  Will set RUNNER_TYPE to: ${context.session.runner}`)
 
     // Create pipeline execution record
     const createRes = await input.apiClient['pipeline-executions'].$post({

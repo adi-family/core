@@ -46,7 +46,7 @@ services:
   backend:
     build:
       context: .
-      dockerfile: backend/Dockerfile
+      dockerfile: packages/backend/Dockerfile
     container_name: adi-simple-backend
     depends_on:
       postgres:
@@ -76,7 +76,7 @@ services:
   client:
     build:
       context: .
-      dockerfile: client/Dockerfile
+      dockerfile: packages/client/Dockerfile
     container_name: adi-simple-client
     depends_on:
       migrations:
@@ -85,6 +85,48 @@ services:
       - NODE_ENV=production
       - BACKEND_URL=http://backend:3000
       - VITE_API_URL=/api
+    restart: unless-stopped
+
+  landing:
+    build:
+      context: .
+      dockerfile: packages/landing/Dockerfile
+    container_name: adi-simple-landing
+    depends_on:
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - NODE_ENV=production
+      - LANDING_PORT=3000
+    restart: unless-stopped
+
+  micros-task-ops:
+    build:
+      context: .
+      dockerfile: packages/micros-task-ops/Dockerfile
+    container_name: adi-simple-micros-task-ops
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-rabbit}:${RABBITMQ_PASS:-rabbit}@rabbitmq:5672
+      - NODE_ENV=production
+      - TASK_SYNC_INTERVAL_MINUTES=${TASK_SYNC_INTERVAL_MINUTES:-15}
+      - TASK_SYNC_THRESHOLD_MINUTES=${TASK_SYNC_THRESHOLD_MINUTES:-30}
+      - TASK_QUEUED_TIMEOUT_MINUTES=${TASK_QUEUED_TIMEOUT_MINUTES:-120}
+      - EVAL_INTERVAL_MINUTES=${EVAL_INTERVAL_MINUTES:-5}
+      - PIPELINE_POLL_INTERVAL_MS=${PIPELINE_POLL_INTERVAL_MS:-600000}
+      - PIPELINE_STATUS_TIMEOUT_MINUTES=${PIPELINE_STATUS_TIMEOUT_MINUTES:-30}
+      - STUCK_EVAL_CHECK_INTERVAL_MINUTES=${STUCK_EVAL_CHECK_INTERVAL_MINUTES:-15}
+      - STUCK_EVALUATION_TIMEOUT_MINUTES=${STUCK_EVALUATION_TIMEOUT_MINUTES:-60}
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - GITLAB_HOST=${GITLAB_HOST:-https://gitlab.com}
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY}
     restart: unless-stopped
 
 volumes:

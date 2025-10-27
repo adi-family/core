@@ -58,7 +58,11 @@ export async function evaluateTask(
       runner: 'evaluation'
     })
     result.sessionId = session.id
-    logger.info(`Created evaluation session: ${session.id}`)
+    logger.info(`🔍 DEBUG - Created evaluation session:`)
+    logger.info(`  Session ID: ${session.id}`)
+    logger.info(`  Runner type: ${session.runner}`)
+    logger.info(`  Task ID: ${session.task_id}`)
+    logger.info(`  Expected RUNNER_TYPE in pipeline: ${session.runner}`)
 
     // Update task with session ID and mark as evaluating
     await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'evaluating', session.id)

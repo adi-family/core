@@ -1,0 +1,366 @@
+export const metadata = {
+  title: "Getting Started with ADI: From Zero to Autonomous in 5 Minutes",
+  description: "A practical guide to setting up ADI: connect GitLab, add your API keys, configure task sources, and watch your first autonomous implementation.",
+  date: "2025-10-27",
+  author: "ADI Team",
+  tags: ["guide", "setup", "quickstart"],
+  image: "/interview-image.png"
+};
+
+# Getting Started with ADI: From Zero to Autonomous in 5 Minutes
+
+No long tutorials. No complex configuration. Just four steps between you and autonomous task implementation.
+
+## What You'll Need
+
+Before you start, make sure you have:
+
+- **GitLab account** (GitHub support coming Q2 2026)
+- **AI API key** - At least one of:
+  - Anthropic API key (Claude) - [Get one here](https://console.anthropic.com/)
+  - OpenAI API key (GPT-4/Codex) - [Get one here](https://platform.openai.com/api-keys)
+  - Google AI API key (Gemini) - [Get one here](https://aistudio.google.com/app/apikey)
+- **Task source** - One of:
+  - Jira workspace access
+  - Linear workspace access
+  - GitLab project with issues
+  - GitHub project with issues (coming soon)
+
+**Time estimate:** 5 minutes
+
+**Cost:** Free during beta, then BYOK (you control AI spending)
+
+## Step 1: Connect Your GitLab Account
+
+1. Visit [the-ihor.com](https://the-ihor.com)
+2. Click **"Activate ADI"**
+3. Authorize ADI to access your GitLab account
+4. Grant permissions:
+   - Read repository information
+   - Write to repositories (for creating branches and MRs)
+   - Access CI/CD variables (for secure API key storage)
+   - Create merge requests
+
+**Why these permissions?**
+- ADI needs repo access to read code and create implementation branches
+- CI/CD variable access allows secure storage of your API keys
+- MR creation is how ADI delivers completed work
+
+**Security note:** ADI uses OAuth. We never see your GitLab password.
+
+## Step 2: Add Your API Keys (BYOK)
+
+ADI uses a **Bring Your Own Key** model. You provide the AI API keys, ADI uses them to implement your tasks.
+
+### Why BYOK?
+
+- **Full cost transparency** - You see exactly what you spend on AI
+- **Data control** - Your API keys, your usage, your data
+- **Flexibility** - Switch providers, adjust limits, cancel anytime
+
+### Adding Your Keys
+
+1. In ADI dashboard, navigate to **Settings → API Keys**
+2. Add at least one provider:
+
+**Anthropic (Claude) - Recommended:**
+```
+Key Name: Anthropic
+API Key: sk-ant-api03-...
+```
+
+**OpenAI (GPT-4/Codex):**
+```
+Key Name: OpenAI
+API Key: sk-proj-...
+```
+
+**Google (Gemini):**
+```
+Key Name: Google AI
+API Key: AIza...
+```
+
+3. Click **"Test Connection"** to verify each key works
+4. Save
+
+**Pro tip:** Start with one provider. ADI will auto-select the best model per task. You can add more providers later.
+
+### Expected Costs
+
+Based on real usage:
+
+- **Simple bug fix:** $0.15 - $0.30
+- **Feature implementation:** $0.40 - $0.80
+- **Technical debt cleanup:** $0.20 - $0.50
+- **Evaluation only (rejected task):** $0.05 - $0.10
+
+Average monthly cost for active development: **$30-80** in AI API usage.
+
+Compare to developer time saved: **20-40 hours/month**.
+
+## Step 3: Configure Task Sources
+
+Tell ADI where to watch for tasks.
+
+### Option A: Jira
+
+1. Go to **Settings → Task Sources**
+2. Click **"Add Jira Integration"**
+3. Enter:
+   - Jira workspace URL: `yourcompany.atlassian.net`
+   - API token: [Generate from Jira](https://id.atlassian.com/manage-profile/security/api-tokens)
+   - Project key: `PROJ` (or multiple: `PROJ,TEAM,ENG`)
+4. Configure auto-trigger:
+   - ✅ Trigger on: Status changed to "Ready for Dev"
+   - ✅ Only if: Labels include "ai-solvable"
+
+### Option B: Linear
+
+1. Click **"Add Linear Integration"**
+2. Authorize ADI to access Linear
+3. Select teams to monitor
+4. Configure auto-trigger:
+   - ✅ Trigger on: Status changed to "Todo"
+   - ✅ Only if: Labels include "auto-implement"
+
+### Option C: GitLab Issues
+
+1. Click **"Add GitLab Issues"**
+2. Select repositories to monitor
+3. Configure auto-trigger:
+   - ✅ Trigger on: Issue labeled "adi-auto"
+   - ✅ Only if: Issue assigned to ADI bot user
+
+### Option D: GitHub Issues (Coming Soon)
+
+GitHub integration is in active development, ETA Q2 2026.
+
+### Multiple Sources?
+
+You can connect all of them. ADI monitors everything and processes tasks from any configured source.
+
+## Step 4: Create Your First Task
+
+Let's test the setup with a simple task.
+
+### Writing a Good Task
+
+ADI works best with clear, specific tasks. Think: "briefing a competent junior developer."
+
+**Example Good Task:**
+
+```
+Title: Add health check endpoint to API
+
+Description:
+Create GET /api/health endpoint that returns:
+- Status: "ok"
+- Timestamp: current ISO datetime
+- Version: from package.json
+
+Follow existing controller patterns in src/controllers/.
+Include test coverage.
+```
+
+**Why this works:**
+- Clear deliverable (new endpoint)
+- Specific requirements (what to return)
+- Context clues (where patterns live)
+- Success criteria (test coverage)
+
+### Create It in Your Task Source
+
+**In Jira:**
+1. Create new issue
+2. Set status to "Ready for Dev"
+3. Add label "ai-solvable"
+4. Save
+
+**In Linear:**
+1. Create new issue
+2. Set status to "Todo"
+3. Add label "auto-implement"
+4. Save
+
+**In GitLab:**
+1. Create new issue in configured repo
+2. Add label "adi-auto"
+3. Assign to ADI bot user
+4. Save
+
+### What Happens Next
+
+Within 60 seconds:
+
+1. **ADI picks up the task** from your task source
+2. **Evaluation starts** (2-phase analysis)
+   - Simple filter: Can this be automated?
+   - Deep evaluation: How should it be implemented?
+3. **You get notification:** "Task evaluation complete"
+4. Check ADI dashboard to see evaluation result
+
+If evaluation passes:
+
+5. **Implementation pipeline starts**
+6. **ADI implements the task** (usually 4-12 minutes)
+7. **Merge request created** in GitLab
+8. **You get notification:** "MR ready for review"
+
+If evaluation fails:
+
+5. **You get notification** with rejection reason
+6. Task stays in your backlog for manual implementation
+
+## Step 5: Review Your First Merge Request
+
+When implementation completes:
+
+1. **Open the MR** from notification link
+2. **Review the changes:**
+   - Code diff
+   - Implementation approach
+   - Test coverage
+   - CI pipeline status (all checks should pass)
+3. **Check the MR description:**
+   - Summary of changes
+   - Files modified
+   - Cost breakdown
+   - Iterations count
+4. **Approve or request changes**
+
+### If It Looks Good:
+Click **"Merge"**. Done. Task complete.
+
+### If Changes Needed:
+Add review comments in MR. ADI won't auto-respond to comments (yet), so either:
+- Make small fixes yourself
+- Create new task with specific change requests
+
+## Monitoring and Metrics
+
+### Dashboard Overview
+
+Your ADI dashboard shows:
+
+- **Tasks processed** (last 7 days, 30 days, all time)
+- **Success rate** (% of evaluated tasks implemented)
+- **Cost breakdown** (per task, per month)
+- **Time saved** (estimated developer hours)
+- **Active pipelines** (currently running)
+
+### Usage Tracking
+
+Every task creates usage records:
+
+```
+Task: Add health check endpoint
+├─ Evaluation
+│  ├─ Simple filter: $0.02 (0.5s)
+│  └─ Deep agentic: $0.08 (12s)
+├─ Implementation: $0.28 (6m 40s)
+└─ Total: $0.38
+```
+
+Full transparency. You see every API call, every token, every dollar.
+
+## Advanced Configuration (Optional)
+
+Once you're comfortable with basics:
+
+### GitLab Runner Tags
+
+ADI uses GitLab CI runners. You can specify custom runner tags in settings:
+
+```
+Evaluation pipeline: evaluation
+Implementation pipeline: claude, codex, gemini
+```
+
+This lets you use different runners for different AI providers or workload types.
+
+### API Rate Limits
+
+Set monthly spending limits to avoid surprise bills:
+
+```
+Max monthly AI spend: $100
+Action when limit reached: Pause new tasks
+```
+
+### Webhook Notifications
+
+Get notified via webhook for pipeline events:
+
+```
+Webhook URL: https://yourapp.com/adi-webhook
+Events: evaluation_complete, implementation_complete, pipeline_failed
+```
+
+## Troubleshooting
+
+### "Evaluation rejected my task"
+
+**Common reasons:**
+- Task description too vague
+- Requires human judgment (design, UX)
+- Missing context (which repo? which feature?)
+
+**Fix:** Make the task more specific, add context.
+
+### "Pipeline failed during implementation"
+
+**Check:**
+1. ADI dashboard → Pipeline logs
+2. Look for error in execution phase
+3. Common issues:
+   - Missing dependencies
+   - Test failures (ADI iterates, but may hit limit)
+   - API rate limits
+
+**Fix:** Review error, update task requirements if needed.
+
+### "MR created but code quality is poor"
+
+**Remember:** ADI follows patterns in your codebase. If it's producing poor code, check:
+1. Are existing patterns clear and consistent?
+2. Are tests present to guide implementation?
+3. Was the task specific enough?
+
+**Improve:** Add better examples in codebase, write clearer tasks.
+
+## Best Practices for Success
+
+### 1. Start Small
+First 5-10 tasks should be simple, well-scoped. Build confidence.
+
+### 2. Write Specific Tasks
+"Add X endpoint following Y pattern" beats "improve the API."
+
+### 3. Maintain Good Codebase Patterns
+ADI learns from your code. Clean patterns = better output.
+
+### 4. Review Thoroughly at First
+Until you trust ADI's output, review every line. You'll learn its strengths and weaknesses.
+
+### 5. Label Tasks Appropriately
+Not everything should be auto-triggered. Use labels deliberately.
+
+## What's Next?
+
+Now that you're set up:
+
+1. **Create 3-5 simple tasks** to test the flow
+2. **Review the MRs** to understand ADI's output quality
+3. **Adjust your task writing** based on results
+4. **Expand to more task sources** once comfortable
+5. **Monitor costs** and ROI
+
+**Need help?**
+- [Read the technical deep-dive](/articles/how-adi-works)
+- [Understand what ADI solves](/articles/what-adi-solves)
+- [Join the community](https://discord.gg/adi) (Discord link TBD)
+
+---
+
+*Ready to activate ADI? [Start here](https://the-ihor.com) with $100 free credit. First 5 tasks are on us.*

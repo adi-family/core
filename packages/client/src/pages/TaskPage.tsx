@@ -192,6 +192,34 @@ export function TaskPage() {
     )
   }
 
+  const handleStartImplementation = async () => {
+    if (!task) return
+
+    const token = await getToken()
+
+    await apiCall(
+      () => fetch(`${API_BASE}/tasks/${task.id}/implement`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+      }),
+      {
+        onSuccess: async () => {
+          toast.success('Implementation started successfully!')
+          // Refetch task data
+          const res = await client.tasks[":id"].$get({ param: { id: id! } })
+          if (res.ok) {
+            const taskData = await res.json()
+            setTask(taskData)
+          }
+        },
+        onError: (error) => toast.error(`Failed to start implementation: ${error}`)
+      }
+    )
+  }
+
   const steps = [
     {
       id: "sync",
@@ -204,6 +232,12 @@ export function TaskPage() {
       label: "Evaluation",
       status: task?.ai_evaluation_status || "pending",
       onRetry: handleRetryEvaluation,
+    },
+    {
+      id: "implementation",
+      label: "Implementation",
+      status: task?.ai_implementation_status || "pending",
+      onRetry: undefined,
     },
     {
       id: "task",
@@ -251,15 +285,28 @@ export function TaskPage() {
           <ArrowLeft className="h-4 w-4 mr-2" />
           Back to Tasks
         </Button>
-        <Button
-          onClick={handleRetryEvaluation}
-          variant="default"
-          size="sm"
-          className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white hover:opacity-90"
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Reevaluate Task
-        </Button>
+        <div className="flex gap-2">
+          {/* Re-evaluate button - always shown */}
+          <Button
+            onClick={handleRetryEvaluation}
+            variant="outline"
+            size="sm"
+            className="border-purple-500 text-purple-600 hover:bg-purple-50"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Re-evaluate
+          </Button>
+          {/* Re-implement button - always shown */}
+          <Button
+            onClick={handleStartImplementation}
+            variant="outline"
+            size="sm"
+            className="border-accent-teal text-accent-teal hover:bg-teal-50"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Re-implement
+          </Button>
+        </div>
       </div>
 
       {/* Task Details Card */}
@@ -350,6 +397,15 @@ export function TaskPage() {
               </h3>
               <Badge variant="gray" className="text-sm">
                 {task.ai_evaluation_status}
+              </Badge>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wide mb-2">
+                AI Implementation Status
+              </h3>
+              <Badge variant="gray" className="text-sm">
+                {task.ai_implementation_status}
               </Badge>
             </div>
 

@@ -43,7 +43,7 @@ export function AdminPage() {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
 
-  const [activeTab, setActiveTab] = useState<'repositories' | 'usage'>('repositories')
+  const [activeTab, setActiveTab] = useState<'repositories' | 'usage' | 'operations'>('repositories')
   const [repositories, setRepositories] = useState<WorkerRepository[]>([])
   const [loading, setLoading] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
@@ -53,6 +53,10 @@ export function AdminPage() {
   // Usage metrics state
   const [usageMetrics, setUsageMetrics] = useState<ApiUsageMetric[]>([])
   const [usageLoading, setUsageLoading] = useState(false)
+
+  // Operations state
+  const [opsLoading, setOpsLoading] = useState<string | null>(null)
+  const [opsResult, setOpsResult] = useState<{ type: string; message: string; success: boolean } | null>(null)
 
   // Load worker repositories
   const loadRepositories = async () => {
@@ -130,6 +134,41 @@ export function AdminPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab])
 
+  // Operations handlers
+  const handleOperation = async (operation: string) => {
+    setOpsLoading(operation)
+    setOpsResult(null)
+    setError(null)
+
+    try {
+      const response = await client.admin.operations[operation as 'check-stale-pipelines' | 'recover-stuck-tasks' | 'create-missing-worker-repos'].$post({})
+      if (response.ok) {
+        const data = await response.json()
+        setOpsResult({
+          type: operation,
+          message: data.message || 'Operation completed successfully',
+          success: true
+        })
+        // For create-missing-worker-repos, reload repositories after a delay
+        // to give the background process time to complete
+        if (operation === 'create-missing-worker-repos') {
+          setTimeout(() => {
+            if (activeTab === 'repositories') {
+              loadRepositories()
+            }
+          }, 5000) // Wait 5 seconds before reloading
+        }
+      } else {
+        const errorData = await response.json()
+        setError(errorData.error || `Failed to execute ${operation}`)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error')
+    } finally {
+      setOpsLoading(null)
+    }
+  }
+
   // Calculate totals
   const totals = useMemo(() => {
     if (usageMetrics.length === 0) {
@@ -182,6 +221,16 @@ export function AdminPage() {
             }`}
           >
             API Usage
+          </button>
+          <button
+            onClick={() => setActiveTab('operations')}
+            className={`pb-4 px-2 font-medium border-b-2 transition-colors ${
+              activeTab === 'operations'
+                ? 'border-blue-600 text-blue-600'
+                : 'border-transparent text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            Operations
           </button>
         </div>
       </div>
@@ -355,6 +404,105 @@ export function AdminPage() {
           </li>
         </ul>
       </div>
+      </div>)}
+
+      {/* Operations Tab */}
+      {activeTab === 'operations' && (<div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold mb-1">System Operations</h2>
+            <p className="text-sm text-gray-600">
+              Trigger maintenance and monitoring tasks manually
+            </p>
+          </div>
+
+          {error && (
+            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+              <p className="text-sm text-red-800">{error}</p>
+            </div>
+          )}
+
+          {opsResult && (
+            <div className={`mb-4 p-4 rounded-md ${
+              opsResult.success
+                ? 'bg-green-50 border border-green-200'
+                : 'bg-red-50 border border-red-200'
+            }`}>
+              <h3 className="font-semibold mb-1">
+                {opsResult.success ? '✅ Success' : '❌ Failed'}
+              </h3>
+              <p className="text-sm">{opsResult.message}</p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Check Stale Pipelines */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Check Stale Pipelines</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Poll GitLab for pipeline status updates and sync them to the database. Updates tasks that have completed pipelines.
+              </p>
+              <button
+                onClick={() => handleOperation('check-stale-pipelines')}
+                disabled={opsLoading === 'check-stale-pipelines'}
+                className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {opsLoading === 'check-stale-pipelines' ? 'Running...' : 'Run Now'}
+              </button>
+            </div>
+
+            {/* Recover Stuck Tasks */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Recover Stuck Tasks</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Find tasks stuck in evaluating/implementing state and recover them based on their pipeline status.
+              </p>
+              <button
+                onClick={() => handleOperation('recover-stuck-tasks')}
+                disabled={opsLoading === 'recover-stuck-tasks'}
+                className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {opsLoading === 'recover-stuck-tasks' ? 'Running...' : 'Run Now'}
+              </button>
+            </div>
+
+            {/* Create Missing Worker Repositories */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <h3 className="font-semibold mb-2">Create Missing Worker Repositories</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Find projects without worker repositories and create them automatically. Runs in background. Check server logs for progress.
+              </p>
+              <button
+                onClick={() => handleOperation('create-missing-worker-repos')}
+                disabled={opsLoading === 'create-missing-worker-repos'}
+                className="w-full px-4 py-2 text-sm bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {opsLoading === 'create-missing-worker-repos' ? 'Starting...' : 'Create Missing Repos'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Info Panel */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <h3 className="font-semibold text-blue-900 mb-2">
+            About Operations
+          </h3>
+          <ul className="text-sm text-blue-800 space-y-1">
+            <li>
+              • <strong>Check Stale Pipelines:</strong> Normally runs every 10 minutes automatically. Use this to force an immediate check.
+            </li>
+            <li>
+              • <strong>Recover Stuck Tasks:</strong> Finds tasks that have been in evaluating/implementing status for too long and attempts to recover them.
+            </li>
+            <li>
+              • <strong>Create Missing Worker Repositories:</strong> Runs in the background. Check server logs for detailed progress. Repositories list will auto-refresh after 5 seconds.
+            </li>
+            <li>
+              • These operations are safe to run multiple times and will not duplicate work.
+            </li>
+          </ul>
+        </div>
       </div>)}
 
       {/* API Usage Tab */}

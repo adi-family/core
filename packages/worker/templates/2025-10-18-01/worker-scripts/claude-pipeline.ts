@@ -9,6 +9,7 @@ import { exec as execCallback } from 'child_process'
 import { createLogger } from './shared/logger'
 import { basename } from 'path'
 import { query } from '@anthropic-ai/claude-agent-sdk'
+import { pushToFileSpaces } from './push-to-file-spaces'
 
 const exec = promisify(execCallback)
 const logger = createLogger({ namespace: 'claude-pipeline' })
@@ -38,17 +39,12 @@ async function processWorkspaces(workspacesDir: string): Promise<WorkspaceData[]
 
 /**
  * Process a single workspace directory to extract git repository information
+ * and prepare it for implementation by creating a task-specific branch
  * @param path - Absolute path to the workspace directory
+ * @param taskId - Task ID to create branch name (required for implementation)
  * @returns Workspace data including path, directory name, repository URL, and current branch
  */
-async function processWorkspace(path: string): Promise<WorkspaceData> {
-  // Pull latest changes
-  await exec(`cd ${path} && git pull`)
-
-  // Get current branch name
-  const { stdout: branchOutput } = await exec(`cd ${path} && git branch --show-current`)
-  const branch = branchOutput.trim()
-
+async function processWorkspace(path: string, taskId?: string): Promise<WorkspaceData> {
   // Get remote repository URL
   const { stdout: remoteOutput } = await exec(`cd ${path} && git remote get-url origin`)
   const rep = remoteOutput.trim()
@@ -56,11 +52,50 @@ async function processWorkspace(path: string): Promise<WorkspaceData> {
   // Extract directory name from path
   const dirName = basename(path)
 
+  // If no taskId provided, just return current state (used for workspace discovery only)
+  // NOTE: For actual implementation, taskId MUST be provided
+  if (!taskId) {
+    const { stdout: branchOutput } = await exec(`cd ${path} && git branch --show-current`)
+    const branch = branchOutput.trim() || 'detached'
+    return { path, dirName, rep, branch }
+  }
+
+  // Fetch latest changes
+  logger.info(`  Fetching latest changes...`)
+  await exec(`cd ${path} && git fetch origin`)
+
+  // Detect default branch (main or master)
+  let defaultBranch = 'main'
+  try {
+    await exec(`cd ${path} && git rev-parse --verify origin/main`)
+  } catch {
+    defaultBranch = 'master'
+  }
+
+  // Checkout default branch (from detached HEAD if needed)
+  logger.info(`  Checking out ${defaultBranch}...`)
+  await exec(`cd ${path} && git checkout ${defaultBranch}`)
+  await exec(`cd ${path} && git pull origin ${defaultBranch}`)
+
+  // Create task-specific branch
+  const taskBranch = `adi/task-${taskId}`
+  logger.info(`  Creating task branch: ${taskBranch}`)
+
+  try {
+    // Delete branch if it exists (in case of retry)
+    await exec(`cd ${path} && git branch -D ${taskBranch} 2>/dev/null || true`)
+  } catch {
+    // Ignore errors if branch doesn't exist
+  }
+
+  await exec(`cd ${path} && git checkout -b ${taskBranch}`)
+  logger.info(`  ✓ Ready on branch: ${taskBranch}`)
+
   return {
     path,
     dirName,
     rep,
-    branch,
+    branch: taskBranch,
   }
 }
 
@@ -81,6 +116,68 @@ async function executeClaudeAgent(
   let cost = 0
   let iterations = 0
   const implementationStart = Date.now()
+
+  // Check for MOCK_MODE environment variable
+  if (process.env.MOCK_MODE === 'true') {
+    logger.info('🎭 MOCK MODE ENABLED - Returning mock data instead of real AI calls')
+
+    // Generate mock data
+    const mockOutput = {
+      type: 'assistant',
+      message: {
+        role: 'assistant',
+        content: [
+          {
+            type: 'text',
+            text: `Mock implementation completed for task:\n\n${prompt.substring(0, 200)}...\n\nThis is a mock response generated without calling the real Claude API. The task would be processed here.`
+          }
+        ]
+      }
+    }
+
+    output = JSON.stringify(mockOutput) + '\n'
+    output += `\n\nFinal Result: Mock implementation completed successfully`
+    iterations = 1
+    cost = 0.0001 // Mock minimal cost
+
+    // Make a small change to README.md in the workspace for testing
+    logger.info('📝 Making test change to README.md in workspace...')
+    try {
+      const readmePath = `${workspacePath}/README.md`
+      const { stdout: readmeContent } = await exec(`cat "${readmePath}" 2>/dev/null || echo "# README"`)
+      const timestamp = new Date().toISOString()
+      const updatedContent = readmeContent.trim() + `\n\n<!-- Mock test change: ${timestamp} -->\n`
+      await writeFile(readmePath, updatedContent, 'utf-8')
+      logger.info(`  ✓ Updated README.md`)
+    } catch (error) {
+      logger.warn(`  ⚠️  Could not update README.md: ${error instanceof Error ? error.message : String(error)}`)
+    }
+
+    // Create mock usage data
+    const implementationUsage = {
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      goal: 'implementation',
+      phase: 'implementation',
+      input_tokens: 1000,
+      output_tokens: 500,
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      ci_duration_seconds: 1,
+      iteration_number: iterations,
+      metadata: { iterations, sdk_cost_usd: cost, mock: true }
+    }
+
+    await writeFile(
+      '../results/implementation-usage.json',
+      JSON.stringify(implementationUsage, null, 2),
+      'utf-8'
+    )
+    logger.info('📊 Mock implementation usage tracked')
+    logger.info('✓ Mock mode execution completed')
+
+    return { output, errors, cost, iterations }
+  }
 
   try {
     logger.info('🤖 Starting Claude Agent SDK...')
@@ -205,10 +302,22 @@ async function main() {
     const task = await apiClient.getTask(session.task_id)
     logger.info(`✓ Task loaded: ${task.title}`)
 
+    // Validate task has an ID
+    if (!task.id) {
+      throw new Error('Task has no ID - cannot create implementation branch')
+    }
+
     // Read available workspaces from disk (already synced as git submodules)
     const workspacesPath = '../workspaces'
     const workspaces = await processWorkspaces(workspacesPath)
     const availableWorkspaces = workspaces.map(ws => ws.dirName)
+
+    // Prepare workspaces for implementation (create task branches)
+    logger.info('\n🔧 Preparing workspaces for implementation...')
+    for (const ws of workspaces) {
+      logger.info(`\n📦 Preparing: ${ws.dirName}`)
+      await processWorkspace(ws.path, task.id)
+    }
 
     // Create results directory
     await mkdir('../results', { recursive: true })
@@ -287,6 +396,18 @@ async function main() {
       logger.info('✓ No clarification needed')
     }
 
+    // Push changes to file spaces and create merge requests
+    let pushResult = null
+    try {
+      logger.info('🚀 Pushing changes to file spaces...')
+      pushResult = await pushToFileSpaces()
+      logger.info(`✓ Push completed: ${pushResult.mergeRequests.length} MR(s) created`)
+    } catch (error) {
+      logger.error('❌ Failed to push to file spaces:', error)
+      logger.error(error instanceof Error ? error.message : String(error))
+      // Continue even if push fails - we'll save results anyway
+    }
+
     // Save results for report stage
     await Bun.write(
       '../results/output.json',
@@ -297,6 +418,7 @@ async function main() {
           agentResults,
           completionCheck,
           clarificationCheck,
+          pushResult,
         },
         null,
         2

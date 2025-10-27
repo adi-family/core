@@ -65,6 +65,43 @@ async function simpleEvaluation(task: { title: string; description: string | nul
   logger.info('🔍 Phase 1: Running simple evaluation filter...')
 
   const pipelineStart = Date.now()
+
+  // Check for MOCK_MODE environment variable
+  if (process.env.MOCK_MODE === 'true') {
+    logger.info('🎭 MOCK MODE ENABLED - Returning mock simple evaluation')
+
+    const mockResult = {
+      should_evaluate: true,
+      clarity_score: 85,
+      has_acceptance_criteria: true,
+      auto_reject_reason: null
+    }
+
+    // Create mock usage data
+    const simpleUsage = {
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      goal: 'evaluation',
+      phase: 'simple_eval',
+      input_tokens: 500,
+      output_tokens: 100,
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      ci_duration_seconds: 1,
+      metadata: { mock: true }
+    }
+
+    await writeFile(
+      '../results/simple-usage.json',
+      JSON.stringify(simpleUsage, null, 2),
+      'utf-8'
+    )
+    logger.info('📊 Mock simple evaluation usage tracked')
+    logger.info('✓ Mock simple evaluation completed')
+
+    return mockResult
+  }
+
   const anthropic = createAnthropicClient()
 
   const prompt = `You are a quick filter for automated task evaluation. Your job is to REJECT tasks that cannot be solved by an autonomous agent.
@@ -165,6 +202,103 @@ async function agenticEvaluation(
   report: string
 }> {
   logger.info('🔬 Phase 2: Running deep agentic evaluation...')
+
+  // Check for MOCK_MODE environment variable
+  if (process.env.MOCK_MODE === 'true') {
+    logger.info('🎭 MOCK MODE ENABLED - Returning mock agentic evaluation')
+
+    const mockVerdict = {
+      can_implement: true,
+      confidence: 80,
+      agent_instructions: {
+        required_context_files: [
+          'src/example.ts:1-50',
+          'src/models/user.ts:10-30'
+        ],
+        suggested_steps: [
+          'Analyze existing implementation patterns',
+          'Create new feature following established conventions',
+          'Add appropriate tests'
+        ],
+        follow_patterns_from: [
+          'src/features/similar-feature.ts:20-100'
+        ]
+      },
+      missing_information: [],
+      blockers: [],
+      risks: ['Standard implementation risks apply']
+    }
+
+    const mockReport = `# Mock Evaluation Report
+
+## Task
+**Title:** ${task.title}
+**Description:** ${task.description || 'No description'}
+
+## Verdict
+This is a mock evaluation report generated in MOCK_MODE.
+
+### Can Implement
+Yes (Confidence: 80%)
+
+### Required Context Files
+- src/example.ts:1-50
+- src/models/user.ts:10-30
+
+### Suggested Steps
+1. Analyze existing implementation patterns
+2. Create new feature following established conventions
+3. Add appropriate tests
+
+### Patterns to Follow
+- src/features/similar-feature.ts:20-100
+
+### Risks
+- Standard implementation risks apply
+
+---
+*Generated in MOCK_MODE - no real codebase analysis performed*
+`
+
+    // Create mock files
+    await writeFile(
+      '../results/agentic-verdict.json',
+      JSON.stringify(mockVerdict, null, 2),
+      'utf-8'
+    )
+
+    await writeFile(
+      '../results/evaluation-report.md',
+      mockReport,
+      'utf-8'
+    )
+
+    // Create mock usage data
+    const agenticUsage = {
+      provider: 'anthropic',
+      model: 'claude-sonnet-4-5',
+      goal: 'evaluation',
+      phase: 'agentic_eval',
+      input_tokens: 2000,
+      output_tokens: 800,
+      cache_creation_input_tokens: 0,
+      cache_read_input_tokens: 0,
+      ci_duration_seconds: 1,
+      iteration_number: 1,
+      metadata: { iterations: 1, sdk_cost_usd: 0.0001, mock: true }
+    }
+
+    await writeFile(
+      '../results/agentic-usage.json',
+      JSON.stringify(agenticUsage, null, 2),
+      'utf-8'
+    )
+
+    logger.info('📊 Mock agentic evaluation usage tracked')
+    logger.info('✓ Mock agentic evaluation completed')
+
+    return { verdict: mockVerdict, report: mockReport }
+  }
 
   // Check for workspace repositories (submodules)
   const workspacesPath = '../workspaces'
