@@ -11,14 +11,16 @@ import {
 import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
 import { Button } from '@adi-simple/ui/button'
-import { Select } from '@adi-simple/ui/select'
 import { ProjectSelect } from '@adi-simple/ui/project-select'
 import { SecretSelect } from "@/components/SecretSelect"
 import { GitlabTaskSourceConfig } from "@/components/GitlabTaskSourceConfig"
 import { JiraSecretAutocomplete } from '@adi-simple/ui/jira-secret-autocomplete'
+import { GitLabIcon } from '@adi-simple/ui/gitlab-icon'
+import { GitHubIcon } from '@adi-simple/ui/github-icon'
+import { JiraIcon } from '@adi-simple/ui/jira-icon'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateTaskSourceInput } from "../../../types"
-import { ChevronRight, ChevronLeft, Check } from "lucide-react"
+import { ChevronRight, ChevronLeft, Check, ArrowRight } from "lucide-react"
 
 type TaskSourceType = 'gitlab_issues' | 'jira' | 'github_issues'
 
@@ -37,10 +39,11 @@ type GithubIssuesConfig = {
 }
 
 type JiraConfig = {
-  project_key: string
+  project_key?: string
   jql_filter?: string
   host: string
   access_token_secret_id?: string
+  cloud_id?: string
 }
 
 type Step = {
@@ -189,10 +192,12 @@ export function TaskSourceMultistageForm() {
     }))
   }
 
-  const canProceedFromStep = (step: number): boolean => {
+  const canProceedFromStep = (step: number, overrideProjectId?: string): boolean => {
     switch (step) {
-      case 1:
-        return formData.project_id !== ""
+      case 1: {
+        const projectId = overrideProjectId ?? formData.project_id
+        return projectId !== ""
+      }
       case 2:
         return true
       case 3:
@@ -201,15 +206,15 @@ export function TaskSourceMultistageForm() {
         } else if (formData.type === "github_issues") {
           return githubConfig.repo !== ""
         } else {
-          return jiraConfig.host !== "" && jiraConfig.project_key !== "" && jiraConfig.access_token_secret_id !== ""
+          return jiraConfig.host !== "" && jiraConfig.access_token_secret_id !== ""
         }
       default:
         return true
     }
   }
 
-  const handleNext = () => {
-    if (canProceedFromStep(currentStep)) {
+  const handleNext = (overrideProjectId?: string) => {
+    if (canProceedFromStep(currentStep, overrideProjectId)) {
       const nextStep = Math.min(currentStep + 1, STEPS.length)
       setCurrentStep(nextStep)
       setError(null)
@@ -315,7 +320,12 @@ export function TaskSourceMultistageForm() {
                 <ProjectSelect
                   client={client}
                   value={formData.project_id}
-                  onChange={(projectId) => handleInputChange("project_id", projectId)}
+                  onChange={(projectId) => {
+                    handleInputChange("project_id", projectId)
+                    // Auto-advance to next step after selecting project
+                    // Pass projectId directly since state hasn't updated yet
+                    setTimeout(() => handleNext(projectId), 100)
+                  }}
                   required
                 />
               </div>
@@ -323,72 +333,108 @@ export function TaskSourceMultistageForm() {
 
             {/* Step 2: Source Type */}
             {currentStep === 2 && (
-              <div className="space-y-6 animate-fadeIn">
-                <div className="space-y-2">
-                  <Label htmlFor="type" className="text-xs uppercase tracking-wide text-gray-200">
-                    TYPE
-                  </Label>
-                  <Select
-                    id="type"
-                    value={formData.type}
-                    onChange={(e) => handleInputChange("type", e.target.value as TaskSourceType)}
-                    required
-                  >
-                    <option value="gitlab_issues">GitLab Issues</option>
-                    <option value="github_issues">GitHub Issues</option>
-                    <option value="jira">Jira</option>
-                  </Select>
+              <div className="space-y-8 animate-fadeIn">
+                <div className="text-center space-y-2">
+                  <h3 className="text-2xl font-bold text-gray-100">Choose Your Integration</h3>
+                  <p className="text-sm text-gray-400">Select a platform to sync your tasks and issues</p>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* GitLab Card */}
                   <button
                     type="button"
-                    onClick={() => handleInputChange("type", "gitlab_issues")}
-                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg ${
-                      formData.type === "gitlab_issues"
-                        ? "border-orange-500 bg-orange-500/20 shadow-md scale-[1.02]"
-                        : "border-slate-600 bg-slate-700/50"
-                    }`}
+                    onClick={() => {
+                      handleInputChange("type", "gitlab_issues")
+                      handleNext()
+                    }}
+                    className="group relative overflow-hidden rounded-xl border-2 border-orange-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-8 transition-all duration-300 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/20 cursor-pointer"
                   >
-                    <div className="text-center">
-                      <div className="text-lg font-medium uppercase tracking-wide mb-2 text-gray-100">GitLab</div>
-                      <div className="text-xs text-gray-400">Issue tracking integration</div>
-                    </div>
-                  </button>
+                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-                  <button
-                    type="button"
-                    onClick={() => handleInputChange("type", "github_issues")}
-                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg opacity-60 cursor-not-allowed ${
-                      formData.type === "github_issues"
-                        ? "border-purple-500 bg-purple-500/20 shadow-md scale-[1.02]"
-                        : "border-slate-600 bg-slate-700/30"
-                    }`}
-                    disabled
-                  >
-                    <div className="text-center">
-                      <div className="flex items-center justify-center gap-2 mb-2">
-                        <div className="text-lg font-medium uppercase tracking-wide text-gray-100">GitHub</div>
-                        <span className="text-xs font-medium px-2 py-1 bg-amber-500/20 text-amber-400 rounded uppercase tracking-wide">
-                          Private Beta
-                        </span>
+                    <div className="relative flex flex-col items-center space-y-6">
+                      {/* Logo */}
+                      <div className="w-20 h-20 rounded-2xl bg-orange-500/10 flex items-center justify-center group-hover:bg-orange-500/20 transition-colors duration-300">
+                        <GitLabIcon className="w-12 h-12 text-orange-500" />
                       </div>
-                      <div className="text-xs text-gray-500">Available only in private beta</div>
+
+                      {/* Content */}
+                      <div className="space-y-3 text-center">
+                        <h4 className="text-2xl font-bold text-orange-400 group-hover:text-orange-300 transition-colors">GitLab</h4>
+                        <p className="text-sm text-gray-300 leading-relaxed">
+                          Sync issues and merge requests from GitLab repositories
+                        </p>
+                      </div>
+
+                      {/* Action hint */}
+                      <div className="flex items-center gap-2 text-xs text-orange-400/80 group-hover:text-orange-300 transition-colors">
+                        <span className="uppercase tracking-wider font-medium">Configure</span>
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
                     </div>
                   </button>
 
+                  {/* GitHub Card (Disabled) */}
                   <button
                     type="button"
-                    onClick={() => handleInputChange("type", "jira")}
-                    className={`p-6 border-2 transition-all duration-200 hover:shadow-lg ${
-                      formData.type === "jira"
-                        ? "border-blue-500 bg-blue-500/20 shadow-md scale-[1.02]"
-                        : "border-slate-600 bg-slate-700/50"
-                    }`}
+                    disabled
+                    className="relative overflow-hidden rounded-xl border-2 border-slate-700/50 bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-8 opacity-50 cursor-not-allowed"
                   >
-                    <div className="text-center">
-                      <div className="text-lg font-medium uppercase tracking-wide mb-2 text-gray-100">Jira</div>
-                      <div className="text-xs text-gray-400">Issue tracking integration</div>
+                    <div className="relative flex flex-col items-center space-y-6">
+                      {/* Logo */}
+                      <div className="w-20 h-20 rounded-2xl bg-slate-700/30 flex items-center justify-center">
+                        <GitHubIcon className="w-12 h-12 text-gray-500" />
+                      </div>
+
+                      {/* Content */}
+                      <div className="space-y-3 text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          <h4 className="text-2xl font-bold text-gray-500">GitHub</h4>
+                          <span className="text-xs font-semibold px-2.5 py-1 bg-amber-500/20 text-amber-400 rounded-full uppercase tracking-wide">
+                            Beta
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-500 leading-relaxed">
+                          Sync issues and pull requests from GitHub repositories
+                        </p>
+                      </div>
+
+                      {/* Disabled hint */}
+                      <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">
+                        Coming Soon
+                      </div>
+                    </div>
+                  </button>
+
+                  {/* Jira Card */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleInputChange("type", "jira")
+                      handleNext()
+                    }}
+                    className="group relative overflow-hidden rounded-xl border-2 border-blue-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-8 transition-all duration-300 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 cursor-pointer"
+                  >
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+
+                    <div className="relative flex flex-col items-center space-y-6">
+                      {/* Logo */}
+                      <div className="w-20 h-20 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors duration-300">
+                        <JiraIcon className="w-12 h-12 text-blue-500" />
+                      </div>
+
+                      {/* Content */}
+                      <div className="space-y-3 text-center">
+                        <h4 className="text-2xl font-bold text-blue-400 group-hover:text-blue-300 transition-colors">Jira</h4>
+                        <p className="text-sm text-gray-300 leading-relaxed">
+                          Sync tickets and epics from Jira projects
+                        </p>
+                      </div>
+
+                      {/* Action hint */}
+                      <div className="flex items-center gap-2 text-xs text-blue-400/80 group-hover:text-blue-300 transition-colors">
+                        <span className="uppercase tracking-wider font-medium">Configure</span>
+                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                      </div>
                     </div>
                   </button>
                 </div>
@@ -457,7 +503,7 @@ export function TaskSourceMultistageForm() {
 
                     <div className="space-y-2">
                       <Label htmlFor="jira_host" className="text-xs uppercase tracking-wide text-gray-200">
-                        HOST
+                        HOST {jiraConfig.cloud_id && "(AUTO-FILLED FROM OAUTH)"}
                       </Label>
                       <Input
                         id="jira_host"
@@ -466,7 +512,14 @@ export function TaskSourceMultistageForm() {
                         onChange={(e) => handleJiraConfigChange("host", e.target.value)}
                         required
                         placeholder="e.g., https://your-domain.atlassian.net"
+                        readOnly={!!jiraConfig.cloud_id}
+                        className={jiraConfig.cloud_id ? "bg-slate-700/50 cursor-not-allowed" : ""}
                       />
+                      {jiraConfig.cloud_id && (
+                        <p className="text-xs text-green-400">
+                          ✓ Host auto-filled from selected Jira site via OAuth
+                        </p>
+                      )}
                     </div>
 
                     <JiraSecretAutocomplete
@@ -480,25 +533,15 @@ export function TaskSourceMultistageForm() {
                       onCloudIdChange={(cloudId) => {
                         handleJiraConfigChange("cloud_id", cloudId)
                       }}
+                      onSiteSelected={(siteUrl, cloudId) => {
+                        handleJiraConfigChange("host", siteUrl)
+                        handleJiraConfigChange("cloud_id", cloudId)
+                      }}
                       label="JIRA API TOKEN (REQUIRED)"
                       required={true}
                       enableOAuth={true}
                       apiBaseUrl={API_BASE_URL}
                     />
-
-                    <div className="space-y-2">
-                      <Label htmlFor="jira_project_key" className="text-xs uppercase tracking-wide text-gray-200">
-                        PROJECT KEY
-                      </Label>
-                      <Input
-                        id="jira_project_key"
-                        type="text"
-                        value={jiraConfig.project_key}
-                        onChange={(e) => handleJiraConfigChange("project_key", e.target.value)}
-                        required
-                        placeholder="e.g., PROJ"
-                      />
-                    </div>
 
                     <div className="space-y-2">
                       <Label htmlFor="jira_jql_filter" className="text-xs uppercase tracking-wide text-gray-200">
@@ -509,8 +552,11 @@ export function TaskSourceMultistageForm() {
                         type="text"
                         value={jiraConfig.jql_filter || ""}
                         onChange={(e) => handleJiraConfigChange("jql_filter", e.target.value)}
-                        placeholder="e.g., labels = DOIT AND status != Done"
+                        placeholder="e.g., project = MYPROJ AND resolution = Unresolved"
                       />
+                      <p className="text-xs text-gray-400">
+                        Custom JQL query. Leave empty to use default: "resolution = Unresolved"
+                      </p>
                     </div>
                   </div>
                 )}

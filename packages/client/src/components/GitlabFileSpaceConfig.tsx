@@ -5,7 +5,7 @@ import { Label } from '@adi-simple/ui/label'
 import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocomplete'
 import { GitlabRepositorySelect } from '@adi-simple/ui/gitlab-repository-select'
 import { createAuthenticatedClient } from "@/lib/client"
-import type { GitlabFileSpaceConfig as GitlabFileSpaceConfigType } from "../../../types"
+import type { GitlabFileSpaceConfig as GitlabFileSpaceConfigType, Secret } from "../../../types"
 
 type GitlabFileSpaceConfigProps = {
   projectId: string
@@ -17,6 +17,8 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const [gitlabHost, setGitlabHost] = useState(config.host || "https://gitlab.com")
+  const [hostUnlocked, setHostUnlocked] = useState(config.host !== undefined && config.host !== "https://gitlab.com")
+  const [, setSelectedSecret] = useState<Secret | null>(null)
   const [selectedRepositoryId, setSelectedRepositoryId] = useState<number | null>(null)
 
   return (
@@ -24,9 +26,20 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
       <h3 className="text-xs uppercase tracking-wide font-medium">GITLAB FILE SPACE CONFIGURATION</h3>
 
       <div className="space-y-2">
-        <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide">
-          GITLAB HOST
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide">
+            GITLAB HOST
+          </Label>
+          {!hostUnlocked && (
+            <button
+              type="button"
+              onClick={() => setHostUnlocked(true)}
+              className="text-xs text-blue-500 hover:text-blue-600 hover:underline"
+            >
+              Customize GitLab URL
+            </button>
+          )}
+        </div>
         <Input
           id="gitlab_host"
           type="text"
@@ -35,7 +48,8 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
             setGitlabHost(e.target.value)
             onChange("host", e.target.value)
           }}
-          className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+          disabled={!hostUnlocked}
+          className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
           placeholder="https://gitlab.com"
         />
       </div>
