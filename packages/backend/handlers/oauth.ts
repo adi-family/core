@@ -146,18 +146,34 @@ export function createOAuthRoutes(db: Sql) {
         const resources = await resourcesResponse.json() as any[];
         logger.info('Fetched accessible Jira sites', { count: resources.length });
 
-        // Store OAuth token as secret
-        const secretResult = await secretQueries.createSecret(db, {
-          project_id: projectId,
-          name: secretName,
-          value: access_token,
-          description: `Jira OAuth token (auto-managed)${cloudId ? ` for cloud ID ${cloudId}` : ''}`,
-          oauth_provider: 'jira',
-          token_type: 'oauth',
-          refresh_token,
-          expires_at: expiresAt,
-          scopes: scope,
-        });
+        // Check if secret already exists
+        const existingSecretResult = await secretQueries.findSecretByProjectAndName(db, projectId, secretName);
+
+        let secretResult;
+        if (existingSecretResult.ok) {
+          // Update existing secret
+          logger.info('Updating existing Jira OAuth secret', { secretId: existingSecretResult.data.id });
+          secretResult = await secretQueries.updateSecret(db, existingSecretResult.data.id, {
+            value: access_token,
+            description: `Jira OAuth token (auto-managed)${cloudId ? ` for cloud ID ${cloudId}` : ''}`,
+            refresh_token,
+            expires_at: expiresAt,
+            scopes: scope,
+          });
+        } else {
+          // Create new secret
+          secretResult = await secretQueries.createSecret(db, {
+            project_id: projectId,
+            name: secretName,
+            value: access_token,
+            description: `Jira OAuth token (auto-managed)${cloudId ? ` for cloud ID ${cloudId}` : ''}`,
+            oauth_provider: 'jira',
+            token_type: 'oauth',
+            refresh_token,
+            expires_at: expiresAt,
+            scopes: scope,
+          });
+        }
 
         if (!secretResult.ok) {
           logger.error('Failed to store OAuth secret', { error: secretResult.error });
@@ -393,18 +409,34 @@ export function createOAuthRoutes(db: Sql) {
         const userData = await userResponse.json() as any;
         logger.info('GitLab OAuth successful', { username: userData.username, host });
 
-        // Store OAuth token as secret
-        const secretResult = await secretQueries.createSecret(db, {
-          project_id: projectId,
-          name: secretName,
-          value: access_token,
-          description: `GitLab OAuth token for ${userData.username} (auto-managed)`,
-          oauth_provider: 'gitlab',
-          token_type: 'oauth',
-          refresh_token,
-          expires_at: expiresAt,
-          scopes: scope,
-        });
+        // Check if secret already exists
+        const existingSecretResult = await secretQueries.findSecretByProjectAndName(db, projectId, secretName);
+
+        let secretResult;
+        if (existingSecretResult.ok) {
+          // Update existing secret
+          logger.info('Updating existing GitLab OAuth secret', { secretId: existingSecretResult.data.id });
+          secretResult = await secretQueries.updateSecret(db, existingSecretResult.data.id, {
+            value: access_token,
+            description: `GitLab OAuth token for ${userData.username} (auto-managed)`,
+            refresh_token,
+            expires_at: expiresAt,
+            scopes: scope,
+          });
+        } else {
+          // Create new secret
+          secretResult = await secretQueries.createSecret(db, {
+            project_id: projectId,
+            name: secretName,
+            value: access_token,
+            description: `GitLab OAuth token for ${userData.username} (auto-managed)`,
+            oauth_provider: 'gitlab',
+            token_type: 'oauth',
+            refresh_token,
+            expires_at: expiresAt,
+            scopes: scope,
+          });
+        }
 
         if (!secretResult.ok) {
           logger.error('Failed to store GitLab OAuth secret', { error: secretResult.error });
