@@ -113,11 +113,31 @@ export async function syncTaskSource(
             result.tasksCreated++
             logger.debug(`Created new task for issue ${issue.id}`)
 
-            // Queue evaluation for newly created tasks
+            // Queue evaluation for newly created tasks (check quota first)
             if (task.ai_evaluation_status === 'pending') {
               try {
-                await publishTaskEval({ taskId: task.id })
-                logger.debug(`Queued evaluation for new task ${task.id}`)
+                // Check quota before auto-queueing evaluation
+                const { getProjectOwnerId } = await import('@db/user-access')
+                const userId = await getProjectOwnerId(sql, project.id)
+
+                if (userId) {
+                  const { selectAIProviderForEvaluation, QuotaExceededError } = await import('@backend/services/ai-provider-selector')
+                  try {
+                    await selectAIProviderForEvaluation(sql, userId, project.id, 'simple')
+
+                    // Quota available - queue evaluation
+                    await publishTaskEval({ taskId: task.id })
+                    logger.debug(`Queued evaluation for new task ${task.id}`)
+                  } catch (quotaError) {
+                    if (quotaError instanceof QuotaExceededError) {
+                      logger.warn(`Skipping auto-evaluation for task ${task.id}: ${quotaError.message}`)
+                    } else {
+                      throw quotaError
+                    }
+                  }
+                } else {
+                  logger.warn(`No project owner found for project ${project.id}, skipping auto-evaluation for task ${task.id}`)
+                }
               } catch (evalError) {
                 logger.error(`Failed to queue evaluation for task ${task.id}:`, evalError)
               }

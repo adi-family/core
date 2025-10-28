@@ -86,13 +86,33 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         })
       }
 
-      // Automatically enqueue sync for newly created task source
-      logger.info(`Automatically enqueuing sync for newly created task source ${taskSource.id}`)
+      // Check quota before automatically enqueuing sync for newly created task source
+      // Sync will auto-queue evaluations for new tasks, so we verify quota exists
+      logger.info(`Checking quota before automatically enqueuing sync for newly created task source ${taskSource.id}`)
       try {
-        await syncTaskSource(sql, {
-          taskSourceId: taskSource.id
-        })
-        logger.info(`Successfully enqueued sync for task source ${taskSource.id}`)
+        const { getProjectOwnerId } = await import('../../db/user-access')
+        const ownerId = await getProjectOwnerId(sql, taskSource.project_id)
+
+        if (ownerId) {
+          const { selectAIProviderForEvaluation, QuotaExceededError } = await import('../services/ai-provider-selector')
+          try {
+            await selectAIProviderForEvaluation(sql, ownerId, taskSource.project_id, 'simple')
+
+            // Quota available - proceed with automatic sync
+            await syncTaskSource(sql, {
+              taskSourceId: taskSource.id
+            })
+            logger.info(`Successfully enqueued sync for task source ${taskSource.id}`)
+          } catch (quotaError) {
+            if (quotaError instanceof QuotaExceededError) {
+              logger.warn(`Skipping automatic sync for task source ${taskSource.id}: ${quotaError.message}`)
+            } else {
+              throw quotaError
+            }
+          }
+        } else {
+          logger.warn(`No project owner found for task source ${taskSource.id}, skipping automatic sync`)
+        }
       } catch (error) {
         logger.error(`Failed to enqueue sync for task source ${taskSource.id}:`, error)
         // Don't fail the creation if sync enqueue fails
@@ -160,6 +180,30 @@ export const createTaskSourceRoutes = (sql: Sql) => {
 
       if (!result.ok) {
         return c.json({ error: result.error }, 404)
+      }
+
+      const taskSource = result.data
+
+      // Check quota before syncing (sync automatically queues evaluations for new tasks)
+      const { getProjectOwnerId } = await import('../../db/user-access')
+      const userId = await getProjectOwnerId(sql, taskSource.project_id)
+
+      if (!userId) {
+        return c.json({ error: 'No project owner found' }, 400)
+      }
+
+      // Check if user has quota available for simple evaluation
+      // Sync will auto-queue evaluations for new tasks, so we verify quota exists
+      const { selectAIProviderForEvaluation, QuotaExceededError } = await import('../services/ai-provider-selector')
+      try {
+        await selectAIProviderForEvaluation(sql, userId, taskSource.project_id, 'simple')
+      } catch (error) {
+        if (error instanceof QuotaExceededError) {
+          return c.json({
+            error: `${error.message} Sync creates tasks that are automatically queued for evaluation.`
+          }, 429)
+        }
+        throw error
       }
 
       // Trigger orchestrator to fetch issues and publish to RabbitMQ

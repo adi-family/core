@@ -3,7 +3,7 @@ import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/tasks'
 import * as fileSpaceQueries from '../../db/file-spaces'
-import { idParamSchema, createTaskSchema, updateTaskSchema } from '../schemas'
+import { idParamSchema, createTaskSchema, updateTaskSchema, taskQuerySchema } from '../schemas'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { getClerkUserId } from '../middleware/clerk'
 import * as userAccessQueries from '../../db/user-access'
@@ -15,15 +15,25 @@ export const createTaskRoutes = (sql: Sql) => {
   const acl = createFluentACL(sql)
 
   return new Hono()
-    .get('/', async (c) => {
+    .get('/', zValidator('query', taskQuerySchema), async (c) => {
       const userId = getClerkUserId(c)
 
       if (!userId) {
         return c.json({ error: 'Authentication required' }, 401)
       }
 
+      const queryParams = c.req.valid('query')
       const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
-      const allTasks = await queries.findAllTasks(sql)
+
+      // Use server-side filtering and sorting
+      const allTasks = await queries.findTasksWithFilters(sql, {
+        project_id: queryParams.project_id,
+        task_source_id: queryParams.task_source_id,
+        evaluated_only: queryParams.evaluated_only,
+        sort_by: queryParams.sort_by
+      })
+
+      // Still need to filter by accessible projects for security
       const filtered = allTasks.filter(t => t.project_id && accessibleProjectIds.includes(t.project_id))
       return c.json(filtered)
     })
@@ -119,6 +129,32 @@ export const createTaskRoutes = (sql: Sql) => {
       const taskResult = await queries.findTaskById(sql, id)
       if (!taskResult.ok) {
         return c.json({ error: 'Task not found' }, 404)
+      }
+
+      const task = taskResult.data
+
+      // Check quota before queuing evaluation
+      if (!task.project_id) {
+        return c.json({ error: 'Task has no associated project' }, 400)
+      }
+
+      // Get project owner for quota checking
+      const { getProjectOwnerId } = await import('@db/user-access')
+      const userId = await getProjectOwnerId(sql, task.project_id)
+
+      if (!userId) {
+        return c.json({ error: 'No project owner found' }, 400)
+      }
+
+      // Check if user has quota available for simple evaluation
+      const { selectAIProviderForEvaluation, QuotaExceededError } = await import('@backend/services/ai-provider-selector')
+      try {
+        await selectAIProviderForEvaluation(sql, userId, task.project_id, 'simple')
+      } catch (error) {
+        if (error instanceof QuotaExceededError) {
+          return c.json({ error: error.message }, 429)
+        }
+        throw error
       }
 
       // Publish evaluation message to queue
