@@ -124,7 +124,7 @@ export function Combobox({
         placeholder={placeholder}
         required={required}
         className={cn(
-          "flex h-10 w-full border border-gray-300 bg-white/90 backdrop-blur-sm px-3 py-2 text-sm transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:border-blue-500 hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-50 shadow-sm focus-visible:shadow",
+          "flex h-10 w-full rounded-lg border border-slate-600/50 bg-slate-700/40 backdrop-blur-sm px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:border-blue-500 hover:border-slate-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 shadow-sm focus-visible:shadow-lg",
           className
         )}
         autoComplete="off"
@@ -134,7 +134,7 @@ export function Combobox({
         <Portal>
           <div
             data-combobox-dropdown
-            className="absolute border border-gray-200/60 bg-white/95 backdrop-blur-md shadow-lg max-h-60 overflow-auto"
+            className="absolute rounded-lg border border-slate-700/50 bg-slate-800/95 backdrop-blur-md shadow-xl max-h-60 overflow-auto"
             style={{
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
@@ -143,7 +143,7 @@ export function Combobox({
             }}
           >
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-2 text-sm text-gray-600">{emptyMessage}</div>
+              <div className="px-3 py-2 text-sm text-gray-400">{emptyMessage}</div>
             ) : (
               <div className="py-1">
                 {filteredOptions.map((option) => (
@@ -159,8 +159,8 @@ export function Combobox({
                       e.preventDefault()
                     }}
                     className={cn(
-                      "w-full px-3 py-2 text-left text-sm transition-all duration-200 hover:bg-gray-100/80 flex items-center gap-2",
-                      option.value === value && "bg-blue-50/80 text-blue-600 font-medium"
+                      "w-full px-3 py-2 text-left text-sm text-gray-200 transition-all duration-200 hover:bg-slate-700/80 flex items-center gap-2",
+                      option.value === value && "bg-blue-500/20 text-blue-400 font-medium"
                     )}
                   >
                     {option.icon && <span className="flex-shrink-0">{option.icon}</span>}

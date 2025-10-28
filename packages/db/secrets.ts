@@ -30,19 +30,21 @@ export const findSecretByProjectAndName = async (sql: Sql, projectId: string, na
     : { ok: false, error: 'Secret not found' }
 }
 
-const createSecretCols = ['project_id', 'name', 'value', 'description'] as const
-export const createSecret = async (sql: Sql, input: CreateSecretInput): Promise<Secret> => {
+const createSecretCols = ['project_id', 'name', 'value', 'description', 'oauth_provider', 'token_type', 'refresh_token', 'expires_at', 'scopes'] as const
+export const createSecret = async (sql: Sql, input: CreateSecretInput): Promise<Result<Secret>> => {
+  const presentCols = filterPresentColumns(input, createSecretCols)
+
   const [secret] = await get(sql<Secret[]>`
-    INSERT INTO secrets ${sql(input, createSecretCols)}
+    INSERT INTO secrets ${sql(input, presentCols)}
     RETURNING *
   `)
   if (!secret) {
-    throw new Error('Failed to create secret')
+    return { ok: false, error: 'Failed to create secret' }
   }
-  return secret
+  return { ok: true, data: secret }
 }
 
-const updateSecretCols = ['value', 'description'] as const
+const updateSecretCols = ['value', 'description', 'refresh_token', 'expires_at', 'scopes'] as const
 export const updateSecret = async (sql: Sql, id: string, input: UpdateSecretInput): Promise<Result<Secret>> => {
   const presentCols = filterPresentColumns(input, updateSecretCols)
 

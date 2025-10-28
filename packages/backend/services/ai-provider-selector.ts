@@ -1,0 +1,174 @@
+import type { Sql } from 'postgres'
+import type { AnthropicConfig } from '@types'
+import { checkQuotaAvailable, type QuotaCheck } from '../../db/user-quotas'
+import { getProjectAIProviderConfig } from '../../db/projects'
+import { getDecryptedSecretValue } from './secrets'
+import { getPlatformAnthropicConfig, type PlatformAnthropicConfig } from '../config'
+
+/**
+ * Result of AI provider selection for evaluation
+ */
+export interface AIProviderSelection {
+  /**
+   * Anthropic configuration to use (either platform or project)
+   */
+  config: PlatformAnthropicConfig | ResolvedAnthropicConfig
+
+  /**
+   * Whether the platform token is being used (vs project token)
+   */
+  use_platform_token: boolean
+
+  /**
+   * Quota information (if using platform token)
+   */
+  quota_info?: QuotaCheck
+
+  /**
+   * Warning message (e.g., at soft limit)
+   */
+  warning?: string
+}
+
+/**
+ * Anthropic config with decrypted API key
+ */
+export interface ResolvedAnthropicConfig {
+  type: 'cloud' | 'self-hosted'
+  api_key: string
+  endpoint_url?: string
+  model?: string
+  max_tokens?: number
+  temperature?: number
+  additional_headers?: Record<string, string>
+}
+
+/**
+ * Select AI provider configuration for evaluation
+ * Chooses between platform token (free quota) or project token (quota exceeded)
+ */
+export async function selectAIProviderForEvaluation(
+  sql: Sql,
+  userId: string,
+  projectId: string,
+  evaluationType: 'simple' | 'advanced'
+): Promise<AIProviderSelection> {
+  // Check user's quota
+  const quotaCheck = await checkQuotaAvailable(sql, userId, evaluationType)
+
+  // If at hard limit, require project config
+  if (quotaCheck.at_hard_limit) {
+    return await requireProjectAIProvider(sql, projectId, quotaCheck, evaluationType)
+  }
+
+  // User has quota remaining - try to use platform token
+  const platformConfig = getPlatformAnthropicConfig()
+
+  if (!platformConfig) {
+    // Platform token not configured - require project config
+    return await requireProjectAIProvider(sql, projectId, quotaCheck, evaluationType)
+  }
+
+  // Use platform token
+  const warning = quotaCheck.at_soft_limit
+    ? `You are using ${quotaCheck.used}/${quotaCheck.hard_limit} free ${evaluationType} evaluations. ` +
+      `Consider configuring your own Anthropic API key in project settings.`
+    : undefined
+
+  return {
+    config: platformConfig,
+    use_platform_token: true,
+    quota_info: quotaCheck,
+    warning,
+  }
+}
+
+/**
+ * Require project to have its own AI provider configured
+ * Throws error if not configured
+ */
+async function requireProjectAIProvider(
+  sql: Sql,
+  projectId: string,
+  quotaCheck: QuotaCheck,
+  evaluationType: 'simple' | 'advanced'
+): Promise<AIProviderSelection> {
+  // Get project's Anthropic config
+  const configResult = await getProjectAIProviderConfig(sql, projectId, 'anthropic')
+
+  if (!configResult.ok) {
+    throw new Error(configResult.error)
+  }
+
+  const projectConfig = configResult.data as AnthropicConfig | null
+
+  if (!projectConfig) {
+    throw new QuotaExceededError(
+      `Free ${evaluationType} evaluation quota exceeded (${quotaCheck.used}/${quotaCheck.hard_limit}). ` +
+      `Please configure your own Anthropic API key in project settings to continue.`,
+      quotaCheck
+    )
+  }
+
+  // Decrypt API key from secret
+  const resolvedConfig = await resolveAnthropicConfig(sql, projectConfig)
+
+  return {
+    config: resolvedConfig,
+    use_platform_token: false,
+  }
+}
+
+/**
+ * Resolve Anthropic config by decrypting the API key from secrets
+ */
+async function resolveAnthropicConfig(
+  sql: Sql,
+  config: AnthropicConfig
+): Promise<ResolvedAnthropicConfig> {
+  const apiKey = await getDecryptedSecretValue(sql, config.api_key_secret_id)
+
+  if (config.type === 'cloud') {
+    return {
+      type: 'cloud',
+      api_key: apiKey,
+      model: config.model,
+      max_tokens: config.max_tokens,
+      temperature: config.temperature,
+    }
+  } else {
+    return {
+      type: 'self-hosted',
+      api_key: apiKey,
+      endpoint_url: config.endpoint_url,
+      model: config.model,
+      max_tokens: config.max_tokens,
+      temperature: config.temperature,
+      additional_headers: config.additional_headers,
+    }
+  }
+}
+
+/**
+ * Custom error for quota exceeded scenarios
+ */
+export class QuotaExceededError extends Error {
+  constructor(
+    message: string,
+    public quotaCheck: QuotaCheck
+  ) {
+    super(message)
+    this.name = 'QuotaExceededError'
+  }
+}
+
+/**
+ * Check if project has its own AI provider configured
+ */
+export async function checkProjectHasAnthropicProvider(
+  sql: Sql,
+  projectId: string
+): Promise<boolean> {
+  const configResult = await getProjectAIProviderConfig(sql, projectId, 'anthropic')
+  return configResult.ok && configResult.data !== null
+}

@@ -1,4 +1,5 @@
 import { type ReactNode } from 'react'
+import { AnimatedPageContainer } from './AnimatedPageContainer'
 import { PageCard } from './PageCard'
 import { PresenterTable } from './PresenterTable'
 import { useAutoRefresh } from '@/hooks/useAutoRefresh'
@@ -38,7 +39,7 @@ export function ListPage<T>({
   })
 
   return (
-    <div className="mx-auto">
+    <AnimatedPageContainer>
       <PageCard title={title} description={description}>
         {headerActions && <div className="mb-4">{headerActions}</div>}
         <PresenterTable
@@ -49,6 +50,6 @@ export function ListPage<T>({
           buildPresenter={buildPresenter}
         />
       </PageCard>
-    </div>
+    </AnimatedPageContainer>
   )
 }

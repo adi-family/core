@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { SignedIn, SignedOut, SignIn, SignUp } from "@clerk/clerk-react"
 import { Toaster } from "sonner"
+import { ExpertModeProvider } from "./contexts/ExpertModeContext"
+import { ProjectProvider } from "./contexts/ProjectContext"
 import { Layout } from "./components/Layout"
 import { HomePage } from "./pages/HomePage"
 import { ProjectsPage } from "./pages/ProjectsPage"
@@ -19,12 +21,15 @@ import { PipelineExecutionsPage } from "./pages/PipelineExecutionsPage"
 import { PipelineArtifactsPage } from "./pages/PipelineArtifactsPage"
 import { DebugGitlabSecretPage } from "./pages/DebugGitlabSecretPage"
 import { AdminPage } from "./pages/AdminPage"
+import { OAuthCallbackPage } from "./pages/OAuthCallbackPage"
 
 export function App() {
   return (
-    <BrowserRouter>
-      <Toaster />
-      <Routes>
+    <ExpertModeProvider>
+      <ProjectProvider>
+        <BrowserRouter>
+          <Toaster />
+        <Routes>
         <Route
           path="/sign-in/*"
           element={
@@ -80,6 +85,10 @@ export function App() {
           }
         />
         <Route
+          path="/oauth/callback"
+          element={<OAuthCallbackPage />}
+        />
+        <Route
           path="*"
           element={
             <>
@@ -112,7 +121,9 @@ export function App() {
             </>
           }
         />
-      </Routes>
-    </BrowserRouter>
+        </Routes>
+        </BrowserRouter>
+      </ProjectProvider>
+    </ExpertModeProvider>
   )
 }

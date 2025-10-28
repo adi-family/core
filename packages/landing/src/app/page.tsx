@@ -76,19 +76,19 @@ export default function Home() {
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
-      <div className="relative min-h-screen flex flex-col items-center justify-center px-8 py-16">
+      <div className="relative min-h-screen flex flex-col items-center justify-center pt-16">
         {/* Navigation */}
         <div className="absolute top-4 right-4 md:top-8 md:right-8">
           <Link
             href="/articles"
-            className="px-4 py-2 text-sm text-white/70 hover:text-white/90 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 hover:border-white/20 rounded-lg transition-all duration-300"
+            className="px-4 py-2 text-sm text-white/70 hover:text-white/90 bg-white/5 hover:bg-white/10 backdrop-blur-sm border border-white/10 hover:border-white/20 transition-all duration-300"
           >
             Articles
           </Link>
         </div>
 
         {/* Header tagline */}
-        <div className="mb-12 md:mb-16 text-center animate-fade-in px-4">
+        <div className="mb-12 md:mb-16 text-center animate-fade-in px-4 md:px-8">
           <h2 className="text-xl sm:text-2xl md:text-3xl font-light text-white/80 tracking-wide">
             Automated Task-to-Code Pipeline
           </h2>
@@ -98,13 +98,13 @@ export default function Home() {
 
           {/* Primary CTAs */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mt-8 md:mt-10">
-            <a href={appUrl} className="group relative px-8 py-4 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-xl font-semibold text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-3 min-w-[240px] justify-center">
-              <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">$100 Free</span>
+            <a href={appUrl} className="group relative px-8 py-4 bg-gradient-to-r from-emerald-500 to-blue-600 font-semibold text-white shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-3 min-w-[240px] justify-center">
+              <span className="absolute -top-2 -right-2 px-2 py-0.5 bg-red-500 text-white text-xs font-bold shadow-lg animate-pulse">$100 Free</span>
               <span>Activate ADI</span>
             </a>
             <button
               onClick={() => setIsModalOpen(true)}
-              className="group px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl font-semibold text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300 flex items-center gap-2 min-w-[240px] justify-center"
+              className="group px-8 py-4 bg-white/5 backdrop-blur-sm border border-white/10 font-semibold text-white hover:bg-white/10 hover:border-white/20 transition-all duration-300 flex items-center gap-2 min-w-[240px] justify-center"
             >
               <MessageCircle className="w-5 h-5 group-hover:scale-110 transition-transform" />
               <span>Contact Us</span>
@@ -113,40 +113,42 @@ export default function Home() {
         </div>
 
         {/* Main flow */}
-        <div className="flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-16 w-full max-w-7xl px-4">
-          {/* Task Sources Section */}
-          <div className="flex flex-col gap-4 md:gap-6 animate-slide-in-left w-full lg:w-auto">
-            <div className="flex items-center justify-center lg:justify-start gap-2 md:gap-3 mb-1 md:mb-2">
+        <div className="flex flex-col lg:flex-row items-center justify-center w-full max-w-7xl px-4 md:px-8 mt-[52px]">
+          {/* Task Sources Wrapper */}
+          <div className="flex flex-col animate-slide-in-left w-full lg:w-auto">
+            {/* Header */}
+            <div className="flex items-center justify-center lg:justify-start gap-2 md:gap-3 mb-4 md:mb-6">
               <h2 className="text-base md:text-xl font-semibold text-white/90 tracking-wider">TASK SOURCES</h2>
               <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-blue-400 animate-pulse" />
             </div>
+            {/* Cards */}
             <div className="flex flex-col gap-2 md:gap-3">
-              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-r from-blue-500/5 to-transparent rounded-xl md:rounded-2xl border border-blue-500/20 hover:border-blue-400/40 hover:from-blue-500/10 transition-all duration-300 min-w-[200px] md:min-w-[240px]">
-                <div className="p-2 md:p-2.5 bg-blue-500/10 rounded-lg md:rounded-xl group-hover:bg-blue-500/20 transition-colors">
+              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-r from-blue-500/5 to-transparent border border-blue-500/20 hover:border-blue-400/40 hover:from-blue-500/10 transition-all duration-300 min-w-[200px] md:min-w-[240px]">
+                <div className="p-2 md:p-2.5 bg-blue-500/10 group-hover:bg-blue-500/20 transition-colors">
                   <SimpleIcon icon={siJira} size={24} />
                 </div>
                 <span className="text-white/70 font-medium text-sm md:text-base">Jira</span>
               </div>
-              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-r from-purple-500/5 to-transparent rounded-xl md:rounded-2xl border border-purple-500/20 hover:border-purple-400/40 hover:from-purple-500/10 transition-all duration-300">
-                <div className="p-2 md:p-2.5 bg-purple-500/10 rounded-lg md:rounded-xl group-hover:bg-purple-500/20 transition-colors">
+              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-r from-purple-500/5 to-transparent border border-purple-500/20 hover:border-purple-400/40 hover:from-purple-500/10 transition-all duration-300">
+                <div className="p-2 md:p-2.5 bg-purple-500/10 group-hover:bg-purple-500/20 transition-colors">
                   <SimpleIcon icon={siLinear} size={24} />
                 </div>
                 <span className="text-white/70 font-medium text-sm md:text-base">Linear</span>
               </div>
-              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-r from-orange-500/5 to-transparent rounded-xl md:rounded-2xl border border-orange-500/20 hover:border-orange-400/40 hover:from-orange-500/10 transition-all duration-300">
-                <div className="p-2 md:p-2.5 bg-orange-500/10 rounded-lg md:rounded-xl group-hover:bg-orange-500/20 transition-colors">
+              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-r from-orange-500/5 to-transparent border border-orange-500/20 hover:border-orange-400/40 hover:from-orange-500/10 transition-all duration-300">
+                <div className="p-2 md:p-2.5 bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors">
                   <SimpleIcon icon={siGitlab} size={24} />
                 </div>
                 <span className="text-white/70 font-medium text-sm md:text-base">GitLab Issues</span>
               </div>
-              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-r from-slate-500/5 to-transparent rounded-xl md:rounded-2xl border border-slate-500/20 hover:border-slate-400/40 hover:from-slate-500/10 transition-all duration-300">
-                <div className="p-2 md:p-2.5 bg-slate-500/10 rounded-lg md:rounded-xl group-hover:bg-slate-500/20 transition-colors">
+              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-r from-slate-500/5 to-transparent border border-slate-500/20 hover:border-slate-400/40 hover:from-slate-500/10 transition-all duration-300">
+                <div className="p-2 md:p-2.5 bg-slate-500/10 group-hover:bg-slate-500/20 transition-colors">
                   <SimpleIcon icon={siGithub} size={24} color="#ffffff" />
                 </div>
                 <span className="text-white/70 font-medium text-sm md:text-base">GitHub Issues</span>
               </div>
-              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-r from-green-500/5 to-transparent rounded-xl md:rounded-2xl border border-green-500/20 hover:border-green-400/40 hover:from-green-500/10 transition-all duration-300">
-                <div className="p-2 md:p-2.5 bg-green-500/10 rounded-lg md:rounded-xl group-hover:bg-green-500/20 transition-colors">
+              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-r from-green-500/5 to-transparent border border-green-500/20 hover:border-green-400/40 hover:from-green-500/10 transition-all duration-300">
+                <div className="p-2 md:p-2.5 bg-green-500/10 group-hover:bg-green-500/20 transition-colors">
                   <CheckSquare className="w-6 h-6 md:w-7 md:h-7 text-green-400" />
                 </div>
                 <span className="text-white/70 font-medium text-sm md:text-base">Custom Tasks</span>
@@ -154,14 +156,77 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Flow Arrow 1 */}
-          <div className="hidden lg:flex flex-col items-center gap-2">
-            <ArrowRight className="w-12 h-12 text-blue-400/60 animate-pulse" />
+          {/* Connector: Sources to ADI - Desktop */}
+          <div className="hidden lg:flex items-center justify-center flex-shrink-0 pt-[52px]">
+            <svg width="200" height="398" viewBox="0 0 200 398" className="overflow-visible">
+              <defs>
+                <linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgb(96, 165, 250)" stopOpacity="0.6" />
+                  <stop offset="70%" stopColor="rgb(96, 165, 250)" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="rgb(96, 165, 250)" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="gradPurple" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgb(192, 132, 252)" stopOpacity="0.6" />
+                  <stop offset="70%" stopColor="rgb(192, 132, 252)" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="rgb(192, 132, 252)" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="gradOrangeLeft" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgb(251, 146, 60)" stopOpacity="0.6" />
+                  <stop offset="70%" stopColor="rgb(251, 146, 60)" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="rgb(251, 146, 60)" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="gradGreen" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgb(74, 222, 128)" stopOpacity="0.6" />
+                  <stop offset="70%" stopColor="rgb(74, 222, 128)" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="rgb(74, 222, 128)" stopOpacity="0" />
+                </linearGradient>
+                <linearGradient id="gradSlate" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgb(148, 163, 184)" stopOpacity="0.6" />
+                  <stop offset="70%" stopColor="rgb(148, 163, 184)" stopOpacity="0.6" />
+                  <stop offset="100%" stopColor="rgb(148, 163, 184)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+
+              {/* 5 lines from left (sources) converging to center-right (ADI) - Card order: Jira, Linear, GitLab, GitHub, Custom */}
+              <path d="M 0 35 Q 100 35 200 199" stroke="url(#gradBlue)" strokeWidth="2" fill="none" />
+              <path d="M 0 117 Q 100 117 200 199" stroke="url(#gradPurple)" strokeWidth="2" fill="none" />
+              <path d="M 0 199 Q 100 205 200 199" stroke="url(#gradOrangeLeft)" strokeWidth="2" fill="none" />
+              <path d="M 0 281 Q 100 281 200 199" stroke="url(#gradSlate)" strokeWidth="2" fill="none" />
+              <path d="M 0 363 Q 100 363 200 199" stroke="url(#gradGreen)" strokeWidth="2" fill="none" />
+
+              {/* Animated dots */}
+              <circle r="4" fill="rgb(96, 165, 250)" opacity="0.9">
+                <animateMotion dur="3s" repeatCount="indefinite" path="M 0 35 Q 100 35 200 199" />
+              </circle>
+              <circle r="4" fill="rgb(192, 132, 252)" opacity="0.9">
+                <animateMotion dur="3s" repeatCount="indefinite" begin="0.6s" path="M 0 117 Q 100 117 200 199" />
+              </circle>
+              <circle r="4" fill="rgb(251, 146, 60)" opacity="0.9">
+                <animateMotion dur="3s" repeatCount="indefinite" begin="1.2s" path="M 0 199 Q 100 205 200 199" />
+              </circle>
+              <circle r="4" fill="rgb(148, 163, 184)" opacity="0.9">
+                <animateMotion dur="3s" repeatCount="indefinite" begin="1.8s" path="M 0 281 Q 100 281 200 199" />
+              </circle>
+              <circle r="4" fill="rgb(74, 222, 128)" opacity="0.9">
+                <animateMotion dur="3s" repeatCount="indefinite" begin="2.4s" path="M 0 363 Q 100 363 200 199" />
+              </circle>
+            </svg>
           </div>
 
-          {/* Mobile Arrow */}
+          {/* Connector: Sources to ADI - Mobile */}
           <div className="flex lg:hidden items-center justify-center my-4">
-            <ArrowRight className="w-8 h-8 text-blue-400/60 animate-pulse rotate-90" />
+            <svg width="40" height="60" viewBox="0 0 40 60">
+              <defs>
+                <linearGradient id="gradBlueV" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="rgb(96, 165, 250)" stopOpacity="0.3" />
+                  <stop offset="100%" stopColor="rgb(96, 165, 250)" stopOpacity="0" />
+                </linearGradient>
+              </defs>
+              <path d="M 20 0 L 20 60" stroke="url(#gradBlueV)" strokeWidth="1.5" fill="none" />
+              <circle r="4" fill="rgb(96, 165, 250)" opacity="0.9">
+                <animateMotion dur="2s" repeatCount="indefinite" path="M 20 0 L 20 60" />
+              </circle>
+            </svg>
           </div>
 
           {/* ADI Processing Center */}
@@ -171,20 +236,20 @@ export default function Home() {
               <div className="absolute inset-0 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 opacity-20 blur-3xl rounded-full" />
 
               {/* Main ADI container */}
-              <div className="relative px-6 py-5 sm:px-8 sm:py-6 md:px-10 md:py-8 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl rounded-2xl md:rounded-3xl border border-white/10 shadow-2xl">
+              <div className="relative px-6 py-5 sm:px-8 sm:py-6 md:px-10 md:py-8 bg-gradient-to-br from-slate-900/90 to-slate-800/90 backdrop-blur-xl border border-white/10 shadow-2xl">
                 <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-bold tracking-wider bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent select-none">
                   ADI
                 </h1>
 
                 {/* Processing indicators */}
                 <div className="flex items-center justify-center gap-2 md:gap-3 mt-4 md:mt-5">
-                  <div className="p-2 md:p-2.5 bg-blue-500/20 rounded-lg md:rounded-xl backdrop-blur animate-pulse">
+                  <div className="p-2 md:p-2.5 bg-blue-500/20 backdrop-blur animate-pulse">
                     <Brain className="w-5 h-5 md:w-7 md:h-7 text-blue-400" />
                   </div>
-                  <div className="p-2 md:p-2.5 bg-purple-500/20 rounded-lg md:rounded-xl backdrop-blur animate-pulse delay-300">
+                  <div className="p-2 md:p-2.5 bg-purple-500/20 backdrop-blur animate-pulse delay-300">
                     <Code className="w-5 h-5 md:w-7 md:h-7 text-purple-400" />
                   </div>
-                  <div className="p-2 md:p-2.5 bg-pink-500/20 rounded-lg md:rounded-xl backdrop-blur animate-pulse delay-500">
+                  <div className="p-2 md:p-2.5 bg-pink-500/20 backdrop-blur animate-pulse delay-500">
                     <Sparkles className="w-5 h-5 md:w-7 md:h-7 text-pink-400" />
                   </div>
                 </div>
@@ -196,32 +261,68 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Mobile Arrow */}
+          {/* Connector: ADI to MRs - Desktop */}
+          <div className="hidden lg:flex items-center justify-center flex-shrink-0 pt-[52px]">
+            <svg width="200" height="152" viewBox="0 0 200 152" className="overflow-visible">
+              <defs>
+                <linearGradient id="gradOrangeOut" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgb(251, 146, 60)" stopOpacity="0" />
+                  <stop offset="100%" stopColor="rgb(251, 146, 60)" stopOpacity="0.6" />
+                </linearGradient>
+                <linearGradient id="gradSlateOut" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgb(148, 163, 184)" stopOpacity="0" />
+                  <stop offset="100%" stopColor="rgb(148, 163, 184)" stopOpacity="0.6" />
+                </linearGradient>
+              </defs>
+
+              {/* 2 lines from center-left (ADI) diverging to right (MRs) - Card centers: 35, 117 */}
+              <path d="M 0 76 Q 100 35 200 35" stroke="url(#gradOrangeOut)" strokeWidth="2" fill="none" />
+              <path d="M 0 76 Q 100 117 200 117" stroke="url(#gradSlateOut)" strokeWidth="2" fill="none" />
+
+              {/* Animated dots */}
+              <circle r="4" fill="rgb(251, 146, 60)" opacity="0.9">
+                <animateMotion dur="2s" repeatCount="indefinite" path="M 0 76 Q 100 35 200 35" />
+              </circle>
+              <circle r="4" fill="rgb(148, 163, 184)" opacity="0.9">
+                <animateMotion dur="2s" repeatCount="indefinite" begin="1s" path="M 0 76 Q 100 117 200 117" />
+              </circle>
+            </svg>
+          </div>
+
+          {/* Connector: ADI to MRs - Mobile */}
           <div className="flex lg:hidden items-center justify-center my-4">
-            <ArrowRight className="w-8 h-8 text-purple-400/60 animate-pulse delay-500 rotate-90" />
+            <svg width="40" height="60" viewBox="0 0 40 60">
+              <defs>
+                <linearGradient id="gradPurpleVOut" x1="0%" y1="0%" x2="0%" y2="100%">
+                  <stop offset="0%" stopColor="rgb(192, 132, 252)" stopOpacity="0" />
+                  <stop offset="100%" stopColor="rgb(192, 132, 252)" stopOpacity="0.3" />
+                </linearGradient>
+              </defs>
+              <path d="M 20 0 L 20 60" stroke="url(#gradPurpleVOut)" strokeWidth="1.5" fill="none" />
+              <circle r="4" fill="rgb(192, 132, 252)" opacity="0.9">
+                <animateMotion dur="2s" repeatCount="indefinite" path="M 20 0 L 20 60" />
+              </circle>
+            </svg>
           </div>
 
-          {/* Flow Arrow 2 */}
-          <div className="hidden lg:flex flex-col items-center gap-2">
-            <ArrowRight className="w-12 h-12 text-purple-400/60 animate-pulse delay-500" />
-          </div>
-
-          {/* Merge Requests Output Section */}
-          <div className="flex flex-col gap-4 md:gap-6 animate-slide-in-right w-full lg:w-auto">
-            <div className="flex items-center justify-center lg:justify-start gap-2 md:gap-3 mb-1 md:mb-2">
+          {/* Merge Requests Wrapper */}
+          <div className="flex flex-col animate-slide-in-right w-full lg:w-auto">
+            {/* Header */}
+            <div className="flex items-center justify-center lg:justify-start gap-2 md:gap-3 mb-4 md:mb-6">
               <GitMerge className="w-4 h-4 md:w-5 md:h-5 text-purple-400 animate-pulse delay-300" />
               <h2 className="text-base md:text-xl font-semibold text-white/90 tracking-wider">MERGE REQUESTS</h2>
             </div>
+            {/* Cards */}
             <div className="flex flex-col gap-2 md:gap-3">
-              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-l from-orange-500/5 to-transparent rounded-xl md:rounded-2xl border border-orange-500/20 hover:border-orange-400/40 hover:from-orange-500/10 transition-all duration-300 min-w-[200px] md:min-w-[240px]">
+              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-l from-orange-500/5 to-transparent border border-orange-500/20 hover:border-orange-400/40 hover:from-orange-500/10 transition-all duration-300 min-w-[200px] md:min-w-[240px]">
                 <span className="text-white/70 font-medium text-sm md:text-base">GitLab</span>
-                <div className="p-2 md:p-2.5 bg-orange-500/10 rounded-lg md:rounded-xl group-hover:bg-orange-500/20 transition-colors ml-auto">
+                <div className="p-2 md:p-2.5 bg-orange-500/10 group-hover:bg-orange-500/20 transition-colors ml-auto">
                   <SimpleIcon icon={siGitlab} size={24} />
                 </div>
               </div>
-              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-l from-slate-500/5 to-transparent rounded-xl md:rounded-2xl border border-slate-500/20 hover:border-slate-400/40 hover:from-slate-500/10 transition-all duration-300">
+              <div className="group flex items-center gap-2 md:gap-3 px-3 py-2.5 md:px-4 md:py-3 bg-gradient-to-l from-slate-500/5 to-transparent border border-slate-500/20 hover:border-slate-400/40 hover:from-slate-500/10 transition-all duration-300">
                 <span className="text-white/70 font-medium text-sm md:text-base">GitHub</span>
-                <div className="p-2 md:p-2.5 bg-slate-500/10 rounded-lg md:rounded-xl group-hover:bg-slate-500/20 transition-colors ml-auto">
+                <div className="p-2 md:p-2.5 bg-slate-500/10 group-hover:bg-slate-500/20 transition-colors ml-auto">
                   <SimpleIcon icon={siGithub} size={24} color="#ffffff" />
                 </div>
               </div>
@@ -230,7 +331,7 @@ export default function Home() {
         </div>
 
         {/* Live Stats Section */}
-        <div className="mt-16 md:mt-24 w-full max-w-6xl animate-fade-in-delay px-4">
+        <div className="mt-16 md:mt-24 w-full max-w-6xl animate-fade-in-delay px-4 md:px-8">
           <div className="text-center mb-6 md:mb-8">
             <h3 className="text-sm md:text-lg font-semibold text-white/70 tracking-wider flex items-center justify-center gap-2">
               <TrendingUp className="w-4 h-4 md:w-5 md:h-5 text-emerald-400" />
@@ -240,9 +341,9 @@ export default function Home() {
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {/* Tasks Solved */}
-            <div className="group p-4 md:p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/5 backdrop-blur-sm rounded-xl md:rounded-2xl border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300">
+            <div className="group p-4 md:p-6 bg-gradient-to-br from-blue-500/10 to-blue-600/5 backdrop-blur-sm border border-blue-500/20 hover:border-blue-400/40 transition-all duration-300">
               <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 mb-2 md:mb-3">
-                <div className="p-2 md:p-2.5 bg-blue-500/20 rounded-lg w-fit">
+                <div className="p-2 md:p-2.5 bg-blue-500/20 w-fit">
                   <CheckCircle2 className="w-4 h-4 md:w-6 md:h-6 text-blue-400" />
                 </div>
                 <span className="text-[10px] md:text-xs text-white/50 font-medium uppercase tracking-wide">Tasks Solved</span>
@@ -254,9 +355,9 @@ export default function Home() {
             </div>
 
             {/* MRs Merged */}
-            <div className="group p-4 md:p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 backdrop-blur-sm rounded-xl md:rounded-2xl border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
+            <div className="group p-4 md:p-6 bg-gradient-to-br from-purple-500/10 to-purple-600/5 backdrop-blur-sm border border-purple-500/20 hover:border-purple-400/40 transition-all duration-300">
               <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 mb-2 md:mb-3">
-                <div className="p-2 md:p-2.5 bg-purple-500/20 rounded-lg w-fit">
+                <div className="p-2 md:p-2.5 bg-purple-500/20 w-fit">
                   <GitMerge className="w-4 h-4 md:w-6 md:h-6 text-purple-400" />
                 </div>
                 <span className="text-[10px] md:text-xs text-white/50 font-medium uppercase tracking-wide">MRs Merged</span>
@@ -268,9 +369,9 @@ export default function Home() {
             </div>
 
             {/* Money Saved */}
-            <div className="group p-4 md:p-6 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 backdrop-blur-sm rounded-xl md:rounded-2xl border border-emerald-500/20 hover:border-emerald-400/40 transition-all duration-300">
+            <div className="group p-4 md:p-6 bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 backdrop-blur-sm border border-emerald-500/20 hover:border-emerald-400/40 transition-all duration-300">
               <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 mb-2 md:mb-3">
-                <div className="p-2 md:p-2.5 bg-emerald-500/20 rounded-lg w-fit">
+                <div className="p-2 md:p-2.5 bg-emerald-500/20 w-fit">
                   <DollarSign className="w-4 h-4 md:w-6 md:h-6 text-emerald-400" />
                 </div>
                 <span className="text-[10px] md:text-xs text-white/50 font-medium uppercase tracking-wide">Money Saved</span>
@@ -282,9 +383,9 @@ export default function Home() {
             </div>
 
             {/* Time Saved */}
-            <div className="group p-4 md:p-6 bg-gradient-to-br from-amber-500/10 to-amber-600/5 backdrop-blur-sm rounded-xl md:rounded-2xl border border-amber-500/20 hover:border-amber-400/40 transition-all duration-300">
+            <div className="group p-4 md:p-6 bg-gradient-to-br from-amber-500/10 to-amber-600/5 backdrop-blur-sm border border-amber-500/20 hover:border-amber-400/40 transition-all duration-300">
               <div className="flex flex-col md:flex-row md:items-center gap-2 md:gap-3 mb-2 md:mb-3">
-                <div className="p-2 md:p-2.5 bg-amber-500/20 rounded-lg w-fit">
+                <div className="p-2 md:p-2.5 bg-amber-500/20 w-fit">
                   <Clock className="w-4 h-4 md:w-6 md:h-6 text-amber-400" />
                 </div>
                 <span className="text-[10px] md:text-xs text-white/50 font-medium uppercase tracking-wide">Time Saved</span>
@@ -298,8 +399,8 @@ export default function Home() {
         </div>
 
         {/* Bottom CTA Section */}
-        <div className="mt-16 md:mt-20 mb-12 md:mb-16 text-center animate-fade-in-delay px-4">
-          <div className="max-w-3xl mx-auto p-8 md:p-12 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-xl rounded-3xl border border-white/10">
+        <div className="mt-16 md:mt-24 w-full bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 backdrop-blur-xl border-y border-white/10 py-16 md:py-20 animate-fade-in-delay">
+          <div className="max-w-7xl mx-auto px-4 text-center">
             <h3 className="text-2xl md:text-3xl font-bold text-white mb-4">
               Ready to Transform Your Development?
             </h3>
@@ -307,13 +408,13 @@ export default function Home() {
               Start with $100 free credit and experience automated task-to-code pipeline
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <a href={appUrl} className="group relative px-10 py-5 bg-gradient-to-r from-emerald-500 to-blue-600 rounded-xl font-semibold text-white text-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-3 min-w-[240px] justify-center">
-                <span className="absolute -top-2 -right-2 px-2.5 py-1 bg-red-500 text-white text-xs font-bold rounded-full shadow-lg animate-pulse">$100 Free</span>
+              <a href={appUrl} className="group relative px-10 py-5 bg-gradient-to-r from-emerald-500 to-blue-600 font-semibold text-white text-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-3 min-w-[240px] justify-center">
+                <span className="absolute -top-2 -right-2 px-2.5 py-1 bg-red-500 text-white text-xs font-bold shadow-lg animate-pulse">$100 Free</span>
                 <span>Activate ADI</span>
               </a>
               <button
                 onClick={() => setIsModalOpen(true)}
-                className="group px-10 py-5 bg-white/5 backdrop-blur-sm border border-white/10 rounded-xl font-semibold text-white text-lg hover:bg-white/10 hover:border-white/20 transition-all duration-300 flex items-center gap-3 min-w-[240px] justify-center"
+                className="group px-10 py-5 bg-white/5 backdrop-blur-sm border border-white/10 font-semibold text-white text-lg hover:bg-white/10 hover:border-white/20 transition-all duration-300 flex items-center gap-3 min-w-[240px] justify-center"
               >
                 <MessageCircle className="w-6 h-6 group-hover:scale-110 transition-transform" />
                 <span>Contact Us</span>
@@ -323,8 +424,8 @@ export default function Home() {
         </div>
 
         {/* Investment & Partnership Section */}
-        <div className="mt-16 md:mt-20 mb-16 md:mb-20 text-center px-4">
-          <div className="max-w-4xl mx-auto p-8 md:p-12 bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-orange-500/10 backdrop-blur-xl rounded-3xl border border-purple-500/20">
+        <div className="w-full bg-gradient-to-br from-purple-500/10 via-pink-500/10 to-orange-500/10 backdrop-blur-xl border-y border-purple-500/20 py-16 md:py-20">
+          <div className="max-w-7xl mx-auto px-4 text-center">
             <div className="flex items-center justify-center gap-3 mb-4">
               <Handshake className="w-8 h-8 md:w-10 md:h-10 text-purple-400 animate-pulse" />
               <h3 className="text-2xl md:text-3xl font-bold text-white">
@@ -354,23 +455,56 @@ export default function Home() {
             </div>
             <button
               onClick={() => setIsPartnerModalOpen(true)}
-              className="group px-10 py-5 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl font-semibold text-white text-lg shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-3 mx-auto"
+              className="group px-10 py-5 bg-gradient-to-r from-purple-500 to-pink-600 font-semibold text-white text-lg shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 hover:scale-105 transition-all duration-300 flex items-center gap-3 mx-auto"
             >
               <Handshake className="w-6 h-6 group-hover:scale-110 transition-transform" />
               <span>Explore Opportunities</span>
             </button>
           </div>
         </div>
+
+        {/* Footer */}
+        <footer className="w-full border-t border-white/10 bg-slate-950/50 backdrop-blur-sm py-8 md:py-12 mt-auto">
+          <div className="max-w-7xl mx-auto px-4 md:px-8">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              {/* Logo/Brand */}
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  ADI
+                </h2>
+                <span className="text-white/40 text-sm">Automated Development Intelligence</span>
+              </div>
+
+              {/* Links */}
+              <div className="flex items-center gap-6 md:gap-8 text-sm">
+                <Link href="/articles" className="text-white/60 hover:text-white/90 transition-colors">
+                  Articles
+                </Link>
+                <button onClick={() => setIsModalOpen(true)} className="text-white/60 hover:text-white/90 transition-colors">
+                  Contact
+                </button>
+                <button onClick={() => setIsPartnerModalOpen(true)} className="text-white/60 hover:text-white/90 transition-colors">
+                  Partnership
+                </button>
+              </div>
+
+              {/* Copyright */}
+              <div className="text-white/40 text-sm">
+                © {new Date().getFullYear()} ADI. All rights reserved.
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
 
       {/* Contact Us Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setIsModalOpen(false)}>
-          <div className="relative max-w-md w-full max-h-[90vh] overflow-y-auto p-8 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl rounded-3xl border border-white/10 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="relative max-w-md w-full max-h-[90vh] overflow-y-auto p-8 bg-gradient-to-br from-slate-900/95 to-slate-800/95 backdrop-blur-xl border border-white/10 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Close button */}
             <button
               onClick={() => setIsModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all z-10"
+              className="absolute top-4 right-4 p-2 text-white/60 hover:text-white hover:bg-white/10 transition-all z-10"
             >
               <X className="w-5 h-5" />
             </button>
@@ -386,9 +520,9 @@ export default function Home() {
                 href="https://t.me/mgorunuch"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-white/20 transition-all"
+                className="group flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all"
               >
-                <div className="p-2 bg-blue-700/50 rounded-lg group-hover:bg-blue-600/50 transition-colors">
+                <div className="p-2 bg-blue-700/50 group-hover:bg-blue-600/50 transition-colors">
                   <Send className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
@@ -402,9 +536,9 @@ export default function Home() {
                 href="https://linkedin.com/in/mgorunuch"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-white/20 transition-all"
+                className="group flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all"
               >
-                <div className="p-2 bg-blue-700/50 rounded-lg group-hover:bg-blue-600/50 transition-colors">
+                <div className="p-2 bg-blue-700/50 group-hover:bg-blue-600/50 transition-colors">
                   <Linkedin className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
@@ -416,9 +550,9 @@ export default function Home() {
 
               <a
                 href="mailto:adi@the-ihor.com"
-                className="group flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-white/20 transition-all"
+                className="group flex items-center gap-3 p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 transition-all"
               >
-                <div className="p-2 bg-emerald-700/50 rounded-lg group-hover:bg-emerald-600/50 transition-colors">
+                <div className="p-2 bg-emerald-700/50 group-hover:bg-emerald-600/50 transition-colors">
                   <Mail className="w-5 h-5 text-white" />
                 </div>
                 <div className="flex-1">
@@ -440,7 +574,7 @@ export default function Home() {
                   setIsModalOpen(false);
                   setIsPartnerModalOpen(true);
                 }}
-                className="group w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 rounded-xl font-semibold text-white hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 text-sm"
+                className="group w-full px-4 py-3 bg-gradient-to-r from-purple-500 to-pink-600 font-semibold text-white hover:scale-105 transition-all duration-300 flex items-center justify-center gap-2 text-sm"
               >
                 <Handshake className="w-4 h-4 group-hover:scale-110 transition-transform" />
                 <span>Discuss Partnership</span>
@@ -453,11 +587,11 @@ export default function Home() {
       {/* Partnership Modal */}
       {isPartnerModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in" onClick={() => setIsPartnerModalOpen(false)}>
-          <div className="relative max-w-xl w-full p-8 bg-gradient-to-br from-purple-900/95 to-slate-800/95 backdrop-blur-xl rounded-3xl border border-purple-500/20 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <div className="relative max-w-xl w-full p-8 bg-gradient-to-br from-purple-900/95 to-slate-800/95 backdrop-blur-xl border border-purple-500/20 shadow-2xl" onClick={(e) => e.stopPropagation()}>
             {/* Close button */}
             <button
               onClick={() => setIsPartnerModalOpen(false)}
-              className="absolute top-4 right-4 p-2 text-white/60 hover:text-white hover:bg-white/10 rounded-lg transition-all"
+              className="absolute top-4 right-4 p-2 text-white/60 hover:text-white hover:bg-white/10 transition-all"
             >
               <X className="w-5 h-5" />
             </button>
@@ -476,9 +610,9 @@ export default function Home() {
                 href="https://t.me/mgorunuch"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-purple-400/30 transition-all"
+                className="group flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-400/30 transition-all"
               >
-                <div className="p-2.5 bg-blue-700/50 rounded-lg group-hover:bg-blue-600/50 transition-colors">
+                <div className="p-2.5 bg-blue-700/50 group-hover:bg-blue-600/50 transition-colors">
                   <Send className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
@@ -492,9 +626,9 @@ export default function Home() {
                 href="https://linkedin.com/in/mgorunuch"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-purple-400/30 transition-all"
+                className="group flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-400/30 transition-all"
               >
-                <div className="p-2.5 bg-blue-700/50 rounded-lg group-hover:bg-blue-600/50 transition-colors">
+                <div className="p-2.5 bg-blue-700/50 group-hover:bg-blue-600/50 transition-colors">
                   <Linkedin className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
@@ -506,9 +640,9 @@ export default function Home() {
 
               <a
                 href="mailto:adi-partner@the-ihor.com?subject=Partnership Inquiry"
-                className="group flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 hover:border-purple-400/30 transition-all"
+                className="group flex items-center gap-3 p-4 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-purple-400/30 transition-all"
               >
-                <div className="p-2.5 bg-emerald-700/50 rounded-lg group-hover:bg-emerald-600/50 transition-colors">
+                <div className="p-2.5 bg-emerald-700/50 group-hover:bg-emerald-600/50 transition-colors">
                   <Mail className="w-6 h-6 text-white" />
                 </div>
                 <div className="flex-1">
@@ -519,7 +653,7 @@ export default function Home() {
               </a>
             </div>
 
-            <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-xl">
+            <div className="p-4 bg-purple-500/10 border border-purple-500/20">
               <p className="text-xs text-white/70 leading-relaxed mb-3">
                 <strong className="text-white">Looking for:</strong> Strategic investors, technology partners, enterprise clients, and collaboration opportunities in AI-driven development automation.
               </p>

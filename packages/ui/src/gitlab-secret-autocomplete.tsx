@@ -4,6 +4,7 @@ import { Label } from './label'
 import { Button } from './button'
 import { Portal } from './portal'
 import { CheckCircle2, XCircle, Loader2, Plus, AlertCircle, Search } from "lucide-react"
+import { GitLabOAuthButton, type GitLabOAuthResult } from './gitlab-oauth-button'
 
 export type Secret = {
   id: string
@@ -36,6 +37,8 @@ type GitlabSecretAutocompleteProps = {
   label?: string
   required?: boolean
   requiredScopes?: string[]
+  apiBaseUrl?: string
+  enableOAuth?: boolean
 }
 
 export function GitlabSecretAutocomplete({
@@ -48,9 +51,12 @@ export function GitlabSecretAutocomplete({
   label = "GITLAB ACCESS TOKEN SECRET",
   required = false,
   requiredScopes = ["api"],
+  apiBaseUrl = '',
+  enableOAuth = true,
 }: GitlabSecretAutocompleteProps) {
 
-  const [mode, setMode] = useState<"select" | "create" | "confirm">("select")
+  const [mode, setMode] = useState<"select" | "create" | "oauth" | "confirm">("select")
+  const [authMethod, setAuthMethod] = useState<"api_token" | "oauth">("api_token")
   const [existingSecrets, setExistingSecrets] = useState<Secret[]>([])
   const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null)
   const [loading, setLoading] = useState(false)
@@ -77,6 +83,9 @@ export function GitlabSecretAutocomplete({
   const [selectedSecretScopes, setSelectedSecretScopes] = useState<string[]>([])
   const [selectedSecretScopesValid, setSelectedSecretScopesValid] = useState<boolean | null>(null)
   const [selectedSecretInfo, setSelectedSecretInfo] = useState<{ name: string; expiresAt: string | null } | null>(null)
+
+  // OAuth state
+  const [oauthResult, setOAuthResult] = useState<GitLabOAuthResult | null>(null)
 
   // Load existing secrets
   useEffect(() => {
@@ -395,13 +404,13 @@ export function GitlabSecretAutocomplete({
 
   return (
     <div className="space-y-4">
-      <Label className="text-xs uppercase tracking-wide">
+      <Label className="text-xs uppercase tracking-wide text-gray-300">
         {label}
-        {required && <span className="text-red-500 ml-1">*</span>}
+        {required && <span className="text-red-400 ml-1">*</span>}
       </Label>
 
       {error && mode !== "select" && (
-        <div className="bg-red-50/90 text-red-600 px-4 py-3 border border-red-200/60 backdrop-blur-sm text-sm flex items-center gap-2">
+        <div className="bg-red-500/10 text-red-300 px-4 py-3 border border-red-500/30 backdrop-blur-sm text-sm flex items-center gap-2 rounded">
           <XCircle className="w-4 h-4" />
           {error}
         </div>
@@ -411,14 +420,14 @@ export function GitlabSecretAutocomplete({
       {mode === "select" && (
         <div className="space-y-3">
           {selectedSecret ? (
-            <div className={`bg-white/90 p-4 border ${
+            <div className={`bg-slate-800/50 p-4 border rounded ${
               selectedSecretValidating
-                ? "border-gray-200/60"
+                ? "border-slate-600"
                 : selectedSecretValid === true && selectedSecretScopesValid === true
-                ? "border-green-200/60"
+                ? "border-green-500/40"
                 : selectedSecretValid === false || selectedSecretScopesValid === false
-                ? "border-red-200/60"
-                : "border-gray-200/60"
+                ? "border-red-500/40"
+                : "border-slate-600"
             } space-y-3`}>
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4 flex-1">
@@ -426,12 +435,12 @@ export function GitlabSecretAutocomplete({
                     {selectedSecretValidating && <Loader2 className="w-5 h-5 animate-spin text-gray-400" />}
                     {!selectedSecretValidating && selectedSecretValid === true && selectedSecretScopesValid === true && (
                       <>
-                        <CheckCircle2 className="w-5 h-5 text-green-600" />
+                        <CheckCircle2 className="w-5 h-5 text-green-400" />
                         {/* Tooltip */}
                         {selectedSecretInfo && (
-                          <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-gray-900 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
+                          <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-slate-900 border border-slate-700 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
                             <div className="space-y-1">
-                              <div className="font-semibold border-b border-gray-700 pb-1 mb-2">Token Information</div>
+                              <div className="font-semibold border-b border-slate-700 pb-1 mb-2">Token Information</div>
                               <div><span className="text-gray-400">Name:</span> {selectedSecretInfo.name}</div>
                               <div><span className="text-gray-400">Scopes:</span> {selectedSecretScopes.join(", ")}</div>
                               {selectedSecretInfo.expiresAt && (
@@ -443,35 +452,35 @@ export function GitlabSecretAutocomplete({
                       </>
                     )}
                     {!selectedSecretValidating && selectedSecretValid === true && selectedSecretScopesValid === false && (
-                      <AlertCircle className="w-5 h-5 text-yellow-600" />
+                      <AlertCircle className="w-5 h-5 text-yellow-500" />
                     )}
                     {!selectedSecretValidating && selectedSecretValid === false && (
-                      <XCircle className="w-5 h-5 text-red-600" />
+                      <XCircle className="w-5 h-5 text-red-400" />
                     )}
                   </div>
                   <div className="flex-1">
                     <div className={`text-xs uppercase tracking-wide font-medium ${
                       selectedSecretValidating
-                        ? "text-gray-500"
+                        ? "text-gray-400"
                         : selectedSecretValid === true && selectedSecretScopesValid === true
-                        ? "text-green-600"
+                        ? "text-green-400"
                         : selectedSecretValid === false || selectedSecretScopesValid === false
-                        ? "text-red-600"
-                        : "text-gray-500"
+                        ? "text-red-400"
+                        : "text-gray-400"
                     }`}>
                       {selectedSecretValidating ? "VALIDATING SECRET..." : "SELECTED SECRET"}
                     </div>
-                    <div className="text-sm font-medium mt-1">{selectedSecret.name}</div>
+                    <div className="text-sm font-medium mt-1 text-gray-100">{selectedSecret.name}</div>
                     {(selectedSecret as any).description && (
-                      <div className="text-xs text-gray-500 mt-0.5">{(selectedSecret as any).description}</div>
+                      <div className="text-xs text-gray-400 mt-0.5">{(selectedSecret as any).description}</div>
                     )}
                     {selectedSecretValid === true && selectedSecretScopesValid === false && (
-                      <div className="text-xs text-yellow-600 mt-2">
+                      <div className="text-xs text-yellow-400 mt-2">
                         Missing required scopes
                       </div>
                     )}
                     {selectedSecretValid === false && (
-                      <div className="text-xs text-red-600 mt-2">
+                      <div className="text-xs text-red-400 mt-2">
                         Token validation failed
                       </div>
                     )}
@@ -506,7 +515,7 @@ export function GitlabSecretAutocomplete({
                       }}
                       onFocus={handleSecretInputFocus}
                       onBlur={() => setTimeout(() => setShowSecretDropdown(false), 200)}
-                      className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10"
+                      className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
                       placeholder="Search existing secrets..."
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
@@ -517,7 +526,7 @@ export function GitlabSecretAutocomplete({
                     {showSecretDropdown && (
                       <Portal>
                         <div
-                          className="absolute bg-white border border-gray-200/60 shadow-lg max-h-60 overflow-auto"
+                          className="absolute bg-slate-800 border border-slate-700 shadow-lg max-h-60 overflow-auto rounded"
                           style={{
                             top: `${dropdownPosition.top}px`,
                             left: `${dropdownPosition.left}px`,
@@ -531,16 +540,16 @@ export function GitlabSecretAutocomplete({
                               key={secret.id}
                               type="button"
                               onClick={() => handleSelectSecret(secret)}
-                              className="w-full px-4 py-3 text-left hover:bg-blue-50/50 transition-colors border-b border-gray-100 last:border-b-0"
+                              className="w-full px-4 py-3 text-left hover:bg-slate-700/50 transition-colors border-b border-slate-700 last:border-b-0"
                             >
-                              <div className="font-medium text-sm">{secret.name}</div>
+                              <div className="font-medium text-sm text-gray-100">{secret.name}</div>
                               {(secret as any).description && (
-                                <div className="text-xs text-gray-500 mt-1">{(secret as any).description}</div>
+                                <div className="text-xs text-gray-400 mt-1">{(secret as any).description}</div>
                               )}
                             </button>
                           ))
                         ) : (
-                          <div className="px-4 py-3 text-sm text-gray-500">
+                          <div className="px-4 py-3 text-sm text-gray-400">
                             Nothing found
                           </div>
                         )}
@@ -550,17 +559,50 @@ export function GitlabSecretAutocomplete({
                 </div>
               )}
 
-              <Button
-                type="button"
-                onClick={() => setMode("create")}
-                variant="outline"
-                className="w-full uppercase tracking-wide"
-                disabled={!projectId}
-                title={!projectId ? "Project ID required to create new secrets" : ""}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                CREATE NEW SECRET {!projectId && "(Requires Project)"}
-              </Button>
+              {enableOAuth && host === 'https://gitlab.com' ? (
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setAuthMethod("api_token")
+                      setMode("create")
+                    }}
+                    variant="outline"
+                    className="w-full uppercase tracking-wide"
+                    disabled={!projectId}
+                    title={!projectId ? "Project ID required to create new secrets" : ""}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    CREATE WITH API TOKEN
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setAuthMethod("oauth")
+                      setMode("oauth")
+                    }}
+                    variant="default"
+                    className="w-full uppercase tracking-wide"
+                    disabled={!projectId}
+                    title={!projectId ? "Project ID required for OAuth" : ""}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    CONNECT WITH OAUTH
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => setMode("create")}
+                  variant="outline"
+                  className="w-full uppercase tracking-wide"
+                  disabled={!projectId}
+                  title={!projectId ? "Project ID required to create new secrets" : ""}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  CREATE NEW SECRET {!projectId && "(Requires Project)"}
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -568,9 +610,31 @@ export function GitlabSecretAutocomplete({
 
       {/* Create Mode */}
       {mode === "create" && (
-        <div className="space-y-4 p-4 border border-gray-200/60 bg-gray-50/50 backdrop-blur-sm">
+        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+          {/* OAuth option for gitlab.com */}
+          {enableOAuth && host === 'https://gitlab.com' && (
+            <div className="flex gap-2 pb-4 border-b border-slate-700">
+              <Button
+                type="button"
+                variant={authMethod === "api_token" ? "default" : "outline"}
+                onClick={() => setAuthMethod("api_token")}
+                className="flex-1 text-xs uppercase"
+              >
+                API Token
+              </Button>
+              <Button
+                type="button"
+                variant={authMethod === "oauth" ? "default" : "outline"}
+                onClick={() => setMode("oauth")}
+                className="flex-1 text-xs uppercase"
+              >
+                OAuth
+              </Button>
+            </div>
+          )}
+
           <div className="space-y-2">
-            <Label htmlFor="gitlab_token" className="text-xs uppercase tracking-wide">
+            <Label htmlFor="gitlab_token" className="text-xs uppercase tracking-wide text-gray-300">
               GITLAB ACCESS TOKEN
             </Label>
             <div className="relative group">
@@ -583,19 +647,19 @@ export function GitlabSecretAutocomplete({
                   setTokenValid(null)
                   setError(null)
                 }}
-                className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500 pr-10"
+                className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
                 placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
               />
               <div className="absolute right-3 top-1/2 -translate-y-1/2">
                 {tokenValidating && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
                 {!tokenValidating && tokenValid === true && scopesValid === true && (
                   <div className="relative cursor-help">
-                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <CheckCircle2 className="w-4 h-4 text-green-400" />
                     {/* Tooltip */}
                     {tokenInfo && (
-                      <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-gray-900 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
+                      <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-slate-900 border border-slate-700 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
                         <div className="space-y-1">
-                          <div className="font-semibold border-b border-gray-700 pb-1 mb-2">Token Information</div>
+                          <div className="font-semibold border-b border-slate-700 pb-1 mb-2">Token Information</div>
                           <div><span className="text-gray-400">Name:</span> {tokenInfo.name}</div>
                           <div><span className="text-gray-400">Scopes:</span> {tokenScopes.join(", ")}</div>
                           {tokenInfo.expiresAt && (
@@ -607,30 +671,30 @@ export function GitlabSecretAutocomplete({
                   </div>
                 )}
                 {!tokenValidating && tokenValid === true && scopesValid === false && (
-                  <AlertCircle className="w-4 h-4 text-yellow-600" />
+                  <AlertCircle className="w-4 h-4 text-yellow-500" />
                 )}
                 {!tokenValidating && tokenValid === false && (
-                  <XCircle className="w-4 h-4 text-red-600" />
+                  <XCircle className="w-4 h-4 text-red-400" />
                 )}
               </div>
             </div>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-400">
               <a
                 href={`${host}/-/user_settings/personal_access_tokens?name=${encodeURIComponent("ADI Simple Access Token")}&scopes=${requiredScopes.join(",")}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-500 hover:underline font-medium"
+                className="text-blue-400 hover:text-blue-300 hover:underline font-medium"
               >
                 Create a new GitLab token
               </a>{" "}
-              with scopes: {requiredScopes.map(s => <code key={s} className="bg-gray-100 px-1 mx-0.5">{s}</code>)}
+              with scopes: {requiredScopes.map(s => <code key={s} className="bg-slate-700/50 px-1 mx-0.5 text-gray-200">{s}</code>)}
             </p>
           </div>
 
           {/* Secret Name - Only show when token is valid */}
           {tokenValid === true && scopesValid === true && (
             <div className="space-y-2">
-              <Label htmlFor="secret_name" className="text-xs uppercase tracking-wide">
+              <Label htmlFor="secret_name" className="text-xs uppercase tracking-wide text-gray-300">
                 SECRET NAME
               </Label>
               <Input
@@ -638,14 +702,14 @@ export function GitlabSecretAutocomplete({
                 type="text"
                 value={secretName}
                 onChange={(e) => setSecretName(e.target.value)}
-                className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
                 placeholder="GitLab Token [username]"
               />
             </div>
           )}
 
           {tokenValid === false && (
-            <div className="bg-yellow-50/90 text-yellow-800 px-4 py-3 border border-yellow-200/60 backdrop-blur-sm text-sm flex items-start gap-2">
+            <div className="bg-yellow-500/10 text-yellow-300 px-4 py-3 border border-yellow-500/30 backdrop-blur-sm text-sm flex items-start gap-2 rounded">
               <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
               <div>
                 <div className="font-medium">Token Validation Failed</div>
@@ -687,27 +751,27 @@ export function GitlabSecretAutocomplete({
 
       {/* Confirm Mode */}
       {mode === "confirm" && (
-        <div className="space-y-4 p-4 border border-gray-200/60 bg-gray-50/50 backdrop-blur-sm">
-          <div className="bg-white/90 p-4 border border-gray-200/60 space-y-3">
+        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+          <div className="bg-slate-800/50 p-4 border border-slate-700 rounded space-y-3">
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">SECRET NAME</div>
-              <div className="font-medium">{secretName}</div>
+              <div className="text-xs uppercase tracking-wide text-gray-400">SECRET NAME</div>
+              <div className="font-medium text-gray-100">{secretName}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">GITLAB HOST</div>
-              <div className="font-medium">{host}</div>
+              <div className="text-xs uppercase tracking-wide text-gray-400">GITLAB HOST</div>
+              <div className="font-medium text-gray-100">{host}</div>
             </div>
             <div>
-              <div className="text-xs uppercase tracking-wide text-gray-500">TOKEN</div>
-              <div className="font-mono text-sm">•••••••••••••••••••</div>
+              <div className="text-xs uppercase tracking-wide text-gray-400">TOKEN</div>
+              <div className="font-mono text-sm text-gray-300">•••••••••••••••••••</div>
             </div>
-            <div className="flex items-center gap-2 text-green-600">
+            <div className="flex items-center gap-2 text-green-400">
               <CheckCircle2 className="w-4 h-4" />
               <div className="text-xs uppercase tracking-wide font-medium">TOKEN VALIDATED</div>
             </div>
           </div>
 
-          <p className="text-sm text-gray-600">
+          <p className="text-sm text-gray-300">
             This will create a secret in your project for GitLab authentication.
           </p>
 
@@ -736,6 +800,80 @@ export function GitlabSecretAutocomplete({
               )}
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* OAuth Mode */}
+      {mode === "oauth" && projectId && (
+        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wide text-gray-300">
+              CONNECT GITLAB WITH OAUTH
+            </Label>
+            <p className="text-sm text-gray-400">
+              Authorize with GitLab to securely connect your account. This will automatically manage access tokens.
+            </p>
+          </div>
+
+          {!oauthResult && (
+            <GitLabOAuthButton
+              projectId={projectId}
+              gitlabHost={host !== 'https://gitlab.com' ? host : undefined}
+              apiBaseUrl={apiBaseUrl}
+              onSuccess={(result) => {
+                setOAuthResult(result)
+              }}
+              onError={(error) => {
+                setError(error)
+              }}
+            />
+          )}
+
+          {oauthResult && (
+            <div className="bg-green-900/20 border border-green-600/30 rounded p-3">
+              <div className="flex items-center gap-2 text-green-400 mb-2">
+                <CheckCircle2 className="w-4 h-4" />
+                <div className="text-xs uppercase tracking-wide font-medium">OAUTH CONNECTED</div>
+              </div>
+              <div className="text-sm text-gray-300">
+                Successfully connected as {oauthResult.user.username} ({oauthResult.user.email})
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              onClick={() => {
+                setMode("select")
+                setOAuthResult(null)
+                setSecretName("")
+                setError(null)
+              }}
+              variant="outline"
+              className="flex-1 uppercase tracking-wide"
+            >
+              CANCEL
+            </Button>
+            {oauthResult && (
+              <Button
+                type="button"
+                onClick={() => {
+                  onChange(oauthResult.secretId, null)
+                  setMode("select")
+                }}
+                className="flex-1 uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+              >
+                FINISH
+              </Button>
+            )}
+          </div>
+
+          {error && (
+            <div className="bg-red-900/20 border border-red-600/30 rounded p-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -48,6 +48,22 @@ export const createProjectRoutes = (sql: Sql) => {
 
       return c.json(result.data)
     })
+    .get('/:id/stats', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+
+      try {
+        // Require viewer access
+        await acl.project(id).viewer.gte.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
+      const stats = await queries.getProjectStats(sql, id)
+      return c.json(stats)
+    })
     .post('/', zValidator('json', createProjectSchema), requireClerkAuth(), async (c) => {
       const body = c.req.valid('json')
       const userId = getClerkUserId(c)

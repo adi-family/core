@@ -1,8 +1,13 @@
 import { Link, Outlet } from "react-router-dom"
 import { UserButton, useAuth } from '@clerk/clerk-react'
 import { useEffect, useState, useMemo } from "react"
-import { AlertCircle } from "lucide-react"
+import { AlertCircle, DollarSign } from "lucide-react"
 import { createAuthenticatedClient } from "@/lib/client"
+import { useExpertMode } from "@/contexts/ExpertModeContext"
+import { useProject } from "@/contexts/ProjectContext"
+import { Select } from "@adi-simple/ui/select"
+import { calculateCostBreakdown, formatCost, type ApiUsageMetric } from "@/config/pricing"
+import type { Project } from "@adi-simple/types"
 
 type Alert = {
   type: 'missing_api_keys'
@@ -15,96 +20,125 @@ type Alert = {
 export function Layout() {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
+  const { expertMode } = useExpertMode()
+  const { selectedProjectId, setSelectedProjectId } = useProject()
   const [alerts, setAlerts] = useState<Alert[]>([])
+  const [projects, setProjects] = useState<Project[]>([])
+  const [usageMetrics, setUsageMetrics] = useState<ApiUsageMetric[]>([])
+  const [loadingUsage, setLoadingUsage] = useState(true)
 
   useEffect(() => {
-    const fetchAlerts = async () => {
+    const fetchData = async () => {
       try {
-        const res = await client.alerts.$get()
-        if (res.ok) {
-          const data = await res.json()
-          setAlerts(data.alerts)
+        // Fetch alerts
+        const alertsRes = await client.alerts.$get()
+        if (alertsRes.ok) {
+          const alertsData = await alertsRes.json()
+          setAlerts(alertsData.alerts)
+        }
+
+        // Fetch projects
+        const projectsRes = await client.projects.$get()
+        if (projectsRes.ok) {
+          const projectsData = await projectsRes.json()
+          setProjects(projectsData)
+
+          // Don't auto-select project - allow viewing all projects
+          // User can manually select a project to filter
+        }
+
+        // Fetch usage metrics
+        const usageRes = await client.admin['usage-metrics'].$get()
+        if (usageRes.ok) {
+          const usageData = await usageRes.json()
+          setUsageMetrics(usageData.recent as ApiUsageMetric[])
         }
       } catch {
-        // Failed to fetch alerts
+        // Failed to fetch data
+      } finally {
+        setLoadingUsage(false)
       }
     }
 
-    fetchAlerts()
+    fetchData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Calculate total cost and balance
+  const totalCost = useMemo(() => {
+    if (usageMetrics.length === 0) return 0
+    return usageMetrics.reduce((acc, metric) => {
+      const breakdown = calculateCostBreakdown(metric)
+      return acc + breakdown.totalCost
+    }, 0)
+  }, [usageMetrics])
+
+  const balance = 100 - totalCost
+
+  // Navigation items with expert mode requirement
+  const navItems = [
+    { to: '/projects', label: 'Projects', requiresExpert: true },
+    { to: '/task-sources', label: 'Sources', requiresExpert: false },
+    { to: '/tasks', label: 'Tasks', requiresExpert: false },
+    { to: '/file-spaces', label: 'Files', requiresExpert: false },
+    { to: '/sessions', label: 'Sessions', requiresExpert: true },
+    { to: '/messages', label: 'Messages', requiresExpert: true },
+    { to: '/worker-cache', label: 'Cache', requiresExpert: true },
+    { to: '/pipeline-executions', label: 'Pipelines', requiresExpert: true },
+    { to: '/pipeline-artifacts', label: 'Artifacts', requiresExpert: true },
+    { to: '/admin', label: 'Admin', requiresExpert: true, isAdmin: true },
+  ]
+
+  const visibleNavItems = navItems.filter(item => !item.requiresExpert || expertMode)
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      <nav className="sticky top-0 z-50 border-b border-gray-200/80 bg-white/80 backdrop-blur-xl backdrop-saturate-150">
-        <div className="mx-auto px-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-800">
+      <nav className="sticky top-0 z-50 border-b border-white/10 bg-slate-900/80 backdrop-blur-xl backdrop-saturate-150 shadow-lg">
+        <div className="mx-auto px-6 max-w-7xl">
           <div className="flex h-14 items-center gap-8">
-            <Link to="/" className="font-bold text-sm uppercase tracking-wider text-gray-900 transition-all hover:text-blue-600">
+            <Link to="/" className="font-bold text-sm uppercase tracking-wider text-white transition-all hover:text-blue-400">
               ADI
             </Link>
             <div className="flex flex-1 gap-6">
-              <Link
-                to="/projects"
-                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
-              >
-                Projects
-              </Link>
-              <Link
-                to="/tasks"
-                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
-              >
-                Tasks
-              </Link>
-              <Link
-                to="/sessions"
-                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
-              >
-                Sessions
-              </Link>
-              <Link
-                to="/messages"
-                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
-              >
-                Messages
-              </Link>
-              <Link
-                to="/worker-cache"
-                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
-              >
-                Cache
-              </Link>
-              <Link
-                to="/file-spaces"
-                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
-              >
-                Files
-              </Link>
-              <Link
-                to="/task-sources"
-                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
-              >
-                Sources
-              </Link>
-              <Link
-                to="/pipeline-executions"
-                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
-              >
-                Pipelines
-              </Link>
-              <Link
-                to="/pipeline-artifacts"
-                className="text-xs uppercase tracking-wide text-gray-700 transition-all duration-200 hover:text-gray-900 hover:scale-105"
-              >
-                Artifacts
-              </Link>
-              <Link
-                to="/admin"
-                className="text-xs uppercase tracking-wide text-blue-600 transition-all duration-200 hover:text-blue-800 hover:scale-105 font-semibold"
-              >
-                Admin
-              </Link>
+              {visibleNavItems.map((item) => (
+                <Link
+                  key={item.to}
+                  to={item.to}
+                  className={`text-xs uppercase tracking-wide transition-all duration-200 hover:scale-105 ${
+                    item.isAdmin
+                      ? 'text-blue-400 hover:text-blue-300 font-semibold'
+                      : 'text-gray-300 hover:text-white'
+                  }`}
+                >
+                  {item.label}
+                </Link>
+              ))}
             </div>
-            <div className="ml-auto">
+            {projects.length > 0 && (
+              <div className="flex items-center gap-2 border-l border-white/10 pl-6">
+                <span className="text-xs text-gray-400 uppercase tracking-wider">Project:</span>
+                <Select
+                  value={selectedProjectId || ''}
+                  onChange={(e) => setSelectedProjectId(e.target.value || null)}
+                  className="w-48 h-9 text-xs"
+                >
+                  <option value="">All Projects</option>
+                  {projects.map((project) => (
+                    <option key={project.id} value={project.id}>
+                      {project.name}
+                    </option>
+                  ))}
+                </Select>
+              </div>
+            )}
+            {/* User & Balance */}
+            <div className="flex items-center gap-4 border-l border-white/10 pl-6">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-green-400" />
+                <span className="text-xs font-semibold text-green-400">
+                  {loadingUsage ? '...' : formatCost(balance)}
+                </span>
+              </div>
               <UserButton afterSignOutUrl="/" />
             </div>
           </div>
@@ -113,13 +147,13 @@ export function Layout() {
 
       {/* Global Alerts */}
       {alerts.length > 0 && (
-        <div className="bg-amber-50 border-b border-amber-200">
+        <div className="bg-amber-500/10 border-b border-amber-500/30 backdrop-blur-md">
           {alerts.map((alert, index) => (
-            <div key={index} className="mx-auto px-6 py-4">
+            <div key={index} className="mx-auto px-6 py-4 max-w-7xl">
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm text-amber-900 font-medium mb-2">
+                  <p className="text-sm text-amber-100 font-medium mb-2">
                     {alert.message}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -133,11 +167,11 @@ export function Layout() {
                         <Link
                           key={project.id}
                           to={`/projects/${project.id}?tab=ai-providers`}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border border-amber-300 rounded-md text-sm text-amber-900 hover:bg-amber-100 hover:border-amber-400 transition-colors"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 border border-amber-500/40 rounded-lg text-sm text-amber-100 hover:bg-amber-500/30 hover:border-amber-400/60 transition-colors"
                         >
                           <span className="font-medium">{project.name}</span>
-                          <span className="text-amber-700">→</span>
-                          <span className="text-xs text-amber-700">
+                          <span className="text-amber-300">→</span>
+                          <span className="text-xs text-amber-200">
                             Missing: {providerNames.join(', ')}
                           </span>
                         </Link>

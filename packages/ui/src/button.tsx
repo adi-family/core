@@ -20,14 +20,14 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
           ...(disabled && !loading && { opacity: 0.5 }),
         }}
         className={cn(
-          "inline-flex items-center justify-center font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 uppercase tracking-wide text-xs relative",
-          !disabled && !loading && "cursor-pointer active:scale-95",
+          "inline-flex items-center justify-center font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 uppercase tracking-wide text-xs relative rounded-lg",
+          !disabled && !loading && "cursor-pointer active:scale-95 hover:translate-y-[-1px]",
           disabled && "cursor-not-allowed",
           {
             'bg-gradient-to-b from-gray-900 to-black text-white shadow-sm focus-visible:ring-gray-900': variant === 'default',
             'bg-gradient-to-b from-red-500 to-red-600 text-white shadow-sm focus-visible:ring-red-600': variant === 'destructive',
             'bg-gradient-to-b from-green-500 to-green-600 text-white shadow-sm focus-visible:ring-green-600': variant === 'success',
-            'border border-gray-300 bg-white/90 backdrop-blur-sm shadow-sm focus-visible:ring-gray-400': variant === 'outline',
+            'border border-slate-600/50 bg-slate-700/40 backdrop-blur-sm shadow-sm focus-visible:ring-gray-400 text-gray-100': variant === 'outline',
             'bg-gradient-to-b from-gray-100 to-gray-200 text-gray-900 shadow-sm focus-visible:ring-gray-400': variant === 'secondary',
             'backdrop-blur-sm focus-visible:ring-gray-400': variant === 'ghost',
             'text-gray-900 underline-offset-4 focus-visible:ring-gray-400': variant === 'link',
@@ -36,7 +36,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             'hover:from-gray-800 hover:to-gray-900 hover:shadow-md': variant === 'default',
             'hover:from-red-600 hover:to-red-700 hover:shadow-md': variant === 'destructive',
             'hover:from-green-600 hover:to-green-700 hover:shadow-md': variant === 'success',
-            'hover:bg-gray-50 hover:border-gray-400 hover:shadow': variant === 'outline',
+            'hover:bg-slate-700/60 hover:border-slate-500 hover:shadow': variant === 'outline',
             'hover:from-gray-200 hover:to-gray-300 hover:shadow': variant === 'secondary',
             'hover:bg-gray-100/80 hover:text-gray-900': variant === 'ghost',
             'hover:underline': variant === 'link',
@@ -103,7 +103,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             <span className="button-loader" />
           </>
         )}
-        <span className={loading ? "text-transparent" : ""}>{children}</span>
+        <span className={cn("inline-flex items-center gap-2", loading ? "text-transparent" : "")}>{children}</span>
       </button>
     )
 

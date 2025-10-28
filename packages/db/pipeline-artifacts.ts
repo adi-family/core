@@ -25,6 +25,17 @@ export const findPipelineArtifactsByExecutionId = async (sql: Sql, executionId: 
   `)
 }
 
+export const findPipelineArtifactsByTaskId = async (sql: Sql, taskId: string): Promise<PipelineArtifact[]> => {
+  return get(sql<PipelineArtifact[]>`
+    SELECT pa.*
+    FROM pipeline_artifacts pa
+    INNER JOIN pipeline_executions pe ON pa.pipeline_execution_id = pe.id
+    INNER JOIN sessions s ON pe.session_id = s.id
+    WHERE s.task_id = ${taskId}
+    ORDER BY pa.created_at DESC
+  `)
+}
+
 const createPipelineArtifactCols = ['pipeline_execution_id', 'artifact_type', 'reference_url', 'metadata'] as const
 export const createPipelineArtifact = async (sql: Sql, input: CreatePipelineArtifactInput): Promise<PipelineArtifact> => {
   const data = {

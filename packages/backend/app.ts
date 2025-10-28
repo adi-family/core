@@ -16,6 +16,8 @@ import { createSecretRoutes } from './handlers/secrets'
 import { createUserAccessRoutes } from './handlers/user-access'
 import { createAlertRoutes } from './handlers/alerts'
 import { createAdminRoutes } from './handlers/admin'
+import { createQuotaRoutes } from './handlers/quotas'
+import { createOAuthRoutes } from './handlers/oauth'
 import { authMiddleware } from './middleware/auth'
 import { clerkAuth, optionalClerkAuth } from './middleware/clerk'
 import * as sessionQueries from '@db/sessions'
@@ -51,6 +53,7 @@ const app = new Hono()
   // Mount main routes
   .route('/admin', createAdminRoutes(sql))
   .route('/alerts', createAlertRoutes(sql))
+  .route('/', createQuotaRoutes(sql))
   .route('/projects', createProjectRoutes(sql))
   .route('/tasks', createTaskRoutes(sql))
   .route('/sessions', createSessionRoutes(sql))
@@ -64,12 +67,19 @@ const app = new Hono()
   .route('/webhooks', createWebhookRoutes(sql))
   .route('/secrets', createSecretRoutes(sql))
   .route('/user-access', createUserAccessRoutes(sql))
+  .route('/oauth', createOAuthRoutes(sql))
   // Nested routes that need special handling
   // Tasks -> Sessions
   .get('/tasks/:taskId/sessions', zValidator('param', taskIdParamSchema), async (c) => {
     const { taskId } = c.req.valid('param')
     const sessions = await sessionQueries.findSessionsByTaskId(sql, taskId)
     return c.json(sessions)
+  })
+  // Tasks -> Artifacts
+  .get('/tasks/:taskId/artifacts', zValidator('param', taskIdParamSchema), async (c) => {
+    const { taskId } = c.req.valid('param')
+    const artifacts = await pipelineArtifactQueries.findPipelineArtifactsByTaskId(sql, taskId)
+    return c.json(artifacts)
   })
   // Sessions -> Messages
   .get('/sessions/:sessionId/messages', zValidator('param', sessionIdParamSchema), async (c) => {

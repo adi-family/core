@@ -61,10 +61,10 @@ export function TaskCard({
   const getStepColor = (status: string | null) => {
     if (!status) return "text-gray-400"
     const statusLower = status.toLowerCase()
-    if (statusLower === "completed" || statusLower === "success") return "text-green-600"
-    if (statusLower === "failed" || statusLower === "error") return "text-red-600"
-    if (statusLower.includes("ing") || statusLower === "running") return "text-blue-600"
-    if (statusLower === "queued") return "text-yellow-600"
+    if (statusLower === "completed" || statusLower === "success") return "text-green-400"
+    if (statusLower === "failed" || statusLower === "error") return "text-red-400"
+    if (statusLower.includes("ing") || statusLower === "running") return "text-blue-400"
+    if (statusLower === "queued") return "text-yellow-400"
     if (statusLower === "pending") return "text-gray-400"
     return "text-gray-400"
   }
@@ -101,15 +101,15 @@ export function TaskCard({
   ]
 
   return (
-    <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-md hover:shadow-xl transition-all duration-200 hover:border-accent-teal/40">
-      <CardHeader className="pb-3 bg-gradient-to-r from-gray-50 to-gray-100/50 border-b border-gray-200/60">
+    <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur-xl shadow-2xl hover:shadow-blue-500/10 transition-all duration-200 hover:border-slate-600/60">
+      <CardHeader className="pb-3 bg-gradient-to-r from-slate-700/30 to-slate-800/30 border-b border-slate-700/50">
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
-              <h3 className="text-lg font-semibold text-gray-900 mb-1 truncate">
+              <h3 className="text-lg font-semibold text-white mb-1 truncate">
                 {task.title}
               </h3>
-              <p className="text-xs font-mono text-gray-500">
+              <p className="text-xs font-mono text-gray-400">
                 ID: {truncateId(task.id)}
               </p>
             </div>
@@ -131,13 +131,13 @@ export function TaskCard({
                       />
                       <span className="text-xs font-medium">{step.label}</span>
                     </div>
-                    <span className="text-[10px] text-gray-500">
+                    <span className="text-[10px] text-gray-400">
                       {step.status}
                     </span>
                     {isFailed && step.onRetry && (
                       <button
                         onClick={step.onRetry}
-                        className="flex items-center gap-0.5 text-[10px] text-blue-600 hover:text-blue-800 disabled:opacity-50 mt-0.5"
+                        className="flex items-center gap-0.5 text-[10px] text-blue-400 hover:text-blue-300 disabled:opacity-50 mt-0.5"
                         title="Retry this step"
                       >
                         <RefreshCw className="h-3 w-3" />
@@ -146,7 +146,7 @@ export function TaskCard({
                     )}
                   </div>
                   {index < steps.length - 1 && (
-                    <div className="h-px bg-gray-300 flex-shrink-0 w-4 mx-1" />
+                    <div className="h-px bg-slate-600 flex-shrink-0 w-4 mx-1" />
                   )}
                 </div>
               )
@@ -158,17 +158,17 @@ export function TaskCard({
       <CardContent className="pt-4 space-y-4">
         {/* Description */}
         <div>
-          <p className="text-sm text-gray-700 line-clamp-2">
+          <p className="text-sm text-gray-200 line-clamp-2">
             {task.description}
           </p>
         </div>
 
         {/* Task Source Info */}
         <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">
             Source:
           </span>
-          <span className="text-sm font-medium text-gray-900">
+          <span className="text-sm font-medium text-white">
             {taskSource?.name || "Unknown"}
           </span>
           {taskSource?.type && (
@@ -182,25 +182,25 @@ export function TaskCard({
         </div>
 
         {/* Dates */}
-        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-gray-200/60">
+        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-700/50">
           <div className="flex items-start gap-2">
-            <Calendar className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+            <Calendar className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
                 Created
               </p>
-              <p className="text-xs text-gray-700 truncate">
+              <p className="text-xs text-gray-200 truncate">
                 {formatDate(task.created_at)}
               </p>
             </div>
           </div>
           <div className="flex items-start gap-2">
-            <Calendar className="h-4 w-4 text-gray-400 mt-0.5 shrink-0" />
+            <Calendar className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
             <div className="min-w-0">
-              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+              <p className="text-xs font-medium text-gray-400 uppercase tracking-wide">
                 Updated
               </p>
-              <p className="text-xs text-gray-700 truncate">
+              <p className="text-xs text-gray-200 truncate">
                 {formatDate(task.updated_at)}
               </p>
             </div>
@@ -215,7 +215,7 @@ export function TaskCard({
               variant="outline"
               size="sm"
               onClick={onRetryEvaluation}
-              className="flex-1 border-purple-500 text-purple-600 hover:bg-purple-50"
+              className="flex-1 border-purple-500/50 text-purple-400 hover:bg-purple-500/10 hover:border-purple-400"
             >
               <RefreshCw className="h-3 w-3 mr-1" />
               Re-evaluate
@@ -227,7 +227,7 @@ export function TaskCard({
               variant="outline"
               size="sm"
               onClick={onStartProcessing}
-              className="flex-1 border-accent-teal text-accent-teal hover:bg-teal-50"
+              className="flex-1 border-teal-500/50 text-teal-400 hover:bg-teal-500/10 hover:border-teal-400"
             >
               <RefreshCw className="h-3 w-3 mr-1" />
               Re-implement

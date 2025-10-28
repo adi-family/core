@@ -244,6 +244,10 @@ export async function recoverStuckEvaluationsFromDatabase(
       try {
         if (!task.pipeline_execution_id) {
           // No pipeline found - reset to pending (direct DB)
+          // This handles cases where:
+          // 1. Simple eval in microservice crashed before completing
+          // 2. CI pipeline trigger failed
+          // 3. Session was created but pipeline never started
           await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'pending')
           result.tasksRecovered++
           logger.info(`🔄 Task ${task.id} evaluation reset to pending (no pipeline found)`)

@@ -4,6 +4,8 @@ import { Label } from './label'
 import { Button } from './button'
 import { Portal } from './portal'
 import { CheckCircle2, XCircle, Loader2, Plus, AlertCircle, Search } from "lucide-react"
+import { JiraOAuthButton, type OAuthResult } from './jira-oauth-button'
+import { JiraSiteSelector } from './jira-site-selector'
 
 export type Secret = {
   id: string
@@ -33,8 +35,11 @@ type JiraSecretAutocompleteProps = {
   value?: string | null
   onChange: (secretId: string | null, secret?: Secret | null) => void
   onSecretCreated?: (secret: Secret) => void
+  onCloudIdChange?: (cloudId: string) => void
   label?: string
   required?: boolean
+  apiBaseUrl?: string
+  enableOAuth?: boolean
 }
 
 export function JiraSecretAutocomplete({
@@ -44,11 +49,14 @@ export function JiraSecretAutocomplete({
   value,
   onChange,
   onSecretCreated,
+  onCloudIdChange,
   label = "JIRA API TOKEN SECRET",
   required = false,
+  apiBaseUrl = '',
+  enableOAuth = true,
 }: JiraSecretAutocompleteProps) {
 
-  const [mode, setMode] = useState<"select" | "create" | "confirm">("select")
+  const [mode, setMode] = useState<"select" | "create" | "oauth" | "confirm">("select")
   const [existingSecrets, setExistingSecrets] = useState<Secret[]>([])
   const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null)
   const [loading, setLoading] = useState(false)
@@ -72,6 +80,10 @@ export function JiraSecretAutocomplete({
   const [selectedSecretValidating, setSelectedSecretValidating] = useState(false)
   const [selectedSecretValid, setSelectedSecretValid] = useState<boolean | null>(null)
   const [selectedSecretInfo, setSelectedSecretInfo] = useState<{ username: string; email: string | null } | null>(null)
+
+  // OAuth state
+  const [oauthResult, setOAuthResult] = useState<OAuthResult | null>(null)
+  const [selectedCloudId, setSelectedCloudId] = useState<string | null>(null)
 
   // Load existing secrets
   useEffect(() => {
@@ -491,17 +503,50 @@ export function JiraSecretAutocomplete({
                 </div>
               )}
 
-              <Button
-                type="button"
-                onClick={() => setMode("create")}
-                variant="outline"
-                className="w-full uppercase tracking-wide"
-                disabled={!projectId}
-                title={!projectId ? "Project ID required to create new secrets" : ""}
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                CREATE NEW SECRET {!projectId && "(Requires Project)"}
-              </Button>
+              {enableOAuth ? (
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setAuthMethod("api_token")
+                      setMode("create")
+                    }}
+                    variant="outline"
+                    className="w-full uppercase tracking-wide"
+                    disabled={!projectId}
+                    title={!projectId ? "Project ID required to create new secrets" : ""}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    CREATE WITH API TOKEN
+                  </Button>
+                  <Button
+                    type="button"
+                    onClick={() => {
+                      setAuthMethod("oauth")
+                      setMode("oauth")
+                    }}
+                    variant="default"
+                    className="w-full uppercase tracking-wide"
+                    disabled={!projectId}
+                    title={!projectId ? "Project ID required for OAuth" : ""}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    CONNECT WITH OAUTH
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={() => setMode("create")}
+                  variant="outline"
+                  className="w-full uppercase tracking-wide"
+                  disabled={!projectId}
+                  title={!projectId ? "Project ID required to create new secrets" : ""}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  CREATE NEW SECRET {!projectId && "(Requires Project)"}
+                </Button>
+              )}
             </>
           )}
         </div>
@@ -701,6 +746,98 @@ export function JiraSecretAutocomplete({
               )}
             </Button>
           </div>
+        </div>
+      )}
+
+      {/* OAuth Mode */}
+      {mode === "oauth" && projectId && (
+        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wide text-gray-300">
+              CONNECT JIRA WITH OAUTH
+            </Label>
+            <p className="text-sm text-gray-400">
+              Authorize with Atlassian to securely connect your Jira account. This will automatically manage access tokens.
+            </p>
+          </div>
+
+          {!oauthResult && (
+            <JiraOAuthButton
+              projectId={projectId}
+              apiBaseUrl={apiBaseUrl}
+              onSuccess={(result) => {
+                setOAuthResult(result)
+                // Auto-select first site if only one
+                if (result.sites.length === 1) {
+                  setSelectedCloudId(result.sites[0].id)
+                  onCloudIdChange?.(result.sites[0].id)
+                }
+              }}
+              onError={(error) => {
+                setError(error)
+              }}
+            />
+          )}
+
+          {oauthResult && (
+            <div className="space-y-4">
+              <div className="bg-green-900/20 border border-green-600/30 rounded p-3">
+                <div className="flex items-center gap-2 text-green-400 mb-2">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <div className="text-xs uppercase tracking-wide font-medium">OAUTH CONNECTED</div>
+                </div>
+                <div className="text-sm text-gray-300">
+                  Successfully connected to Jira. Found {oauthResult.sites.length} site{oauthResult.sites.length !== 1 ? 's' : ''}.
+                </div>
+              </div>
+
+              <JiraSiteSelector
+                sites={oauthResult.sites}
+                selectedCloudId={selectedCloudId || undefined}
+                onSelect={(cloudId) => {
+                  setSelectedCloudId(cloudId)
+                  onCloudIdChange?.(cloudId)
+                }}
+              />
+            </div>
+          )}
+
+          <div className="flex gap-2">
+            <Button
+              type="button"
+              onClick={() => {
+                setMode("select")
+                setOAuthResult(null)
+                setSelectedCloudId(null)
+                setSecretName("")
+                setError(null)
+              }}
+              variant="outline"
+              className="flex-1 uppercase tracking-wide"
+            >
+              CANCEL
+            </Button>
+            {oauthResult && (
+              <Button
+                type="button"
+                onClick={() => {
+                  // Notify parent that OAuth secret was created
+                  onChange(oauthResult.secretId, null)
+                  setMode("select")
+                }}
+                disabled={!selectedCloudId}
+                className="flex-1 uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+              >
+                FINISH
+              </Button>
+            )}
+          </div>
+
+          {error && (
+            <div className="bg-red-900/20 border border-red-600/30 rounded p-3 text-sm text-red-400">
+              {error}
+            </div>
+          )}
         </div>
       )}
     </div>

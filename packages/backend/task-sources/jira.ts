@@ -18,7 +18,7 @@ export class JiraTaskSource extends BaseTaskSource {
   }
 
   async *getIssues(): AsyncIterable<TaskSourceIssue> {
-    const jqlQuery = this.jiraConfig.jql_filter || `project = ${this.jiraConfig.project_key} AND status = "To Do"`;
+    const jqlQuery = this.jiraConfig.jql_filter || `project = ${this.jiraConfig.project_key} AND resolution = Unresolved`;
 
     if (!this.jiraConfig.access_token_secret_id) {
       this.logger.error('Access token secret ID is required for Jira integration');
@@ -31,21 +31,32 @@ export class JiraTaskSource extends BaseTaskSource {
       throw new Error('Failed to retrieve access token secret');
     }
 
-    const accessToken = secretResult.data.value;
+    const secret = secretResult.data;
+    const accessToken = secret.value;
 
-    // Determine auth header format based on token format
-    // If token contains ':', assume it's email:token format for Basic Auth
+    // Determine auth header format based on token type
     let authHeader: string;
-    if (accessToken.includes(':')) {
+    if (secret.token_type === 'oauth') {
+      // OAuth token - use Bearer auth
+      authHeader = `-H "Authorization: Bearer ${accessToken}"`;
+    } else if (accessToken.includes(':')) {
+      // API token with email:token format - use Basic Auth
       const encodedToken = Buffer.from(accessToken).toString('base64');
       authHeader = `-H "Authorization: Basic ${encodedToken}"`;
     } else {
+      // Plain token - use Bearer auth
       authHeader = `-H "Authorization: Bearer ${accessToken}"`;
     }
 
+    // Determine cloud ID for OAuth tokens
+    const cloudId = this.jiraConfig.cloud_id;
+    const apiUrl = secret.token_type === 'oauth' && cloudId
+      ? `https://api.atlassian.com/ex/jira/${cloudId}/rest/api/3/search/jql`
+      : `${this.jiraConfig.host}/rest/api/3/search/jql`;
+
     try {
       const result = execSync(
-        `curl -s -X GET ${authHeader} -H "Content-Type: application/json" "${this.jiraConfig.host}/rest/api/2/search?jql=${encodeURIComponent(jqlQuery)}"`,
+        `curl -s -X GET ${authHeader} -H "Content-Type: application/json" "${apiUrl}?jql=${encodeURIComponent(jqlQuery)}"`,
         {encoding: 'utf-8'}
       );
 

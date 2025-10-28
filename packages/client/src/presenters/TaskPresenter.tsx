@@ -2,17 +2,34 @@ import { BasePresenter } from './base'
 import { navigateTo } from '@/utils/navigation'
 import type { Task, TaskSource } from '@types'
 import { Badge } from '@adi-simple/ui/badge'
-import { Circle } from 'lucide-react'
+import { Circle, CheckCircle2, XCircle, Loader2, Clock } from 'lucide-react'
 
 /**
  * Presenter for Task model
  */
 export class TaskPresenter extends BasePresenter<Task> {
   private taskSources?: TaskSource[]
+  private onRetrySync?: (task: Task) => Promise<void>
+  private onRetryEvaluation?: (task: Task) => Promise<void>
+  private onStartProcessing?: (task: Task) => Promise<void>
+  private onUpdateStatus?: (task: Task) => Promise<void>
 
-  constructor(model: Task, taskSources?: TaskSource[]) {
+  constructor(
+    model: Task,
+    taskSources?: TaskSource[],
+    callbacks?: {
+      onRetrySync?: (task: Task) => Promise<void>
+      onRetryEvaluation?: (task: Task) => Promise<void>
+      onStartProcessing?: (task: Task) => Promise<void>
+      onUpdateStatus?: (task: Task) => Promise<void>
+    }
+  ) {
     super(model)
     this.taskSources = taskSources
+    this.onRetrySync = callbacks?.onRetrySync
+    this.onRetryEvaluation = callbacks?.onRetryEvaluation
+    this.onStartProcessing = callbacks?.onStartProcessing
+    this.onUpdateStatus = callbacks?.onUpdateStatus
   }
 
   getId(): string {
@@ -22,17 +39,14 @@ export class TaskPresenter extends BasePresenter<Task> {
   getTableColumns() {
     return [
       {
-        key: 'id',
-        label: 'ID',
-        render: (task: Task) => (
-          <span className="font-mono text-xs">{this.truncateId(task.id)}</span>
-        ),
-        sortable: false,
-      },
-      {
         key: 'title',
         label: 'Title',
-        render: (task: Task) => <span className="font-medium">{task.title}</span>,
+        render: (task: Task) => (
+          <div>
+            <div className="font-medium">{task.title}</div>
+            <div className="text-xs font-mono text-gray-400">ID: {this.truncateId(task.id)}</div>
+          </div>
+        ),
         sortable: true,
       },
       {
@@ -44,79 +58,142 @@ export class TaskPresenter extends BasePresenter<Task> {
         sortable: false,
       },
       {
-        key: 'status',
-        label: 'Status',
-        render: (task: Task) => (
-          <Badge variant="default" icon={Circle}>
-            {task.status}
-          </Badge>
-        ),
-        sortable: true,
-      },
-      {
-        key: 'task_source',
-        label: 'Task Source',
+        key: 'sync_status',
+        label: 'Sync',
         render: (task: Task) => {
-          const info = this.getTaskSourceInfo(task.task_source_id)
-          return (
-            <span className="text-sm">
-              {info.name}
-              {info.type && (
-                <span className="ml-1 text-xs text-muted-foreground">({info.type})</span>
-              )}
-            </span>
-          )
+          const taskSource = this.taskSources?.find((ts) => ts.id === task.task_source_id)
+          const status = taskSource?.sync_status || 'pending'
+          return this.renderStatusBadge(status)
         },
         sortable: false,
       },
       {
-        key: 'created_at',
-        label: 'Created At',
-        render: (task: Task) => (
-          <span className="text-muted-foreground text-sm">
-            {this.formatDate(task.created_at)}
-          </span>
-        ),
+        key: 'evaluation_status',
+        label: 'Evaluation',
+        render: (task: Task) => this.renderStatusBadge(task.ai_evaluation_status),
+        sortable: false,
+      },
+      {
+        key: 'implementation_status',
+        label: 'Implementation',
+        render: (task: Task) => this.renderStatusBadge(task.ai_implementation_status),
+        sortable: false,
+      },
+      {
+        key: 'status',
+        label: 'Task Status',
+        render: (task: Task) => this.renderStatusBadge(task.status),
         sortable: true,
       },
       {
-        key: 'updated_at',
-        label: 'Updated At',
+        key: 'remote_status',
+        label: 'Remote',
         render: (task: Task) => (
-          <span className="text-muted-foreground text-sm">
-            {this.formatDate(task.updated_at)}
-          </span>
+          <Badge variant={task.remote_status === 'opened' ? 'green' : 'gray'} className="text-xs">
+            {task.remote_status}
+          </Badge>
         ),
-        sortable: true,
+        sortable: false,
       },
     ]
   }
 
+  /**
+   * Render status badge with appropriate icon and color
+   */
+  private renderStatusBadge(status: string | null) {
+    if (!status) {
+      return <Badge variant="gray" icon={Circle}>pending</Badge>
+    }
+
+    const statusLower = status.toLowerCase()
+    let icon = Circle
+    let variant: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'blue' | 'orange' | 'purple' | 'green' | 'gray' = 'gray'
+
+    if (statusLower === 'completed' || statusLower === 'success') {
+      icon = CheckCircle2
+      variant = 'green'
+    } else if (statusLower === 'failed' || statusLower === 'error') {
+      icon = XCircle
+      variant = 'danger'
+    } else if (statusLower.includes('ing') || statusLower === 'running') {
+      icon = Loader2
+      variant = 'blue'
+    } else if (statusLower === 'queued') {
+      icon = Clock
+      variant = 'warning'
+    } else if (statusLower === 'pending') {
+      icon = Clock
+      variant = 'gray'
+    }
+
+    return (
+      <Badge variant={variant} icon={icon} className="text-xs">
+        {status}
+      </Badge>
+    )
+  }
+
   getActions() {
-    return [
-      {
-        label: 'View Details',
-        onClick: (task: Task) => {
-          navigateTo(`/tasks/${task.id}`)
-        },
-        variant: 'default' as const,
+    const actions = []
+
+    // View Details - always available
+    actions.push({
+      label: 'View',
+      onClick: (task: Task) => {
+        navigateTo(`/tasks/${task.id}`)
       },
-      {
-        label: 'Update Status',
+      variant: 'default' as const,
+    })
+
+    // Re-evaluate - always available
+    if (this.onRetryEvaluation) {
+      actions.push({
+        label: 'Re-evaluate',
         onClick: async (task: Task) => {
-          // TODO: Implement update status
-          console.log(`Update task ${task.id} status`)
+          await this.onRetryEvaluation!(task)
         },
         variant: 'outline' as const,
-      },
-      this.getDeleteAction(
-        (task) => `Are you sure you want to delete "${task.title}"?`,
-        async (task) => {
-          // TODO: Implement delete action
-          console.log(`Delete task ${task.id}`)
-        }
-      ),
-    ]
+      })
+    }
+
+    // Re-implement - always available
+    if (this.onStartProcessing) {
+      actions.push({
+        label: 'Re-implement',
+        onClick: async (task: Task) => {
+          await this.onStartProcessing!(task)
+        },
+        variant: 'outline' as const,
+      })
+    }
+
+    // Refresh - always available
+    if (this.onUpdateStatus) {
+      actions.push({
+        label: 'Refresh',
+        onClick: async (task: Task) => {
+          await this.onUpdateStatus!(task)
+        },
+        variant: 'outline' as const,
+      })
+    }
+
+    // Retry sync - only show if sync failed
+    if (this.onRetrySync) {
+      const taskSource = this.taskSources?.find((ts) => ts.id === this.model.task_source_id)
+      if (taskSource?.sync_status?.toLowerCase() === 'failed') {
+        actions.push({
+          label: 'Retry Sync',
+          onClick: async (task: Task) => {
+            await this.onRetrySync!(task)
+          },
+          variant: 'outline' as const,
+        })
+      }
+    }
+
+    return actions
   }
 
   /**

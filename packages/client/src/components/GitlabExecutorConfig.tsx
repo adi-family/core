@@ -128,40 +128,40 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-gray-200/60 pb-4">
-        <h3 className="text-lg uppercase tracking-wide bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent">
+      <div className="border-b border-slate-700/50 pb-4">
+        <h3 className="text-lg uppercase tracking-wide text-gray-100">
           GITLAB PIPELINE EXECUTOR
         </h3>
-        <p className="text-xs text-gray-500 uppercase tracking-wide mt-1">
+        <p className="text-xs text-gray-400 uppercase tracking-wide mt-1">
           Configure custom GitLab instance for pipeline execution
         </p>
       </div>
 
       {error && (
-        <div className="bg-red-50/90 text-red-600 px-4 py-3 border border-red-200/60 backdrop-blur-sm text-sm flex items-center gap-2">
+        <div className="bg-red-500/10 text-red-300 px-4 py-3 border border-red-500/30 backdrop-blur-sm text-sm flex items-center gap-2 rounded">
           <XCircle className="w-4 h-4" />
           {error}
         </div>
       )}
 
       {success && (
-        <div className="bg-green-50/90 text-green-600 px-4 py-3 border border-green-200/60 backdrop-blur-sm text-sm flex items-center gap-2">
+        <div className="bg-green-500/10 text-green-300 px-4 py-3 border border-green-500/30 backdrop-blur-sm text-sm flex items-center gap-2 rounded">
           <CheckCircle2 className="w-4 h-4" />
           {success}
         </div>
       )}
 
       {existingConfig && (
-        <div className="bg-blue-50/90 p-4 border border-blue-200/60 backdrop-blur-sm">
+        <div className="bg-blue-500/10 p-4 border border-blue-500/30 backdrop-blur-sm rounded">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-blue-600">
+            <div className="flex items-center gap-2 text-blue-400">
               <CheckCircle2 className="w-4 h-4" />
               <div className="text-xs uppercase tracking-wide font-medium">CONFIGURED</div>
             </div>
             <button
               onClick={handleDelete}
               disabled={deleting}
-              className="text-red-600 hover:text-red-700 disabled:opacity-50"
+              className="text-red-400 hover:text-red-300 disabled:opacity-50 transition-colors"
               title="Remove executor configuration"
             >
               {deleting ? (
@@ -173,28 +173,28 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
           </div>
           <div className="space-y-2 text-sm">
             <div>
-              <span className="text-gray-500 text-xs uppercase tracking-wide">Host:</span>
-              <div className="font-mono mt-1">{existingConfig.host}</div>
+              <span className="text-gray-400 text-xs uppercase tracking-wide">Host:</span>
+              <div className="font-mono mt-1 text-gray-100">{existingConfig.host}</div>
             </div>
             {existingConfig.user && (
               <div>
-                <span className="text-gray-500 text-xs uppercase tracking-wide">User:</span>
-                <div className="font-mono mt-1">{existingConfig.user}</div>
+                <span className="text-gray-400 text-xs uppercase tracking-wide">User:</span>
+                <div className="font-mono mt-1 text-gray-100">{existingConfig.user}</div>
               </div>
             )}
             {existingConfig.verified_at && (
               <div>
-                <span className="text-gray-500 text-xs uppercase tracking-wide">Verified:</span>
-                <div className="mt-1">{new Date(existingConfig.verified_at).toLocaleString()}</div>
+                <span className="text-gray-400 text-xs uppercase tracking-wide">Verified:</span>
+                <div className="mt-1 text-gray-100">{new Date(existingConfig.verified_at).toLocaleString()}</div>
               </div>
             )}
           </div>
         </div>
       )}
 
-      <div className="space-y-4 p-6 border border-gray-200/60 bg-gray-50/50 backdrop-blur-sm">
+      <div className="space-y-4 p-6 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
         <div className="space-y-2">
-          <Label htmlFor="executor_host" className="text-xs uppercase tracking-wide">
+          <Label htmlFor="executor_host" className="text-xs uppercase tracking-wide text-gray-300">
             GITLAB HOST
           </Label>
           <Input
@@ -202,10 +202,10 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
             type="text"
             value={host}
             onChange={(e) => setHost(e.target.value)}
-            className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+            className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
             placeholder="https://gitlab.com"
           />
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-gray-400">
             The GitLab instance URL where pipelines will be executed
           </p>
         </div>

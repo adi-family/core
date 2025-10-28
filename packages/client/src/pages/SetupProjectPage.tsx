@@ -1,21 +1,19 @@
-import {type FormEvent, useState, useMemo} from "react"
+import {type FormEvent, useState, useMemo, useEffect} from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@clerk/clerk-react"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@adi-simple/ui/card'
+import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
+import { PageCard } from "@/components/PageCard"
 import { Button } from '@adi-simple/ui/button'
+import { Input } from '@adi-simple/ui/input'
 import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocomplete'
 import { createAuthenticatedClient } from "@/lib/client"
+import { useExpertMode } from "@/contexts/ExpertModeContext"
 import type { CreateProjectInput, Secret } from "../../../types"
 
 export function SetupProjectPage() {
   const navigate = useNavigate()
   const { getToken } = useAuth()
+  const { expertMode } = useExpertMode()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
@@ -31,6 +29,13 @@ export function SetupProjectPage() {
   const [executorHost, setExecutorHost] = useState("https://gitlab.the-ihor.com")
   const [executorTokenSecretId, setExecutorTokenSecretId] = useState<string | null>(null)
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)
+
+  // Automatically disable executor configuration when expert mode is turned off
+  useEffect(() => {
+    if (!expertMode && configureExecutor) {
+      setConfigureExecutor(false)
+    }
+  }, [expertMode, configureExecutor])
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -75,7 +80,7 @@ export function SetupProjectPage() {
 
       setSuccess(true)
       setLoading(false)
-      navigate(`/projects/${project.id}?tab=ai-providers`)
+      navigate(`/create-task-source`)
     } catch {
       setError("Error creating project")
       setLoading(false)
@@ -94,75 +99,75 @@ export function SetupProjectPage() {
 
   if (success) {
     return (
-      <div className="mx-auto">
-        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <div className="text-green-600 font-medium">
-                Project created
-              </div>
+      <AnimatedPageContainer>
+        <PageCard title="Success" description="Your project has been created">
+          <div className="text-center py-8">
+            <div className="text-green-400 font-medium text-lg">
+              ✓ Project created successfully
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </div>
+        </PageCard>
+      </AnimatedPageContainer>
     )
   }
 
   return (
-    <div className="mx-auto">
-      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
-        <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
-          <CardTitle className="text-2xl uppercase tracking-wide">New Project</CardTitle>
-          <CardDescription className="text-gray-300">Add a new project</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
-          <form onSubmit={handleSubmit} className="space-y-4">
+    <AnimatedPageContainer>
+      <PageCard
+        title="New Project"
+        description="Add a new project"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-destructive/15 text-destructive px-4 py-3 rounded">
+              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg backdrop-blur-sm">
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-1">
+              <label htmlFor="name" className="block text-sm font-medium mb-2 text-gray-200">
                 Name
               </label>
-              <input
+              <Input
                 id="name"
                 type="text"
                 value={formData.name}
                 onChange={(e) => handleInputChange("name", e.target.value)}
-                className="w-full px-3 py-2 border rounded-md"
                 required
               />
             </div>
 
-            <div className="pt-4 mt-4">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="pt-4 mt-4 border-t border-slate-700/50">
+              <div className="flex items-center gap-2 mb-1 pt-4">
                 <input
                   id="configureExecutor"
                   type="checkbox"
                   checked={configureExecutor}
                   onChange={(e) => setConfigureExecutor(e.target.checked)}
-                  className="w-4 h-4"
+                  disabled={!expertMode}
+                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                <label htmlFor="configureExecutor" className="text-sm font-medium cursor-pointer">
-                  Custom GitLab Executor
+                <label htmlFor="configureExecutor" className={`text-sm font-medium ${expertMode ? 'cursor-pointer' : 'cursor-not-allowed'} text-gray-200`}>
+                  Custom pipeline executor
                 </label>
               </div>
+              {!expertMode && (
+                <p className="text-xs text-gray-500 ml-6 mb-2">
+                  Available only in expert mode
+                </p>
+              )}
 
               {configureExecutor && (
-                <div className="ml-6 space-y-3 border-l-2 pl-4">
+                <div className="ml-6 space-y-3 border-l-2 border-blue-500/30 pl-4">
                   <div>
-                    <label htmlFor="executorHost" className="block text-sm font-medium mb-1">
+                    <label htmlFor="executorHost" className="block text-sm font-medium mb-2 text-gray-200">
                       Host
                     </label>
-                    <input
+                    <Input
                       id="executorHost"
                       type="text"
                       value={executorHost}
                       onChange={(e) => setExecutorHost(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-md"
                       placeholder="https://gitlab.com"
                       required={configureExecutor}
                     />
@@ -186,7 +191,7 @@ export function SetupProjectPage() {
               )}
             </div>
 
-            <div className="flex gap-2 pt-4">
+            <div className="flex gap-2 pt-6 border-t border-slate-700/50 mt-6">
               <Button
                 type="submit"
                 disabled={loading}
@@ -202,8 +207,7 @@ export function SetupProjectPage() {
               </Button>
             </div>
           </form>
-        </CardContent>
-      </Card>
-    </div>
+      </PageCard>
+    </AnimatedPageContainer>
   )
 }

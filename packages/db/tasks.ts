@@ -192,6 +192,52 @@ export const updateTaskEvaluationResult = async (
 }
 
 /**
+ * Update task simple evaluation result
+ * Stores the result from the simple/quick evaluation filter
+ */
+export const updateTaskEvaluationSimpleResult = async (
+  sql: Sql,
+  taskId: string,
+  simpleResult: unknown
+): Promise<Result<Task>> => {
+  const tasks = await get(sql<Task[]>`
+    UPDATE tasks
+    SET
+      ai_evaluation_simple_result = ${sql.json(simpleResult as any)},
+      updated_at = NOW()
+    WHERE id = ${taskId}
+    RETURNING *
+  `)
+  const [task] = tasks
+  return task
+    ? { ok: true, data: task }
+    : { ok: false, error: 'Task not found' }
+}
+
+/**
+ * Update task agentic evaluation result
+ * Stores the result from the deep/agentic evaluation
+ */
+export const updateTaskEvaluationAgenticResult = async (
+  sql: Sql,
+  taskId: string,
+  agenticResult: unknown
+): Promise<Result<Task>> => {
+  const tasks = await get(sql<Task[]>`
+    UPDATE tasks
+    SET
+      ai_evaluation_agentic_result = ${sql.json(agenticResult as any)},
+      updated_at = NOW()
+    WHERE id = ${taskId}
+    RETURNING *
+  `)
+  const [task] = tasks
+  return task
+    ? { ok: true, data: task }
+    : { ok: false, error: 'Task not found' }
+}
+
+/**
  * Find tasks needing evaluation
  */
 export const findTasksNeedingEvaluation = async (sql: Sql): Promise<Task[]> => {

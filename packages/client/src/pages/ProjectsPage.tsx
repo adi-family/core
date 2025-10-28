@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react"
+import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import { PageCard } from "@/components/PageCard"
 import { PresenterTable } from "@/components/PresenterTable"
 import { ProjectPresenter } from "@/presenters"
@@ -68,7 +69,7 @@ export function ProjectsPage() {
   }
 
   return (
-    <div className="mx-auto">
+    <AnimatedPageContainer>
       <PageCard
         title="Projects"
         description="Manage all projects in the system"
@@ -83,6 +84,6 @@ export function ProjectsPage() {
           }
         />
       </PageCard>
-    </div>
+    </AnimatedPageContainer>
   )
 }

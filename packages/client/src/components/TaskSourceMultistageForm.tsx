@@ -59,6 +59,7 @@ export function TaskSourceMultistageForm() {
   const navigate = useNavigate()
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
+  const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
   const [currentStep, setCurrentStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -476,8 +477,13 @@ export function TaskSourceMultistageForm() {
                       onChange={(secretId) => {
                         handleJiraConfigChange("access_token_secret_id", secretId || "")
                       }}
+                      onCloudIdChange={(cloudId) => {
+                        handleJiraConfigChange("cloud_id", cloudId)
+                      }}
                       label="JIRA API TOKEN (REQUIRED)"
                       required={true}
+                      enableOAuth={true}
+                      apiBaseUrl={API_BASE_URL}
                     />
 
                     <div className="space-y-2">

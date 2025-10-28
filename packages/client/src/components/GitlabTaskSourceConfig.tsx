@@ -26,13 +26,14 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
   const [gitlabHost, setGitlabHost] = useState(config.host || "https://gitlab.com")
   const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null)
   const [selectedRepositoryId, setSelectedRepositoryId] = useState<number | null>(null)
+  const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
 
   return (
-    <div className="space-y-4 p-4 border border-gray-200/60 bg-gray-50/50 backdrop-blur-sm">
-      <h3 className="text-xs uppercase tracking-wide font-medium">GITLAB CONFIGURATION</h3>
+    <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+      <h3 className="text-xs uppercase tracking-wide font-medium text-gray-300">GITLAB CONFIGURATION</h3>
 
       <div className="space-y-2">
-        <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide">
+        <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide text-gray-300">
           GITLAB HOST
         </Label>
         <Input
@@ -43,7 +44,7 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
             setGitlabHost(e.target.value)
             onChange("host", e.target.value)
           }}
-          className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+          className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
           placeholder="https://gitlab.com"
         />
       </div>
@@ -60,6 +61,8 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
         label="GITLAB ACCESS TOKEN (requires: api scope)"
         requiredScopes={["api"]}
         required={true}
+        enableOAuth={true}
+        apiBaseUrl={API_BASE_URL}
       />
 
       {selectedSecret && config.access_token_secret_id && (

@@ -267,13 +267,13 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     const typeOptions = getProviderTypeOptions(selectedProvider)
 
     return (
-      <div className="space-y-4 p-6 border border-gray-200/60 bg-gray-50/50 backdrop-blur-sm">
+      <div className="space-y-4 p-6 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
         <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-wide">Provider Type</Label>
+          <Label className="text-xs uppercase tracking-wide text-gray-300">Provider Type</Label>
           <select
             value={formData.type}
             onChange={(e) => setFormData({ ...formData, type: e.target.value as ProviderType })}
-            className="w-full px-3 py-2 border rounded-md bg-white"
+            className="w-full px-3 py-2 border border-slate-600 rounded-md bg-slate-800/50 text-gray-100"
           >
             {typeOptions.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -282,22 +282,22 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         </div>
 
         <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-wide">API Key *</Label>
+          <Label className="text-xs uppercase tracking-wide text-gray-300">API Key *</Label>
           <Input
             type="password"
             value={formData.api_key}
             onChange={(e) => setFormData({ ...formData, api_key: e.target.value })}
             placeholder="Enter API key"
-            className="bg-white"
+            className="bg-slate-800/50 border-slate-600 text-gray-100"
             required
           />
           {getApiKeyUrl(selectedProvider, formData.type) && (
-            <p className="text-xs text-gray-500">
+            <p className="text-xs text-gray-400">
               <a
                 href={getApiKeyUrl(selectedProvider, formData.type)!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-500 hover:underline font-medium"
+                className="text-blue-400 hover:text-blue-300 hover:underline font-medium"
               >
                 Create a new API key
               </a>
@@ -308,13 +308,13 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         {/* Endpoint URL for self-hosted, azure, vertex */}
         {(formData.type === 'self-hosted' || formData.type === 'azure') && (
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide">Endpoint URL *</Label>
+            <Label className="text-xs uppercase tracking-wide text-gray-300">Endpoint URL *</Label>
             <Input
               type="url"
               value={formData.endpoint_url || ''}
               onChange={(e) => setFormData({ ...formData, endpoint_url: e.target.value })}
               placeholder={formData.type === 'azure' ? 'https://myresource.openai.azure.com' : 'https://...'}
-              className="bg-white"
+              className="bg-slate-800/50 border-slate-600 text-gray-100"
               required
             />
           </div>
@@ -324,22 +324,22 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         {formData.type === 'azure' && selectedProvider === 'openai' && (
           <>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide">Deployment Name *</Label>
+              <Label className="text-xs uppercase tracking-wide text-gray-300">Deployment Name *</Label>
               <Input
                 value={formData.deployment_name || ''}
                 onChange={(e) => setFormData({ ...formData, deployment_name: e.target.value })}
                 placeholder="gpt-4"
-                className="bg-white"
+                className="bg-slate-800/50 border-slate-600 text-gray-100"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide">API Version *</Label>
+              <Label className="text-xs uppercase tracking-wide text-gray-300">API Version *</Label>
               <Input
                 value={formData.api_version || ''}
                 onChange={(e) => setFormData({ ...formData, api_version: e.target.value })}
                 placeholder="2024-02-15-preview"
-                className="bg-white"
+                className="bg-slate-800/50 border-slate-600 text-gray-100"
                 required
               />
             </div>
@@ -350,22 +350,22 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         {formData.type === 'vertex' && selectedProvider === 'google' && (
           <>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide">Project ID *</Label>
+              <Label className="text-xs uppercase tracking-wide text-gray-300">Project ID *</Label>
               <Input
                 value={formData.project_id || ''}
                 onChange={(e) => setFormData({ ...formData, project_id: e.target.value })}
                 placeholder="my-project"
-                className="bg-white"
+                className="bg-slate-800/50 border-slate-600 text-gray-100"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide">Location *</Label>
+              <Label className="text-xs uppercase tracking-wide text-gray-300">Location *</Label>
               <Input
                 value={formData.location || ''}
                 onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                 placeholder="us-central1"
-                className="bg-white"
+                className="bg-slate-800/50 border-slate-600 text-gray-100"
                 required
               />
             </div>
@@ -375,34 +375,34 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         {/* OpenAI Cloud organization ID */}
         {formData.type === 'cloud' && selectedProvider === 'openai' && (
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide">Organization ID (Optional)</Label>
+            <Label className="text-xs uppercase tracking-wide text-gray-300">Organization ID (Optional)</Label>
             <Input
               value={formData.organization_id || ''}
               onChange={(e) => setFormData({ ...formData, organization_id: e.target.value })}
               placeholder="org-..."
-              className="bg-white"
+              className="bg-slate-800/50 border-slate-600 text-gray-100"
             />
           </div>
         )}
 
         {/* Validation Result */}
         {validationResult && (
-          <div className={`p-4 border ${validationResult.valid ? 'bg-green-50 border-green-200' : 'bg-red-50 border-red-200'}`}>
+          <div className={`p-4 border rounded ${validationResult.valid ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
             <div className="flex items-center gap-2 mb-2">
               {validationResult.valid ? (
-                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                <CheckCircle2 className="w-5 h-5 text-green-400" />
               ) : (
-                <XCircle className="w-5 h-5 text-red-600" />
+                <XCircle className="w-5 h-5 text-red-400" />
               )}
-              <span className={`font-medium ${validationResult.valid ? 'text-green-600' : 'text-red-600'}`}>
+              <span className={`font-medium ${validationResult.valid ? 'text-green-300' : 'text-red-300'}`}>
                 {validationResult.valid ? 'Configuration Valid' : 'Configuration Invalid'}
               </span>
             </div>
-            <div className="text-sm space-y-1">
+            <div className="text-sm space-y-1 text-gray-300">
               <div>Endpoint Reachable: {validationResult.endpoint_reachable ? '✓' : '✗'}</div>
               <div>Authentication Valid: {validationResult.authentication_valid ? '✓' : '✗'}</div>
               {validationResult.error && (
-                <div className="text-red-600 mt-2">{validationResult.error}</div>
+                <div className="text-red-300 mt-2">{validationResult.error}</div>
               )}
             </div>
           </div>
@@ -410,7 +410,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
 
         {/* Error Display */}
         {error && (
-          <div className="bg-red-50 text-red-600 px-4 py-3 border border-red-200 flex items-center gap-2">
+          <div className="bg-red-500/10 text-red-300 px-4 py-3 border border-red-500/30 rounded flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
             {error}
           </div>
@@ -466,11 +466,11 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-gray-200/60 pb-4">
-        <h3 className="text-lg uppercase tracking-wide bg-gradient-to-r from-gray-800 to-gray-900 bg-clip-text text-transparent">
+      <div className="border-b border-slate-700/50 pb-4">
+        <h3 className="text-lg uppercase tracking-wide text-gray-100">
           AI Provider Configuration
         </h3>
-        <p className="text-xs text-gray-500 uppercase tracking-wide mt-1">
+        <p className="text-xs text-gray-400 uppercase tracking-wide mt-1">
           Configure AI provider API keys and settings for pipeline execution
         </p>
       </div>
@@ -487,12 +487,12 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
               key={provider}
               className={`p-4 border-2 rounded-lg transition-all ${
                 !isSupported
-                  ? 'border-gray-200 bg-gray-50/50 opacity-60 cursor-not-allowed'
+                  ? 'border-slate-700/50 bg-slate-800/20 opacity-60 cursor-not-allowed'
                   : selectedProvider === provider
-                  ? 'border-blue-500 bg-blue-50/50 cursor-pointer'
+                  ? 'border-blue-500 bg-blue-500/10 cursor-pointer'
                   : isConfigured
-                  ? 'border-green-300 bg-green-50/50 hover:border-green-400 cursor-pointer'
-                  : 'border-gray-200 bg-white hover:border-gray-300 cursor-pointer'
+                  ? 'border-green-500/40 bg-green-500/10 hover:border-green-400 cursor-pointer'
+                  : 'border-slate-700/50 bg-slate-800/20 hover:border-slate-600 cursor-pointer'
               }`}
               onClick={() => isSupported && handleProviderSelect(provider)}
             >
@@ -501,23 +501,23 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                   <div className="flex-shrink-0">
                     {getProviderLogo(provider)}
                   </div>
-                  <h4 className="font-medium uppercase tracking-wide">
+                  <h4 className="font-medium uppercase tracking-wide text-gray-100">
                     {provider === 'anthropic' ? 'Anthropic' : provider === 'openai' ? 'OpenAI' : 'Google'}
                   </h4>
                 </div>
                 {!isSupported ? (
-                  <span className="text-xs font-medium px-2 py-1 bg-amber-100 text-amber-700 rounded uppercase tracking-wide">
+                  <span className="text-xs font-medium px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded uppercase tracking-wide">
                     Private Beta
                   </span>
                 ) : isConfigured ? (
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <CheckCircle2 className="w-5 h-5 text-green-400" />
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDelete(provider)
                       }}
-                      className="text-red-500 hover:text-red-700"
+                      className="text-red-400 hover:text-red-300 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -526,15 +526,15 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                   <AlertCircle className="w-5 h-5 text-gray-400" />
                 )}
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-300">
                 {!isSupported ? (
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-400">
                     Available only in private beta
                   </div>
                 ) : isConfigured ? (
                   <>
                     <div className="capitalize">{config.type}</div>
-                    {config.model && <div className="text-xs text-gray-500">{config.model}</div>}
+                    {config.model && <div className="text-xs text-gray-400">{config.model}</div>}
                   </>
                 ) : (
                   <div className="text-gray-400">Not configured</div>
@@ -550,7 +550,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         <div className="mt-6">
           <div className="flex items-center gap-3 mb-4">
             {getProviderLogo(selectedProvider)}
-            <h4 className="text-md font-medium uppercase tracking-wide">
+            <h4 className="text-md font-medium uppercase tracking-wide text-gray-100">
               Configure {selectedProvider === 'anthropic' ? 'Anthropic' : selectedProvider === 'openai' ? 'OpenAI' : 'Google'}
             </h4>
           </div>

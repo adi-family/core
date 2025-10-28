@@ -204,3 +204,49 @@ export const getProjectAIProviderConfig = async (
     data: providerConfig || null
   }
 }
+
+/**
+ * Get project statistics in a single SQL query
+ */
+export interface ProjectStats {
+  total_tasks: number
+  completed_tasks: number
+  in_progress_tasks: number
+  failed_tasks: number
+  pending_tasks: number
+  task_sources: number
+  file_spaces: number
+}
+
+export const getProjectStats = async (
+  sql: Sql,
+  projectId: string
+): Promise<ProjectStats> => {
+  const [stats] = await get(sql<ProjectStats[]>`
+    SELECT
+      COALESCE(COUNT(DISTINCT t.id), 0)::int AS total_tasks,
+      COALESCE(COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'completed'), 0)::int AS completed_tasks,
+      COALESCE(COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'in_progress'), 0)::int AS in_progress_tasks,
+      COALESCE(COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'failed'), 0)::int AS failed_tasks,
+      COALESCE(COUNT(DISTINCT t.id) FILTER (WHERE t.status = 'pending'), 0)::int AS pending_tasks,
+      COALESCE(COUNT(DISTINCT ts.id), 0)::int AS task_sources,
+      COALESCE(COUNT(DISTINCT fs.id), 0)::int AS file_spaces
+    FROM projects p
+    LEFT JOIN tasks t ON t.project_id = p.id
+    LEFT JOIN task_sources ts ON ts.project_id = p.id
+    LEFT JOIN file_spaces fs ON fs.project_id = p.id
+    WHERE p.id = ${projectId}
+    GROUP BY p.id
+  `)
+
+  // If project doesn't exist or has no data, return zeros
+  return stats || {
+    total_tasks: 0,
+    completed_tasks: 0,
+    in_progress_tasks: 0,
+    failed_tasks: 0,
+    pending_tasks: 0,
+    task_sources: 0,
+    file_spaces: 0
+  }
+}

@@ -79,9 +79,14 @@ export interface SimpleEvaluationUsage {
 /**
  * Create Anthropic client with optional proxy support
  */
-function createAnthropicClient(): Anthropic {
+function createAnthropicClient(aiConfig?: AIProviderConfig): Anthropic {
   const config: any = {
-    apiKey: process.env.ANTHROPIC_API_KEY!
+    apiKey: aiConfig?.api_key || process.env.ANTHROPIC_API_KEY!
+  }
+
+  // Set custom endpoint if provided
+  if (aiConfig?.endpoint_url) {
+    config.baseURL = aiConfig.endpoint_url
   }
 
   // Configure proxy if credentials are provided
@@ -116,13 +121,28 @@ function extractJSON(text: string): string {
 }
 
 /**
+ * AI Provider Config for evaluation
+ */
+export interface AIProviderConfig {
+  api_key: string
+  model?: string
+  max_tokens?: number
+  temperature?: number
+  endpoint_url?: string
+  additional_headers?: Record<string, string>
+}
+
+/**
  * Perform simple evaluation gate check
  * This runs in the microservice, not in CI
  */
-export async function evaluateSimple(task: {
-  title: string
-  description: string | null
-}): Promise<{
+export async function evaluateSimple(
+  task: {
+    title: string
+    description: string | null
+  },
+  aiConfig?: AIProviderConfig
+): Promise<{
   result: SimpleEvaluationResult
   usage: SimpleEvaluationUsage
 }> {
@@ -186,7 +206,11 @@ export async function evaluateSimple(task: {
     }
   }
 
-  const anthropic = createAnthropicClient()
+  const anthropic = createAnthropicClient(aiConfig)
+
+  // Use model from config or default
+  const model = aiConfig?.model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
+  const maxTokens = aiConfig?.max_tokens || 4000
 
   const prompt = `You are a quick filter for automated task evaluation. Your job is to determine if an AI agent can implement this task.
 
@@ -280,8 +304,8 @@ Respond ONLY with valid JSON (no markdown, no extra text):
 
   try {
     const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 1024,
+      model,
+      max_tokens: maxTokens,
       messages: [{
         role: 'user',
         content: prompt
@@ -302,7 +326,7 @@ Respond ONLY with valid JSON (no markdown, no extra text):
 
     const usage: SimpleEvaluationUsage = {
       provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
+      model,
       goal: 'evaluation',
       phase: 'simple_eval',
       input_tokens: message.usage.input_tokens,

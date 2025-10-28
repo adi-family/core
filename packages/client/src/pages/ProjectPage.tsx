@@ -1,6 +1,7 @@
 import { useEffect, useState, useMemo } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useAuth } from "@clerk/clerk-react"
+import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import {
   Card,
   CardContent,
@@ -8,10 +9,13 @@ import {
   CardHeader,
   CardTitle,
 } from '@adi-simple/ui/card'
+import { Button } from '@adi-simple/ui/button'
+import { ArrowLeft } from "lucide-react"
 import { createAuthenticatedClient } from "@/lib/client"
 import type { Project } from "../../../types"
 import { GitlabExecutorConfig } from "@/components/GitlabExecutorConfig"
 import { AIProviderSettings } from "@/components/AIProviderSettings"
+import { designTokens } from "@/theme/tokens"
 
 type TabType = "overview" | "configuration" | "ai-providers"
 
@@ -64,45 +68,50 @@ export function ProjectPage() {
 
   if (loading) {
     return (
-      <div className="mx-auto">
-        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+      <AnimatedPageContainer>
+        <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
           <CardContent className="pt-6">
-            <div className="text-center py-4">Loading...</div>
+            <div className="text-center py-8 text-gray-300">
+              <div className="text-lg">Loading project...</div>
+            </div>
           </CardContent>
         </Card>
-      </div>
+      </AnimatedPageContainer>
     )
   }
 
   if (error) {
     return (
-      <div className="mx-auto">
-        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+      <AnimatedPageContainer>
+        <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
           <CardContent className="pt-6">
-            <div className="text-center py-4 text-destructive">{error}</div>
-            <div className="text-center pt-4">
-              <button
+            <div className="text-center py-8">
+              <div className="text-red-400 text-lg mb-6">{error}</div>
+              <Button
                 onClick={() => navigate("/projects")}
-                className="px-4 py-2 border rounded hover:bg-accent"
+                variant="outline"
               >
+                <ArrowLeft className="mr-2 h-4 w-4" />
                 Back to Projects
-              </button>
+              </Button>
             </div>
           </CardContent>
         </Card>
-      </div>
+      </AnimatedPageContainer>
     )
   }
 
   if (!project) {
     return (
-      <div className="mx-auto">
-        <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+      <AnimatedPageContainer>
+        <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
           <CardContent className="pt-6">
-            <div className="text-center py-4">Project not found</div>
+            <div className="text-center py-8 text-gray-300">
+              <div className="text-lg">Project not found</div>
+            </div>
           </CardContent>
         </Card>
-      </div>
+      </AnimatedPageContainer>
     )
   }
 
@@ -113,93 +122,106 @@ export function ProjectPage() {
   ]
 
   return (
-    <div className="mx-auto">
-      <div className="mb-4">
-        <button
+    <AnimatedPageContainer>
+      <div className="mb-6">
+        <Button
           onClick={() => navigate("/projects")}
-          className="text-sm text-muted-foreground hover:text-foreground"
+          variant="ghost"
+          className="text-gray-300 hover:text-white -ml-2"
         >
-          ← Back to Projects
-        </button>
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Projects
+        </Button>
       </div>
 
-      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
-        <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
-          <CardTitle className="text-2xl uppercase tracking-wide">
-            {project.name}
+      {/* Project Header */}
+      <div className="mb-8">
+        <h1 className="text-5xl font-bold tracking-tight uppercase mb-3 bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent">
+          {project.name}
+        </h1>
+        <p className="text-gray-400 text-sm uppercase tracking-wide">
+          Project Configuration & Management
+        </p>
+      </div>
+
+      <Card className={`border-slate-700/50 bg-slate-800/40 backdrop-blur-xl shadow-2xl hover:shadow-blue-500/10 ${designTokens.animations.hover} rounded-2xl`}>
+        <CardHeader className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-t-2xl border-b border-white/10">
+          <CardTitle className="text-xl uppercase tracking-wider font-semibold">
+            Settings
           </CardTitle>
-          <CardDescription className="text-gray-300">
-            Project Management
+          <CardDescription className="text-gray-100 text-sm">
+            Configure your project settings and integrations
           </CardDescription>
         </CardHeader>
 
         {/* Tabs */}
-        <div className="border-b border-gray-200/80 px-6">
-          <div className="flex gap-4">
+        <div className="border-b border-slate-700/50 bg-slate-900/30">
+          <div className="flex gap-1 px-6">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`px-4 py-3 text-xs uppercase tracking-wide font-medium transition-all duration-200 border-b-2 ${
+                className={`px-6 py-4 text-xs uppercase tracking-wider font-semibold transition-all duration-200 border-b-2 relative ${
                   activeTab === tab.id
-                    ? "border-blue-500 text-blue-500"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                    ? "border-cyan-400 text-cyan-400 bg-slate-800/50"
+                    : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-slate-800/30"
                 }`}
               >
                 {tab.label}
+                {activeTab === tab.id && (
+                  <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+                )}
               </button>
             ))}
           </div>
         </div>
 
-        <CardContent className="p-6">
+        <CardContent className="p-8">
           {activeTab === "overview" && (
-            <div className="space-y-6">
-              <div>
-                <label className="text-xs uppercase tracking-wide text-gray-500">
-                  ID
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+                <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
+                  Project ID
                 </label>
-                <p className="text-lg font-mono mt-1">{project.id}</p>
+                <p className="text-base font-mono text-gray-200 break-all">{project.id}</p>
               </div>
 
-              <div>
-                <label className="text-xs uppercase tracking-wide text-gray-500">
-                  Name
+              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+                <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
+                  Project Name
                 </label>
-                <p className="text-lg mt-1">{project.name}</p>
+                <p className="text-lg font-medium text-white">{project.name}</p>
               </div>
 
-              <div>
-                <label className="text-xs uppercase tracking-wide text-gray-500">
+              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+                <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-3 block">
                   Status
                 </label>
-                <div className="mt-1">
-                  <span
-                    className={`inline-flex items-center px-3 py-1 text-sm font-medium uppercase tracking-wide backdrop-blur-sm ${
-                      project.enabled
-                        ? "bg-green-100/80 text-green-800 border border-green-200/60"
-                        : "bg-gray-100/80 text-gray-800 border border-gray-200/60"
-                    }`}
-                  >
-                    {project.enabled ? "Enabled" : "Disabled"}
-                  </span>
-                </div>
+                <span
+                  className={`inline-flex items-center px-4 py-2 text-sm font-semibold uppercase tracking-wide backdrop-blur-sm rounded-lg ${
+                    project.enabled
+                      ? "bg-green-500/20 text-green-300 border border-green-500/40 shadow-lg shadow-green-500/10"
+                      : "bg-slate-700/40 text-gray-300 border border-slate-600/60"
+                  }`}
+                >
+                  {project.enabled ? "● Enabled" : "○ Disabled"}
+                </span>
               </div>
 
-              <div>
-                <label className="text-xs uppercase tracking-wide text-gray-500">
+              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+                <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
                   Created At
                 </label>
-                <p className="text-lg mt-1">
+                <p className="text-base text-gray-200">
                   {new Date(project.created_at).toLocaleString()}
                 </p>
               </div>
 
-              <div>
-                <label className="text-xs uppercase tracking-wide text-gray-500">
-                  Updated At
+              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30 md:col-span-2">
+                <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
+                  Last Updated
                 </label>
-                <p className="text-lg mt-1">
+                <p className="text-base text-gray-200">
                   {new Date(project.updated_at).toLocaleString()}
                 </p>
               </div>
@@ -215,6 +237,6 @@ export function ProjectPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </AnimatedPageContainer>
   )
 }

@@ -8,180 +8,13 @@ import { ApiClient } from './shared/api-client'
 import { validateEnvironment } from './shared/env-validator'
 import { mkdir, writeFile } from 'fs/promises'
 import { createLogger } from './shared/logger'
-import Anthropic from '@anthropic-ai/sdk'
-import { HttpsProxyAgent } from 'https-proxy-agent'
 import { query } from '@anthropic-ai/claude-agent-sdk'
 
 const logger = createLogger({ namespace: 'evaluation-pipeline' })
 
 /**
- * Create Anthropic client with optional proxy support (used for simple evaluation)
- */
-function createAnthropicClient(): Anthropic {
-  const config: any = {
-    apiKey: process.env.ANTHROPIC_API_KEY!
-  }
-
-  // Configure proxy if credentials are provided
-  if (process.env.PROXY_HOST && process.env.PROXY_USER && process.env.PROXY_PASS) {
-    const proxyUrl = `http://${process.env.PROXY_USER}:${process.env.PROXY_PASS}@${process.env.PROXY_HOST}`
-    config.httpAgent = new HttpsProxyAgent(proxyUrl)
-    logger.info(`✓ Using proxy: ${process.env.PROXY_HOST}`)
-  }
-
-  return new Anthropic(config)
-}
-
-/**
- * Extract JSON from text that might contain markdown code blocks
- */
-function extractJSON(text: string): string {
-  // Try to find JSON in markdown code blocks first - use greedy match
-  const codeBlockMatch = text.match(/```(?:json)?\s*\n?([\s\S]*)\n?```/)
-  if (codeBlockMatch && codeBlockMatch[1]) {
-    return codeBlockMatch[1].trim()
-  }
-
-  // Try to find JSON object directly - match the outermost braces
-  const firstBrace = text.indexOf('{')
-  const lastBrace = text.lastIndexOf('}')
-  if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-    return text.substring(firstBrace, lastBrace + 1).trim()
-  }
-
-  // Return original text if no patterns found
-  return text.trim()
-}
-
-/**
- * Phase 1: Simple Filter - Quick gate check
- */
-async function simpleEvaluation(task: { title: string; description: string | null }): Promise<{
-  should_evaluate: boolean
-  clarity_score: number
-  has_acceptance_criteria: boolean
-  auto_reject_reason: string | null
-}> {
-  logger.info('🔍 Phase 1: Running simple evaluation filter...')
-
-  const pipelineStart = Date.now()
-
-  // Check for MOCK_MODE environment variable
-  if (process.env.MOCK_MODE === 'true') {
-    logger.info('🎭 MOCK MODE ENABLED - Returning mock simple evaluation')
-
-    const mockResult = {
-      should_evaluate: true,
-      clarity_score: 85,
-      has_acceptance_criteria: true,
-      auto_reject_reason: null
-    }
-
-    // Create mock usage data
-    const simpleUsage = {
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
-      goal: 'evaluation',
-      phase: 'simple_eval',
-      input_tokens: 500,
-      output_tokens: 100,
-      cache_creation_input_tokens: 0,
-      cache_read_input_tokens: 0,
-      ci_duration_seconds: 1,
-      metadata: { mock: true }
-    }
-
-    await writeFile(
-      '../results/simple-usage.json',
-      JSON.stringify(simpleUsage, null, 2),
-      'utf-8'
-    )
-    logger.info('📊 Mock simple evaluation usage tracked')
-    logger.info('✓ Mock simple evaluation completed')
-
-    return mockResult
-  }
-
-  const anthropic = createAnthropicClient()
-
-  const prompt = `You are a quick filter for automated task evaluation. Your job is to REJECT tasks that cannot be solved by an autonomous agent.
-
-Task Title: ${task.title}
-Task Description: ${task.description || 'No description provided'}
-
-IMMEDIATELY REJECT if the task:
-- Requires manual testing or manual verification
-- Needs complex/uncommon third-party integrations
-- Requires human interaction or approval during execution
-- Involves external services without clear API documentation
-- Needs UI/UX testing or visual verification
-- Requires access to systems not available to the agent
-
-ONLY PROCEED if the task:
-- Can be solved with code changes only
-- Has clear, testable success criteria
-- Uses common, well-documented integrations
-- Can be verified programmatically
-
-Respond ONLY with valid JSON (no markdown, no extra text):
-{
-  "should_evaluate": true/false,
-  "clarity_score": 1-100,
-  "has_acceptance_criteria": true/false,
-  "auto_reject_reason": "reason or null"
-}`
-
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-5',
-    max_tokens: 512,
-    messages: [{
-      role: 'user',
-      content: prompt
-    }]
-  })
-
-  const content = message.content[0]
-  if (!content || content.type !== 'text') {
-    throw new Error('Invalid response from Claude')
-  }
-
-  const jsonText = extractJSON(content.text)
-
-  try {
-    const result = JSON.parse(jsonText)
-    logger.info(`✓ Simple evaluation: should_evaluate=${result.should_evaluate}, clarity=${result.clarity_score}`)
-
-    // Track usage for simple evaluation
-    const simpleUsage = {
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
-      goal: 'evaluation',
-      phase: 'simple_eval',
-      input_tokens: message.usage.input_tokens,
-      output_tokens: message.usage.output_tokens,
-      cache_creation_input_tokens: message.usage.cache_creation_input_tokens || 0,
-      cache_read_input_tokens: message.usage.cache_read_input_tokens || 0,
-      ci_duration_seconds: Math.floor((Date.now() - pipelineStart) / 1000)
-    }
-
-    await writeFile(
-      '../results/simple-usage.json',
-      JSON.stringify(simpleUsage, null, 2),
-      'utf-8'
-    )
-    logger.info('📊 Simple evaluation usage tracked')
-
-    return result
-  } catch (parseError) {
-    logger.error('Failed to parse simple evaluation response')
-    logger.error('Raw response:', content.text.substring(0, 500))
-    logger.error('Extracted JSON:', jsonText.substring(0, 500))
-    throw new Error(`JSON parse error in simple evaluation: ${parseError instanceof Error ? parseError.message : String(parseError)}`)
-  }
-}
-
-/**
- * Phase 2: Deep Agentic Evaluation - Generate agent instructions using Claude Code Agent SDK
+ * Advanced Agentic Evaluation - Generate agent instructions using Claude Code Agent SDK
+ * Note: Simple evaluation is now handled by microservice before CI is triggered
  */
 async function agenticEvaluation(
   task: { id: string; title: string; description: string | null },
@@ -520,7 +353,8 @@ Your final message should be brief (1-2 sentences) confirming files were created
 }
 
 async function main() {
-  logger.info('🤖 Evaluation Pipeline Started')
+  logger.info('🤖 Advanced Evaluation Pipeline Started')
+  logger.info('ℹ️  Simple evaluation already completed in microservice - running advanced evaluation only')
 
   try {
     // Validate environment
@@ -556,30 +390,13 @@ async function main() {
     // Create results directory
     await mkdir('../results', { recursive: true })
 
-    // Phase 1: Simple Evaluation Filter
-    const simpleResult = await simpleEvaluation(task)
-
-    // Write simple verdict
-    await writeFile(
-      '../results/simple-verdict.json',
-      JSON.stringify(simpleResult, null, 2),
-      'utf-8'
-    )
-    logger.info('📝 Simple verdict written to results/simple-verdict.json')
-
-    if (!simpleResult.should_evaluate) {
-      // Task rejected by simple filter - skip deep evaluation
-      logger.info('⚠️  Task rejected by simple filter')
-      logger.info('✅ Evaluation pipeline completed (early exit)')
-      return
-    }
-
-    // Phase 2: Deep Agentic Evaluation (agent creates files directly)
+    // Run advanced agentic evaluation (simple eval already done in microservice)
+    logger.info('🔬 Running advanced agentic evaluation...')
     await agenticEvaluation(task, { ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY })
 
-    logger.info('✅ Evaluation pipeline completed successfully')
+    logger.info('✅ Advanced evaluation pipeline completed successfully')
   } catch (error) {
-    logger.error('❌ Evaluation pipeline failed:', error)
+    logger.error('❌ Advanced evaluation pipeline failed:', error)
 
     // Create results directory and error file for upload script
     try {

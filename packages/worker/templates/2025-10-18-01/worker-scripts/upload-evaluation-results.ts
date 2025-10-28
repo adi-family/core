@@ -41,41 +41,22 @@ async function main() {
     logger.info('📥 Fetching task...')
     const task = await apiClient.getTask(session.task_id)
     logger.info(`✓ Task loaded: ${task.title}`)
+    logger.info('ℹ️  Simple evaluation already handled by microservice before CI')
 
-    // Read simple verdict (always present for successful evaluations)
-    const simpleVerdictExists = await fileExists('../results/simple-verdict.json')
-    if (!simpleVerdictExists) {
-      throw new Error('Simple verdict file not found (evaluation may have failed without creating error.json)')
-    }
-
-    const simpleVerdictText = await readFile('../results/simple-verdict.json', 'utf-8')
-    const simpleVerdict = JSON.parse(simpleVerdictText)
-    logger.info('✓ Simple verdict loaded')
-
-    // Update task with simple evaluation result
-    await apiClient.updateTaskEvaluationSimple(task.id, simpleVerdict)
-    logger.info('✓ Task simple evaluation updated')
-
-    // Upload usage metrics
-    const usageFiles = [
-      { file: '../results/simple-usage.json', phase: 'simple_eval' },
-      { file: '../results/agentic-usage.json', phase: 'agentic_eval' }
-    ]
-
-    for (const { file, phase } of usageFiles) {
-      if (await fileExists(file)) {
-        try {
-          const usageText = await readFile(file, 'utf-8')
-          const usage = JSON.parse(usageText)
-          await apiClient.saveApiUsage(executionId, sessionId, task.id, usage)
-          logger.info(`✓ ${phase} usage metrics uploaded`)
-        } catch (usageError) {
-          logger.error(`Failed to upload ${phase} usage:`, usageError)
-        }
+    // Upload usage metrics (only agentic eval metrics from CI)
+    const agenticUsageFile = '../results/agentic-usage.json'
+    if (await fileExists(agenticUsageFile)) {
+      try {
+        const usageText = await readFile(agenticUsageFile, 'utf-8')
+        const usage = JSON.parse(usageText)
+        await apiClient.saveApiUsage(executionId, sessionId, task.id, usage)
+        logger.info('✓ Agentic evaluation usage metrics uploaded')
+      } catch (usageError) {
+        logger.error('Failed to upload agentic eval usage:', usageError)
       }
     }
 
-    // Check if deep evaluation was performed
+    // Check if agentic evaluation was performed
     const agenticVerdictExists = await fileExists('../results/agentic-verdict.json')
     const reportExists = await fileExists('../results/evaluation-report.md')
 
@@ -121,11 +102,11 @@ async function main() {
       await apiClient.updateTaskEvaluationResult(task.id, evaluationResult)
       logger.info(`✓ Task evaluation result: ${evaluationResult}`)
     } else {
-      // Only simple evaluation (task rejected by filter)
-      logger.info('⚠️  No deep evaluation (task filtered out)')
-      await apiClient.updateTaskEvaluationStatus(task.id, 'completed')
-      await apiClient.updateTaskEvaluationResult(task.id, 'needs_clarification')
-      logger.info('✓ Task marked as needs_clarification')
+      // No agentic evaluation results found
+      // Simple eval was already done in microservice and passed (otherwise CI wouldn't have been triggered)
+      // This means agentic eval failed or didn't complete
+      logger.error('❌ Agentic evaluation did not complete - marking evaluation as failed')
+      await apiClient.updateTaskEvaluationStatus(task.id, 'failed')
     }
 
     logger.info('✅ Upload evaluation results completed successfully')

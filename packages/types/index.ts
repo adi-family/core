@@ -435,6 +435,11 @@ export type Secret = {
   encryption_version: string | null
   is_encrypted: boolean
   description: string | null
+  oauth_provider: string | null
+  token_type: 'api' | 'oauth' | null
+  refresh_token: string | null
+  expires_at: string | null
+  scopes: string | null
   created_at: string
   updated_at: string
 }
@@ -444,11 +449,19 @@ export type CreateSecretInput = {
   name: string
   value: string
   description?: string
+  oauth_provider?: string
+  token_type?: 'api' | 'oauth'
+  refresh_token?: string
+  expires_at?: Date
+  scopes?: string
 }
 
 export type UpdateSecretInput = {
   value?: string
   description?: string
+  refresh_token?: string
+  expires_at?: Date
+  scopes?: string
 }
 
 export type UserAccess = {
@@ -505,4 +518,5 @@ export type TaskSourceJiraConfig = {
   jql_filter?: string;
   host: string;
   access_token_secret_id?: string;
+  cloud_id?: string; // Atlassian cloud ID for OAuth
 };
