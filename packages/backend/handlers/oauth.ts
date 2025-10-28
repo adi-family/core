@@ -13,14 +13,14 @@ const logger = createLogger({ namespace: 'oauth-handler' });
  * Atlassian OAuth 2.0 (3LO) implementation
  * Docs: https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/
  */
-const jiraOAuthConfigSchema = z.object({
+const _jiraOAuthConfigSchema = z.object({
   client_id: z.string().min(1, 'Client ID is required'),
   client_secret: z.string().min(1, 'Client secret is required'),
   redirect_uri: z.string().url('Valid redirect URI is required'),
   scopes: z.string().default('read:jira-work write:jira-work offline_access'),
 });
 
-const jiraCallbackSchema = z.object({
+const _jiraCallbackSchema = z.object({
   code: z.string(),
   state: z.string(),
 });
@@ -41,23 +41,31 @@ export function createOAuthRoutes(db: Sql) {
 
   /**
    * Initiate Jira OAuth flow
-   * GET /oauth/jira/authorize?client_id=xxx&redirect_uri=xxx&state=xxx
+   * GET /oauth/jira/authorize
+   * Atlassian OAuth docs: https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/
    */
-  app.get('/jira/authorize', zValidator('query', jiraOAuthConfigSchema.omit({ client_secret: true })), async (c) => {
-    const { client_id, redirect_uri, scopes } = c.req.valid('query');
+  app.get('/jira/authorize', async (c) => {
+    const clientId = process.env.JIRA_OAUTH_CLIENT_ID;
+    const redirectUri = process.env.JIRA_OAUTH_REDIRECT_URI;
+    const scopes = 'read:jira-work write:jira-work offline_access';
+
+    if (!clientId || !redirectUri) {
+      return c.json({ error: 'Jira OAuth not configured. Missing CLIENT_ID or REDIRECT_URI.' }, 500);
+    }
+
     const state = crypto.randomUUID();
 
     // Build authorization URL
     const authUrl = new URL('https://auth.atlassian.com/authorize');
     authUrl.searchParams.set('audience', 'api.atlassian.com');
-    authUrl.searchParams.set('client_id', client_id);
+    authUrl.searchParams.set('client_id', clientId);
     authUrl.searchParams.set('scope', scopes);
-    authUrl.searchParams.set('redirect_uri', redirect_uri);
+    authUrl.searchParams.set('redirect_uri', redirectUri);
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('prompt', 'consent');
 
-    logger.info('Initiating Jira OAuth flow', { client_id, state });
+    logger.info('Initiating Jira OAuth flow', { clientId, state, redirectUri });
 
     return c.json({
       authUrl: authUrl.toString(),
