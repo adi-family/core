@@ -457,6 +457,21 @@ export const mockApiClient: ApiClient = {
         status: 201,
         headers: { 'Content-Type': 'application/json' }
       })
+    },
+    ":id": {
+      $get: async (params: any) => {
+        const secret = mockSecrets.find(s => s.id === params.param.id)
+        if (!secret) {
+          return new Response(JSON.stringify({ error: 'Secret not found' }), {
+            status: 404,
+            headers: { 'Content-Type': 'application/json' }
+          })
+        }
+        return new Response(JSON.stringify(secret), {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' }
+        })
+      }
     }
   }
 }

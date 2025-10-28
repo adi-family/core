@@ -1,6 +1,10 @@
 import { useState } from "react"
 import { Button } from './button'
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
+import { GitLabIcon } from './gitlab-icon'
+
+// Global flag to prevent double-processing in StrictMode
+const processingCodes = new Set<string>()
 
 export type GitLabUser = {
   username: string
@@ -84,8 +88,16 @@ export function GitLabOAuthButton({
         if (event.data.type === 'GITLAB_OAUTH_SUCCESS') {
           const { code, state: returnedState } = event.data
 
+          // Prevent double processing (React StrictMode causes double-execution)
+          if (processingCodes.has(code)) {
+            console.log('[GitLab OAuth] Code already being processed, skipping duplicate')
+            return
+          }
+          processingCodes.add(code)
+
           // Verify state matches
           if (returnedState !== state) {
+            processingCodes.delete(code)
             setStatus('error')
             setErrorMessage('OAuth state mismatch. Please try again.')
             setLoading(false)
@@ -118,11 +130,13 @@ export function GitLabOAuthButton({
 
             setStatus('success')
             setLoading(false)
+            processingCodes.delete(code)
             onSuccess(result)
           } catch (err) {
             setStatus('error')
             setErrorMessage(err instanceof Error ? err.message : 'Failed to complete OAuth flow')
             setLoading(false)
+            processingCodes.delete(code)
             onError?.(err instanceof Error ? err.message : 'Failed to complete OAuth flow')
           }
 
@@ -186,6 +200,7 @@ export function GitLabOAuthButton({
           </>
         ) : (
           <>
+            <GitLabIcon className="mr-2 h-4 w-4" />
             Connect with GitLab OAuth
           </>
         )}

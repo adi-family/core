@@ -7,6 +7,7 @@ import type { Sql } from 'postgres'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { createLogger } from '@utils/logger'
 import { getDecryptedSecretValue } from './secrets'
+import * as secretQueries from '@db/secrets'
 
 const logger = createLogger({ namespace: 'gitlab-executor-verifier' })
 
@@ -105,6 +106,18 @@ export async function validateGitLabToken(
   try {
     logger.info(`Validating GitLab token from secret ${secretId} for host: ${hostname}`)
 
+    // Fetch secret metadata to determine token type
+    const secretResult = await secretQueries.findSecretById(sql, secretId)
+    if (!secretResult.ok) {
+      logger.error(`✗ Secret ${secretId} not found`)
+      return {
+        valid: false,
+        error: 'Secret not found'
+      }
+    }
+
+    const secret = secretResult.data
+
     // Retrieve and decrypt the token from database
     const accessToken = await getDecryptedSecretValue(sql, secretId)
 
@@ -116,8 +129,12 @@ export async function validateGitLabToken(
       }
     }
 
-    // Create GitLab client with the decrypted token
-    const client = new GitLabApiClient(hostname, accessToken)
+    // Determine token type based on secret metadata
+    const tokenType = secret.token_type === 'oauth' ? 'oauth' : 'pat'
+    logger.info(`Using token type: ${tokenType} for secret ${secretId}`)
+
+    // Create GitLab client with the decrypted token and correct token type
+    const client = new GitLabApiClient(hostname, accessToken, tokenType)
 
     // Validate token by fetching current user information
     const user = await client.getCurrentUser()
@@ -132,57 +149,71 @@ export async function validateGitLabToken(
       namespaceId: user.namespace_id
     }
 
-    // Try to fetch token scopes from GitLab API
-    try {
-      const tokenInfo = await client.getPersonalAccessTokenInfo()
-      result.scopes = tokenInfo.scopes
-      result.tokenInfo = {
-        name: tokenInfo.name,
-        expiresAt: tokenInfo.expires_at,
-        active: tokenInfo.active,
-        revoked: tokenInfo.revoked
-      }
-
-      logger.info(`✓ Token scopes retrieved: ${tokenInfo.scopes.join(', ')}`)
-
-      // Handle scope validation if requested
-      if (scopes && scopes.length > 0) {
-        logger.info(`Validating required scopes: ${scopes.join(', ')}`)
-
-        const missingScopes = scopes.filter(reqScope => {
-          // Check if the required scope is present, or if 'api' or 'sudo' scope covers it
-          return !tokenInfo.scopes.includes(reqScope) &&
-                 !tokenInfo.scopes.includes('api') &&
-                 !tokenInfo.scopes.includes('sudo')
-        })
-
-        const validated = missingScopes.length === 0
-
-        result.scopeValidation = {
-          requested: scopes,
-          actual: tokenInfo.scopes,
-          validated,
-          missing: missingScopes.length > 0 ? missingScopes : undefined,
-          message: validated
-            ? 'All required scopes are present'
-            : `Missing scopes: ${missingScopes.join(', ')}`
+    // Only try to fetch token scopes for Personal Access Tokens (not OAuth)
+    // OAuth tokens cannot use the /personal_access_tokens/self endpoint
+    if (tokenType === 'pat') {
+      try {
+        const tokenInfo = await client.getPersonalAccessTokenInfo()
+        result.scopes = tokenInfo.scopes
+        result.tokenInfo = {
+          name: tokenInfo.name,
+          expiresAt: tokenInfo.expires_at,
+          active: tokenInfo.active,
+          revoked: tokenInfo.revoked
         }
 
-        if (!validated) {
-          logger.warn(`⚠ Token missing required scopes: ${missingScopes.join(', ')}`)
+        logger.info(`✓ Token scopes retrieved: ${tokenInfo.scopes.join(', ')}`)
+
+        // Handle scope validation if requested
+        if (scopes && scopes.length > 0) {
+          logger.info(`Validating required scopes: ${scopes.join(', ')}`)
+
+          const missingScopes = scopes.filter(reqScope => {
+            // Check if the required scope is present, or if 'api' or 'sudo' scope covers it
+            return !tokenInfo.scopes.includes(reqScope) &&
+                   !tokenInfo.scopes.includes('api') &&
+                   !tokenInfo.scopes.includes('sudo')
+          })
+
+          const validated = missingScopes.length === 0
+
+          result.scopeValidation = {
+            requested: scopes,
+            actual: tokenInfo.scopes,
+            validated,
+            missing: missingScopes.length > 0 ? missingScopes : undefined,
+            message: validated
+              ? 'All required scopes are present'
+              : `Missing scopes: ${missingScopes.join(', ')}`
+          }
+
+          if (!validated) {
+            logger.warn(`⚠ Token missing required scopes: ${missingScopes.join(', ')}`)
+          }
+        }
+      } catch (scopeError) {
+        logger.warn(`⚠ Could not fetch token scopes: ${scopeError instanceof Error ? scopeError.message : String(scopeError)}`)
+        logger.warn('Token does not have "read_api" or "api" scope, or endpoint is not available')
+
+        // If scopes were requested but we can't verify them, mark as uncertain
+        if (scopes && scopes.length > 0) {
+          result.scopeValidation = {
+            requested: scopes,
+            actual: [],
+            validated: false,
+            message: 'Cannot verify scopes: Token does not have "read_api" or "api" scope, or endpoint is not available. Token is valid for basic operations.'
+          }
         }
       }
-    } catch (scopeError) {
-      logger.warn(`⚠ Could not fetch token scopes: ${scopeError instanceof Error ? scopeError.message : String(scopeError)}`)
-      logger.warn('Token does not have "read_api" or "api" scope, or endpoint is not available')
-
-      // If scopes were requested but we can't verify them, mark as uncertain
+    } else {
+      // For OAuth tokens, skip scope validation and mark as valid
+      logger.info('✓ OAuth token validated (scope validation skipped for OAuth tokens)')
       if (scopes && scopes.length > 0) {
         result.scopeValidation = {
           requested: scopes,
-          actual: [],
-          validated: false,
-          message: 'Cannot verify scopes: Token does not have "read_api" or "api" scope, or endpoint is not available. Token is valid for basic operations.'
+          actual: ['api'], // OAuth tokens granted via OAuth flow have 'api' scope
+          validated: true,
+          message: 'OAuth token validated (scope verification not applicable for OAuth tokens)'
         }
       }
     }

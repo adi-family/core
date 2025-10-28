@@ -14,7 +14,7 @@ import { client } from "@/lib/client"
 import { designTokens } from "@/theme/tokens"
 import { navigateTo } from "@/utils/navigation"
 import { useProject } from "@/contexts/ProjectContext"
-import { getComputedMetrics } from '@adi-simple/shared/task-scoring'
+import { toast } from "sonner"
 import type { Task, TaskSource, Project } from "../../../types"
 
 type SortOption = 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc'
@@ -31,8 +31,24 @@ export function TasksPage() {
 
   const fetchData = async () => {
     setLoading(true)
+
+    // Build query parameters for server-side filtering and sorting
+    const queryParams: Record<string, string> = {}
+    if (selectedProjectId) {
+      queryParams.project_id = selectedProjectId
+    }
+    if (selectedTaskSourceId) {
+      queryParams.task_source_id = selectedTaskSourceId
+    }
+    if (filterEvaluated) {
+      queryParams.evaluated_only = 'true'
+    }
+    if (sortBy) {
+      queryParams.sort_by = sortBy
+    }
+
     const [tasksRes, taskSourcesRes, projectsRes] = await Promise.all([
-      client.tasks.$get(),
+      client.tasks.$get({ query: queryParams }),
       client["task-sources"].$get({
         query: {}
       }),
@@ -78,7 +94,49 @@ export function TasksPage() {
       console.error("Error fetching data:", error)
       setLoading(false)
     })
-  }, [])
+  }, [selectedProjectId, selectedTaskSourceId, filterEvaluated, sortBy])
+
+  const handleStartImplementation = async (task: Task) => {
+    try {
+      const response = await client.tasks[':id'].implement.$post({
+        param: { id: task.id }
+      })
+
+      if (!response.ok) {
+        const error = await response.text()
+        toast.error(`Failed to start implementation: ${error}`)
+        return
+      }
+
+      toast.success('Implementation started successfully')
+      // Refresh the task list to show updated status
+      await fetchData()
+    } catch (error) {
+      console.error("Error starting implementation:", error)
+      toast.error('Failed to start implementation')
+    }
+  }
+
+  const handleEvaluate = async (task: Task) => {
+    try {
+      const response = await client.tasks[':id'].evaluate.$post({
+        param: { id: task.id }
+      })
+
+      if (!response.ok) {
+        const error = await response.text()
+        toast.error(`Failed to start evaluation: ${error}`)
+        return
+      }
+
+      toast.success('Evaluation started successfully')
+      // Refresh the task list to show updated status
+      await fetchData()
+    } catch (error) {
+      console.error("Error starting evaluation:", error)
+      toast.error('Failed to start evaluation')
+    }
+  }
 
   // Reset task source filter when project changes
   useEffect(() => {
@@ -90,52 +148,26 @@ export function TasksPage() {
     ? taskSources.filter(ts => ts.project_id === selectedProjectId)
     : taskSources
 
-  // Filter tasks by selected project and optionally by task source
-  let filteredTasks = tasks.filter(task => {
-    // Filter by project
-    if (selectedProjectId && task.project_id !== selectedProjectId) {
-      return false
-    }
-    // Filter by task source if selected
-    if (selectedTaskSourceId && task.task_source_id !== selectedTaskSourceId) {
-      return false
-    }
-    // Filter by evaluated status
-    if (filterEvaluated && !task.ai_evaluation_simple_result) {
-      return false
-    }
-    return true
-  })
-
-  // Sort tasks
-  filteredTasks = [...filteredTasks].sort((a, b) => {
-    if (sortBy === 'created_desc') {
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-    }
-    if (sortBy === 'created_asc') {
-      return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-    }
-    if (sortBy === 'quick_win_desc' || sortBy === 'quick_win_asc') {
-      const aMetrics = a.ai_evaluation_simple_result ? getComputedMetrics(a.ai_evaluation_simple_result) : null
-      const bMetrics = b.ai_evaluation_simple_result ? getComputedMetrics(b.ai_evaluation_simple_result) : null
-      const aScore = aMetrics?.quick_win_score ?? -1
-      const bScore = bMetrics?.quick_win_score ?? -1
-      return sortBy === 'quick_win_desc' ? bScore - aScore : aScore - bScore
-    }
-    if (sortBy === 'complexity_asc' || sortBy === 'complexity_desc') {
-      const aComplexity = a.ai_evaluation_simple_result?.complexity_score ?? 999
-      const bComplexity = b.ai_evaluation_simple_result?.complexity_score ?? 999
-      return sortBy === 'complexity_asc' ? aComplexity - bComplexity : bComplexity - aComplexity
-    }
-    return 0
-  })
+  // Tasks are already filtered and sorted on the server-side
+  // No need for client-side filtering/sorting anymore
+  const filteredTasks = tasks
 
   return (
     <AnimatedPageContainer>
       <Card className={`bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 shadow-2xl hover:shadow-blue-500/10 hover:border-slate-600/60 ${designTokens.animations.hover} ${designTokens.animations.fadeIn} rounded-2xl`}>
         <CardHeader className={`bg-gradient-to-r ${designTokens.gradients.cardHeader} text-white rounded-t-2xl`}>
-          <CardTitle className={`${designTokens.text.cardTitle} text-white`}>Tasks</CardTitle>
-          <CardDescription className={`${designTokens.text.cardDescription} text-gray-200`}>View all tasks in the system</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className={`${designTokens.text.cardTitle} text-white`}>Tasks</CardTitle>
+              <CardDescription className={`${designTokens.text.cardDescription} text-gray-200`}>View all tasks in the system</CardDescription>
+            </div>
+            {!loading && (
+              <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
+                <div className="text-xs text-gray-200 mb-0.5">Total Tasks</div>
+                <div className="text-2xl font-bold text-white">{filteredTasks.length}</div>
+              </div>
+            )}
+          </div>
         </CardHeader>
         <CardContent className={`${designTokens.spacing.cardPadding} text-gray-100`}>
           <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -209,6 +241,8 @@ export function TasksPage() {
                     taskSource={taskSource}
                     project={project}
                     onViewDetails={() => navigateTo(`/tasks/${task.id}`)}
+                    onStartImplementation={handleStartImplementation}
+                    onEvaluate={handleEvaluate}
                   />
                 )
               })}

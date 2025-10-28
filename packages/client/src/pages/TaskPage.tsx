@@ -133,6 +133,7 @@ export function TaskPage() {
     if (statusLower === "failed" || statusLower === "error") return XCircle
     if (statusLower.includes("ing") || statusLower === "running") return Loader2
     if (statusLower === "queued" || statusLower === "pending") return Clock
+    if (statusLower === "not_started") return Circle
     return Circle
   }
 
@@ -142,7 +143,8 @@ export function TaskPage() {
     if (statusLower === "failed" || statusLower === "error") return "text-red-400"
     if (statusLower.includes("ing") || statusLower === "running") return "text-blue-400"
     if (statusLower === "queued") return "text-yellow-400"
-    if (statusLower === "pending") return "text-gray-400"
+    if (statusLower === "pending") return "text-orange-400"
+    if (statusLower === "not_started") return "text-gray-500"
     return "text-gray-400"
   }
 
@@ -243,25 +245,25 @@ export function TaskPage() {
     {
       id: "sync",
       label: "Sync",
-      status: taskSource?.sync_status || "pending",
+      status: taskSource?.sync_status || "not_started",
       onRetry: handleRetrySync,
     },
     {
       id: "evaluation",
       label: "Evaluation",
-      status: task?.ai_evaluation_status || "pending",
+      status: task?.ai_evaluation_status || "not_started",
       onRetry: handleRetryEvaluation,
     },
     {
       id: "implementation",
       label: "Implementation",
-      status: task?.ai_implementation_status || "pending",
+      status: task?.ai_implementation_status || "not_started",
       onRetry: undefined,
     },
     {
       id: "task",
       label: "Task",
-      status: task?.status || "pending",
+      status: task?.status || "not_started",
       onRetry: undefined,
     },
   ]
@@ -315,14 +317,14 @@ export function TaskPage() {
               <RefreshCw className="h-4 w-4 mr-2" />
               Re-evaluate
             </Button>
-            {/* Re-implement button - always shown */}
+            {/* Start/Re-implement button - shows different text based on status */}
             <Button
               onClick={handleStartImplementation}
               variant="outline"
               size="sm"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Re-implement
+              {!task.ai_implementation_status || task.ai_implementation_status === 'pending' ? 'Start Implementation' : 'Re-implement'}
             </Button>
           </div>
         </div>

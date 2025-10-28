@@ -25,6 +25,9 @@ export type ApiClient = {
       }
     }
     $post: (data: any) => Promise<Response>
+    ":id": {
+      $get: (params: any) => Promise<Response>
+    }
   }
 }
 
@@ -36,6 +39,7 @@ type JiraSecretAutocompleteProps = {
   onChange: (secretId: string | null, secret?: Secret | null) => void
   onSecretCreated?: (secret: Secret) => void
   onCloudIdChange?: (cloudId: string) => void
+  onSiteSelected?: (siteUrl: string, cloudId: string) => void
   label?: string
   required?: boolean
   apiBaseUrl?: string
@@ -50,13 +54,14 @@ export function JiraSecretAutocomplete({
   onChange,
   onSecretCreated,
   onCloudIdChange,
+  onSiteSelected,
   label = "JIRA API TOKEN SECRET",
   required = false,
   apiBaseUrl = '',
   enableOAuth = true,
 }: JiraSecretAutocompleteProps) {
 
-  const [mode, setMode] = useState<"select" | "create" | "oauth" | "confirm">("select")
+  const [mode, setMode] = useState<"select" | "create" | "confirm">("select")
   const [existingSecrets, setExistingSecrets] = useState<Secret[]>([])
   const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null)
   const [loading, setLoading] = useState(false)
@@ -505,34 +510,143 @@ export function JiraSecretAutocomplete({
 
               {enableOAuth ? (
                 <div className="space-y-2">
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setAuthMethod("api_token")
-                      setMode("create")
-                    }}
-                    variant="outline"
-                    className="w-full uppercase tracking-wide"
-                    disabled={!projectId}
-                    title={!projectId ? "Project ID required to create new secrets" : ""}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    CREATE WITH API TOKEN
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setAuthMethod("oauth")
-                      setMode("oauth")
-                    }}
-                    variant="default"
-                    className="w-full uppercase tracking-wide"
-                    disabled={!projectId}
-                    title={!projectId ? "Project ID required for OAuth" : ""}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    CONNECT WITH OAUTH
-                  </Button>
+                  <div className="space-y-4">
+                    {!oauthResult && (
+                      <JiraOAuthButton
+                        projectId={projectId || ''}
+                        apiBaseUrl={apiBaseUrl}
+                        onSuccess={(result) => {
+                          setOAuthResult(result)
+                          // Auto-select first site if only one
+                          if (result.sites.length === 1) {
+                            setSelectedCloudId(result.sites[0].id)
+                            onCloudIdChange?.(result.sites[0].id)
+                            onSiteSelected?.(result.sites[0].url, result.sites[0].id)
+
+                            // Auto-finish if only one site
+                            client.secrets[":id"].$get({
+                              param: { id: result.secretId }
+                            }).then(secretRes => {
+                              if (secretRes.ok) {
+                                secretRes.json().then(secret => {
+                                  setSelectedSecret(secret)
+                                  setExistingSecrets((prev) => {
+                                    const exists = prev.find(s => s.id === secret.id)
+                                    return exists ? prev : [...prev, secret]
+                                  })
+                                  onChange(secret.id, secret)
+                                  setOAuthResult(null)
+                                  setSelectedCloudId(null)
+                                })
+                              } else {
+                                onChange(result.secretId, null)
+                                setOAuthResult(null)
+                                setSelectedCloudId(null)
+                              }
+                            }).catch(() => {
+                              onChange(result.secretId, null)
+                              setOAuthResult(null)
+                              setSelectedCloudId(null)
+                            })
+                          }
+                        }}
+                        onError={(error) => {
+                          setError(error)
+                        }}
+                      />
+                    )}
+
+                    {oauthResult && oauthResult.sites.length > 1 && (
+                      <div className="space-y-4">
+                        <div className="bg-green-900/20 border border-green-600/30 rounded p-3">
+                          <div className="flex items-center gap-2 text-green-400 mb-2">
+                            <CheckCircle2 className="w-4 h-4" />
+                            <div className="text-xs uppercase tracking-wide font-medium">OAUTH CONNECTED</div>
+                          </div>
+                          <div className="text-sm text-gray-300">
+                            Successfully connected to Jira. Found {oauthResult.sites.length} sites. Please select one:
+                          </div>
+                        </div>
+
+                        <JiraSiteSelector
+                          sites={oauthResult.sites}
+                          selectedCloudId={selectedCloudId || undefined}
+                          onSelect={(cloudId, site) => {
+                            setSelectedCloudId(cloudId)
+                            onCloudIdChange?.(cloudId)
+                            onSiteSelected?.(site.url, cloudId)
+                          }}
+                        />
+
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            onClick={() => {
+                              setOAuthResult(null)
+                              setSelectedCloudId(null)
+                              setSecretName("")
+                              setError(null)
+                            }}
+                            variant="outline"
+                            className="flex-1 uppercase tracking-wide"
+                          >
+                            CANCEL
+                          </Button>
+                          <Button
+                            type="button"
+                            onClick={async () => {
+                              if (selectedCloudId && oauthResult) {
+                                const selectedSite = oauthResult.sites.find(s => s.id === selectedCloudId)
+                                if (selectedSite) {
+                                  onSiteSelected?.(selectedSite.url, selectedCloudId)
+                                }
+
+                                try {
+                                  const secretRes = await client.secrets[":id"].$get({
+                                    param: { id: oauthResult.secretId }
+                                  })
+
+                                  if (secretRes.ok) {
+                                    const secret = await secretRes.json()
+                                    setSelectedSecret(secret)
+                                    setExistingSecrets((prev) => {
+                                      const exists = prev.find(s => s.id === secret.id)
+                                      return exists ? prev : [...prev, secret]
+                                    })
+                                    onChange(secret.id, secret)
+                                  } else {
+                                    onChange(oauthResult.secretId, null)
+                                  }
+                                } catch (err) {
+                                  console.error('Failed to fetch secret:', err)
+                                  onChange(oauthResult.secretId, null)
+                                }
+
+                                setOAuthResult(null)
+                                setSelectedCloudId(null)
+                              }
+                            }}
+                            disabled={!selectedCloudId}
+                            className="flex-1 uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+                          >
+                            FINISH
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {!oauthResult && (
+                    <button
+                      type="button"
+                      onClick={() => setMode("create")}
+                      disabled={!projectId}
+                      className="w-full text-xs text-gray-400 hover:text-gray-300 hover:underline py-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                      title={!projectId ? "Project ID required to create new secrets" : ""}
+                    >
+                      Or enter API token manually
+                    </button>
+                  )}
                 </div>
               ) : (
                 <Button
@@ -555,6 +669,156 @@ export function JiraSecretAutocomplete({
       {/* Create Mode */}
       {mode === "create" && (
         <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+          {/* OAuth option */}
+          {enableOAuth && (
+            <div className="pb-4 border-b border-slate-700">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mb-3 space-y-4">
+                <p className="text-xs text-gray-300">
+                  Recommended: Connect with Jira OAuth for easier setup
+                </p>
+
+                {!oauthResult && (
+                  <JiraOAuthButton
+                    projectId={projectId || ''}
+                    apiBaseUrl={apiBaseUrl}
+                    onSuccess={(result) => {
+                      setOAuthResult(result)
+                      // Auto-select first site if only one
+                      if (result.sites.length === 1) {
+                        setSelectedCloudId(result.sites[0].id)
+                        onCloudIdChange?.(result.sites[0].id)
+                        onSiteSelected?.(result.sites[0].url, result.sites[0].id)
+
+                        // Auto-finish if only one site
+                        client.secrets[":id"].$get({
+                          param: { id: result.secretId }
+                        }).then(secretRes => {
+                          if (secretRes.ok) {
+                            secretRes.json().then(secret => {
+                              setSelectedSecret(secret)
+                              setExistingSecrets((prev) => {
+                                const exists = prev.find(s => s.id === secret.id)
+                                return exists ? prev : [...prev, secret]
+                              })
+                              onChange(secret.id, secret)
+                              setNewToken("")
+                              setEmail("")
+                              setSecretName("")
+                              setTokenValid(null)
+                              setMode("select")
+                              setOAuthResult(null)
+                              setSelectedCloudId(null)
+                            })
+                          } else {
+                            onChange(result.secretId, null)
+                            setMode("select")
+                            setOAuthResult(null)
+                            setSelectedCloudId(null)
+                          }
+                        }).catch(() => {
+                          onChange(result.secretId, null)
+                          setMode("select")
+                          setOAuthResult(null)
+                          setSelectedCloudId(null)
+                        })
+                      }
+                    }}
+                    onError={(error) => {
+                      setError(error)
+                    }}
+                  />
+                )}
+
+                {oauthResult && oauthResult.sites.length > 1 && (
+                  <div className="space-y-4">
+                    <div className="bg-green-900/20 border border-green-600/30 rounded p-3">
+                      <div className="flex items-center gap-2 text-green-400 mb-2">
+                        <CheckCircle2 className="w-4 h-4" />
+                        <div className="text-xs uppercase tracking-wide font-medium">OAUTH CONNECTED</div>
+                      </div>
+                      <div className="text-sm text-gray-300">
+                        Successfully connected to Jira. Found {oauthResult.sites.length} sites. Please select one:
+                      </div>
+                    </div>
+
+                    <JiraSiteSelector
+                      sites={oauthResult.sites}
+                      selectedCloudId={selectedCloudId || undefined}
+                      onSelect={(cloudId, site) => {
+                        setSelectedCloudId(cloudId)
+                        onCloudIdChange?.(cloudId)
+                        onSiteSelected?.(site.url, cloudId)
+                      }}
+                    />
+
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          setOAuthResult(null)
+                          setSelectedCloudId(null)
+                          setSecretName("")
+                          setError(null)
+                        }}
+                        variant="outline"
+                        className="flex-1 uppercase tracking-wide"
+                      >
+                        CANCEL
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={async () => {
+                          if (selectedCloudId && oauthResult) {
+                            const selectedSite = oauthResult.sites.find(s => s.id === selectedCloudId)
+                            if (selectedSite) {
+                              onSiteSelected?.(selectedSite.url, selectedCloudId)
+                            }
+
+                            try {
+                              const secretRes = await client.secrets[":id"].$get({
+                                param: { id: oauthResult.secretId }
+                              })
+
+                              if (secretRes.ok) {
+                                const secret = await secretRes.json()
+                                setSelectedSecret(secret)
+                                setExistingSecrets((prev) => {
+                                  const exists = prev.find(s => s.id === secret.id)
+                                  return exists ? prev : [...prev, secret]
+                                })
+                                onChange(secret.id, secret)
+                              } else {
+                                onChange(oauthResult.secretId, null)
+                              }
+                            } catch (err) {
+                              console.error('Failed to fetch secret:', err)
+                              onChange(oauthResult.secretId, null)
+                            }
+
+                            setNewToken("")
+                            setEmail("")
+                            setSecretName("")
+                            setTokenValid(null)
+                            setMode("select")
+                            setOAuthResult(null)
+                            setSelectedCloudId(null)
+                          }
+                        }}
+                        disabled={!selectedCloudId}
+                        className="flex-1 uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+                      >
+                        FINISH
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="text-center">
+                <span className="text-xs text-gray-400 uppercase">Or continue with API token below</span>
+              </div>
+            </div>
+          )}
+
           <div className="space-y-2">
             <Label htmlFor="jira_email" className="text-xs uppercase tracking-wide text-gray-300">
               EMAIL (OPTIONAL)
@@ -749,97 +1013,6 @@ export function JiraSecretAutocomplete({
         </div>
       )}
 
-      {/* OAuth Mode */}
-      {mode === "oauth" && projectId && (
-        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-gray-300">
-              CONNECT JIRA WITH OAUTH
-            </Label>
-            <p className="text-sm text-gray-400">
-              Authorize with Atlassian to securely connect your Jira account. This will automatically manage access tokens.
-            </p>
-          </div>
-
-          {!oauthResult && (
-            <JiraOAuthButton
-              projectId={projectId}
-              apiBaseUrl={apiBaseUrl}
-              onSuccess={(result) => {
-                setOAuthResult(result)
-                // Auto-select first site if only one
-                if (result.sites.length === 1) {
-                  setSelectedCloudId(result.sites[0].id)
-                  onCloudIdChange?.(result.sites[0].id)
-                }
-              }}
-              onError={(error) => {
-                setError(error)
-              }}
-            />
-          )}
-
-          {oauthResult && (
-            <div className="space-y-4">
-              <div className="bg-green-900/20 border border-green-600/30 rounded p-3">
-                <div className="flex items-center gap-2 text-green-400 mb-2">
-                  <CheckCircle2 className="w-4 h-4" />
-                  <div className="text-xs uppercase tracking-wide font-medium">OAUTH CONNECTED</div>
-                </div>
-                <div className="text-sm text-gray-300">
-                  Successfully connected to Jira. Found {oauthResult.sites.length} site{oauthResult.sites.length !== 1 ? 's' : ''}.
-                </div>
-              </div>
-
-              <JiraSiteSelector
-                sites={oauthResult.sites}
-                selectedCloudId={selectedCloudId || undefined}
-                onSelect={(cloudId) => {
-                  setSelectedCloudId(cloudId)
-                  onCloudIdChange?.(cloudId)
-                }}
-              />
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              onClick={() => {
-                setMode("select")
-                setOAuthResult(null)
-                setSelectedCloudId(null)
-                setSecretName("")
-                setError(null)
-              }}
-              variant="outline"
-              className="flex-1 uppercase tracking-wide"
-            >
-              CANCEL
-            </Button>
-            {oauthResult && (
-              <Button
-                type="button"
-                onClick={() => {
-                  // Notify parent that OAuth secret was created
-                  onChange(oauthResult.secretId, null)
-                  setMode("select")
-                }}
-                disabled={!selectedCloudId}
-                className="flex-1 uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
-              >
-                FINISH
-              </Button>
-            )}
-          </div>
-
-          {error && (
-            <div className="bg-red-900/20 border border-red-600/30 rounded p-3 text-sm text-red-400">
-              {error}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }

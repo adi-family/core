@@ -148,10 +148,12 @@ export interface GitLabMergeRequestCreateInput {
 export class GitLabApiClient {
   private host: string
   private token: string
+  private tokenType: 'oauth' | 'pat'
 
-  constructor(host: string, token: string) {
+  constructor(host: string, token: string, tokenType: 'oauth' | 'pat' = 'pat') {
     this.host = host.replace(/\/$/, '')
     this.token = token
+    this.tokenType = tokenType
   }
 
   /**
@@ -164,8 +166,14 @@ export class GitLabApiClient {
   ): Promise<T> {
     const url = `${this.host}/api/v4${endpoint}`
     const headers: Record<string, string> = {
-      'PRIVATE-TOKEN': this.token,
       'Content-Type': 'application/json',
+    }
+
+    // Use appropriate authentication header based on token type
+    if (this.tokenType === 'oauth') {
+      headers['Authorization'] = `Bearer ${this.token}`
+    } else {
+      headers['PRIVATE-TOKEN'] = this.token
     }
 
     const options: RequestInit = {

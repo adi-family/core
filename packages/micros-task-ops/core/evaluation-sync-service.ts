@@ -29,7 +29,8 @@ export interface PipelineExecution {
 
 export interface Task {
   id: string
-  ai_evaluation_status: string
+  ai_evaluation_status: string | null
+  ai_implementation_status?: string | null
   [key: string]: unknown
 }
 

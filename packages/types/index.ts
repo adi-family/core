@@ -211,7 +211,7 @@ export type Task = {
   source_gitlab_issue: GitlabIssue | null
   source_github_issue: GithubIssue | null
   source_jira_issue: JiraIssue | null
-  ai_evaluation_status: 'pending' | 'queued' | 'evaluating' | 'completed' | 'failed'
+  ai_evaluation_status: 'pending' | 'queued' | 'evaluating' | 'completed' | 'failed' | null
   ai_evaluation_result: 'ready' | 'needs_clarification' | null
   ai_evaluation_simple_result: SimpleEvaluationResult | null
   ai_evaluation_agentic_result: {
@@ -223,7 +223,7 @@ export type Task = {
     [key: string]: unknown
   } | null
   ai_evaluation_session_id: string | null
-  ai_implementation_status: 'pending' | 'queued' | 'implementing' | 'completed' | 'failed'
+  ai_implementation_status: 'pending' | 'queued' | 'implementing' | 'completed' | 'failed' | null
   ai_implementation_session_id: string | null
   created_at: string
   updated_at: string
@@ -514,7 +514,7 @@ export type GithubIssuesConfig = {
 };
 
 export type TaskSourceJiraConfig = {
-  project_key: string;
+  project_key?: string; // Optional - can use jql_filter instead
   jql_filter?: string;
   host: string;
   access_token_secret_id?: string;

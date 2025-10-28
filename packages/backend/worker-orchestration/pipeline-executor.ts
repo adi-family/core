@@ -3,6 +3,7 @@
  * Triggers GitLab CI pipelines for worker execution
  */
 
+import type { Sql } from 'postgres'
 import type { PipelineExecution, GitlabExecutorConfig, AIProviderConfig } from '@types'
 import type { BackendClient } from '../api-client'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
@@ -30,6 +31,7 @@ interface PipelineContext {
   project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null; ai_provider_configs: AIProviderConfig | null }
   workerRepo: { id: string; current_version: string | null; source_gitlab: unknown }
   source: GitLabSource
+  userId: string | null
 }
 
 /**
@@ -157,7 +159,7 @@ async function ensureWorkerRepository(
 /**
  * Validate and fetch all required context for pipeline execution
  */
-async function validateAndFetchPipelineContext(apiClient: BackendClient, sessionId: string): Promise<PipelineContext> {
+async function validateAndFetchPipelineContext(apiClient: BackendClient, sessionId: string, sql: Sql): Promise<PipelineContext> {
   // Fetch session
   const sessionRes = await apiClient.sessions[':id'].$get({ param: { id: sessionId } })
   if (!sessionRes.ok) {
@@ -187,6 +189,10 @@ async function validateAndFetchPipelineContext(apiClient: BackendClient, session
   }
   const project = await projectRes.json()
 
+  // Get project owner for AI provider selection
+  const { getProjectOwnerId } = await import('@db/user-access')
+  const userId = await getProjectOwnerId(sql, task.project_id)
+
   // Fetch or auto-create worker repository
   const workerRepo = await ensureWorkerRepository(project, apiClient)
   const source = workerRepo.source_gitlab as unknown as GitLabSource
@@ -206,7 +212,7 @@ async function validateAndFetchPipelineContext(apiClient: BackendClient, session
     throw new Error(`Session ${session.id} has no runner type specified. Please ensure the session is properly configured.`)
   }
 
-  return { session, task, project, workerRepo, source }
+  return { session, task, project, workerRepo, source, userId }
 }
 
 /**
@@ -258,10 +264,48 @@ async function getExecutorConfig(
  */
 async function getAIProviderEnvVars(
   projectId: string,
+  userId: string | null,
   aiProviderConfigs: AIProviderConfig | null,
-  apiClient: BackendClient
+  apiClient: BackendClient,
+  sql: Sql
 ): Promise<Record<string, string>> {
   const envVars: Record<string, string> = {}
+
+  // Try to use selectAIProviderForEvaluation if we have a user ID
+  // This allows fallback to platform API keys
+  if (userId && !aiProviderConfigs?.anthropic) {
+    try {
+      const { selectAIProviderForEvaluation } = await import('@backend/services/ai-provider-selector')
+      const aiProviderSelection = await selectAIProviderForEvaluation(sql, userId, projectId, 'simple')
+
+      if (aiProviderSelection.use_platform_token || aiProviderSelection.config) {
+        const config = aiProviderSelection.config as any
+        if (config.api_key) {
+          envVars.ANTHROPIC_API_KEY = config.api_key
+          logger.info(`✓ Using ${aiProviderSelection.use_platform_token ? 'platform' : 'project'} Anthropic API key`)
+
+          if (config.endpoint_url) {
+            envVars.ANTHROPIC_API_URL = config.endpoint_url
+          }
+          if (config.model) {
+            envVars.ANTHROPIC_MODEL = config.model
+          }
+          if (config.max_tokens) {
+            envVars.ANTHROPIC_MAX_TOKENS = config.max_tokens.toString()
+          }
+          if (config.temperature !== undefined) {
+            envVars.ANTHROPIC_TEMPERATURE = config.temperature.toString()
+          }
+
+          // Return early since we got Anthropic config from selector
+          return envVars
+        }
+      }
+    } catch (error) {
+      logger.warn(`⚠️  Could not use AI provider selector: ${error}`)
+      // Fall through to try project configs
+    }
+  }
 
   if (!aiProviderConfigs) {
     return envVars
@@ -445,7 +489,8 @@ function validateRequiredApiKeys(
 async function preparePipelineConfig(
   context: PipelineContext,
   executionId: string,
-  apiClient: BackendClient
+  apiClient: BackendClient,
+  sql: Sql
 ): Promise<{
   variables: Record<string, string>
 }> {
@@ -458,8 +503,10 @@ async function preparePipelineConfig(
   // Fetch AI provider configurations and prepare environment variables
   const aiEnvVars = await getAIProviderEnvVars(
     context.project.id,
+    context.userId,
     context.project.ai_provider_configs,
-    apiClient
+    apiClient,
+    sql
   )
 
   // Validate that required API keys are present before triggering pipeline
@@ -614,15 +661,20 @@ async function executePipelineTrigger(
  * Trigger a GitLab pipeline for a session
  */
 export async function triggerPipeline(
-  input: TriggerPipelineInput
+  input: TriggerPipelineInput,
+  sql?: Sql
 ): Promise<TriggerPipelineResult> {
   logger.info(`🚀 Triggering pipeline for session ${input.sessionId}`)
+
+  // sql parameter is optional for backward compatibility
+  // If not provided, we'll import the default connection
+  const sqlInstance = sql || (await import('@db/client')).sql
 
   let executionId: string | undefined
 
   try {
     // Validate and fetch all required context
-    const context = await validateAndFetchPipelineContext(input.apiClient, input.sessionId)
+    const context = await validateAndFetchPipelineContext(input.apiClient, input.sessionId, sqlInstance)
 
     // 🔍 DEBUG: Log session details
     logger.info(`🔍 DEBUG - Session details:`)
@@ -648,7 +700,7 @@ export async function triggerPipeline(
     logger.info(`✓ Created pipeline execution record: ${execution.id}`)
 
     // Prepare pipeline configuration
-    const config = await preparePipelineConfig(context, execution.id, input.apiClient)
+    const config = await preparePipelineConfig(context, execution.id, input.apiClient, sqlInstance)
     logger.info(`✓ Pipeline variables prepared`)
 
     // Get executor configuration (project-level or worker repository)

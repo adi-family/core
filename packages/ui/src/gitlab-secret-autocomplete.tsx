@@ -4,7 +4,7 @@ import { Label } from './label'
 import { Button } from './button'
 import { Portal } from './portal'
 import { CheckCircle2, XCircle, Loader2, Plus, AlertCircle, Search } from "lucide-react"
-import { GitLabOAuthButton, type GitLabOAuthResult } from './gitlab-oauth-button'
+import { GitLabOAuthButton } from './gitlab-oauth-button'
 
 export type Secret = {
   id: string
@@ -24,6 +24,9 @@ export type ApiClient = {
       }
     }
     $post: (data: any) => Promise<Response>
+    ":id": {
+      $get: (params: any) => Promise<Response>
+    }
   }
 }
 
@@ -55,8 +58,7 @@ export function GitlabSecretAutocomplete({
   enableOAuth = true,
 }: GitlabSecretAutocompleteProps) {
 
-  const [mode, setMode] = useState<"select" | "create" | "oauth" | "confirm">("select")
-  const [authMethod, setAuthMethod] = useState<"api_token" | "oauth">("api_token")
+  const [mode, setMode] = useState<"select" | "create" | "confirm">("select")
   const [existingSecrets, setExistingSecrets] = useState<Secret[]>([])
   const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null)
   const [loading, setLoading] = useState(false)
@@ -84,8 +86,6 @@ export function GitlabSecretAutocomplete({
   const [selectedSecretScopesValid, setSelectedSecretScopesValid] = useState<boolean | null>(null)
   const [selectedSecretInfo, setSelectedSecretInfo] = useState<{ name: string; expiresAt: string | null } | null>(null)
 
-  // OAuth state
-  const [oauthResult, setOAuthResult] = useState<GitLabOAuthResult | null>(null)
 
   // Load existing secrets
   useEffect(() => {
@@ -561,34 +561,44 @@ export function GitlabSecretAutocomplete({
 
               {enableOAuth && host === 'https://gitlab.com' ? (
                 <div className="space-y-2">
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setAuthMethod("api_token")
-                      setMode("create")
+                  <GitLabOAuthButton
+                    projectId={projectId || ''}
+                    gitlabHost={host !== 'https://gitlab.com' ? host : undefined}
+                    apiBaseUrl={apiBaseUrl}
+                    onSuccess={(result) => {
+                      // Fetch the created secret from backend to get full secret object
+                      client.secrets[":id"].$get({
+                        param: { id: result.secretId }
+                      }).then(secretRes => {
+                        if (secretRes.ok) {
+                          secretRes.json().then(secret => {
+                            setSelectedSecret(secret)
+                            setExistingSecrets((prev) => {
+                              const exists = prev.find(s => s.id === secret.id)
+                              return exists ? prev : [...prev, secret]
+                            })
+                            onChange(secret.id, secret)
+                          })
+                        } else {
+                          onChange(result.secretId, null)
+                        }
+                      }).catch(() => {
+                        onChange(result.secretId, null)
+                      })
                     }}
-                    variant="outline"
-                    className="w-full uppercase tracking-wide"
+                    onError={(error) => {
+                      setError(error)
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMode("create")}
                     disabled={!projectId}
+                    className="w-full text-xs text-gray-400 hover:text-gray-300 hover:underline py-2 disabled:opacity-50 disabled:cursor-not-allowed"
                     title={!projectId ? "Project ID required to create new secrets" : ""}
                   >
-                    <Plus className="w-4 h-4 mr-2" />
-                    CREATE WITH API TOKEN
-                  </Button>
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      setAuthMethod("oauth")
-                      setMode("oauth")
-                    }}
-                    variant="default"
-                    className="w-full uppercase tracking-wide"
-                    disabled={!projectId}
-                    title={!projectId ? "Project ID required for OAuth" : ""}
-                  >
-                    <Plus className="w-4 h-4 mr-2" />
-                    CONNECT WITH OAUTH
-                  </Button>
+                    Or enter API token manually
+                  </button>
                 </div>
               ) : (
                 <Button
@@ -613,23 +623,50 @@ export function GitlabSecretAutocomplete({
         <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
           {/* OAuth option for gitlab.com */}
           {enableOAuth && host === 'https://gitlab.com' && (
-            <div className="flex gap-2 pb-4 border-b border-slate-700">
-              <Button
-                type="button"
-                variant={authMethod === "api_token" ? "default" : "outline"}
-                onClick={() => setAuthMethod("api_token")}
-                className="flex-1 text-xs uppercase"
-              >
-                API Token
-              </Button>
-              <Button
-                type="button"
-                variant={authMethod === "oauth" ? "default" : "outline"}
-                onClick={() => setMode("oauth")}
-                className="flex-1 text-xs uppercase"
-              >
-                OAuth
-              </Button>
+            <div className="pb-4 border-b border-slate-700">
+              <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mb-3">
+                <p className="text-xs text-gray-300 mb-3">
+                  Recommended: Connect with GitLab OAuth for easier setup
+                </p>
+                <GitLabOAuthButton
+                  projectId={projectId || ''}
+                  gitlabHost={host !== 'https://gitlab.com' ? host : undefined}
+                  apiBaseUrl={apiBaseUrl}
+                  onSuccess={(result) => {
+                    // Fetch the created secret from backend to get full secret object
+                    client.secrets[":id"].$get({
+                      param: { id: result.secretId }
+                    }).then(secretRes => {
+                      if (secretRes.ok) {
+                        secretRes.json().then(secret => {
+                          setSelectedSecret(secret)
+                          setExistingSecrets((prev) => {
+                            const exists = prev.find(s => s.id === secret.id)
+                            return exists ? prev : [...prev, secret]
+                          })
+                          onChange(secret.id, secret)
+                          setNewToken("")
+                          setSecretName("")
+                          setTokenValid(null)
+                          setMode("select")
+                        })
+                      } else {
+                        onChange(result.secretId, null)
+                        setMode("select")
+                      }
+                    }).catch(() => {
+                      onChange(result.secretId, null)
+                      setMode("select")
+                    })
+                  }}
+                  onError={(error) => {
+                    setError(error)
+                  }}
+                />
+              </div>
+              <div className="text-center">
+                <span className="text-xs text-gray-400 uppercase">Or continue with API token below</span>
+              </div>
             </div>
           )}
 
@@ -803,79 +840,6 @@ export function GitlabSecretAutocomplete({
         </div>
       )}
 
-      {/* OAuth Mode */}
-      {mode === "oauth" && projectId && (
-        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
-          <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-gray-300">
-              CONNECT GITLAB WITH OAUTH
-            </Label>
-            <p className="text-sm text-gray-400">
-              Authorize with GitLab to securely connect your account. This will automatically manage access tokens.
-            </p>
-          </div>
-
-          {!oauthResult && (
-            <GitLabOAuthButton
-              projectId={projectId}
-              gitlabHost={host !== 'https://gitlab.com' ? host : undefined}
-              apiBaseUrl={apiBaseUrl}
-              onSuccess={(result) => {
-                setOAuthResult(result)
-              }}
-              onError={(error) => {
-                setError(error)
-              }}
-            />
-          )}
-
-          {oauthResult && (
-            <div className="bg-green-900/20 border border-green-600/30 rounded p-3">
-              <div className="flex items-center gap-2 text-green-400 mb-2">
-                <CheckCircle2 className="w-4 h-4" />
-                <div className="text-xs uppercase tracking-wide font-medium">OAUTH CONNECTED</div>
-              </div>
-              <div className="text-sm text-gray-300">
-                Successfully connected as {oauthResult.user.username} ({oauthResult.user.email})
-              </div>
-            </div>
-          )}
-
-          <div className="flex gap-2">
-            <Button
-              type="button"
-              onClick={() => {
-                setMode("select")
-                setOAuthResult(null)
-                setSecretName("")
-                setError(null)
-              }}
-              variant="outline"
-              className="flex-1 uppercase tracking-wide"
-            >
-              CANCEL
-            </Button>
-            {oauthResult && (
-              <Button
-                type="button"
-                onClick={() => {
-                  onChange(oauthResult.secretId, null)
-                  setMode("select")
-                }}
-                className="flex-1 uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
-              >
-                FINISH
-              </Button>
-            )}
-          </div>
-
-          {error && (
-            <div className="bg-red-900/20 border border-red-600/30 rounded p-3 text-sm text-red-400">
-              {error}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   )
 }

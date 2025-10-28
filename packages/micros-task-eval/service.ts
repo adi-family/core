@@ -205,7 +205,7 @@ export async function evaluateTask(
       const pipelineResult = await triggerPipeline({
         sessionId: session.id,
         apiClient
-      })
+      }, sql)
       result.pipelineUrl = pipelineResult.pipelineUrl
       logger.info(`Advanced evaluation pipeline triggered: ${pipelineResult.pipelineUrl}`)
     } catch (pipelineError) {

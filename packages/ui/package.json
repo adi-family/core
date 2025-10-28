@@ -16,7 +16,11 @@
     "./tooltip": "./src/tooltip.tsx",
     "./portal": "./src/portal.tsx",
     "./gitlab-repository-select": "./src/gitlab-repository-select.tsx",
+    "./gitlab-repository-multiselect": "./src/gitlab-repository-multiselect.tsx",
     "./gitlab-secret-autocomplete": "./src/gitlab-secret-autocomplete.tsx",
+    "./gitlab-icon": "./src/gitlab-icon.tsx",
+    "./github-icon": "./src/github-icon.tsx",
+    "./jira-icon": "./src/jira-icon.tsx",
     "./jira-secret-autocomplete": "./src/jira-secret-autocomplete.tsx",
     "./project-select": "./src/project-select.tsx",
     "./task-source-select": "./src/task-source-select.tsx",
@@ -42,6 +46,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^0.546.0",
+    "simple-icons": "^15.18.0",
     "tailwind-merge": "^3.3.1"
   },
   "devDependencies": {

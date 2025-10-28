@@ -353,8 +353,19 @@ export const createSecretRoutes = (sql: Sql) => {
         throw error
       }
 
+      // Fetch secret metadata to determine token type
+      const secretResult = await queries.findSecretById(sql, secretId)
+      if (!secretResult.ok) {
+        return c.json({ error: 'Secret not found' }, 404)
+      }
+
+      const secret = secretResult.data
+
       // Get decrypted token
       const token = await secretsService.getDecryptedSecretValue(sql, secretId)
+      if (!token) {
+        return c.json({ error: 'Token not found or could not be decrypted' }, 400)
+      }
 
       // Fetch repositories from GitLab
       try {
@@ -367,11 +378,15 @@ export const createSecretRoutes = (sql: Sql) => {
           url.searchParams.set('search', search)
         }
 
-        const response = await fetch(url.toString(), {
-          headers: {
-            'PRIVATE-TOKEN': token
-          }
-        })
+        // Use appropriate authentication header based on token type
+        const headers: Record<string, string> = {}
+        if (secret.token_type === 'oauth') {
+          headers['Authorization'] = `Bearer ${token}`
+        } else {
+          headers['PRIVATE-TOKEN'] = token
+        }
+
+        const response = await fetch(url.toString(), { headers })
 
         if (!response.ok) {
           return c.json({
@@ -454,44 +469,85 @@ export const createSecretRoutes = (sql: Sql) => {
       const logger = createLogger({ namespace: 'jira-token-validation' })
 
       try {
+        // Get secret metadata to check if it's OAuth
+        const secretResult = await queries.findSecretById(sql, secretId)
+        if (!secretResult.ok) {
+          return c.json({ valid: false, error: 'Secret not found' }, 404)
+        }
+
+        const secretMeta = secretResult.data
+        const isOAuth = secretMeta.token_type === 'oauth' && secretMeta.oauth_provider === 'jira'
+
         // Get decrypted token
         const token = await secretsService.getDecryptedSecretValue(sql, secretId)
 
-        // Try to parse if it's email:token format
-        let authHeader: string
-        if (token.includes(':')) {
-          const [email, apiToken] = token.split(':', 2)
-          authHeader = `Basic ${Buffer.from(`${email}:${apiToken}`).toString('base64')}`
-        } else {
-          authHeader = `Bearer ${token}`
-        }
+        if (isOAuth) {
+          // OAuth token validation - use Atlassian API to fetch accessible resources
+          logger.info('Validating Jira OAuth token via accessible-resources endpoint')
 
-        const response = await fetch(`${hostname}/rest/api/2/myself`, {
-          headers: {
-            'Authorization': authHeader,
-            'Accept': 'application/json'
+          const resourcesResponse = await fetch('https://api.atlassian.com/oauth/token/accessible-resources', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Accept': 'application/json'
+            }
+          })
+
+          if (!resourcesResponse.ok) {
+            const errorText = await resourcesResponse.text()
+            logger.error(`✗ OAuth token validation failed: ${resourcesResponse.status} - ${errorText}`)
+            return c.json({
+              valid: false,
+              error: `OAuth token validation failed: ${resourcesResponse.status}. The token may be expired.`
+            }, 400)
           }
-        })
 
-        if (!response.ok) {
-          const errorText = await response.text()
-          logger.error(`✗ Jira token validation failed: ${response.status} ${response.statusText} - ${errorText}`)
+          const resources = await resourcesResponse.json() as any[]
+          logger.info(`✓ OAuth token validated. Accessible sites: ${resources.length}`)
+
           return c.json({
-            valid: false,
-            error: `Token validation failed: ${response.status} ${response.statusText}. The token may be invalid or expired.`
-          }, 400)
+            valid: true,
+            username: resources.length > 0 ? `OAuth User (${resources.length} sites)` : 'OAuth User',
+            accountId: 'oauth',
+            email: null
+          })
+        } else {
+          // API token validation - use hostname
+          // Try to parse if it's email:token format
+          let authHeader: string
+          if (token.includes(':')) {
+            const [email, apiToken] = token.split(':', 2)
+            authHeader = `Basic ${Buffer.from(`${email}:${apiToken}`).toString('base64')}`
+          } else {
+            authHeader = `Bearer ${token}`
+          }
+
+          const response = await fetch(`${hostname}/rest/api/2/myself`, {
+            headers: {
+              'Authorization': authHeader,
+              'Accept': 'application/json'
+            }
+          })
+
+          if (!response.ok) {
+            const errorText = await response.text()
+            logger.error(`✗ Jira token validation failed: ${response.status} ${response.statusText} - ${errorText}`)
+            return c.json({
+              valid: false,
+              error: `Token validation failed: ${response.status} ${response.statusText}. The token may be invalid or expired.`
+            }, 400)
+          }
+
+          const user = await response.json() as any
+
+          logger.info(`✓ Jira token validated: ${user.displayName} (${user.accountId})`)
+
+          return c.json({
+            valid: true,
+            username: user.displayName,
+            accountId: user.accountId,
+            email: user.emailAddress
+          })
         }
-
-        const user = await response.json() as any
-
-        logger.info(`✓ Jira token validated: ${user.displayName} (${user.accountId})`)
-
-        return c.json({
-          valid: true,
-          username: user.displayName,
-          accountId: user.accountId,
-          email: user.emailAddress
-        })
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error)
         logger.error(`✗ Jira token validation error: ${errorMsg}`)

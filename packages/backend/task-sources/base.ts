@@ -11,12 +11,10 @@ export abstract class BaseTaskSource {
         throw new Error('GitLab task source requires non-empty repo in config');
       }
     } else if (taskSource.type === 'jira') {
-      if (!taskSource.config.project_key || taskSource.config.project_key.trim() === '') {
-        throw new Error('Jira task source requires non-empty project_key in config');
-      }
       if (!taskSource.config.host || taskSource.config.host.trim() === '') {
         throw new Error('Jira task source requires non-empty host in config');
       }
+      // project_key and jql_filter are both optional - will use default "resolution = Unresolved" if neither provided
     } else if (taskSource.type === 'github_issues') {
       if (!taskSource.config.repo || taskSource.config.repo.trim() === '') {
         throw new Error('GitHub task source requires non-empty repo in config');

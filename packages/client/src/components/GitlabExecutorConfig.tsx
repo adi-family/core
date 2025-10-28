@@ -30,6 +30,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
 
   // Form state
   const [host, setHost] = useState("https://gitlab.com")
+  const [hostUnlocked, setHostUnlocked] = useState(false)
   const [accessTokenSecretId, setAccessTokenSecretId] = useState<string | null>(null)
 
   // Load existing config
@@ -45,6 +46,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
           if (data && typeof data === 'object' && 'host' in data) {
             setExistingConfig(data as ExecutorConfig)
             setHost(data.host)
+            setHostUnlocked(data.host !== "https://gitlab.com")
           }
         }
       } catch (err) {
@@ -194,15 +196,27 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
 
       <div className="space-y-4 p-6 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
         <div className="space-y-2">
-          <Label htmlFor="executor_host" className="text-xs uppercase tracking-wide text-gray-300">
-            GITLAB HOST
-          </Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="executor_host" className="text-xs uppercase tracking-wide text-gray-300">
+              GITLAB HOST
+            </Label>
+            {!hostUnlocked && (
+              <button
+                type="button"
+                onClick={() => setHostUnlocked(true)}
+                className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+              >
+                Customize GitLab URL
+              </button>
+            )}
+          </div>
           <Input
             id="executor_host"
             type="text"
             value={host}
             onChange={(e) => setHost(e.target.value)}
-            className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
+            disabled={!hostUnlocked}
+            className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
             placeholder="https://gitlab.com"
           />
           <p className="text-xs text-gray-400">

@@ -156,7 +156,7 @@ export function TaskSourceMultistageForm() {
       setLoading(false)
 
       setTimeout(() => {
-        navigate("/task-sources")
+        navigate("/file-spaces")
       }, 1500)
     } catch {
       setError("Error creating task source")

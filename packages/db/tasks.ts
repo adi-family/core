@@ -10,6 +10,89 @@ export const findAllTasks = async (sql: Sql): Promise<Task[]> => {
   return get(sql<Task[]>`SELECT * FROM tasks ORDER BY created_at DESC`)
 }
 
+export type TaskQueryOptions = {
+  project_id?: string
+  task_source_id?: string
+  evaluated_only?: boolean
+  sort_by?: 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc'
+}
+
+export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions): Promise<Task[]> => {
+  const { project_id, task_source_id, evaluated_only, sort_by = 'created_desc' } = options
+
+  // Build WHERE conditions
+  const conditions: string[] = []
+  const params: any[] = []
+
+  if (project_id) {
+    conditions.push(`project_id = $${params.length + 1}`)
+    params.push(project_id)
+  }
+
+  if (task_source_id) {
+    conditions.push(`task_source_id = $${params.length + 1}`)
+    params.push(task_source_id)
+  }
+
+  if (evaluated_only) {
+    conditions.push(`ai_evaluation_simple_result IS NOT NULL`)
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+  // Build ORDER BY clause
+  let orderByClause: string
+  switch (sort_by) {
+    case 'created_asc':
+      orderByClause = 'ORDER BY created_at ASC'
+      break
+    case 'quick_win_desc':
+      // Quick win = high impact / low effort
+      // Using COALESCE to handle null values, putting them last
+      orderByClause = `ORDER BY
+        CASE
+          WHEN ai_evaluation_simple_result IS NULL THEN 1
+          ELSE 0
+        END,
+        (COALESCE((ai_evaluation_simple_result->>'estimated_impact')::text, 'low')) DESC,
+        (COALESCE((ai_evaluation_simple_result->>'estimated_effort')::text, 'high')) ASC`
+      break
+    case 'quick_win_asc':
+      orderByClause = `ORDER BY
+        CASE
+          WHEN ai_evaluation_simple_result IS NULL THEN 1
+          ELSE 0
+        END,
+        (COALESCE((ai_evaluation_simple_result->>'estimated_impact')::text, 'low')) ASC,
+        (COALESCE((ai_evaluation_simple_result->>'estimated_effort')::text, 'high')) DESC`
+      break
+    case 'complexity_asc':
+      orderByClause = `ORDER BY
+        CASE
+          WHEN ai_evaluation_simple_result IS NULL THEN 1
+          ELSE 0
+        END,
+        COALESCE((ai_evaluation_simple_result->>'complexity_score')::numeric, 999) ASC`
+      break
+    case 'complexity_desc':
+      orderByClause = `ORDER BY
+        CASE
+          WHEN ai_evaluation_simple_result IS NULL THEN 1
+          ELSE 0
+        END,
+        COALESCE((ai_evaluation_simple_result->>'complexity_score')::numeric, 0) DESC`
+      break
+    case 'created_desc':
+    default:
+      orderByClause = 'ORDER BY created_at DESC'
+      break
+  }
+
+  const query = `SELECT * FROM tasks ${whereClause} ${orderByClause}`
+
+  return get(sql.unsafe(query, params) as any)
+}
+
 export const findTaskById = async (sql: Sql, id: string): Promise<Result<Task>> => {
   const tasks = await get(sql<Task[]>`SELECT * FROM tasks WHERE id = ${id}`)
   const [task] = tasks
@@ -243,7 +326,7 @@ export const updateTaskEvaluationAgenticResult = async (
 export const findTasksNeedingEvaluation = async (sql: Sql): Promise<Task[]> => {
   return get(sql<Task[]>`
     SELECT * FROM tasks
-    WHERE ai_evaluation_status = 'pending'
+    WHERE ai_evaluation_status IS NULL OR ai_evaluation_status = 'pending'
     ORDER BY created_at DESC
   `)
 }

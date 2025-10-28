@@ -75,7 +75,7 @@ export async function implementTask(
       const pipelineResult = await triggerPipeline({
         sessionId: session.id,
         apiClient
-      })
+      }, sql)
       result.pipelineUrl = pipelineResult.pipelineUrl
       logger.info(`Implementation pipeline triggered: ${pipelineResult.pipelineUrl}`)
     } catch (pipelineError) {

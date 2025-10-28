@@ -269,6 +269,13 @@ export const updateTaskSchema = createTaskSchema.partial().extend({
   ai_evaluation_agentic_result: z.any().optional()
 })
 
+export const taskQuerySchema = z.object({
+  project_id: z.string().optional(),
+  task_source_id: z.string().optional(),
+  evaluated_only: z.enum(['true', 'false']).optional().transform(val => val === 'true'),
+  sort_by: z.enum(['created_desc', 'created_asc', 'quick_win_desc', 'quick_win_asc', 'complexity_asc', 'complexity_desc']).optional()
+})
+
 // Session schemas
 export const sessionSchema = z.object({
   id: z.string(),

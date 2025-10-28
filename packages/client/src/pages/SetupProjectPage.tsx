@@ -26,7 +26,8 @@ export function SetupProjectPage() {
 
   // Optional GitLab executor configuration
   const [configureExecutor, setConfigureExecutor] = useState(false)
-  const [executorHost, setExecutorHost] = useState("https://gitlab.the-ihor.com")
+  const [executorHost, setExecutorHost] = useState("https://gitlab.com")
+  const [executorHostUnlocked, setExecutorHostUnlocked] = useState(false)
   const [executorTokenSecretId, setExecutorTokenSecretId] = useState<string | null>(null)
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)
 
@@ -160,16 +161,29 @@ export function SetupProjectPage() {
               {configureExecutor && (
                 <div className="ml-6 space-y-3 border-l-2 border-blue-500/30 pl-4">
                   <div>
-                    <label htmlFor="executorHost" className="block text-sm font-medium mb-2 text-gray-200">
-                      Host
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="executorHost" className="block text-sm font-medium text-gray-200">
+                        Host
+                      </label>
+                      {!executorHostUnlocked && (
+                        <button
+                          type="button"
+                          onClick={() => setExecutorHostUnlocked(true)}
+                          className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                        >
+                          Customize GitLab URL
+                        </button>
+                      )}
+                    </div>
                     <Input
                       id="executorHost"
                       type="text"
                       value={executorHost}
                       onChange={(e) => setExecutorHost(e.target.value)}
+                      disabled={!executorHostUnlocked}
                       placeholder="https://gitlab.com"
                       required={configureExecutor}
+                      className="disabled:opacity-60 disabled:cursor-not-allowed"
                     />
                   </div>
 

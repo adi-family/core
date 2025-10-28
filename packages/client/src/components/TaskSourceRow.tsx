@@ -62,17 +62,23 @@ export function TaskSourceRow({
       return taskSource.config.repo
     }
     if (taskSource.type === 'jira') {
-      return taskSource.config.project_key
+      // Ensure we return a string, not an object
+      const projectKey = taskSource.config.project_key
+      return typeof projectKey === 'string' ? projectKey : null
     }
     return null
   }
 
   const getLabels = () => {
     if (taskSource.type === 'gitlab_issues') {
-      return taskSource.config.labels || []
+      const labels = taskSource.config.labels || []
+      // Ensure all labels are strings
+      return Array.isArray(labels) ? labels.filter(l => typeof l === 'string') : []
     }
     if (taskSource.type === 'github_issues') {
-      return taskSource.config.labels || []
+      const labels = taskSource.config.labels || []
+      // Ensure all labels are strings
+      return Array.isArray(labels) ? labels.filter(l => typeof l === 'string') : []
     }
     return []
   }
@@ -168,7 +174,7 @@ export function TaskSourceRow({
           {project && (
             <div className="flex items-center gap-1.5 text-gray-300">
               <Folder className="h-3.5 w-3.5 text-gray-400" />
-              <span>{project.name}</span>
+              <span>{typeof project.name === 'string' ? project.name : 'Unknown Project'}</span>
             </div>
           )}
           <div className="text-gray-400">

@@ -1,6 +1,7 @@
 import { useState } from "react"
 import { Button } from './button'
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
+import { JiraIcon } from './jira-icon'
 
 export type JiraSite = {
   id: string
@@ -23,6 +24,9 @@ type JiraOAuthButtonProps = {
   apiBaseUrl?: string
 }
 
+// Global flag to prevent double-processing in StrictMode
+const processingCodes = new Set<string>()
+
 export function JiraOAuthButton({
   projectId,
   onSuccess,
@@ -44,7 +48,7 @@ export function JiraOAuthButton({
       const generatedSecretName = secretName || `Jira OAuth Token - ${new Date().toLocaleDateString()}`
 
       // Step 1: Get authorization URL
-      const authRes = await fetch(`${apiBaseUrl}/oauth/jira/authorize?client_id=${encodeURIComponent(process.env.JIRA_OAUTH_CLIENT_ID || '')}&redirect_uri=${encodeURIComponent(window.location.origin + '/oauth/callback')}&state=${projectId}`)
+      const authRes = await fetch(`${apiBaseUrl}/oauth/jira/authorize`)
 
       if (!authRes.ok) {
         throw new Error('Failed to initiate OAuth flow')
@@ -80,8 +84,16 @@ export function JiraOAuthButton({
         if (event.data.type === 'JIRA_OAUTH_SUCCESS') {
           const { code, state: returnedState } = event.data
 
+          // Prevent double processing (React StrictMode causes double-execution)
+          if (processingCodes.has(code)) {
+            console.log('[Jira OAuth] Code already being processed, skipping duplicate')
+            return
+          }
+          processingCodes.add(code)
+
           // Verify state matches
           if (returnedState !== state) {
+            processingCodes.delete(code)
             setStatus('error')
             setErrorMessage('OAuth state mismatch. Please try again.')
             setLoading(false)
@@ -113,11 +125,13 @@ export function JiraOAuthButton({
 
             setStatus('success')
             setLoading(false)
+            processingCodes.delete(code)
             onSuccess(result)
           } catch (err) {
             setStatus('error')
             setErrorMessage(err instanceof Error ? err.message : 'Failed to complete OAuth flow')
             setLoading(false)
+            processingCodes.delete(code)
             onError?.(err instanceof Error ? err.message : 'Failed to complete OAuth flow')
           }
 
@@ -181,6 +195,7 @@ export function JiraOAuthButton({
           </>
         ) : (
           <>
+            <JiraIcon className="mr-2 h-4 w-4" />
             Connect with Jira OAuth
           </>
         )}

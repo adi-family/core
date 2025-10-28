@@ -1,5 +1,5 @@
 import { Button } from '@adi-simple/ui/button'
-import { ExternalLink, Folder, GitBranch, Star, AlertTriangle, Shield, Eye } from "lucide-react"
+import { ExternalLink, Folder, GitBranch, Star, AlertTriangle, Shield, Eye, Play, Zap } from "lucide-react"
 import { siJira, siGitlab, siGithub } from 'simple-icons'
 import type { Task, TaskSource, Project } from "@types"
 import { getComputedMetrics } from '@adi-simple/shared/task-scoring'
@@ -18,6 +18,31 @@ interface TaskRowProps {
   taskSource?: TaskSource
   project?: Project
   onViewDetails: (task: Task) => void
+  onStartImplementation?: (task: Task) => void
+  onEvaluate?: (task: Task) => void
+}
+
+/**
+ * Calculate expected price based on task complexity and effort
+ */
+const calculateExpectedPrice = (complexity: number, effort: string): number => {
+  // Base price from complexity (0-100 -> $0.15-$0.65)
+  const complexityPrice = 0.15 + (complexity / 100) * 0.50
+
+  // Effort multiplier
+  const effortMultipliers: Record<string, number> = {
+    'trivial': 0.5,
+    'low': 0.7,
+    'medium': 1.0,
+    'high': 1.5,
+    'very_high': 2.0,
+  }
+
+  const multiplier = effortMultipliers[effort.toLowerCase()] || 1.0
+  const finalPrice = complexityPrice * multiplier
+
+  // Clamp between $0.30 and $1.30
+  return Math.max(0.30, Math.min(1.30, finalPrice))
 }
 
 /**
@@ -28,11 +53,24 @@ export function TaskRow({
   taskSource,
   project,
   onViewDetails,
+  onStartImplementation,
+  onEvaluate,
 }: TaskRowProps) {
   // Compute metrics from evaluation result
   const metrics = task.ai_evaluation_simple_result
     ? getComputedMetrics(task.ai_evaluation_simple_result)
     : null
+
+  // Calculate expected price for evaluated tasks
+  const expectedPrice = task.ai_evaluation_simple_result
+    ? calculateExpectedPrice(
+        task.ai_evaluation_simple_result.complexity_score,
+        task.ai_evaluation_simple_result.effort_estimate
+      )
+    : null
+
+  // Check if this is a quick win task
+  const isQuickWin = metrics?.priority_quadrant === 'quick_win'
 
   const getStatusColor = (status: string | null) => {
     if (!status) return 'text-gray-400'
@@ -82,7 +120,11 @@ export function TaskRow({
   }
 
   return (
-    <div className="border border-slate-700/50 bg-slate-800/40 backdrop-blur-xl hover:bg-slate-800/60 transition-all duration-200 rounded-lg overflow-hidden">
+    <div className={`border backdrop-blur-xl hover:bg-slate-800/60 transition-all duration-200 rounded-lg overflow-hidden ${
+      isQuickWin
+        ? 'border-green-500/60 bg-gradient-to-r from-green-900/20 via-slate-800/40 to-slate-800/40 shadow-lg shadow-green-500/10'
+        : 'border-slate-700/50 bg-slate-800/40'
+    }`}>
       {/* Status Bar at Top */}
       <div className="flex flex-wrap gap-4 bg-slate-900/40 px-4 py-2.5 border-b border-slate-700/30">
         <div className="flex items-center gap-1.5">
@@ -110,10 +152,18 @@ export function TaskRow({
           </span>
         </div>
 
-        {/* Quick Win Score and Priority */}
+        {/* Quick Win Score, Price, and Priority */}
         {metrics && (
           <>
-            <div className="flex items-center gap-1.5 ml-auto">
+            {expectedPrice && (
+              <div className="flex items-center gap-1.5 ml-auto">
+                <span className="text-xs text-gray-400">$</span>
+                <span className="text-sm font-bold text-green-400">
+                  {expectedPrice.toFixed(2)}
+                </span>
+              </div>
+            )}
+            <div className="flex items-center gap-1.5">
               <Star className="h-3 w-3 text-yellow-400" />
               <span className={`text-xs font-bold ${getQuickWinScoreColor(metrics.quick_win_score)}`}>
                 {metrics.quick_win_score}
@@ -172,7 +222,7 @@ export function TaskRow({
       {/* Content */}
       <div className="p-4">
         {/* Header: Title and ID */}
-        <div className="flex items-start justify-between gap-4 mb-3">
+        <div className="flex items-start gap-4 mb-3">
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-semibold text-white mb-1 truncate">
               {task.title}
@@ -181,15 +231,6 @@ export function TaskRow({
               ID: {task.id.substring(0, 8)}...
             </p>
           </div>
-          <Button
-            variant="default"
-            size="sm"
-            onClick={() => onViewDetails(task)}
-            className="shrink-0"
-          >
-            <ExternalLink className="h-3 w-3 mr-1" />
-            View
-          </Button>
         </div>
 
         {/* Project and Task Source Info */}
@@ -209,9 +250,92 @@ export function TaskRow({
         </div>
 
         {/* Description */}
-        <p className="text-sm text-gray-300 line-clamp-2">
+        <p className="text-sm text-gray-300 line-clamp-2 mb-4">
           {task.description}
         </p>
+
+        {/* Action Buttons - Smart display based on task state */}
+        <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-700/30">
+          {/* Primary Action - Contextual based on state */}
+          {(() => {
+            const isEvaluated = task.ai_evaluation_status === 'completed' || task.ai_evaluation_status === 'success'
+            const isEvaluating = task.ai_evaluation_status?.toLowerCase().includes('ing') || task.ai_evaluation_status === 'running' || task.ai_evaluation_status === 'queued'
+            const isImplementing = task.ai_implementation_status?.toLowerCase().includes('ing') || task.ai_implementation_status === 'running' || task.ai_implementation_status === 'queued'
+            const isImplemented = task.ai_implementation_status === 'completed' || task.ai_implementation_status === 'success'
+
+            // Show Evaluate as primary action if not evaluated and not currently evaluating
+            if (!isEvaluated && !isEvaluating && onEvaluate) {
+              return (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => onEvaluate(task)}
+                  className="bg-blue-600/90 hover:bg-blue-600 border-blue-500/50 shadow-sm shadow-blue-500/20"
+                >
+                  <Zap className="h-3.5 w-3.5 mr-1.5" />
+                  Evaluate Task
+                </Button>
+              )
+            }
+
+            // Show Start Implementation if evaluated but not implemented and not currently implementing
+            if (isEvaluated && !isImplemented && !isImplementing && onStartImplementation) {
+              return (
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => onStartImplementation(task)}
+                  className="bg-emerald-600/90 hover:bg-emerald-600 border-emerald-500/50 shadow-sm shadow-emerald-500/20"
+                >
+                  <Play className="h-3.5 w-3.5 mr-1.5" />
+                  Start Implementation
+                </Button>
+              )
+            }
+
+            // Show status indicators for running tasks
+            if (isEvaluating) {
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  className="border-blue-500/50 text-blue-300 cursor-not-allowed"
+                >
+                  <Zap className="h-3.5 w-3.5 mr-1.5 animate-pulse" />
+                  Evaluating...
+                </Button>
+              )
+            }
+
+            if (isImplementing) {
+              return (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled
+                  className="border-emerald-500/50 text-emerald-300 cursor-not-allowed"
+                >
+                  <Play className="h-3.5 w-3.5 mr-1.5 animate-pulse" />
+                  Implementing...
+                </Button>
+              )
+            }
+
+            return null
+          })()}
+
+          {/* View Details - Always available as secondary action */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onViewDetails(task)}
+            className="border-slate-600/50 hover:border-slate-500 hover:bg-slate-700/40"
+          >
+            <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
+            View Details
+          </Button>
+        </div>
       </div>
     </div>
   )

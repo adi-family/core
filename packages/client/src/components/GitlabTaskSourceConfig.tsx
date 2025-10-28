@@ -24,6 +24,7 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const [gitlabHost, setGitlabHost] = useState(config.host || "https://gitlab.com")
+  const [hostUnlocked, setHostUnlocked] = useState(config.host !== undefined && config.host !== "https://gitlab.com")
   const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null)
   const [selectedRepositoryId, setSelectedRepositoryId] = useState<number | null>(null)
   const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
@@ -33,9 +34,20 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
       <h3 className="text-xs uppercase tracking-wide font-medium text-gray-300">GITLAB CONFIGURATION</h3>
 
       <div className="space-y-2">
-        <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide text-gray-300">
-          GITLAB HOST
-        </Label>
+        <div className="flex items-center justify-between">
+          <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide text-gray-300">
+            GITLAB HOST
+          </Label>
+          {!hostUnlocked && (
+            <button
+              type="button"
+              onClick={() => setHostUnlocked(true)}
+              className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+            >
+              Customize GitLab URL
+            </button>
+          )}
+        </div>
         <Input
           id="gitlab_host"
           type="text"
@@ -44,7 +56,8 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
             setGitlabHost(e.target.value)
             onChange("host", e.target.value)
           }}
-          className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
+          disabled={!hostUnlocked}
+          className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
           placeholder="https://gitlab.com"
         />
       </div>
