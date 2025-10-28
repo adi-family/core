@@ -124,7 +124,7 @@ export function createOAuthRoutes(db: Sql) {
         const { access_token, refresh_token, expires_in, scope } = tokenData;
 
         // Calculate expiration timestamp
-        const expiresAt = new Date(Date.now() + expires_in * 1000);
+        const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString();
 
         // Fetch accessible resources (Jira sites)
         const resourcesUrl = 'https://api.atlassian.com/oauth/token/accessible-resources';
@@ -254,7 +254,7 @@ export function createOAuthRoutes(db: Sql) {
         const { access_token, refresh_token, expires_in, scope } = tokenData;
 
         // Calculate new expiration
-        const expiresAt = new Date(Date.now() + expires_in * 1000);
+        const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString();
 
         // Update secret with new token
         const updateResult = await secretQueries.updateSecret(db, secretId, {
@@ -376,7 +376,7 @@ export function createOAuthRoutes(db: Sql) {
         const { access_token, refresh_token, expires_in, scope } = tokenData;
 
         // Calculate expiration
-        const expiresAt = new Date(Date.now() + expires_in * 1000);
+        const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString();
 
         // Fetch user info to verify token
         const userResponse = await fetch(`${host}/api/v4/user`, {
@@ -494,7 +494,7 @@ export function createOAuthRoutes(db: Sql) {
         const tokenData = await tokenResponse.json() as any;
         const { access_token, refresh_token, expires_in, scope } = tokenData;
 
-        const expiresAt = new Date(Date.now() + expires_in * 1000);
+        const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString();
 
         // Update secret
         const updateResult = await secretQueries.updateSecret(db, secretId, {

@@ -452,7 +452,7 @@ export type CreateSecretInput = {
   oauth_provider?: string
   token_type?: 'api' | 'oauth'
   refresh_token?: string
-  expires_at?: Date
+  expires_at?: string
   scopes?: string
 }
 
@@ -460,7 +460,7 @@ export type UpdateSecretInput = {
   value?: string
   description?: string
   refresh_token?: string
-  expires_at?: Date
+  expires_at?: string
   scopes?: string
 }
 
