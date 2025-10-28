@@ -169,7 +169,7 @@ export function createOAuthRoutes(db: Sql) {
         return c.json({
           success: true,
           secretId: secretResult.data.id,
-          expiresAt: expiresAt.toISOString(),
+          expiresAt: expiresAt,
           sites: resources.map((r: any) => ({
             id: r.id,
             url: r.url,
@@ -273,7 +273,7 @@ export function createOAuthRoutes(db: Sql) {
 
         return c.json({
           success: true,
-          expiresAt: expiresAt.toISOString(),
+          expiresAt: expiresAt,
         });
       } catch (error) {
         logger.error('Error during token refresh', { error });
@@ -416,7 +416,7 @@ export function createOAuthRoutes(db: Sql) {
         return c.json({
           success: true,
           secretId: secretResult.data.id,
-          expiresAt: expiresAt.toISOString(),
+          expiresAt: expiresAt,
           user: {
             username: userData.username,
             name: userData.name,
@@ -513,7 +513,7 @@ export function createOAuthRoutes(db: Sql) {
 
         return c.json({
           success: true,
-          expiresAt: expiresAt.toISOString(),
+          expiresAt: expiresAt,
         });
       } catch (error) {
         logger.error('Error during GitLab token refresh', { error });
