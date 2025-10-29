@@ -13,6 +13,7 @@
     "tailwind:build": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --minify"
   },
   "dependencies": {
+    "@adi-simple/shared": "workspace:*",
     "@adi-simple/types": "workspace:*",
     "@adi-simple/ui": "workspace:*",
     "@clerk/clerk-react": "^5.53.2",
