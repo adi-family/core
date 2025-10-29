@@ -271,38 +271,58 @@ async function getAIProviderEnvVars(
 ): Promise<Record<string, string>> {
   const envVars: Record<string, string> = {}
 
-  // Try to use selectAIProviderForEvaluation if we have a user ID
-  // This allows fallback to platform API keys
+  // Check implementation quota and get API key
+  // If project has no Anthropic config, check quota and use platform key
   if (userId && !aiProviderConfigs?.anthropic) {
     try {
-      const { selectAIProviderForEvaluation } = await import('@backend/services/ai-provider-selector')
-      const aiProviderSelection = await selectAIProviderForEvaluation(sql, userId, projectId, 'simple')
+      const { checkQuotaAvailable } = await import('@db/user-quotas')
+      const { getPlatformAnthropicConfig } = await import('@backend/config')
+      const { checkProjectHasAnthropicProvider } = await import('@backend/services/ai-provider-selector')
 
-      if (aiProviderSelection.use_platform_token || aiProviderSelection.config) {
-        const config = aiProviderSelection.config as any
-        if (config.api_key) {
-          envVars.ANTHROPIC_API_KEY = config.api_key
-          logger.info(`✓ Using ${aiProviderSelection.use_platform_token ? 'platform' : 'project'} Anthropic API key`)
+      const quotaCheck = await checkQuotaAvailable(sql, userId, 'implementation')
 
-          if (config.endpoint_url) {
-            envVars.ANTHROPIC_API_URL = config.endpoint_url
-          }
-          if (config.model) {
-            envVars.ANTHROPIC_MODEL = config.model
-          }
-          if (config.max_tokens) {
-            envVars.ANTHROPIC_MAX_TOKENS = config.max_tokens.toString()
-          }
-          if (config.temperature !== undefined) {
-            envVars.ANTHROPIC_TEMPERATURE = config.temperature.toString()
+      // If user at hard limit, require project API key
+      if (quotaCheck.at_hard_limit) {
+        const hasProjectKey = await checkProjectHasAnthropicProvider(sql, projectId)
+        if (!hasProjectKey) {
+          throw new Error(
+            `Implementation quota exceeded (${quotaCheck.used}/${quotaCheck.hard_limit}). ` +
+            `Please configure your own Anthropic API key in project settings to continue.`
+          )
+        }
+        // Fall through to use project key
+      } else {
+        // User has quota - use platform key
+        const platformConfig = getPlatformAnthropicConfig()
+
+        if (platformConfig) {
+          envVars.ANTHROPIC_API_KEY = platformConfig.api_key
+          logger.info(`✓ Using platform Anthropic API key for implementation (${quotaCheck.used}/${quotaCheck.hard_limit})`)
+
+          if (quotaCheck.at_soft_limit) {
+            logger.warn(`⚠️  Implementation quota at soft limit (${quotaCheck.used}/${quotaCheck.hard_limit})`)
           }
 
-          // Return early since we got Anthropic config from selector
+          // Platform config is always cloud type, no endpoint_url needed
+          if (platformConfig.model) {
+            envVars.ANTHROPIC_MODEL = platformConfig.model
+          }
+          if (platformConfig.max_tokens) {
+            envVars.ANTHROPIC_MAX_TOKENS = platformConfig.max_tokens.toString()
+          }
+          if (platformConfig.temperature !== undefined) {
+            envVars.ANTHROPIC_TEMPERATURE = platformConfig.temperature.toString()
+          }
+
+          // Return early since we got platform config
           return envVars
+        } else {
+          logger.warn(`⚠️  No platform API key configured`)
+          // Fall through to try project configs
         }
       }
     } catch (error) {
-      logger.warn(`⚠️  Could not use AI provider selector: ${error}`)
+      logger.warn(`⚠️  Could not check implementation quota: ${error}`)
       // Fall through to try project configs
     }
   }
@@ -710,6 +730,24 @@ export async function triggerPipeline(
     const result = await executePipelineTrigger(context, execution.id, config, executorConfig, input.apiClient)
 
     logger.info(`✅ Pipeline triggered successfully: ${result.pipelineUrl}`)
+
+    // Increment implementation quota if using platform token (runner="claude" means implementation)
+    if (context.session.runner === 'claude' && context.userId && config.variables.ANTHROPIC_API_KEY) {
+      try {
+        const { getPlatformAnthropicConfig } = await import('@backend/config')
+        const platformConfig = getPlatformAnthropicConfig()
+
+        // Only increment if using platform key (not project key)
+        if (platformConfig && config.variables.ANTHROPIC_API_KEY === platformConfig.api_key) {
+          const { incrementQuotaUsage } = await import('@db/user-quotas')
+          await incrementQuotaUsage(sqlInstance, context.userId, 'implementation')
+          logger.info(`✓ Implementation quota incremented for user ${context.userId}`)
+        }
+      } catch (quotaError) {
+        logger.warn(`⚠️  Failed to increment implementation quota: ${quotaError}`)
+        // Don't fail the pipeline trigger if quota increment fails
+      }
+    }
 
     return result
   } catch (error) {

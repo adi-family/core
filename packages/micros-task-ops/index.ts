@@ -32,43 +32,56 @@ const config = loadConfig()
 logger.info('Starting Micros-Task-Ops service...')
 logConfig(config)
 
-// Create all runners
-const runners: Runner[] = [
+// Create all runners with labels
+interface LabeledRunner extends Runner {
+  label: string
+}
+
+const runners: LabeledRunner[] = [
   // Queue consumers
-  createTaskSyncConsumer(sql),
-  createTaskEvalConsumer(sql),
-  createTaskImplConsumer(sql),
+  { label: 'TaskSyncConsumer', ...createTaskSyncConsumer(sql) },
+  { label: 'TaskEvalConsumer', ...createTaskEvalConsumer(sql) },
+  { label: 'TaskImplConsumer', ...createTaskImplConsumer(sql) },
   // Schedulers and monitors
-  createSyncScheduler(
+  { label: 'SyncScheduler', ...createSyncScheduler(
     sql,
     config.syncIntervalMinutes,
     config.syncThresholdMinutes,
     config.queuedTimeoutMinutes
-  ),
-  createEvalScheduler(
+  ) },
+  { label: 'EvalScheduler', ...createEvalScheduler(
     sql,
     config.evalIntervalMinutes
-  ),
-  createPipelineMonitor({
+  ) },
+  { label: 'PipelineMonitor', ...createPipelineMonitor({
     pollIntervalMs: config.pipelinePollIntervalMs,
     timeoutMinutes: config.pipelineTimeoutMinutes,
     sql
-  }),
-  createEvaluationRecovery({
+  }) },
+  { label: 'EvaluationRecovery', ...createEvaluationRecovery({
     sql,
     timeoutMinutes: config.stuckEvalTimeoutMinutes,
     checkIntervalMs: config.stuckEvalCheckIntervalMinutes * 60 * 1000
-  })
+  }) }
 ]
 
 async function main() {
   try {
     // Start all runners
+    logger.info(`Starting ${runners.length} runners...`)
+    let index = 1
     for (const runner of runners) {
+      logger.info(`Starting runner ${index}/${runners.length}: ${runner.label}`)
       await runner.start()
+      logger.info(`✓ ${runner.label} started`)
+      index++
     }
+    logger.info('✅ All runners started successfully')
   } catch (error) {
-    logger.error('Failed to start Micros-Task-Ops service:', error)
+    logger.error('❌ Failed to start Micros-Task-Ops service:', error)
+    if (error instanceof Error && error.stack) {
+      logger.error('Stack trace:', error.stack)
+    }
     process.exit(1)
   }
 }

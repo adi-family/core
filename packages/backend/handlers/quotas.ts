@@ -325,7 +325,9 @@ export const createQuotaRoutes = (sql: Sql) => {
       }
 
       try {
-        const quota = await quotaQueries.resetUserQuotaUsage(sql, targetUserId, resetType)
+        // Map 'both' to 'all' for the database function (both means simple + advanced + implementation)
+        const dbResetType = resetType === 'both' ? 'all' : resetType
+        const quota = await quotaQueries.resetUserQuotaUsage(sql, targetUserId, dbResetType)
 
         return c.json({
           user_id: quota.user_id,
