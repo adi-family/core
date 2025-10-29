@@ -10,7 +10,8 @@ const tsconfigPaths = tsconfigPathsPlugin({
 })
 
 export default defineConfig(({ mode }) => {
-  const env = loadEnv(mode, path.resolve(__dirname, '../..'), '')
+  const envDir = path.resolve(__dirname, '../..')
+  const env = loadEnv(mode, envDir, '')
 
   if (!env.CLIENT_PORT) {
     throw new Error('CLIENT_PORT environment variable is required')
