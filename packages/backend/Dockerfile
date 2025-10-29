@@ -6,6 +6,16 @@ WORKDIR /app
 # Copy entire monorepo
 COPY . .
 
+# Debug: Check what files are present
+RUN echo "=== Checking workspace structure ===" && \
+    ls -la && \
+    echo "=== Root package.json ===" && \
+    cat package.json | grep -A 3 "workspaces\|name" && \
+    echo "=== Backend package.json ===" && \
+    cat packages/backend/package.json | grep "name" && \
+    echo "=== Listing packages ===" && \
+    ls -la packages/
+
 # Prune the monorepo for the backend package using bunx
 # Creates out/json/ with package.json files and out/full/ with source code
 RUN bunx turbo prune @adi-simple/backend --docker
