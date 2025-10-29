@@ -58,8 +58,8 @@ services:
     environment:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-rabbit}:${RABBITMQ_PASS:-rabbit}@rabbitmq:5672
-      - SERVER_PORT=5174
-      - BACKEND_URL=http://backend:5174
+      - SERVER_PORT=${SERVER_PORT}
+      - BACKEND_URL=${BACKEND_URL}
       - ENABLE_SCHEDULER=${ENABLE_SCHEDULER:-false}
       - SCHEDULER_INTERVAL_MS=${SCHEDULER_INTERVAL_MS:-600000}
       - DEFAULT_RUNNER=${DEFAULT_RUNNER:-claude}
@@ -83,9 +83,9 @@ services:
         condition: service_completed_successfully
     environment:
       - NODE_ENV=production
-      - CLIENT_PORT=4173
-      - BACKEND_URL=http://backend:5174
-      - VITE_API_URL=https://adi-api.the-ihor.com
+      - CLIENT_PORT=${CLIENT_PORT}
+      - BACKEND_URL=${BACKEND_URL}
+      - VITE_API_URL=${VITE_API_URL}
     restart: unless-stopped
 
   landing:
@@ -98,8 +98,8 @@ services:
         condition: service_completed_successfully
     environment:
       - NODE_ENV=production
-      - PORT=3000
-      - LANDING_PORT=3000
+      - PORT=${PORT:-3000}
+      - LANDING_PORT=${LANDING_PORT:-3000}
     restart: unless-stopped
 
   micros-task-ops:
