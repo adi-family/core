@@ -1,11 +1,11 @@
 FROM oven/bun:1.2.23 AS builder
 WORKDIR /app
 
-# Copy everything (node_modules excluded by .dockerignore)
+# Copy everything (node_modules and lockfiles excluded by .dockerignore)
 COPY . .
 
 # Install all dependencies
-RUN bun install --no-frozen-lockfile
+RUN bun install
 
 # Production stage
 FROM oven/bun:1.2.23

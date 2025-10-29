@@ -1,11 +1,11 @@
 FROM oven/bun:1.2.23 AS base
 WORKDIR /app
 
-# Copy everything (node_modules excluded by .dockerignore)
+# Copy everything (node_modules and lockfiles excluded by .dockerignore)
 COPY . .
 
-# Install dependencies (lockfile not frozen to handle any version mismatches)
-RUN bun install --no-frozen-lockfile --verbose
+# Install dependencies from scratch (no lockfile)
+RUN bun install
 
 # Set environment
 ENV NODE_ENV=production
