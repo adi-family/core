@@ -7,7 +7,7 @@ import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger'
 import * as taskSourceQueries from '@db/task-sources'
 import * as projectQueries from '@db/projects'
-import { publishTaskSync } from '@adi/queue/publisher.ts'
+import { publishTaskSync } from '@adi/queue/publisher'
 import { assertNever } from "@utils/assert-never";
 
 const logger = createLogger({ namespace: 'orchestrator' })

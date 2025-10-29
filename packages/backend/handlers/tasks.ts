@@ -8,7 +8,7 @@ import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { getClerkUserId } from '../middleware/clerk'
 import * as userAccessQueries from '../../db/user-access'
 import * as taskSourceQueries from '../../db/task-sources'
-import { publishTaskEval, publishTaskImpl } from '@adi/queue/publisher.ts'
+import { publishTaskEval, publishTaskImpl } from '@adi/queue/publisher'
 import { createTaskSource } from '../task-sources/factory'
 
 export const createTaskRoutes = (sql: Sql) => {

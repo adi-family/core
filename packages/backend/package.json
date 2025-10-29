@@ -21,7 +21,8 @@
     "@adi-simple/utils": "workspace:*",
     "@adi-simple/shared": "workspace:*",
     "@adi-simple/types": "workspace:*",
-    "@adi-simple/worker": "workspace:*"
+    "@adi-simple/worker": "workspace:*",
+    "@adi/queue": "workspace:*"
   },
   "devDependencies": {
     "@types/bun": "latest",

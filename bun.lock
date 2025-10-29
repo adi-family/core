@@ -72,6 +72,7 @@
         "@adi-simple/types": "workspace:*",
         "@adi-simple/utils": "workspace:*",
         "@adi-simple/worker": "workspace:*",
+        "@adi/queue": "workspace:*",
         "@hono/clerk-auth": "^3.0.3",
         "@hono/zod-validator": "^0.7.4",
         "dotenv": "^17.2.3",
@@ -229,6 +230,7 @@
         "@adi-simple/db": "workspace:*",
         "@adi-simple/types": "workspace:*",
         "@adi-simple/utils": "workspace:*",
+        "@adi/queue": "workspace:*",
       },
       "devDependencies": {
         "@types/bun": "latest",

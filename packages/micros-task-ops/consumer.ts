@@ -1,12 +1,12 @@
 import type { Sql } from 'postgres'
 import type { ConsumeMessage } from 'amqplib'
 import { createLogger } from '@utils/logger'
-import { TASK_SYNC_QUEUE, TASK_SYNC_CONFIG, TASK_EVAL_QUEUE, TASK_EVAL_CONFIG, TASK_IMPL_QUEUE, TASK_IMPL_CONFIG } from '@adi/queue/queues.ts'
-import type { TaskSyncMessage, TaskEvalMessage, TaskImplMessage } from '@adi/queue/types.ts'
+import { TASK_SYNC_QUEUE, TASK_SYNC_CONFIG, TASK_EVAL_QUEUE, TASK_EVAL_CONFIG, TASK_IMPL_QUEUE, TASK_IMPL_CONFIG } from '@adi/queue/queues'
+import type { TaskSyncMessage, TaskEvalMessage, TaskImplMessage } from '@adi/queue/types'
 import { syncTaskSource } from '@micros-task-sync/service'
 import { evaluateTask } from '@micros-task-eval/service'
 import { implementTask } from '@adi/micros-task-impl/service'
-import { channel } from '@adi/queue/connection.ts'
+import { channel } from '@adi/queue/connection'
 
 const logger = createLogger({ namespace: 'queue-consumer' })
 

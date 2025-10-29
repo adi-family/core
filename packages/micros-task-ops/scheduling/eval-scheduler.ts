@@ -7,7 +7,7 @@
 import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger'
 import * as taskQueries from '@db/tasks'
-import { publishTaskEval } from '@adi/queue/publisher.ts'
+import { publishTaskEval } from '@adi/queue/publisher'
 import { getProjectOwnerId } from '@db/user-access'
 import { checkQuotaAvailable } from '@db/user-quotas'
 import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'

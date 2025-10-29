@@ -4,6 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
+    "./connection": "./connection.ts",
+    "./publisher": "./publisher.ts",
+    "./queues": "./queues.ts",
+    "./types": "./types.ts",
     "./*": "./*"
   },
   "dependencies": {
