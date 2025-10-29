@@ -24,6 +24,9 @@ RUN bun install --frozen-lockfile
 # Copy source code from pruner
 COPY --from=pruner /app/out/full/ .
 
+# Copy root tsconfig for path alias resolution
+COPY --from=pruner /app/tsconfig.json ./tsconfig.json
+
 # Stage 3: Runner - production image
 FROM oven/bun:1.2.23-slim AS runner
 WORKDIR /app
