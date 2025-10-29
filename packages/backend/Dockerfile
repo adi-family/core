@@ -39,7 +39,7 @@ COPY --from=installer /app .
 
 # Health check (uses SERVER_PORT from Coolify)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:${SERVER_PORT:-5174}/webhooks/gitlab || exit 1
+  CMD bun -e "fetch('http://localhost:${SERVER_PORT:-5174}/healthcheck').then(r => r.ok ? process.exit(0) : process.exit(1)).catch(() => process.exit(1))"
 
 # Run the application
 CMD ["bun", "run", "packages/backend/index.ts"]

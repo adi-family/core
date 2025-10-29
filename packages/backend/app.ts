@@ -47,6 +47,10 @@ import {
 } from './schemas'
 
 const app = new Hono()
+  // Health check endpoint - must be before CORS and auth for simplicity
+  .get('/healthcheck', (c) => {
+    return c.json({ status: 'ok', timestamp: new Date().toISOString() })
+  })
   // CORS middleware - must be before authentication to handle preflight requests
   .use('*', cors({
     origin: process.env.SERVICE_FQDN_CLIENT ? `https://${process.env.SERVICE_FQDN_CLIENT}` : 'http://localhost:4173',
