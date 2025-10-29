@@ -11,11 +11,58 @@ interface JiraSearchResponse {
     key: string;
     fields?: {
       summary?: string;
-      description?: string;
+      description?: unknown;
       updated?: string;
     };
   }>;
   nextPageToken?: string;
+}
+
+/**
+ * Extract plain text from Atlassian Document Format (ADF)
+ * Jira API v3 returns description as ADF object, not plain text
+ */
+function extractTextFromADF(adf: unknown): string {
+  if (!adf || typeof adf !== 'object') {
+    return '';
+  }
+
+  const doc = adf as any;
+
+  // If it's already a string, return it
+  if (typeof doc === 'string') {
+    return doc;
+  }
+
+  const extractFromNode = (node: any): string => {
+    if (!node) return '';
+
+    // Text node - return the text content
+    if (node.type === 'text' && node.text) {
+      return node.text;
+    }
+
+    // Node with content array - recursively extract from children
+    if (Array.isArray(node.content)) {
+      return node.content.map(extractFromNode).join('');
+    }
+
+    return '';
+  };
+
+  // Extract text from all content nodes
+  if (Array.isArray(doc.content)) {
+    return doc.content.map((node: any) => {
+      const text = extractFromNode(node);
+      // Add newline after paragraphs, headings, etc.
+      if (node.type === 'paragraph' || node.type === 'heading') {
+        return text + '\n';
+      }
+      return text;
+    }).join('').trim();
+  }
+
+  return '';
 }
 
 export class JiraTaskSource extends BaseTaskSource {
@@ -264,7 +311,7 @@ export class JiraTaskSource extends BaseTaskSource {
               id: issue.id,
               iid: null,
               title: issue.fields?.summary || 'Untitled',
-              description: issue.fields?.description || '',
+              description: extractTextFromADF(issue.fields?.description),
               updatedAt: issue.fields?.updated || new Date().toISOString(),
               uniqueId: `jira-${issue.id}`,
               metadata

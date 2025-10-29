@@ -31,8 +31,8 @@ export function loadConfig(): TaskOpsConfig {
     syncThresholdMinutes: parseInt(process.env.TASK_SYNC_THRESHOLD_MINUTES || '30'),
     queuedTimeoutMinutes: parseInt(process.env.TASK_QUEUED_TIMEOUT_MINUTES || '120'),
 
-    // Evaluation scheduling - check every 5 min for pending evaluations
-    evalIntervalMinutes: parseInt(process.env.EVAL_INTERVAL_MINUTES || '5'),
+    // Evaluation scheduling - check every 1 min for pending evaluations
+    evalIntervalMinutes: parseInt(process.env.EVAL_INTERVAL_MINUTES || '1'),
 
     // Pipeline monitor - check every 10 min, timeout after 30 min
     pipelinePollIntervalMs: parseInt(process.env.PIPELINE_POLL_INTERVAL_MS || String(10 * 60 * 1000)),

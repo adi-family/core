@@ -164,6 +164,42 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
             </Link>
           </footer>
         </article>
+
+        {/* Site Footer */}
+        <footer className="w-full border-t border-white/10 bg-slate-950/50 backdrop-blur-sm py-8 mt-16">
+          <div className="max-w-4xl mx-auto px-4">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+              {/* Logo/Brand */}
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
+                  ADI
+                </h2>
+                <span className="text-white/40 text-sm">Automated Development Intelligence</span>
+              </div>
+
+              {/* Links */}
+              <div className="flex items-center gap-6 text-sm">
+                <Link href="/" className="text-white/60 hover:text-white/90 transition-colors">
+                  Home
+                </Link>
+                <Link href="/articles" className="text-white/60 hover:text-white/90 transition-colors">
+                  Articles
+                </Link>
+                <Link href="/privacy" className="text-white/60 hover:text-white/90 transition-colors">
+                  Privacy
+                </Link>
+                <Link href="/terms" className="text-white/60 hover:text-white/90 transition-colors">
+                  Terms
+                </Link>
+              </div>
+
+              {/* Copyright */}
+              <div className="text-white/40 text-sm">
+                © {new Date().getFullYear()} ADI
+              </div>
+            </div>
+          </div>
+        </footer>
       </div>
     </main>
   );

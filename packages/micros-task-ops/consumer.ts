@@ -55,7 +55,8 @@ export function createTaskSyncConsumer(sql: Sql): Runner {
             }
           }
         }, {
-          noAck: false
+          noAck: false,
+          consumerTag: `task-sync-${process.pid}-${Date.now()}`
         })
 
         consumerTag = result.consumerTag
@@ -139,7 +140,8 @@ export function createTaskEvalConsumer(sql: Sql): Runner {
             }
           }
         }, {
-          noAck: false
+          noAck: false,
+          consumerTag: `task-eval-${process.pid}-${Date.now()}`
         })
 
         consumerTag = result.consumerTag
@@ -201,14 +203,18 @@ export function createTaskImplConsumer(sql: Sql): Runner {
 
         const result = await ch.consume(TASK_IMPL_QUEUE, async (msg: ConsumeMessage | null) => {
           if (!msg) {
+            logger.warn('Received null message in task-impl consumer')
             return
           }
+
+          logger.debug(`📨 Task impl consumer received message`)
 
           try {
             await processTaskImplMessage(sql, msg)
             ch.ack(msg)
           } catch (error) {
-            logger.error('Failed to process task impl message:', error)
+            logger.error('❌ EXCEPTION while processing task impl message:', error)
+            logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
 
             const attempt = (msg.properties.headers?.['x-attempt'] || 0) + 1
             const maxRetries = TASK_IMPL_CONFIG.maxRetries || 3
@@ -222,7 +228,8 @@ export function createTaskImplConsumer(sql: Sql): Runner {
             }
           }
         }, {
-          noAck: false
+          noAck: false,
+          consumerTag: `task-impl-${process.pid}-${Date.now()}`
         })
 
         consumerTag = result.consumerTag
@@ -252,15 +259,18 @@ export function createTaskImplConsumer(sql: Sql): Runner {
 async function processTaskImplMessage(sql: Sql, msg: ConsumeMessage): Promise<void> {
   const message: TaskImplMessage = JSON.parse(msg.content.toString())
 
-  logger.debug(`Processing task impl message for task ${message.taskId}`)
+  logger.info(`🚀 Starting implementation for task ${message.taskId}`)
 
   const result = await implementTask(sql, {
     taskId: message.taskId
   })
 
-  logger.info(`Task ${message.taskId} implementation completed: sessionId=${result.sessionId}, pipelineUrl=${result.pipelineUrl || 'N/A'}, ${result.errors.length} errors`)
-
   if (result.errors.length > 0) {
-    logger.error(`Errors during task implementation:`, result.errors)
+    logger.error(`❌ Task ${message.taskId} implementation FAILED:`)
+    result.errors.forEach((error, i) => {
+      logger.error(`  Error ${i + 1}: ${error}`)
+    })
+  } else {
+    logger.info(`✅ Task ${message.taskId} implementation completed successfully: sessionId=${result.sessionId}, pipelineUrl=${result.pipelineUrl || 'N/A'}`)
   }
 }

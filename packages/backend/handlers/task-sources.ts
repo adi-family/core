@@ -86,39 +86,61 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         })
       }
 
-      // Check quota before automatically enqueuing sync for newly created task source
-      // Sync will auto-queue evaluations for new tasks, so we verify quota exists
-      logger.info(`Checking quota before automatically enqueuing sync for newly created task source ${taskSource.id}`)
+      // Automatically trigger initial sync for newly created task source
+      // Sync will fetch issues and auto-queue evaluations for new tasks
+      logger.info(`🔄 Triggering initial sync for newly created task source ${taskSource.id}`)
+
+      let syncTriggered = false
+      let syncMessage: string | undefined
+
       try {
         const { getProjectOwnerId } = await import('../../db/user-access')
         const ownerId = await getProjectOwnerId(sql, taskSource.project_id)
 
-        if (ownerId) {
+        if (!ownerId) {
+          syncMessage = 'No project owner found - sync skipped'
+          logger.warn(`No project owner found for task source ${taskSource.id}, skipping automatic sync`)
+        } else {
+          // Check quota before syncing (sync auto-queues evaluations)
           const { selectAIProviderForEvaluation, QuotaExceededError } = await import('../services/ai-provider-selector')
           try {
             await selectAIProviderForEvaluation(sql, ownerId, taskSource.project_id, 'simple')
 
-            // Quota available - proceed with automatic sync
-            await syncTaskSource(sql, {
+            // Quota available - trigger sync
+            const syncResult = await syncTaskSource(sql, {
               taskSourceId: taskSource.id
             })
-            logger.info(`Successfully enqueued sync for task source ${taskSource.id}`)
+
+            if (syncResult.errors.length > 0) {
+              syncMessage = `Sync queued with warnings: ${syncResult.errors.join(', ')}`
+              logger.warn(`Sync queued for ${taskSource.id} but had errors:`, syncResult.errors)
+            } else {
+              syncTriggered = true
+              syncMessage = 'Initial sync queued successfully'
+              logger.info(`✅ Successfully queued initial sync for task source ${taskSource.id}`)
+            }
           } catch (quotaError) {
             if (quotaError instanceof QuotaExceededError) {
+              syncMessage = 'Sync skipped - evaluation quota exceeded'
               logger.warn(`Skipping automatic sync for task source ${taskSource.id}: ${quotaError.message}`)
             } else {
               throw quotaError
             }
           }
-        } else {
-          logger.warn(`No project owner found for task source ${taskSource.id}, skipping automatic sync`)
         }
       } catch (error) {
+        syncMessage = `Sync failed: ${error instanceof Error ? error.message : String(error)}`
         logger.error(`Failed to enqueue sync for task source ${taskSource.id}:`, error)
         // Don't fail the creation if sync enqueue fails
       }
 
-      return c.json(taskSource, 201)
+      return c.json({
+        ...taskSource,
+        _meta: {
+          sync_triggered: syncTriggered,
+          sync_message: syncMessage
+        }
+      }, 201)
     })
     .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateTaskSourceSchema), async (c) => {
       const { id } = c.req.valid('param')

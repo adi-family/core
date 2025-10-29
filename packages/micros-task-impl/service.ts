@@ -80,7 +80,10 @@ export async function implementTask(
       logger.info(`Implementation pipeline triggered: ${pipelineResult.pipelineUrl}`)
     } catch (pipelineError) {
       const errorMsg = `Failed to trigger implementation pipeline: ${pipelineError instanceof Error ? pipelineError.message : String(pipelineError)}`
-      logger.error(errorMsg)
+      logger.error(`❌ ${errorMsg}`)
+      if (pipelineError instanceof Error && pipelineError.stack) {
+        logger.error(`Stack trace: ${pipelineError.stack}`)
+      }
       result.errors.push(errorMsg)
       await taskQueries.updateTaskImplementationStatus(sql, taskId, 'failed', session.id)
       return result
@@ -89,7 +92,10 @@ export async function implementTask(
     logger.info(`Task ${taskId} implementation started successfully`)
   } catch (error) {
     const errorMsg = `Failed to implement task ${taskId}: ${error instanceof Error ? error.message : String(error)}`
-    logger.error(errorMsg)
+    logger.error(`❌ ${errorMsg}`)
+    if (error instanceof Error && error.stack) {
+      logger.error(`Stack trace: ${error.stack}`)
+    }
     result.errors.push(errorMsg)
     await taskQueries.updateTaskImplementationStatus(sql, taskId, 'failed')
   }

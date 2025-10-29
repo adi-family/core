@@ -1,43 +1,21 @@
 # Multi-stage Dockerfile for Next.js landing page deployment
 # Uses Bun for package management and Next.js standalone output
 
-# Stage 1: Dependencies
-FROM oven/bun:1.2.23-slim AS deps
-WORKDIR /app
-
-# Copy workspace root files
-COPY package.json bun.lock* ./
-COPY packages/landing/package.json ./packages/landing/
-COPY packages/ui/package.json ./packages/ui/
-COPY packages/types/package.json ./packages/types/
-
-# Install dependencies
-RUN bun install
-
-# Stage 2: Builder
+# Stage 1: Builder
 FROM oven/bun:1.2.23-slim AS builder
 WORKDIR /app
 
-# Copy dependencies from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages/landing/node_modules ./packages/landing/node_modules
-COPY --from=deps /app/packages/ui/node_modules ./packages/ui/node_modules
+# Copy everything (node_modules and lockfiles excluded by .dockerignore)
+COPY . .
 
-# Copy workspace root files
-COPY package.json bun.lock* turbo.json ./
-
-# Copy workspace dependencies
-COPY packages/types ./packages/types
-COPY packages/ui ./packages/ui
-
-# Copy landing package source
-COPY packages/landing ./packages/landing
+# Install dependencies
+RUN bun install
 
 # Build the landing page
 WORKDIR /app/packages/landing
 RUN bun run build
 
-# Stage 3: Runner
+# Stage 2: Runner
 FROM oven/bun:1.2.23-slim AS runner
 WORKDIR /app
 

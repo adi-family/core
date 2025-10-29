@@ -7,6 +7,9 @@ import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { getClerkUserId } from '../middleware/clerk'
 import { isServiceAuthenticated } from '../middleware/service-auth'
 import * as userAccessQueries from '../../db/user-access'
+import { createLogger } from '@utils/logger'
+
+const logger = createLogger({ namespace: 'file-spaces' })
 
 export const createFileSpaceRoutes = (sql: Sql) => {
   const acl = createFluentACL(sql)
@@ -105,7 +108,37 @@ export const createFileSpaceRoutes = (sql: Sql) => {
         })
       }
 
-      return c.json(fileSpace, 201)
+      // Automatically trigger workspace sync to add file space as git submodule
+      let syncTriggered = false
+      let syncMessage: string | undefined
+
+      try {
+        const { triggerWorkspaceSync } = await import('../services/workspace-sync')
+        const syncResult = await triggerWorkspaceSync(sql, {
+          projectId: fileSpace.project_id
+        })
+
+        if (syncResult.success) {
+          syncTriggered = true
+          syncMessage = `Workspace sync pipeline triggered: ${syncResult.pipelineUrl}`
+          logger.info(`✅ Triggered workspace sync for file space ${fileSpace.id}: ${syncResult.pipelineUrl}`)
+        } else {
+          syncMessage = `Workspace sync skipped: ${syncResult.error}`
+          logger.warn(`⚠️  Workspace sync not triggered for file space ${fileSpace.id}: ${syncResult.error}`)
+        }
+      } catch (error) {
+        syncMessage = `Workspace sync failed: ${error instanceof Error ? error.message : String(error)}`
+        logger.error(`Failed to trigger workspace sync for file space ${fileSpace.id}:`, error)
+        // Don't fail the creation if sync trigger fails
+      }
+
+      return c.json({
+        ...fileSpace,
+        _meta: {
+          workspace_sync_triggered: syncTriggered,
+          workspace_sync_message: syncMessage
+        }
+      }, 201)
     })
     .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updateFileSpaceSchema), async (c) => {
       const { id } = c.req.valid('param')
@@ -149,5 +182,55 @@ export const createFileSpaceRoutes = (sql: Sql) => {
       }
 
       return c.json({ success: true })
+    })
+    .post('/:id/sync', zValidator('param', idParamSchema), async (c) => {
+      const { id } = c.req.valid('param')
+
+      try {
+        // Require write access
+        await acl.fileSpace(id).write.throw(c)
+      } catch (error) {
+        if (error instanceof AccessDeniedError) {
+          return c.json({ error: error.message }, error.statusCode as 401 | 403)
+        }
+        throw error
+      }
+
+      const result = await queries.findFileSpaceById(sql, id)
+
+      if (!result.ok) {
+        return c.json({ error: result.error }, 404)
+      }
+
+      const fileSpace = result.data
+
+      // Trigger workspace sync for this file space's project
+      logger.info(`Manual workspace sync requested for file space ${id}`)
+
+      try {
+        const { triggerWorkspaceSync } = await import('../services/workspace-sync')
+        const syncResult = await triggerWorkspaceSync(sql, {
+          projectId: fileSpace.project_id
+        })
+
+        if (syncResult.success) {
+          return c.json({
+            success: true,
+            pipelineId: syncResult.pipelineId,
+            pipelineUrl: syncResult.pipelineUrl,
+            message: 'Workspace sync pipeline triggered successfully'
+          })
+        } else {
+          return c.json({
+            success: false,
+            error: syncResult.error
+          }, 400)
+        }
+      } catch (error) {
+        logger.error(`Failed to trigger workspace sync for file space ${id}:`, error)
+        return c.json({
+          error: error instanceof Error ? error.message : 'Workspace sync failed'
+        }, 500)
+      }
     })
 }

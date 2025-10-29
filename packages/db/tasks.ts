@@ -15,6 +15,16 @@ export type TaskQueryOptions = {
   task_source_id?: string
   evaluated_only?: boolean
   sort_by?: 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc'
+  page?: number
+  per_page?: number
+}
+
+export type PaginatedTasksResult = {
+  tasks: Task[]
+  total: number
+  page: number
+  per_page: number
+  total_pages: number
 }
 
 export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions): Promise<Task[]> => {
@@ -91,6 +101,101 @@ export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions):
   const query = `SELECT * FROM tasks ${whereClause} ${orderByClause}`
 
   return get(sql.unsafe(query, params) as any)
+}
+
+export const findTasksWithFiltersPaginated = async (sql: Sql, options: TaskQueryOptions): Promise<PaginatedTasksResult> => {
+  const { project_id, task_source_id, evaluated_only, sort_by = 'created_desc', page = 1, per_page = 20 } = options
+
+  // Build WHERE conditions
+  const conditions: string[] = []
+  const params: any[] = []
+
+  if (project_id) {
+    conditions.push(`project_id = $${params.length + 1}`)
+    params.push(project_id)
+  }
+
+  if (task_source_id) {
+    conditions.push(`task_source_id = $${params.length + 1}`)
+    params.push(task_source_id)
+  }
+
+  if (evaluated_only) {
+    conditions.push(`ai_evaluation_simple_result IS NOT NULL`)
+  }
+
+  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+  // Get total count
+  const countQuery = `SELECT COUNT(*) as count FROM tasks ${whereClause}`
+  const countResult = await get(sql.unsafe(countQuery, params) as any)
+  const total = parseInt(countResult[0]?.count || '0', 10)
+
+  // Build ORDER BY clause
+  let orderByClause: string
+  switch (sort_by) {
+    case 'created_asc':
+      orderByClause = 'ORDER BY created_at ASC'
+      break
+    case 'quick_win_desc':
+      // Quick win = high impact / low effort
+      // Using COALESCE to handle null values, putting them last
+      orderByClause = `ORDER BY
+        CASE
+          WHEN ai_evaluation_simple_result IS NULL THEN 1
+          ELSE 0
+        END,
+        (COALESCE((ai_evaluation_simple_result->>'estimated_impact')::text, 'low')) DESC,
+        (COALESCE((ai_evaluation_simple_result->>'estimated_effort')::text, 'high')) ASC`
+      break
+    case 'quick_win_asc':
+      orderByClause = `ORDER BY
+        CASE
+          WHEN ai_evaluation_simple_result IS NULL THEN 1
+          ELSE 0
+        END,
+        (COALESCE((ai_evaluation_simple_result->>'estimated_impact')::text, 'low')) ASC,
+        (COALESCE((ai_evaluation_simple_result->>'estimated_effort')::text, 'high')) DESC`
+      break
+    case 'complexity_asc':
+      orderByClause = `ORDER BY
+        CASE
+          WHEN ai_evaluation_simple_result IS NULL THEN 1
+          ELSE 0
+        END,
+        COALESCE((ai_evaluation_simple_result->>'complexity_score')::numeric, 999) ASC`
+      break
+    case 'complexity_desc':
+      orderByClause = `ORDER BY
+        CASE
+          WHEN ai_evaluation_simple_result IS NULL THEN 1
+          ELSE 0
+        END,
+        COALESCE((ai_evaluation_simple_result->>'complexity_score')::numeric, 0) DESC`
+      break
+    case 'created_desc':
+    default:
+      orderByClause = 'ORDER BY created_at DESC'
+      break
+  }
+
+  // Add pagination
+  const offset = (page - 1) * per_page
+  const limitOffsetClause = `LIMIT $${params.length + 1} OFFSET $${params.length + 2}`
+  params.push(per_page, offset)
+
+  const query = `SELECT * FROM tasks ${whereClause} ${orderByClause} ${limitOffsetClause}`
+  const tasks = await get(sql.unsafe(query, params) as any) as Task[]
+
+  const total_pages = Math.ceil(total / per_page)
+
+  return {
+    tasks,
+    total,
+    page,
+    per_page,
+    total_pages
+  }
 }
 
 export const findTaskById = async (sql: Sql, id: string): Promise<Result<Task>> => {

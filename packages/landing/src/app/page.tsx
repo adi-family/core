@@ -480,6 +480,12 @@ export default function Home() {
                 <Link href="/articles" className="text-white/60 hover:text-white/90 transition-colors">
                   Articles
                 </Link>
+                <Link href="/privacy" className="text-white/60 hover:text-white/90 transition-colors">
+                  Privacy
+                </Link>
+                <Link href="/terms" className="text-white/60 hover:text-white/90 transition-colors">
+                  Terms
+                </Link>
                 <button onClick={() => setIsModalOpen(true)} className="text-white/60 hover:text-white/90 transition-colors">
                   Contact
                 </button>

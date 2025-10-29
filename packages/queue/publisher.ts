@@ -55,6 +55,8 @@ export async function publishTaskImpl(message: TaskImplMessage): Promise<void> {
 
     const buffer = Buffer.from(JSON.stringify(message))
 
+    logger.debug(`📤 Sending to queue "${TASK_IMPL_QUEUE}": ${JSON.stringify(message)}`)
+
     const sent = ch.sendToQueue(TASK_IMPL_QUEUE, buffer, {
       persistent: true,
       contentType: 'application/json'
@@ -62,9 +64,9 @@ export async function publishTaskImpl(message: TaskImplMessage): Promise<void> {
 
     if (!sent) {
       logger.warn(`Queue ${TASK_IMPL_QUEUE} is full, message may be buffered`)
+    } else {
+      logger.debug(`✓ Published task implementation message for task ${message.taskId}`)
     }
-
-    logger.debug(`Published task implementation message for task ${message.taskId}`)
   } catch (error) {
     logger.error('Failed to publish task implementation message:', error)
     throw error

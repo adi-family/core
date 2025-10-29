@@ -40,10 +40,6 @@ export async function evaluateTask(
   }
 
   try {
-    // Mark task as queued
-    await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'queued')
-    logger.info(`Task ${taskId} marked as queued for evaluation`)
-
     // Fetch task to validate it exists
     const taskResult = await taskQueries.findTaskById(sql, taskId)
     if (!taskResult.ok) {
@@ -53,7 +49,6 @@ export async function evaluateTask(
     }
 
     const task = taskResult.data
-    logger.info(`Evaluating task: ${task.title}`)
 
     if (!task.project_id) {
       const errorMsg = 'Task has no associated project'
@@ -75,7 +70,7 @@ export async function evaluateTask(
       return result
     }
 
-    // Check quota and select AI provider for simple evaluation
+    // Check quota and select AI provider for simple evaluation BEFORE marking as queued
     let aiProviderSelection
     try {
       aiProviderSelection = await selectAIProviderForEvaluation(sql, userId, task.project_id, 'simple')
@@ -87,13 +82,19 @@ export async function evaluateTask(
     } catch (error) {
       if (error instanceof QuotaExceededError) {
         const errorMsg = error.message
-        logger.error(errorMsg)
+        logger.warn(errorMsg)
         result.errors.push(errorMsg)
-        await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'failed')
+        // Task stays in pending status - no need to revert since we haven't changed it yet
+        logger.info(`Task ${taskId} skipped due to quota exceeded`)
         return result
       }
       throw error
     }
+
+    // Now mark task as queued AFTER quota check passes
+    await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'queued')
+    logger.info(`Task ${taskId} marked as queued for evaluation`)
+    logger.info(`Evaluating task: ${task.title}`)
 
     // Create evaluation session (we'll use this for tracking even if we don't trigger CI)
     const session = await sessionQueries.createSession(sql, {

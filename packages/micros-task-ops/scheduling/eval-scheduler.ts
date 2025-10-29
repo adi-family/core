@@ -8,15 +8,20 @@ import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger'
 import * as taskQueries from '@db/tasks'
 import { publishTaskEval } from '@queue/publisher'
+import { getProjectOwnerId } from '@db/user-access'
+import { checkQuotaAvailable } from '@db/user-quotas'
+import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'
 
 const logger = createLogger({ namespace: 'eval-scheduler' })
 
 /**
  * Process all pending task evaluations by publishing them to the queue
+ * Skips tasks that would fail due to quota/API key issues
  */
-export async function processTaskEvaluations(sql: Sql): Promise<{ tasksPublished: number; errors: string[] }> {
+export async function processTaskEvaluations(sql: Sql): Promise<{ tasksPublished: number; tasksSkipped: number; errors: string[] }> {
   const result = {
     tasksPublished: 0,
+    tasksSkipped: 0,
     errors: [] as string[]
   }
 
@@ -29,6 +34,33 @@ export async function processTaskEvaluations(sql: Sql): Promise<{ tasksPublished
     // Publish each task to the evaluation queue
     for (const task of pendingTasks) {
       try {
+        // Get project info for quota checking
+        if (!task.project_id) {
+          result.tasksSkipped++
+          continue
+        }
+
+        // Get project owner
+        const userId = await getProjectOwnerId(sql, task.project_id)
+        if (!userId) {
+          result.tasksSkipped++
+          continue
+        }
+
+        // Check quota availability for simple evaluation
+        const quotaCheck = await checkQuotaAvailable(sql, userId, 'simple')
+
+        // If user is at hard limit, check if project has API key (platform key cannot be used)
+        if (quotaCheck.at_hard_limit) {
+          const hasProjectKey = await checkProjectHasAnthropicProvider(sql, task.project_id)
+
+          if (!hasProjectKey) {
+            result.tasksSkipped++
+            continue
+          }
+        }
+
+        // Publish to queue
         await publishTaskEval({ taskId: task.id })
         result.tasksPublished++
         logger.debug(`Published task ${task.id} to eval queue`)
@@ -38,6 +70,8 @@ export async function processTaskEvaluations(sql: Sql): Promise<{ tasksPublished
         result.errors.push(errorMsg)
       }
     }
+
+    logger.info(`✓ Evaluation processing: ${result.tasksPublished} published, ${result.tasksSkipped} skipped, ${result.errors.length} errors`)
 
     return result
   } catch (error) {
@@ -57,7 +91,7 @@ export interface Runner {
  */
 export function createEvalScheduler(
   sql: Sql,
-  intervalMinutes: number = 5
+  intervalMinutes: number = 1
 ): Runner {
   const intervalMs = intervalMinutes * 60 * 1000
   let timer: NodeJS.Timeout | null = null

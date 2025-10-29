@@ -226,6 +226,20 @@ HARD BLOCKERS (AI cannot write code):
 - requires_human_subjective_choice: AI must decide aesthetic/business choices ("pick a nice color")
 - requires_missing_information: Needs information that's not provided and can't be inferred
 
+DESIGN TOOL BLOCKERS (AI cannot access these tools):
+Tasks involving design tools like Figma, Sketch, Adobe XD, Photoshop, etc. are HARD BLOCKERS because:
+  1. AI cannot open, view, or edit design files
+  2. AI cannot see visual designs or component structures
+  3. AI cannot organize/create components within design tools
+Examples of BLOCKED tasks:
+  - "Organize components in Figma" → requires_undefined_integration=true (AI can't edit Figma)
+  - "Create design system in Figma" → requires_undefined_integration=true (AI can't use Figma)
+  - "Componentize Figma designs" → requires_undefined_integration=true (AI can't access Figma)
+  - "Implement from Figma designs" → requires_missing_information=true (AI can't see Figma file)
+  - "Match Figma mockups" → requires_missing_information=true (need exported designs/specs)
+  - Keywords: Figma, Sketch, Adobe XD, Photoshop, Illustrator, Zeplin, InVision, design file
+ONLY EXCEPTION: If task includes exported designs/specs/screenshots AND asks to implement code from them.
+
 UNCERTAINTY (AI can try, but low confidence):
 - integration_has_no_documentation: External API exists but poorly documented
 - requires_proprietary_knowledge: Needs deep internal business logic only team knows
@@ -254,6 +268,10 @@ EXAMPLES:
 - "Make button rounded" → can_implement=true, should_verify_visually=true (PROCEED!)
 - "Make it look nice" → cannot_determine_what_to_implement=true (BLOCKED!)
 - "Fix the bug" (no details) → cannot_determine_what_to_implement=true (BLOCKED!)
+- "Посадить в Фигме все на компоненты" → requires_undefined_integration=true (BLOCKED! AI can't edit Figma)
+- "Organize Figma components" → requires_undefined_integration=true (BLOCKED! AI can't access Figma)
+- "Implement designs from Figma" → requires_missing_information=true (BLOCKED! No access to Figma file)
+- "Implement button from attached screenshot" → can_implement=true (PROCEED! Has visual reference)
 
 Also score:
 - clarity_score: 0-100 (how clear are the requirements?)

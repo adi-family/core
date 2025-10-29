@@ -273,7 +273,9 @@ export const taskQuerySchema = z.object({
   project_id: z.string().optional(),
   task_source_id: z.string().optional(),
   evaluated_only: z.enum(['true', 'false']).optional().transform(val => val === 'true'),
-  sort_by: z.enum(['created_desc', 'created_asc', 'quick_win_desc', 'quick_win_asc', 'complexity_asc', 'complexity_desc']).optional()
+  sort_by: z.enum(['created_desc', 'created_asc', 'quick_win_desc', 'quick_win_asc', 'complexity_asc', 'complexity_desc']).optional(),
+  page: z.string().optional().transform(val => val ? Math.max(1, parseInt(val, 10)) : 1),
+  per_page: z.string().optional().transform(val => val ? Math.min(100, Math.max(1, parseInt(val, 10))) : 20)
 })
 
 // Session schemas

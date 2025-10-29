@@ -4,6 +4,12 @@ WORKDIR /app
 # Copy everything (node_modules and lockfiles excluded by .dockerignore)
 COPY . .
 
+# Debug: Show what we have
+RUN echo "=== Root files ===" && ls -la && \
+    echo "=== Packages directory ===" && ls -la packages/ && \
+    echo "=== Utils package ===" && ls -la packages/utils/ || echo "utils not found" && \
+    echo "=== Workspace in package.json ===" && cat package.json | grep -A5 workspaces
+
 # Install dependencies from scratch (no lockfile)
 RUN bun install
 
