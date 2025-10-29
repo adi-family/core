@@ -3,15 +3,12 @@
 FROM oven/bun:1.2.23-slim AS pruner
 WORKDIR /app
 
-# Install turbo globally
-RUN bun install -g turbo
-
 # Copy entire monorepo
 COPY . .
 
-# Prune the monorepo for the landing package
+# Prune the monorepo for the landing package using bunx
 # Creates out/json/ with package.json files and out/full/ with source code
-RUN turbo prune @adi-simple/landing --docker
+RUN bunx turbo prune @adi-simple/landing --docker
 
 # Stage 2: Installer & Builder
 FROM oven/bun:1.2.23 AS installer

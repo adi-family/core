@@ -3,15 +3,12 @@
 FROM oven/bun:1.2.23-slim AS pruner
 WORKDIR /app
 
-# Install turbo globally
-RUN bun install -g turbo
-
 # Copy entire monorepo
 COPY . .
 
-# Prune the monorepo for the micros-task-ops package
+# Prune the monorepo for the micros-task-ops package using bunx
 # Creates out/json/ with package.json files and out/full/ with source code
-RUN turbo prune @adi/micros-task-ops --docker
+RUN bunx turbo prune @adi/micros-task-ops --docker
 
 # Stage 2: Installer
 FROM oven/bun:1.2.23 AS installer
