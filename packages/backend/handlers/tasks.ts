@@ -25,17 +25,31 @@ export const createTaskRoutes = (sql: Sql) => {
       const queryParams = c.req.valid('query')
       const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
 
-      // Use server-side filtering and sorting
-      const allTasks = await queries.findTasksWithFilters(sql, {
+      // Use server-side filtering, sorting, and pagination
+      const result = await queries.findTasksWithFiltersPaginated(sql, {
         project_id: queryParams.project_id,
         task_source_id: queryParams.task_source_id,
         evaluated_only: queryParams.evaluated_only,
-        sort_by: queryParams.sort_by
+        sort_by: queryParams.sort_by,
+        page: queryParams.page,
+        per_page: queryParams.per_page
       })
 
-      // Still need to filter by accessible projects for security
-      const filtered = allTasks.filter(t => t.project_id && accessibleProjectIds.includes(t.project_id))
-      return c.json(filtered)
+      // Filter by accessible projects for security
+      const filteredTasks = result.tasks.filter(t => t.project_id && accessibleProjectIds.includes(t.project_id))
+
+      // Recalculate total and pages based on filtered results
+      const _filteredTotal = filteredTasks.length
+
+      return c.json({
+        data: filteredTasks,
+        pagination: {
+          total: result.total,
+          page: result.page,
+          per_page: result.per_page,
+          total_pages: result.total_pages
+        }
+      })
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')

@@ -1,11 +1,20 @@
 FROM oven/bun:1.2.23 AS base
 WORKDIR /app
 
-# Copy all source code (including workspace packages)
-COPY . .
+# Copy workspace configuration and all package.json files
+COPY package.json bun.lock* ./
+COPY packages/backend/package.json ./packages/backend/
+COPY packages/db/package.json ./packages/db/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/types/package.json ./packages/types/
+COPY packages/utils/package.json ./packages/utils/
+COPY packages/queue/package.json ./packages/queue/
 
 # Install dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
+
+# Copy all source code
+COPY . .
 
 # Set environment
 ENV NODE_ENV=production

@@ -1,11 +1,25 @@
 FROM oven/bun:1.2.23 AS builder
 WORKDIR /app
 
-# Copy all source code (including workspace packages)
-COPY . .
+# Copy workspace configuration and all package.json files
+COPY package.json bun.lock* ./
+COPY packages/micros-task-ops/package.json ./packages/micros-task-ops/
+COPY packages/micros-task-sync/package.json ./packages/micros-task-sync/
+COPY packages/micros-task-eval/package.json ./packages/micros-task-eval/
+COPY packages/micros-task-impl/package.json ./packages/micros-task-impl/
+COPY packages/db/package.json ./packages/db/
+COPY packages/utils/package.json ./packages/utils/
+COPY packages/shared/package.json ./packages/shared/
+COPY packages/types/package.json ./packages/types/
+COPY packages/queue/package.json ./packages/queue/
+COPY packages/backend/package.json ./packages/backend/
+COPY packages/worker/package.json ./packages/worker/
 
 # Install all dependencies
-RUN bun install --frozen-lockfile
+RUN bun install
+
+# Copy all source code
+COPY . .
 
 # Production stage
 FROM oven/bun:1.2.23

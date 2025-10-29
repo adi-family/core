@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import {
   Card,
@@ -25,15 +25,27 @@ export function TasksPage() {
   const [taskSources, setTaskSources] = useState<TaskSource[]>([])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [selectedTaskSourceId, setSelectedTaskSourceId] = useState<string>("")
   const [sortBy, setSortBy] = useState<SortOption>('quick_win_desc')
   const [filterEvaluated, setFilterEvaluated] = useState<boolean>(false)
+  const [page, setPage] = useState(1)
+  const [hasMore, setHasMore] = useState(true)
+  const [totalCount, setTotalCount] = useState(0)
+  const observerTarget = useRef<HTMLDivElement>(null)
 
-  const fetchData = async () => {
-    setLoading(true)
+  const fetchData = useCallback(async (pageNum: number = 1, append: boolean = false) => {
+    if (append) {
+      setLoadingMore(true)
+    } else {
+      setLoading(true)
+    }
 
     // Build query parameters for server-side filtering and sorting
-    const queryParams: Record<string, string> = {}
+    const queryParams: Record<string, string> = {
+      page: String(pageNum),
+      per_page: '20'
+    }
     if (selectedProjectId) {
       queryParams.project_id = selectedProjectId
     }
@@ -47,54 +59,116 @@ export function TasksPage() {
       queryParams.sort_by = sortBy
     }
 
-    const [tasksRes, taskSourcesRes, projectsRes] = await Promise.all([
-      client.tasks.$get({ query: queryParams }),
-      client["task-sources"].$get({
-        query: {}
-      }),
-      client.projects.$get()
-    ])
+    const fetchPromises = [
+      client.tasks.$get({ query: queryParams })
+    ]
+
+    // Only fetch task sources and projects on initial load
+    if (!append) {
+      fetchPromises.push(
+        client["task-sources"].$get({ query: {} }),
+        client.projects.$get()
+      )
+    }
+
+    const responses = await Promise.all(fetchPromises)
+    const [tasksRes, taskSourcesRes, projectsRes] = responses
 
     if (!tasksRes.ok) {
       console.error("Error fetching tasks:", await tasksRes.text())
       setLoading(false)
+      setLoadingMore(false)
       return
     }
 
-    if (!taskSourcesRes.ok) {
+    if (!append && taskSourcesRes && !taskSourcesRes.ok) {
       console.error("Error fetching task sources:", await taskSourcesRes.text())
       setLoading(false)
       return
     }
 
-    if (!projectsRes.ok) {
+    if (!append && projectsRes && !projectsRes.ok) {
       console.error("Error fetching projects:", await projectsRes.text())
       setLoading(false)
       return
     }
 
     const tasksData = await tasksRes.json()
-    const taskSourcesData = await taskSourcesRes.json()
-    const projectsData = await projectsRes.json()
+    const taskSourcesData = !append && taskSourcesRes ? await taskSourcesRes.json() : null
+    const projectsData = !append && projectsRes ? await projectsRes.json() : null
 
-    if (!Array.isArray(tasksData)) {
-      console.error("Invalid API response: expected array of tasks")
+    // Handle both old array format and new paginated format for backwards compatibility
+    const newTasks = Array.isArray(tasksData) ? tasksData : tasksData.data
+    const pagination = Array.isArray(tasksData) ? null : tasksData.pagination
+
+    if (!Array.isArray(newTasks)) {
+      console.error("Invalid API response: expected array of tasks or paginated response")
       setLoading(false)
+      setLoadingMore(false)
       return
     }
 
-    setTasks(tasksData)
-    setTaskSources(taskSourcesData)
-    setProjects(projectsData)
-    setLoading(false)
-  }
+    if (append) {
+      setTasks(prev => [...prev, ...newTasks])
+    } else {
+      setTasks(newTasks)
+      if (taskSourcesData) setTaskSources(taskSourcesData)
+      if (projectsData) setProjects(projectsData)
+    }
 
+    // Update pagination state
+    if (pagination) {
+      setTotalCount(pagination.total)
+      setHasMore(pagination.page < pagination.total_pages)
+    } else {
+      // Fallback if no pagination data
+      setHasMore(newTasks.length === 20)
+    }
+
+    setLoading(false)
+    setLoadingMore(false)
+  }, [selectedProjectId, selectedTaskSourceId, filterEvaluated, sortBy])
+
+  const loadMore = useCallback(() => {
+    if (!loadingMore && hasMore && !loading) {
+      const nextPage = page + 1
+      setPage(nextPage)
+      fetchData(nextPage, true)
+    }
+  }, [loadingMore, hasMore, loading, page, fetchData])
+
+  // Intersection Observer for infinite scroll
   useEffect(() => {
-    fetchData().catch((error) => {
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries[0].isIntersecting) {
+          loadMore()
+        }
+      },
+      { threshold: 0.1 }
+    )
+
+    const currentTarget = observerTarget.current
+    if (currentTarget) {
+      observer.observe(currentTarget)
+    }
+
+    return () => {
+      if (currentTarget) {
+        observer.unobserve(currentTarget)
+      }
+    }
+  }, [loadMore])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setPage(1)
+    setHasMore(true)
+    fetchData(1, false).catch((error) => {
       console.error("Error fetching data:", error)
       setLoading(false)
     })
-  }, [selectedProjectId, selectedTaskSourceId, filterEvaluated, sortBy])
+  }, [selectedProjectId, selectedTaskSourceId, filterEvaluated, sortBy, fetchData])
 
   const handleStartImplementation = async (task: Task) => {
     try {
@@ -110,7 +184,7 @@ export function TasksPage() {
 
       toast.success('Implementation started successfully')
       // Refresh the task list to show updated status
-      await fetchData()
+      await fetchData(1, false)
     } catch (error) {
       console.error("Error starting implementation:", error)
       toast.error('Failed to start implementation')
@@ -131,7 +205,7 @@ export function TasksPage() {
 
       toast.success('Evaluation started successfully')
       // Refresh the task list to show updated status
-      await fetchData()
+      await fetchData(1, false)
     } catch (error) {
       console.error("Error starting evaluation:", error)
       toast.error('Failed to start evaluation')
@@ -164,7 +238,14 @@ export function TasksPage() {
             {!loading && (
               <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
                 <div className="text-xs text-gray-200 mb-0.5">Total Tasks</div>
-                <div className="text-2xl font-bold text-white">{filteredTasks.length}</div>
+                <div className="text-2xl font-bold text-white">
+                  {totalCount > 0 ? totalCount : filteredTasks.length}
+                </div>
+                {filteredTasks.length < totalCount && (
+                  <div className="text-xs text-gray-300 mt-1">
+                    Showing {filteredTasks.length}
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -230,23 +311,41 @@ export function TasksPage() {
               <div className="text-gray-500">No tasks found</div>
             </div>
           ) : (
-            <div className="space-y-3">
-              {filteredTasks.map((task) => {
-                const taskSource = taskSources.find((ts) => ts.id === task.task_source_id)
-                const project = projects.find((p) => p.id === task.project_id)
-                return (
-                  <TaskRow
-                    key={task.id}
-                    task={task}
-                    taskSource={taskSource}
-                    project={project}
-                    onViewDetails={() => navigateTo(`/tasks/${task.id}`)}
-                    onStartImplementation={handleStartImplementation}
-                    onEvaluate={handleEvaluate}
-                  />
-                )
-              })}
-            </div>
+            <>
+              <div className="space-y-3">
+                {filteredTasks.map((task) => {
+                  const taskSource = taskSources.find((ts) => ts.id === task.task_source_id)
+                  const project = projects.find((p) => p.id === task.project_id)
+                  return (
+                    <TaskRow
+                      key={task.id}
+                      task={task}
+                      taskSource={taskSource}
+                      project={project}
+                      onViewDetails={() => navigateTo(`/tasks/${task.id}`)}
+                      onStartImplementation={handleStartImplementation}
+                      onEvaluate={handleEvaluate}
+                    />
+                  )
+                })}
+              </div>
+
+              {/* Infinite scroll loading indicator and observer target */}
+              {loadingMore && (
+                <div className="flex justify-center items-center py-8">
+                  <div className="text-gray-400">Loading more tasks...</div>
+                </div>
+              )}
+
+              {/* Observer target for infinite scroll */}
+              <div ref={observerTarget} className="h-4" />
+
+              {!hasMore && filteredTasks.length > 0 && (
+                <div className="flex justify-center items-center py-8">
+                  <div className="text-gray-500 text-sm">No more tasks to load</div>
+                </div>
+              )}
+            </>
           )}
         </CardContent>
       </Card>
