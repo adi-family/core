@@ -49,7 +49,7 @@ import {
 const app = new Hono()
   // CORS middleware - must be before authentication to handle preflight requests
   .use('*', cors({
-    origin: process.env.SERVICE_FQDN_CLIENT || 'http://localhost:4173',
+    origin: process.env.SERVICE_FQDN_CLIENT ? `https://${process.env.SERVICE_FQDN_CLIENT}` : 'http://localhost:4173',
     credentials: true,
   }))
   // Skip Clerk auth for OPTIONS requests (preflight)
