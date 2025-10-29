@@ -7,6 +7,7 @@ import { CIRepositoryManager } from '../../worker/ci-repository-manager'
 import { createLogger } from '../../utils/logger'
 import { idParamSchema, projectIdParamSchema, createWorkerRepositorySchema, updateWorkerRepositorySchema, setupWorkerRepositorySchema, updateVersionSchema } from '../schemas'
 import { authMiddleware } from '../middleware/auth'
+import { generateRepositoryHash } from '@adi-simple/shared/crypto-utils'
 
 const logger = createLogger({ namespace: 'worker-repositories-handler' })
 
@@ -106,7 +107,8 @@ export const createWorkerRepositoryRoutes = (sql: Sql) => {
       // Create worker repository in GitLab
       const manager = new CIRepositoryManager()
       const version = body.version || '2025-10-18-01'
-      const customPath = body.customPath || `adi-worker-${project.name.toLowerCase()}`
+      const repoHash = generateRepositoryHash()
+      const customPath = body.customPath || `adi-worker-${project.name.toLowerCase()}-${repoHash}`
 
       const source = await manager.createWorkerRepository({
         projectName: project.name,

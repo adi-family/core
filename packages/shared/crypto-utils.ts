@@ -88,3 +88,27 @@ export function decrypt(encryptedData: string): string {
 
   return decrypted;
 }
+
+/**
+ * Generate a unique hash combining timestamp and random characters
+ * Format: YYYYMMDDHHMMSS-XXXXXX (e.g., 20251029143025-a3f9b2)
+ * Used for creating unique repository names in GitLab
+ */
+export function generateRepositoryHash(): string {
+  const now = new Date();
+
+  // Generate timestamp: YYYYMMDDHHMMSS
+  const timestamp = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+    String(now.getHours()).padStart(2, '0'),
+    String(now.getMinutes()).padStart(2, '0'),
+    String(now.getSeconds()).padStart(2, '0'),
+  ].join('');
+
+  // Generate random 6-character hex string
+  const randomHash = crypto.randomBytes(3).toString('hex');
+
+  return `${timestamp}-${randomHash}`;
+}

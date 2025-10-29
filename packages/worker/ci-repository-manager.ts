@@ -92,7 +92,7 @@ export class CIRepositoryManager {
 
     // Create GitLab project if it doesn't exist
     const project = await client.createProject({
-      name: `adi-worker-${config.projectName}`,
+      name: projectPath,
       path: projectPath,
       namespace_id: namespaceId,
       visibility: 'private',

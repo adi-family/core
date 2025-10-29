@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { cors } from 'hono/cors'
 import { zValidator } from '@hono/zod-validator'
 import { sql } from '@db/client'
 import { createProjectRoutes } from './handlers/projects'
@@ -46,6 +47,11 @@ import {
 } from './schemas'
 
 const app = new Hono()
+  // CORS middleware - must be before authentication to handle preflight requests
+  .use('*', cors({
+    origin: process.env.SERVICE_FQDN_CLIENT || 'http://localhost:4173',
+    credentials: true,
+  }))
   // Global Clerk authentication middleware
   .use('*', clerkAuth)
   // Set userId in context if authenticated (optional for most routes)
