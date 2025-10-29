@@ -36,7 +36,7 @@ export default defineConfig(({ mode }) => {
     },
     server: {
       port: Number(env.CLIENT_PORT),
-      allowedHosts: ['adi-client.the-ihor.com'],
+      allowedHosts: ['adi-app.the-ihor.com'],
       proxy: {
         '/api': {
           target: env.BACKEND_URL,
@@ -46,7 +46,7 @@ export default defineConfig(({ mode }) => {
       },
     },
     preview: {
-      allowedHosts: ['adi-client.the-ihor.com'],
+      allowedHosts: ['adi-app.the-ihor.com'],
       proxy: {
         '/api': {
           target: env.BACKEND_URL,
