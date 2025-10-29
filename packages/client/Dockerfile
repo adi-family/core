@@ -11,7 +11,7 @@ COPY . .
 
 # Prune the monorepo for the client package
 # Creates out/json/ with package.json files and out/full/ with source code
-RUN turbo prune client --docker
+RUN turbo prune @adi-simple/client --docker
 
 # Stage 2: Installer & Builder
 FROM oven/bun:1.2.23 AS installer
