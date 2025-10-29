@@ -25,9 +25,7 @@ RUN bun install --frozen-lockfile
 COPY --from=pruner /app/out/full/ .
 
 # Build the client
-ENV CLIENT_PORT=4173
-ENV BACKEND_URL=http://backend:3000
-ENV VITE_API_URL=/api
+# All env vars (CLIENT_PORT, BACKEND_URL, VITE_API_URL) come from Coolify
 WORKDIR /app/packages/client
 RUN bunx vite build
 
@@ -43,7 +41,6 @@ RUN bun add sirv-cli
 
 # Set environment
 ENV NODE_ENV=production
-ENV CLIENT_PORT=4173
 
-# Serve static files with sirv
-CMD ["bunx", "sirv", "dist", "--host", "0.0.0.0", "--port", "4173", "--single"]
+# Serve static files with sirv (CLIENT_PORT from Coolify)
+CMD ["sh", "-c", "bunx sirv dist --host 0.0.0.0 --port ${CLIENT_PORT:-4173} --single"]

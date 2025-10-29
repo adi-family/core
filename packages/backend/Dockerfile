@@ -33,14 +33,13 @@ WORKDIR /app
 
 # Set environment
 ENV NODE_ENV=production
-ENV SERVER_PORT=5174
 
 # Copy installed node_modules and source from installer
 COPY --from=installer /app .
 
-# Health check
+# Health check (uses SERVER_PORT from Coolify)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD curl -f http://localhost:5174/webhooks/gitlab || exit 1
+  CMD curl -f http://localhost:${SERVER_PORT:-5174}/webhooks/gitlab || exit 1
 
 # Run the application
 CMD ["bun", "run", "packages/backend/index.ts"]

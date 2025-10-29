@@ -33,7 +33,6 @@ FROM oven/bun:1.2.23-slim AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV LANDING_PORT=3000
 
 # Create non-root user
 RUN addgroup --system --gid 1001 nodejs && \
@@ -46,9 +45,7 @@ COPY --from=installer --chown=nextjs:nodejs /app/packages/landing/public ./packa
 
 USER nextjs
 
-EXPOSE 3000
-
-ENV PORT=3000
+# PORT and LANDING_PORT come from Coolify
 ENV HOSTNAME="0.0.0.0"
 
 # Start Next.js server using the standalone output
