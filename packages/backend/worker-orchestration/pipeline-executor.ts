@@ -157,6 +157,110 @@ async function ensureWorkerRepository(
 }
 
 /**
+ * Check if workspace needs sync before pipeline execution
+ * Returns error if file spaces were created after last sync
+ */
+async function checkWorkspaceSyncStatus(
+  projectId: string,
+  apiClient: BackendClient
+): Promise<{ needsSync: boolean; reason?: string }> {
+  try {
+    // Fetch project to get last_synced_at
+    const projectRes = await apiClient.projects[':id'].$get({ param: { id: projectId } })
+    if (!projectRes.ok) {
+      return { needsSync: false } // Let other validation handle missing project
+    }
+    const project = await projectRes.json()
+
+    // If never synced, workspace needs sync
+    if (!project.last_synced_at) {
+      return {
+        needsSync: true,
+        reason: 'Workspace has never been synced. Please add file spaces and wait for sync to complete.'
+      }
+    }
+
+    // Fetch all file spaces for project
+    const fileSpacesRes = await apiClient['file-spaces'].$get({
+      query: { project_id: projectId }
+    })
+    if (!fileSpacesRes.ok) {
+      return { needsSync: false } // No file spaces configured
+    }
+
+    const fileSpacesData = await fileSpacesRes.json()
+    const fileSpaces = Array.isArray(fileSpacesData) ? fileSpacesData : (fileSpacesData as any).data || []
+
+    // Check if any file space was created after last sync
+    const lastSyncTime = new Date(project.last_synced_at).getTime()
+    const newFileSpaces = fileSpaces.filter((fs: any) => {
+      const createdTime = new Date(fs.created_at).getTime()
+      return createdTime > lastSyncTime
+    })
+
+    if (newFileSpaces.length > 0) {
+      const fsNames = newFileSpaces.map((fs: any) => fs.name).join(', ')
+      return {
+        needsSync: true,
+        reason: `Workspace is outdated. ${newFileSpaces.length} file space(s) created after last sync: ${fsNames}. Please wait for workspace sync to complete.`
+      }
+    }
+
+    return { needsSync: false }
+  } catch (error) {
+    logger.warn(`⚠️  Failed to check workspace sync status: ${error}`)
+    return { needsSync: false } // Don't block pipeline on check failure
+  }
+}
+
+/**
+ * Wait for workspace sync to complete by polling the project's last_synced_at field
+ * @param projectId Project ID to check
+ * @param apiClient API client for backend calls
+ * @param timeoutMs Maximum time to wait in milliseconds (default: 10 minutes)
+ * @param pollIntervalMs How often to check for sync completion (default: 5 seconds)
+ */
+async function waitForWorkspaceSync(
+  projectId: string,
+  apiClient: BackendClient,
+  timeoutMs: number = 10 * 60 * 1000, // 10 minutes
+  pollIntervalMs: number = 5000 // 5 seconds
+): Promise<void> {
+  const startTime = Date.now()
+  let iteration = 0
+
+  logger.info(`⏳ Waiting for workspace sync to complete (timeout: ${timeoutMs / 1000}s)...`)
+
+  while (Date.now() - startTime < timeoutMs) {
+    iteration++
+
+    // Check sync status
+    const syncCheck = await checkWorkspaceSyncStatus(projectId, apiClient)
+
+    if (!syncCheck.needsSync) {
+      const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1)
+      logger.info(`✅ Workspace sync completed after ${elapsedSeconds}s`)
+      return
+    }
+
+    // Log progress every 10 iterations (50 seconds)
+    if (iteration % 10 === 0) {
+      const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(0)
+      logger.info(`⏳ Still waiting for workspace sync... (${elapsedSeconds}s elapsed)`)
+    }
+
+    // Wait before next check
+    await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
+  }
+
+  // Timeout reached
+  throw new Error(
+    `Workspace sync did not complete within ${timeoutMs / 1000} seconds. ` +
+    `Please check the workspace sync status and try again.`
+  )
+}
+
+/**
  * Validate and fetch all required context for pipeline execution
  */
 async function validateAndFetchPipelineContext(apiClient: BackendClient, sessionId: string, sql: Sql): Promise<PipelineContext> {
@@ -536,44 +640,102 @@ async function preparePipelineConfig(
   // Prepare repository access variables for codebase cloning
   const repoVars: Record<string, string> = {}
   try {
+    logger.info(`🔍 Loading file spaces for task ${context.task.id}...`)
+
     // Get file spaces associated with this task via junction table
     const fileSpacesRes = await apiClient.tasks[':id']['file-spaces'].$get({
       param: { id: context.task.id }
     })
 
-    if (fileSpacesRes.ok) {
+    if (!fileSpacesRes.ok) {
+      logger.warn(`⚠️  Failed to fetch file spaces: HTTP ${fileSpacesRes.status}`)
+    } else {
       const fileSpaces = await fileSpacesRes.json()
+      logger.info(`📦 API returned ${fileSpaces.length} file space(s) for task`)
 
-      // Use the first file space if multiple are configured
+      if (fileSpaces.length === 0) {
+        logger.error(`❌ Task has no file spaces configured`)
+        logger.error(`   ${context.session.runner} pipelines require at least one file space with code to analyze`)
+        logger.error(`   Please configure file spaces for this task before running evaluation or implementation`)
+        throw new Error(
+          `Cannot run ${context.session.runner} pipeline: Task has no file spaces configured. ` +
+          `Please add at least one file space with a repository URL to this task.`
+        )
+      }
+
       if (fileSpaces.length > 0) {
-        const fileSpace = fileSpaces[0]
-        if (!fileSpace) {
-          logger.warn('⚠️  File space is undefined')
-        } else {
-          const config = fileSpace.config as any
+        logger.info(`📦 Processing ${fileSpaces.length} file space(s)...`)
 
-          if (config.repo) {
-          repoVars.REPO_URL = config.repo
-          logger.info(`✓ Repository URL configured: ${config.repo}`)
+        // Prepare array of file space configurations for cloning
+        const fileSpaceConfigs = []
+
+        for (const fileSpace of fileSpaces) {
+          if (!fileSpace) {
+            logger.warn('⚠️  File space is undefined, skipping')
+            continue
+          }
+
+          const config = fileSpace.config as any
+          if (!config.repo) {
+            logger.warn(`⚠️  File space ${fileSpace.name} has no repo URL, skipping`)
+            continue
+          }
+
+          const spaceConfig: any = {
+            name: fileSpace.name,
+            id: fileSpace.id,
+            repo: config.repo,
+            host: config.host
+          }
 
           // Fetch access token from secret if configured
           if (config.access_token_secret_id) {
-            const secretRes = await apiClient.secrets[':id'].value.$get({
-              param: { id: config.access_token_secret_id }
-            })
+            try {
+              const secretRes = await apiClient.secrets[':id'].value.$get({
+                param: { id: config.access_token_secret_id }
+              })
 
-            if (secretRes.ok) {
-              const secret = await secretRes.json() as any
-              repoVars.REPO_TOKEN = secret.value
-              logger.info(`✓ Repository access token loaded`)
+              if (secretRes.ok) {
+                const secret = await secretRes.json() as any
+                spaceConfig.token = secret.value
+                logger.info(`✓ Access token loaded for ${fileSpace.name}`)
+              }
+            } catch (error) {
+              logger.warn(`⚠️  Failed to load token for ${fileSpace.name}: ${error}`)
             }
           }
+
+          fileSpaceConfigs.push(spaceConfig)
+          logger.info(`✓ Configured file space: ${fileSpace.name} (${config.repo})`)
         }
+
+        // Pass all file spaces as JSON
+        if (fileSpaceConfigs.length > 0) {
+          repoVars.FILE_SPACES = JSON.stringify(fileSpaceConfigs)
+          logger.info(`✓ ${fileSpaceConfigs.length} file space(s) will be cloned`)
+          logger.info(`   FILE_SPACES variable will be passed to pipeline`)
+        } else {
+          logger.error(`❌ No valid file spaces after filtering`)
+          logger.error(`   All file spaces are missing repository URLs`)
+          logger.error(`   Each file space must have a 'repo' field in its config with a valid git repository URL`)
+          throw new Error(
+            `Cannot run ${context.session.runner} pipeline: All file spaces are missing repository URLs. ` +
+            `Please ensure each file space has a 'repo' field configured with a valid git repository URL.`
+          )
         }
       }
     }
   } catch (error) {
-    logger.warn(`⚠️  Failed to load file space configuration: ${error}`)
+    // If it's one of our validation errors, re-throw it
+    if (error instanceof Error && error.message.includes('Cannot run')) {
+      throw error
+    }
+
+    // Otherwise log and continue (file spaces are optional for some pipelines)
+    logger.error(`❌ Failed to load file space configuration: ${error}`)
+    if (error instanceof Error) {
+      logger.error(`   Error stack: ${error.stack}`)
+    }
   }
 
   // Add proxy configuration from environment variables (optional)
@@ -610,6 +772,12 @@ async function preparePipelineConfig(
   logger.info(`  RUNNER_TYPE = ${variables.RUNNER_TYPE}`)
   logger.info(`  SESSION_ID = ${variables.SESSION_ID}`)
   logger.info(`  PIPELINE_EXECUTION_ID = ${variables.PIPELINE_EXECUTION_ID}`)
+  if (variables.FILE_SPACES) {
+    const fileSpaceCount = JSON.parse(variables.FILE_SPACES).length
+    logger.info(`  FILE_SPACES = [${fileSpaceCount} workspace(s)]`)
+  } else {
+    logger.info(`  FILE_SPACES = not set`)
+  }
   if (variables.MOCK_MODE) {
     logger.info(`  🎭 MOCK_MODE = ${variables.MOCK_MODE}`)
   }
@@ -703,6 +871,15 @@ export async function triggerPipeline(
     logger.info(`  Task ID: ${context.session.task_id}`)
     logger.info(`  Task title: ${context.task.id}`)
     logger.info(`  Will set RUNNER_TYPE to: ${context.session.runner}`)
+
+    // Check if workspace needs sync before running evaluation/implementation
+    const syncCheck = await checkWorkspaceSyncStatus(context.project.id, input.apiClient)
+    if (syncCheck.needsSync) {
+      logger.info(`⚠️  Workspace sync required: ${syncCheck.reason}`)
+      // Wait for sync to complete instead of failing
+      await waitForWorkspaceSync(context.project.id, input.apiClient)
+    }
+    logger.info(`✓ Workspace is up-to-date, proceeding with pipeline execution`)
 
     // Create pipeline execution record
     const createRes = await input.apiClient['pipeline-executions'].$post({

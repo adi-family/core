@@ -2,15 +2,15 @@
 CREATE TABLE user_quotas (
   user_id TEXT PRIMARY KEY,
 
-  -- Simple evaluation quota (soft limit: 2, hard limit: 3)
+  -- Simple evaluation quota (soft limit: 18, hard limit: 20)
   simple_evaluations_used INTEGER NOT NULL DEFAULT 0,
-  simple_evaluations_soft_limit INTEGER NOT NULL DEFAULT 2,
-  simple_evaluations_hard_limit INTEGER NOT NULL DEFAULT 3,
+  simple_evaluations_soft_limit INTEGER NOT NULL DEFAULT 18,
+  simple_evaluations_hard_limit INTEGER NOT NULL DEFAULT 20,
 
-  -- Advanced evaluation quota (soft limit: 0, hard limit: 1)
+  -- Advanced evaluation quota (soft limit: 18, hard limit: 20)
   advanced_evaluations_used INTEGER NOT NULL DEFAULT 0,
-  advanced_evaluations_soft_limit INTEGER NOT NULL DEFAULT 0,
-  advanced_evaluations_hard_limit INTEGER NOT NULL DEFAULT 1,
+  advanced_evaluations_soft_limit INTEGER NOT NULL DEFAULT 18,
+  advanced_evaluations_hard_limit INTEGER NOT NULL DEFAULT 20,
 
   -- Metadata
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),

@@ -197,14 +197,40 @@ async function main() {
 
       // Inject authentication token into HTTPS URLs for private repos
       // For GitLab, use oauth2 token format: https://oauth2:TOKEN@gitlab.com/repo.git
-      if (repoUrl.startsWith('https://') && process.env.GITLAB_TOKEN) {
+      if (repoUrl.startsWith('https://')) {
         const url = new URL(repoUrl)
         // Only inject if no auth is already present
         if (!url.username && !url.password) {
-          url.username = 'oauth2'
-          url.password = process.env.GITLAB_TOKEN
-          repoUrl = url.toString()
-          logger.info(`   ✓ Added authentication to URL`)
+          let token: string | undefined
+
+          // Prefer per-workspace token from secrets
+          if (config.access_token_secret_id) {
+            try {
+              token = await apiClient.getSecretValue(config.access_token_secret_id)
+              logger.info(`   ✓ Using per-workspace token from secret`)
+            } catch (error) {
+              logger.warn(
+                `   ⚠️  Failed to fetch workspace token: ${error instanceof Error ? error.message : String(error)}`
+              )
+              logger.warn(`   ⚠️  Falling back to GITLAB_TOKEN environment variable`)
+              token = process.env.GITLAB_TOKEN
+            }
+          } else {
+            // Fall back to global GITLAB_TOKEN
+            token = process.env.GITLAB_TOKEN
+            if (token) {
+              logger.info(`   ✓ Using global GITLAB_TOKEN`)
+            }
+          }
+
+          if (token) {
+            url.username = 'oauth2'
+            url.password = token
+            repoUrl = url.toString()
+            logger.info(`   ✓ Added authentication to URL`)
+          } else {
+            logger.warn(`   ⚠️  No authentication token available for ${fileSpace.name}`)
+          }
         }
       }
 

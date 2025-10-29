@@ -206,6 +206,27 @@ export const getProjectAIProviderConfig = async (
 }
 
 /**
+ * Update project's last synced timestamp
+ */
+export const updateProjectLastSyncedAt = async (
+  sql: Sql,
+  projectId: string
+): Promise<Result<Project>> => {
+  const projects = await get(sql<Project[]>`
+    UPDATE projects
+    SET
+      last_synced_at = NOW(),
+      updated_at = NOW()
+    WHERE id = ${projectId}
+    RETURNING *
+  `)
+  const [project] = projects
+  return project
+    ? { ok: true, data: project }
+    : { ok: false, error: 'Project not found' }
+}
+
+/**
  * Get project statistics in a single SQL query
  */
 export interface ProjectStats {

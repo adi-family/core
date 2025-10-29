@@ -8,6 +8,7 @@ import { createLogger } from '@utils/logger'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { extractGitLabCredentials, type GitLabSource } from '../worker-orchestration/gitlab-utils'
 import type { WorkerRepository } from '@types'
+import { updateProjectLastSyncedAt } from '../../db/projects'
 
 const logger = createLogger({ namespace: 'workspace-sync' })
 
@@ -91,7 +92,7 @@ export async function triggerWorkspaceSync(
       API_BASE_URL: apiBaseUrl,
       API_TOKEN: apiToken,
       WORKER_REPO_TOKEN: accessToken,
-      SYNC_TYPE: 'workspace', // Indicate this is a workspace sync
+      SYNC_ONLY: 'true', // Trigger workspace sync job
     }
 
     // Add GITLAB_TOKEN if available (for cloning private workspace repos)
@@ -110,6 +111,14 @@ export async function triggerWorkspaceSync(
     )
 
     logger.info(`✅ Workspace sync pipeline #${pipeline.id} triggered: ${pipeline.web_url}`)
+
+    // Update project's last synced timestamp
+    const updateResult = await updateProjectLastSyncedAt(sql, projectId)
+    if (!updateResult.ok) {
+      logger.warn(`⚠️  Failed to update last_synced_at for project ${projectId}: ${updateResult.error}`)
+    } else {
+      logger.info(`✓ Updated last_synced_at for project ${projectId}`)
+    }
 
     return {
       success: true,

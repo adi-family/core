@@ -217,12 +217,25 @@ export function ProjectPage() {
                 </p>
               </div>
 
-              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30 md:col-span-2">
+              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
                 <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
                   Last Updated
                 </label>
                 <p className="text-base text-gray-200">
                   {new Date(project.updated_at).toLocaleString()}
+                </p>
+              </div>
+
+              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+                <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
+                  Last Synced At
+                </label>
+                <p className="text-base text-gray-200">
+                  {project.last_synced_at ? (
+                    <span>{new Date(project.last_synced_at).toLocaleString()}</span>
+                  ) : (
+                    <span className="text-gray-400 italic">Never synced</span>
+                  )}
                 </p>
               </div>
             </div>

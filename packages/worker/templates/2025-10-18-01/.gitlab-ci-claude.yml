@@ -8,7 +8,7 @@ stages:
 
 variables:
   WORKER_IMAGE: "oven/bun:latest"
-  GIT_SUBMODULE_STRATEGY: recursive
+  GIT_SUBMODULE_STRATEGY: none
 
 workflow:
   rules:
@@ -61,11 +61,6 @@ prepare:
     - claude
   script:
     - echo "Installing dependencies for Claude implementation pipeline"
-    - echo "Installing git..."
-    - apt-get update && apt-get install -y git
-    - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
-    - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
-
     - cd 2025-10-18-01/worker-scripts
     - bun install
 
@@ -82,14 +77,10 @@ prepare:
       fi
     - |
       if [ -z "$API_TOKEN" ]; then
-        echo "❌ Error: API_TOKEN is not set - workspace sync will fail"
+        echo "❌ Error: API_TOKEN is not set"
       else
         echo "✓ API_TOKEN is set (length: ${#API_TOKEN})"
       fi
-
-    # Sync all workspace repositories
-    - echo "Syncing workspace repositories"
-    - bun run sync-workspaces.ts
   cache:
     paths:
       - 2025-10-18-01/worker-scripts/node_modules/
@@ -110,25 +101,21 @@ execute:
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
 
-    # Clean up orphaned .git/modules entries before initializing submodules
-    - echo "🧹 Cleaning up orphaned .git/modules entries..."
+    # Clone target repositories if FILE_SPACES is provided
     - |
-      if [ -d ".git/modules/2025-10-18-01/workspaces" ]; then
-        REGISTERED=$(git config --file .gitmodules --get-regexp path | grep "2025-10-18-01/workspaces" | awk '{print $2}' | xargs -I {} basename {} || true)
-        for entry in $(ls -1 .git/modules/2025-10-18-01/workspaces 2>/dev/null || true); do
-          IS_REGISTERED=$(echo "$REGISTERED" | grep -x "$entry" || true)
-          if [ -z "$IS_REGISTERED" ]; then
-            echo "   Removing orphaned: $entry"
-            rm -rf ".git/modules/2025-10-18-01/workspaces/$entry"
-          fi
-        done
+      if [ -n "$FILE_SPACES" ]; then
+        echo "📦 Cloning workspace repositories..."
+        cd 2025-10-18-01/worker-scripts
+        chmod +x clone-workspace.sh
+        ./clone-workspace.sh
+        source /tmp/workspace-env.sh
+        echo "✓ Cloned $WORKSPACE_COUNT workspace(s)"
+        echo "✓ Primary workspace: $WORKSPACE_DIR"
+        echo "✓ Branch: $WORKSPACE_BRANCH"
+        cd ../..
+      else
+        echo "ℹ️  No FILE_SPACES provided, skipping workspace clone"
       fi
-    - echo "✓ Cleanup completed"
-
-    # Initialize submodules
-    - echo "🔄 Initializing submodules..."
-    - git submodule update --init --recursive 2025-10-18-01/workspaces/
-    - echo "✓ Submodules initialized"
 
     # Clean up old results from previous runs
     - rm -rf 2025-10-18-01/results

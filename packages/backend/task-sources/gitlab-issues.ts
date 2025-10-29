@@ -1,7 +1,7 @@
 import {BaseTaskSource} from './base';
 import {getGitlabIssueList, getGitlabIssuesByIids} from '@utils/gitlab';
 import {sql} from '@db/client.ts';
-import {getDecryptedSecretValue} from '../services/secrets';
+import {getSecretWithMetadata} from '../services/secrets';
 import type {GitlabIssuesConfig, GitlabMetadata, TaskSource, TaskSourceIssue} from "@types";
 
 export class GitlabIssuesTaskSource extends BaseTaskSource {
@@ -17,10 +17,13 @@ export class GitlabIssuesTaskSource extends BaseTaskSource {
 
   async *getIssues(): AsyncIterable<TaskSourceIssue> {
     let accessToken: string | undefined;
+    let tokenType: 'oauth' | 'api' | null = null;
 
     if (this.gitlabConfig.access_token_secret_id) {
       try {
-        accessToken = await getDecryptedSecretValue(sql, this.gitlabConfig.access_token_secret_id);
+        const secretData = await getSecretWithMetadata(sql, this.gitlabConfig.access_token_secret_id);
+        accessToken = secretData.value;
+        tokenType = secretData.tokenType;
       } catch (error) {
         console.error('Failed to decrypt GitLab access token:', error);
         // Continue without token - will use public API if available
@@ -30,7 +33,9 @@ export class GitlabIssuesTaskSource extends BaseTaskSource {
     const issues = await getGitlabIssueList(
       this.gitlabConfig.repo,
       this.gitlabConfig.host,
-      accessToken
+      accessToken,
+      undefined,
+      tokenType
     );
     for (const issue of issues) {
       const metadata: GitlabMetadata = {
@@ -67,10 +72,13 @@ export class GitlabIssuesTaskSource extends BaseTaskSource {
     }
 
     let accessToken: string | undefined;
+    let tokenType: 'oauth' | 'api' | null = null;
 
     if (this.gitlabConfig.access_token_secret_id) {
       try {
-        accessToken = await getDecryptedSecretValue(sql, this.gitlabConfig.access_token_secret_id);
+        const secretData = await getSecretWithMetadata(sql, this.gitlabConfig.access_token_secret_id);
+        accessToken = secretData.value;
+        tokenType = secretData.tokenType;
       } catch (error) {
         console.error('Failed to decrypt GitLab access token:', error);
       }
@@ -80,7 +88,8 @@ export class GitlabIssuesTaskSource extends BaseTaskSource {
       this.gitlabConfig.repo,
       iids,
       this.gitlabConfig.host,
-      accessToken
+      accessToken,
+      tokenType
     );
 
     for (const issue of issues) {

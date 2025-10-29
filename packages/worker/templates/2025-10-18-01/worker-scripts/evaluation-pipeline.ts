@@ -133,31 +133,80 @@ Yes (Confidence: 80%)
     return { verdict: mockVerdict, report: mockReport }
   }
 
-  // Check for workspace repositories (submodules)
-  const workspacesPath = '../workspaces'
-  const workspaces: string[] = []
+  // Check for cloned workspaces (from clone-workspace.sh)
+  logger.info('🔍 Checking for cloned workspaces...')
+  logger.info(`   Environment variables:`)
+  logger.info(`   - WORKSPACE_COUNT: ${process.env.WORKSPACE_COUNT || 'not set'}`)
+  logger.info(`   - WORKSPACE_DIRS: ${process.env.WORKSPACE_DIRS ? `${process.env.WORKSPACE_DIRS.substring(0, 100)}...` : 'not set'}`)
+  logger.info(`   - WORKSPACE_NAMES: ${process.env.WORKSPACE_NAMES || 'not set'}`)
+  logger.info(`   - WORKSPACE_BRANCHES: ${process.env.WORKSPACE_BRANCHES || 'not set'}`)
+  logger.info(`   - FILE_SPACES: ${process.env.FILE_SPACES ? 'set' : 'not set'}`)
 
-  try {
-    const { readdirSync } = await import('fs')
-    const entries = readdirSync(workspacesPath, { withFileTypes: true })
+  const workspaceCount = parseInt(process.env.WORKSPACE_COUNT || '0', 10)
+  const workspaceDirs = process.env.WORKSPACE_DIRS?.split(' ') || []
+  const workspaceNames = process.env.WORKSPACE_NAMES?.split(' ') || []
+  const workspaceBranches = process.env.WORKSPACE_BRANCHES?.split(' ') || []
 
-    for (const entry of entries) {
-      if (entry.isDirectory() && !entry.name.startsWith('.')) {
-        const gitConfigPath = `${workspacesPath}/${entry.name}/.git`
-        if (await Bun.file(gitConfigPath + '/config').exists() || await Bun.file(gitConfigPath).exists()) {
-          workspaces.push(entry.name)
-          logger.info(`✓ Found workspace: ${entry.name}`)
-        }
-      }
-    }
-  } catch (error) {
-    logger.warn('No workspaces directory found:', error instanceof Error ? error.message : String(error))
+  if (workspaceCount === 0 || workspaceDirs.length === 0) {
+    logger.error('❌ No workspaces found!')
+    logger.error('   This usually means:')
+    logger.error('   1. No FILE_SPACES environment variable was passed to the pipeline')
+    logger.error('   2. The clone-workspace.sh script did not run')
+    logger.error('   3. The clone-workspace.sh script failed')
+    logger.error('')
+    logger.error('   Please ensure:')
+    logger.error('   - Task has file spaces configured')
+    logger.error('   - FILE_SPACES variable is passed from pipeline-executor')
+    logger.error('   - clone-workspace.sh script executed successfully in CI')
+    throw new Error('No workspaces available for evaluation. Evaluation requires at least one workspace with code to analyze.')
   }
 
-  let codebaseInfo = 'No workspace repositories available'
-  if (workspaces.length > 0) {
-    logger.info(`📦 Found ${workspaces.length} workspace(s): ${workspaces.join(', ')}`)
-    codebaseInfo = `${workspaces.length} workspace repository(ies) available for analysis:\n${workspaces.map(w => `- workspaces/${w}/`).join('\n')}`
+  logger.info(`📦 Found ${workspaceCount} cloned workspace(s)`)
+
+  // Verify workspaces exist
+  const { existsSync } = await import('fs')
+  const validWorkspaces = []
+
+  for (let i = 0; i < workspaceDirs.length; i++) {
+    const dir = workspaceDirs[i]
+    const name = workspaceNames[i] || `workspace-${i}`
+    const branch = workspaceBranches[i] || 'unknown'
+
+    logger.info(`   Checking workspace ${i + 1}/${workspaceCount}: ${name}`)
+    logger.info(`     Directory: ${dir}`)
+    logger.info(`     Branch: ${branch}`)
+
+    if (existsSync(dir)) {
+      validWorkspaces.push({ dir, name, branch })
+      logger.info(`     ✓ Directory exists`)
+    } else {
+      logger.error(`     ❌ Directory not found: ${dir}`)
+    }
+  }
+
+  if (validWorkspaces.length === 0) {
+    logger.error('❌ No valid workspace directories found!')
+    logger.error(`   Expected directories:`)
+    workspaceDirs.forEach((dir, i) => {
+      logger.error(`   - ${workspaceNames[i] || `workspace-${i}`}: ${dir}`)
+    })
+    throw new Error('All workspace directories are missing or inaccessible')
+  }
+
+  logger.info(`✓ ${validWorkspaces.length} valid workspace(s) ready for evaluation`)
+
+  // Build codebase info for Claude
+  let codebaseInfo: string
+  if (validWorkspaces.length === 1) {
+    const ws = validWorkspaces[0]
+    codebaseInfo = `Codebase cloned from repository (branch: ${ws.branch}) at: ${ws.dir}`
+    logger.info(`   Using single workspace: ${ws.name}`)
+  } else {
+    codebaseInfo = `Multiple codebases available for analysis:\n${validWorkspaces.map(ws => `- ${ws.name} (branch: ${ws.branch}): ${ws.dir}`).join('\n')}`
+    logger.info(`   Using multiple workspaces:`)
+    validWorkspaces.forEach(ws => {
+      logger.info(`     - ${ws.name} (${ws.branch}): ${ws.dir}`)
+    })
   }
 
   const prompt = `You MUST evaluate a task by exploring the codebase and creating two files.
@@ -240,12 +289,51 @@ Your final message should be brief (1-2 sentences) confirming files were created
       logger.info(`✓ Configured standard proxy environment variables for Claude Code`)
     }
 
-    logger.info(`📋 Query options:`)
+    // Determine working directory
+    logger.info('📂 Determining Claude Code working directory...')
+    logger.info(`   Workspace count: ${workspaceCount}`)
+    logger.info(`   Workspace dirs length: ${workspaceDirs.length}`)
+
+    let workingDir = '..'
+
+    if (workspaceCount > 0 && workspaceDirs.length > 0) {
+      if (workspaceCount === 1) {
+        // Single workspace: work directly in it
+        workingDir = workspaceDirs[0]
+        logger.info(`   Strategy: Single workspace`)
+        logger.info(`   Selected: ${workingDir}`)
+      } else {
+        // Multiple workspaces: use parent directory that contains all of them
+        // Extract parent from first workspace path (e.g., /tmp/workspace-xxx/workspace-0 -> /tmp/workspace-xxx)
+        const parentDir = workspaceDirs[0].replace(/\/workspace-\d+$/, '')
+        workingDir = parentDir
+        logger.info(`   Strategy: Multiple workspaces`)
+        logger.info(`   First workspace: ${workspaceDirs[0]}`)
+        logger.info(`   Extracted parent: ${parentDir}`)
+        logger.info(`   Selected: ${workingDir}`)
+      }
+    } else {
+      logger.info(`   Strategy: Fallback (no workspaces)`)
+      logger.info(`   Selected: ${workingDir}`)
+    }
+
+    // Verify working directory exists
+    const { existsSync: existsSyncCheck } = await import('fs')
+    if (!existsSyncCheck(workingDir)) {
+      logger.error(`❌ Working directory does not exist: ${workingDir}`)
+      throw new Error(`Working directory not found: ${workingDir}`)
+    }
+    logger.info(`   ✓ Working directory exists`)
+
+    logger.info('')
+    logger.info(`📋 Claude Code query options:`)
     logger.info(`  - permissionMode: acceptEdits`)
     logger.info(`  - claudePath: ${claudePath}`)
-    logger.info(`  - cwd: ..`)
+    logger.info(`  - cwd: ${workingDir}`)
     logger.info(`  - allowedTools: Bash, Read, Glob, Grep, Write`)
     logger.info(`  - ANTHROPIC_API_KEY set: ${!!claudeEnv.ANTHROPIC_API_KEY}`)
+    logger.info(`  - HTTP_PROXY set: ${!!claudeEnv.HTTP_PROXY}`)
+    logger.info(`  - HTTPS_PROXY set: ${!!claudeEnv.HTTPS_PROXY}`)
 
     const iterator = query({
       prompt,
@@ -254,7 +342,7 @@ Your final message should be brief (1-2 sentences) confirming files were created
         systemPrompt: 'You are a code evaluation assistant. Your job is to explore codebases, analyze task feasibility, and create structured evaluation reports. Always use the Write tool to create files - never just describe what files should contain. Be thorough in your analysis and concrete in your recommendations.',
         env: claudeEnv,
         pathToClaudeCodeExecutable: claudePath,
-        cwd: '..',
+        cwd: workingDir,
         allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
         stderr: (data: string) => {
           logger.error(`[Claude Code stderr] ${data}`)

@@ -1,8 +1,8 @@
 -- Add implementation quota columns to user_quotas table
 ALTER TABLE user_quotas
 ADD COLUMN implementations_used INTEGER NOT NULL DEFAULT 0,
-ADD COLUMN implementations_soft_limit INTEGER NOT NULL DEFAULT 2,
-ADD COLUMN implementations_hard_limit INTEGER NOT NULL DEFAULT 3;
+ADD COLUMN implementations_soft_limit INTEGER NOT NULL DEFAULT 18,
+ADD COLUMN implementations_hard_limit INTEGER NOT NULL DEFAULT 20;
 
 -- Add check constraint for implementation quotas
 ALTER TABLE user_quotas

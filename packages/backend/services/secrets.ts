@@ -187,3 +187,27 @@ export function sanitizeSecretForResponse(secret: Secret): Omit<Secret, 'value' 
     value_masked: maskSecretValue(actualValue)
   }
 }
+
+export async function getSecretWithMetadata(sql: Sql, secretId: string): Promise<{ value: string; tokenType: 'oauth' | 'api' | null }> {
+  const result = await secretsDb.findSecretById(sql, secretId)
+
+  if (!result.ok) {
+    throw new Error('Secret not found')
+  }
+
+  const secret = result.data
+
+  let decryptedValue: string
+  if (secret.is_encrypted && secret.encrypted_value) {
+    decryptedValue = decrypt(secret.encrypted_value)
+  } else if (secret.value) {
+    decryptedValue = secret.value
+  } else {
+    throw new Error('Secret value is empty')
+  }
+
+  return {
+    value: decryptedValue,
+    tokenType: secret.token_type
+  }
+}

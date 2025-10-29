@@ -154,6 +154,7 @@ export type Project = {
   ai_provider_configs: AIProviderConfig | null
   created_at: string
   updated_at: string
+  last_synced_at: string | null
 }
 
 export type AICapabilityCriteria = {

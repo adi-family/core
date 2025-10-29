@@ -4,12 +4,17 @@ import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/projects'
 import * as secretQueries from '../../db/secrets'
 import * as userAccessQueries from '../../db/user-access'
+import * as workerRepoQueries from '../../db/worker-repositories'
 import { idParamSchema, createProjectSchema, updateProjectSchema, setJobExecutorSchema, setAIProviderEnterpriseConfigSchema, idAndProviderParamSchema } from '../schemas'
 import { getClerkUserId, requireClerkAuth } from '../middleware/clerk'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { validateGitLabToken } from '../services/gitlab-executor-verifier'
 import * as secretsService from '../services/secrets'
 import * as aiProviderValidator from '../services/ai-provider-validator'
+import { CIRepositoryManager } from '@worker/ci-repository-manager'
+import { createLogger } from '@utils/logger'
+
+const logger = createLogger({ namespace: 'projects-handler' })
 
 export const createProjectRoutes = (sql: Sql) => {
   const acl = createFluentACL(sql)
@@ -79,6 +84,64 @@ export const createProjectRoutes = (sql: Sql) => {
           role: 'owner',
           granted_by: userId,
         })
+      }
+
+      // Automatically create worker repository if GitLab credentials are available
+      const requiredEnv = ['GITLAB_HOST', 'GITLAB_TOKEN', 'GITLAB_USER', 'ENCRYPTION_KEY']
+      const missingEnv = requiredEnv.filter((key) => !process.env[key])
+
+      if (missingEnv.length === 0) {
+        try {
+          logger.info(`🔧 Auto-creating worker repository for project: ${project.name}`)
+
+          // Check if worker repository already exists
+          const existingRepo = await workerRepoQueries.findWorkerRepositoryByProjectId(sql, project.id)
+
+          if (!existingRepo.ok) {
+            // Create worker repository in GitLab
+            const manager = new CIRepositoryManager()
+            const version = '2025-10-18-01'
+            // Use project ID suffix to ensure uniqueness (first 8 chars of UUID)
+            const projectIdShort = project.id.split('-')[0]
+            const customPath = `adi-worker-${project.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-${projectIdShort}`
+
+            const source = await manager.createWorkerRepository({
+              projectName: project.name,
+              sourceType: 'gitlab',
+              host: process.env.GITLAB_HOST!,
+              accessToken: process.env.GITLAB_TOKEN!,
+              user: process.env.GITLAB_USER!,
+              customPath,
+            })
+
+            logger.info(`✓ Created GitLab repository: ${source.project_path}`)
+
+            // Upload CI files
+            await manager.uploadCIFiles({
+              source,
+              version,
+            })
+
+            logger.info(`✓ Uploaded CI files (version: ${version})`)
+
+            // Save to database
+            await workerRepoQueries.createWorkerRepository(sql, {
+              project_id: project.id,
+              source_gitlab: source as unknown,
+              current_version: version,
+            })
+
+            logger.info(`✅ Worker repository auto-created for project ${project.id}`)
+          } else {
+            logger.info(`✓ Worker repository already exists for project ${project.id}`)
+          }
+        } catch (error) {
+          // Log the error but don't fail project creation
+          logger.error(`⚠️  Failed to auto-create worker repository for project ${project.id}:`, error)
+          // Continue without failing - user can manually set up worker repo later
+        }
+      } else {
+        logger.warn(`⚠️  Skipping worker repository auto-creation - missing env vars: ${missingEnv.join(', ')}`)
       }
 
       return c.json(project, 201)

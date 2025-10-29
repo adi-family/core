@@ -61,11 +61,6 @@ prepare:
     - evaluation
   script:
     - echo "Installing dependencies for evaluation pipeline"
-    - echo "Installing git..."
-    - apt-get update && apt-get install -y git
-    - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
-    - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
-
     - cd 2025-10-18-01/worker-scripts
     - bun install
 
@@ -82,14 +77,10 @@ prepare:
       fi
     - |
       if [ -z "$API_TOKEN" ]; then
-        echo "❌ Error: API_TOKEN is not set - workspace sync will fail"
+        echo "❌ Error: API_TOKEN is not set"
       else
         echo "✓ API_TOKEN is set (length: ${#API_TOKEN})"
       fi
-
-    # Sync all workspace repositories
-    - echo "Syncing workspace repositories"
-    - bun run sync-workspaces.ts
   cache:
     paths:
       - 2025-10-18-01/worker-scripts/node_modules/
@@ -110,6 +101,21 @@ execute:
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
 
+    # Clone target repositories if FILE_SPACES is provided
+    - |
+      if [ -n "$FILE_SPACES" ]; then
+        echo "📦 Cloning workspace repositories..."
+        cd 2025-10-18-01/worker-scripts
+        chmod +x clone-workspace.sh
+        ./clone-workspace.sh
+        source /tmp/workspace-env.sh
+        echo "✓ Cloned $WORKSPACE_COUNT workspace(s)"
+        echo "✓ Primary workspace: $WORKSPACE_DIR"
+        echo "✓ Branch: $WORKSPACE_BRANCH"
+        cd ../..
+      else
+        echo "ℹ️  No FILE_SPACES provided, skipping workspace clone"
+      fi
 
     # Clean up old results from previous runs
     - rm -rf 2025-10-18-01/results

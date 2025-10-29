@@ -51,7 +51,8 @@ export async function getGitlabIssueList(
   repo: string,
   host?: string,
   accessToken?: string,
-  state?: 'opened' | 'closed' | 'all'
+  state?: 'opened' | 'closed' | 'all',
+  tokenType?: 'oauth' | 'api' | null
 ): Promise<GitlabIssueMinimalList[]> {
   if (!repo || repo.trim() === '') {
     throw new Error('GitLab repo is required and cannot be empty');
@@ -65,15 +66,28 @@ export async function getGitlabIssueList(
     throw new Error('GitLab access token is required. Either provide it in the task source config or set GITLAB_TOKEN environment variable.');
   }
 
-  const gitlab = new Gitlab({
-    token,
-    host: host || 'https://gitlab.com'
-  });
+  const baseHost = (host || 'https://gitlab.com').replace(/\/$/, '');
+  const encodedRepo = encodeURIComponent(repo);
+  const url = `${baseHost}/api/v4/projects/${encodedRepo}/issues?state=${state || 'opened'}`;
 
-  const issues = await gitlab.Issues.all({
-    projectId: repo,
-    state: state || 'opened'
-  });
+  // Use proper authentication header based on token type
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+
+  if (tokenType === 'oauth') {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    headers['PRIVATE-TOKEN'] = token;
+  }
+
+  const response = await fetch(url, { headers });
+
+  if (!response.ok) {
+    throw new Error(`GitLab API error: ${response.status} ${response.statusText}`);
+  }
+
+  const issues = await response.json() as unknown[];
 
   return issues.map((issue: unknown) => {
     const i = issue as GitlabIssueListMinimal;
@@ -96,7 +110,8 @@ export async function getGitlabIssuesByIids(
   repo: string,
   iids: number[],
   host?: string,
-  accessToken?: string
+  accessToken?: string,
+  tokenType?: 'oauth' | 'api' | null
 ): Promise<GitlabIssueMinimalList[]> {
   if (!repo || repo.trim() === '') {
     throw new Error('GitLab repo is required and cannot be empty');
@@ -113,17 +128,29 @@ export async function getGitlabIssuesByIids(
     throw new Error('GitLab access token is required. Either provide it in the task source config or set GITLAB_TOKEN environment variable.');
   }
 
-  const gitlab = new Gitlab({
-    token,
-    host: host || 'https://gitlab.com'
-  });
+  const baseHost = (host || 'https://gitlab.com').replace(/\/$/, '');
+  const encodedRepo = encodeURIComponent(repo);
+  const iidsParam = iids.map(iid => `iids[]=${iid}`).join('&');
+  const url = `${baseHost}/api/v4/projects/${encodedRepo}/issues?state=all&${iidsParam}`;
 
-  // GitLab API supports iids parameter for batch fetching
-  const issues = await gitlab.Issues.all({
-    projectId: repo,
-    iids: iids,
-    state: 'all' // Fetch both opened and closed to verify status
-  });
+  // Use proper authentication header based on token type
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json'
+  };
+
+  if (tokenType === 'oauth') {
+    headers['Authorization'] = `Bearer ${token}`;
+  } else {
+    headers['PRIVATE-TOKEN'] = token;
+  }
+
+  const response = await fetch(url, { headers });
+
+  if (!response.ok) {
+    throw new Error(`GitLab API error: ${response.status} ${response.statusText}`);
+  }
+
+  const issues = await response.json() as unknown[];
 
   return issues.map((issue: unknown) => {
     const i = issue as GitlabIssueListMinimal;
