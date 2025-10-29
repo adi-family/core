@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . .
 
 # Install all dependencies (including devDependencies for build)
-RUN bun install
+RUN bun install --no-frozen-lockfile
 
 # Build the client
 ENV CLIENT_PORT=4173

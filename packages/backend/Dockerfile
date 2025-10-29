@@ -4,8 +4,8 @@ WORKDIR /app
 # Copy everything (node_modules excluded by .dockerignore)
 COPY . .
 
-# Install dependencies
-RUN bun install
+# Install dependencies (lockfile not frozen to handle any version mismatches)
+RUN bun install --no-frozen-lockfile --verbose
 
 # Set environment
 ENV NODE_ENV=production

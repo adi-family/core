@@ -5,7 +5,7 @@ WORKDIR /app
 COPY . .
 
 # Install all dependencies
-RUN bun install
+RUN bun install --no-frozen-lockfile
 
 # Production stage
 FROM oven/bun:1.2.23
