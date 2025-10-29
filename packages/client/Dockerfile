@@ -35,17 +35,15 @@ RUN bunx vite build
 FROM oven/bun:1.2.23-slim AS runner
 WORKDIR /app
 
-# Copy built files and config
+# Copy only the built dist folder
 COPY --from=installer /app/packages/client/dist ./dist
-COPY --from=installer /app/packages/client/vite.config.ts ./vite.config.ts
-COPY --from=installer /app/packages/client/tsconfig.json ./tsconfig.json
 
-# Install only production dependencies for preview server
-RUN bun add vite @vitejs/plugin-react vite-tsconfig-paths
+# Install a simple static file server
+RUN bun add sirv-cli
 
 # Set environment
 ENV NODE_ENV=production
 ENV CLIENT_PORT=4173
 
-# Run preview server directly pointing to dist
-CMD ["bunx", "vite", "preview", "--outDir", "dist", "--host", "0.0.0.0", "--port", "4173"]
+# Serve static files with sirv
+CMD ["bunx", "sirv", "dist", "--host", "0.0.0.0", "--port", "4173", "--single"]

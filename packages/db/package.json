@@ -6,6 +6,22 @@
   "main": "./index.ts",
   "exports": {
     ".": "./index.ts",
+    "./client": "./client.ts",
+    "./sessions": "./sessions.ts",
+    "./messages": "./messages.ts",
+    "./tasks": "./tasks.ts",
+    "./projects": "./projects.ts",
+    "./worker-cache": "./worker-cache.ts",
+    "./task-sources": "./task-sources.ts",
+    "./worker-repositories": "./worker-repositories.ts",
+    "./pipeline-executions": "./pipeline-executions.ts",
+    "./pipeline-artifacts": "./pipeline-artifacts.ts",
+    "./file-spaces": "./file-spaces.ts",
+    "./secrets": "./secrets.ts",
+    "./user-access": "./user-access.ts",
+    "./user-quotas": "./user-quotas.ts",
+    "./task-source-sync-state": "./task-source-sync-state.ts",
+    "./utils": "./utils.ts",
     "./*": "./*"
   },
   "scripts": {
