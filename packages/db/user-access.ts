@@ -278,3 +278,23 @@ export const cleanupExpiredAccess = async (sql: Sql): Promise<number> => {
   `)
   return resultSet.count
 }
+
+/**
+ * Check if user has admin privileges
+ * Returns true if user has 'owner' or 'admin' role on any project
+ */
+export const hasAdminAccess = async (
+  sql: Sql,
+  userId: string
+): Promise<boolean> => {
+  const [result] = await get(sql<[{ has_admin: boolean }]>`
+    SELECT EXISTS(
+      SELECT 1 FROM user_access
+      WHERE user_id = ${userId}
+      AND entity_type = 'project'
+      AND role IN ('owner', 'admin')
+      AND (expires_at IS NULL OR expires_at > NOW())
+    ) as has_admin
+  `)
+  return result?.has_admin ?? false
+}

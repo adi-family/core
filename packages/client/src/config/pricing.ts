@@ -3,12 +3,16 @@
  * Constants for pricing tokens and CI time
  */
 
+import type { ApiUsageMetric as BaseApiUsageMetric } from '@types'
+
 // CONSTANT PRICING - NOT CONFIGURABLE
 export const PRICING = {
   PER_MILLION_TOKENS: 1.00,           // $1.00 per 1M tokens
   PER_CI_HOUR: 0.07777777777          // $0.07777777777 per hour
 } as const
 
+// Client-specific type for API usage metrics (as returned by API)
+// Differs from DB type: some nullable fields are required, created_at is string
 export interface ApiUsageMetric {
   id: string
   session_id: string

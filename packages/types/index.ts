@@ -521,3 +521,61 @@ export type TaskSourceJiraConfig = {
   access_token_secret_id?: string;
   cloud_id?: string; // Atlassian cloud ID for OAuth
 };
+
+// API Usage Metrics Types
+export interface ApiUsageMetric {
+  id: string
+  pipeline_execution_id: string | null
+  session_id: string | null
+  task_id: string | null
+  provider: string
+  model: string
+  goal: string
+  operation_phase: string
+  input_tokens: number
+  output_tokens: number
+  cache_creation_input_tokens: number
+  cache_read_input_tokens: number
+  ci_duration_seconds: number | null
+  iteration_number: number | null
+  metadata: any | null
+  created_at: Date
+}
+
+export interface CreateApiUsageMetricInput {
+  pipeline_execution_id?: string | null
+  session_id?: string | null
+  task_id?: string | null
+  provider: string
+  model: string
+  goal: string
+  phase: string
+  input_tokens: number
+  output_tokens: number
+  cache_creation_input_tokens: number
+  cache_read_input_tokens: number
+  ci_duration_seconds?: number | null
+  iteration_number?: number | null
+  metadata?: any | null
+}
+
+export interface AggregatedUsageMetric {
+  provider: string
+  goal: string
+  operation_phase: string
+  date: Date
+  total_tokens: string // bigint returned as string
+  input_tokens: string
+  output_tokens: string
+  cache_creation_tokens: string
+  cache_read_tokens: string
+  total_ci_duration: string
+  api_calls: string
+}
+
+export interface UsageMetricsFilters {
+  start_date?: string
+  end_date?: string
+  provider?: string
+  goal?: string
+}

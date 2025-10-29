@@ -1,6 +1,7 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
 import type { TaskSource, CreateTaskSourceInput, UpdateTaskSourceInput, Result } from '@types'
 import { filterPresentColumns } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -10,12 +11,13 @@ export const findAllTaskSources = async (sql: Sql): Promise<TaskSource[]> => {
   return get(sql<TaskSource[]>`SELECT * FROM task_sources ORDER BY created_at DESC`)
 }
 
-export const findTaskSourceById = async (sql: Sql, id: string): Promise<Result<TaskSource>> => {
+export const findTaskSourceById = async (sql: Sql, id: string): Promise<TaskSource> => {
   const taskSources = await get(sql<TaskSource[]>`SELECT * FROM task_sources WHERE id = ${id}`)
   const [taskSource] = taskSources
+  if (!taskSource) {
+    throw new NotFoundException('Task source not found')
+  }
   return taskSource
-    ? { ok: true, data: taskSource }
-    : { ok: false, error: 'Task source not found' }
 }
 
 export const findTaskSourcesByProjectId = async (sql: Sql, projectId: string): Promise<TaskSource[]> => {
@@ -56,7 +58,7 @@ export const createTaskSource = async (sql: Sql, input: CreateTaskSourceInput): 
 }
 
 const updateTaskSourceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
-export const updateTaskSource = async (sql: Sql, id: string, input: UpdateTaskSourceInput): Promise<Result<TaskSource>> => {
+export const updateTaskSource = async (sql: Sql, id: string, input: UpdateTaskSourceInput): Promise<TaskSource> => {
   const presentCols = filterPresentColumns(input, updateTaskSourceCols)
 
   const taskSources = await get(sql<TaskSource[]>`
@@ -66,17 +68,18 @@ export const updateTaskSource = async (sql: Sql, id: string, input: UpdateTaskSo
     RETURNING *
   `)
   const [taskSource] = taskSources
+  if (!taskSource) {
+    throw new NotFoundException('Task source not found')
+  }
   return taskSource
-    ? { ok: true, data: taskSource }
-    : { ok: false, error: 'Task source not found' }
 }
 
-export const deleteTaskSource = async (sql: Sql, id: string): Promise<Result<void>> => {
+export const deleteTaskSource = async (sql: Sql, id: string): Promise<void> => {
   const resultSet = await get(sql`DELETE FROM task_sources WHERE id = ${id}`)
   const deleted = resultSet.count > 0
-  return deleted
-    ? { ok: true, data: undefined }
-    : { ok: false, error: 'Task source not found' }
+  if (!deleted) {
+    throw new NotFoundException('Task source not found')
+  }
 }
 
 /**
@@ -128,7 +131,7 @@ export const updateTaskSourceSyncStatus = async (
   id: string,
   status: 'pending' | 'queued' | 'syncing' | 'completed' | 'failed',
   lastSyncedAt?: Date
-): Promise<Result<TaskSource>> => {
+): Promise<TaskSource> => {
   const taskSources = await get(
     lastSyncedAt
       ? sql<TaskSource[]>`
@@ -145,7 +148,8 @@ export const updateTaskSourceSyncStatus = async (
         `
   )
   const [taskSource] = taskSources
+  if (!taskSource) {
+    throw new NotFoundException('Task source not found')
+  }
   return taskSource
-    ? { ok: true, data: taskSource }
-    : { ok: false, error: 'Task source not found' }
 }

@@ -31,7 +31,6 @@ export const createPipelineArtifactRoutes = (sql: Sql) => {
 
       return c.json({ success: true })
     })
-    // Note: This route needs special handling in app.ts since it uses /pipeline-executions/:executionId prefix
     .get('/by-execution/:executionId', zValidator('param', executionIdParamSchema), async (c) => {
       const { executionId } = c.req.valid('param')
       const artifacts = await queries.findPipelineArtifactsByExecutionId(sql, executionId)

@@ -94,13 +94,7 @@ async function requireProjectAIProvider(
   evaluationType: 'simple' | 'advanced'
 ): Promise<AIProviderSelection> {
   // Get project's Anthropic config
-  const configResult = await getProjectAIProviderConfig(sql, projectId, 'anthropic')
-
-  if (!configResult.ok) {
-    throw new Error(configResult.error)
-  }
-
-  const projectConfig = configResult.data as AnthropicConfig | null
+  const projectConfig = await getProjectAIProviderConfig(sql, projectId, 'anthropic') as AnthropicConfig | null
 
   if (!projectConfig) {
     throw new QuotaExceededError(
@@ -169,6 +163,6 @@ export async function checkProjectHasAnthropicProvider(
   sql: Sql,
   projectId: string
 ): Promise<boolean> {
-  const configResult = await getProjectAIProviderConfig(sql, projectId, 'anthropic')
-  return configResult.ok && configResult.data !== null
+  const config = await getProjectAIProviderConfig(sql, projectId, 'anthropic')
+  return config !== null
 }

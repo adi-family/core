@@ -11,6 +11,11 @@ import { retry, isRetryableError } from '@utils/retry'
 import { createLogger } from '@utils/logger'
 import { CIRepositoryManager } from '../../worker/ci-repository-manager'
 import { validateGitLabSource, decryptGitLabToken, type GitLabSource } from './gitlab-utils'
+import { getProjectOwnerId } from '@db/user-access'
+import { checkQuotaAvailable, incrementQuotaUsage } from '@db/user-quotas'
+import { getPlatformAnthropicConfig } from '@backend/config'
+import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'
+import { sql as defaultSql } from '@db/client'
 
 const logger = createLogger({ namespace: 'pipeline-executor' })
 
@@ -294,7 +299,6 @@ async function validateAndFetchPipelineContext(apiClient: BackendClient, session
   const project = await projectRes.json()
 
   // Get project owner for AI provider selection
-  const { getProjectOwnerId } = await import('@db/user-access')
   const userId = await getProjectOwnerId(sql, task.project_id)
 
   // Fetch or auto-create worker repository
@@ -379,10 +383,6 @@ async function getAIProviderEnvVars(
   // If project has no Anthropic config, check quota and use platform key
   if (userId && !aiProviderConfigs?.anthropic) {
     try {
-      const { checkQuotaAvailable } = await import('@db/user-quotas')
-      const { getPlatformAnthropicConfig } = await import('@backend/config')
-      const { checkProjectHasAnthropicProvider } = await import('@backend/services/ai-provider-selector')
-
       const quotaCheck = await checkQuotaAvailable(sql, userId, 'implementation')
 
       // If user at hard limit, require project API key
@@ -855,8 +855,8 @@ export async function triggerPipeline(
   logger.info(`🚀 Triggering pipeline for session ${input.sessionId}`)
 
   // sql parameter is optional for backward compatibility
-  // If not provided, we'll import the default connection
-  const sqlInstance = sql || (await import('@db/client')).sql
+  // If not provided, we'll use the default connection
+  const sqlInstance = sql || defaultSql
 
   let executionId: string | undefined
 
@@ -911,12 +911,10 @@ export async function triggerPipeline(
     // Increment implementation quota if using platform token (runner="claude" means implementation)
     if (context.session.runner === 'claude' && context.userId && config.variables.ANTHROPIC_API_KEY) {
       try {
-        const { getPlatformAnthropicConfig } = await import('@backend/config')
         const platformConfig = getPlatformAnthropicConfig()
 
         // Only increment if using platform key (not project key)
         if (platformConfig && config.variables.ANTHROPIC_API_KEY === platformConfig.api_key) {
-          const { incrementQuotaUsage } = await import('@db/user-quotas')
           await incrementQuotaUsage(sqlInstance, context.userId, 'implementation')
           logger.info(`✓ Implementation quota incremented for user ${context.userId}`)
         }

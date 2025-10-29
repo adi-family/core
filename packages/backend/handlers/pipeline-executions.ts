@@ -4,6 +4,7 @@ import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/pipeline-executions'
 import { idParamSchema, sessionIdParamSchema, createPipelineExecutionSchema, updatePipelineExecutionSchema, timeoutQuerySchema, saveApiUsageSchema } from '../schemas'
 import { authMiddleware } from '../middleware/auth'
+import * as apiUsageMetricsQueries from '../../db/api-usage-metrics'
 
 export const createPipelineExecutionRoutes = (sql: Sql) => {
   return new Hono()
@@ -63,40 +64,22 @@ export const createPipelineExecutionRoutes = (sql: Sql) => {
       const { id } = c.req.valid('param')
       const usage = c.req.valid('json')
 
-      // Insert into api_usage_metrics table
-      await sql`
-        INSERT INTO api_usage_metrics (
-          pipeline_execution_id,
-          session_id,
-          task_id,
-          provider,
-          model,
-          goal,
-          operation_phase,
-          input_tokens,
-          output_tokens,
-          cache_creation_input_tokens,
-          cache_read_input_tokens,
-          ci_duration_seconds,
-          iteration_number,
-          metadata
-        ) VALUES (
-          ${id},
-          ${usage.session_id},
-          ${usage.task_id},
-          ${usage.provider},
-          ${usage.model},
-          ${usage.goal},
-          ${usage.phase},
-          ${usage.input_tokens},
-          ${usage.output_tokens},
-          ${usage.cache_creation_input_tokens},
-          ${usage.cache_read_input_tokens},
-          ${usage.ci_duration_seconds},
-          ${usage.iteration_number ?? null},
-          ${usage.metadata ? JSON.stringify(usage.metadata) : null}
-        )
-      `
+      await apiUsageMetricsQueries.createApiUsageMetric(sql, {
+        pipeline_execution_id: id,
+        session_id: usage.session_id,
+        task_id: usage.task_id,
+        provider: usage.provider,
+        model: usage.model,
+        goal: usage.goal,
+        phase: usage.phase,
+        input_tokens: usage.input_tokens,
+        output_tokens: usage.output_tokens,
+        cache_creation_input_tokens: usage.cache_creation_input_tokens,
+        cache_read_input_tokens: usage.cache_read_input_tokens,
+        ci_duration_seconds: usage.ci_duration_seconds,
+        iteration_number: usage.iteration_number ?? null,
+        metadata: usage.metadata ?? null,
+      })
 
       return c.json({ success: true }, 201)
     })

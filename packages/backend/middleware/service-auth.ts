@@ -1,4 +1,5 @@
 import type { Context } from 'hono'
+import { API_TOKEN } from '../config'
 
 /**
  * Check if the request is authenticated with API_TOKEN (internal service call)
@@ -12,11 +13,10 @@ export function isServiceAuthenticated(c: Context): boolean {
   }
 
   const token = authHeader.replace('Bearer ', '')
-  const apiToken = process.env.API_TOKEN
 
-  if (!apiToken) {
+  if (!API_TOKEN) {
     return false
   }
 
-  return token === apiToken
+  return token === API_TOKEN
 }

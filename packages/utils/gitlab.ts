@@ -1,4 +1,5 @@
 import { Issue } from "./issue";
+import { GITLAB_TOKEN } from '@backend/config';
 
 export interface GitlabIssueListMinimal {
   id: number;
@@ -60,7 +61,7 @@ export async function getGitlabIssueList(
     throw new Error('GitLab repo must be in format owner/name (e.g., gitlab-org/gitlab)');
   }
 
-  const token = accessToken || process.env.GITLAB_TOKEN;
+  const token = accessToken || GITLAB_TOKEN;
   if (!token) {
     throw new Error('GitLab access token is required. Either provide it in the task source config or set GITLAB_TOKEN environment variable.');
   }
@@ -122,7 +123,7 @@ export async function getGitlabIssuesByIids(
     return [];
   }
 
-  const token = accessToken || process.env.GITLAB_TOKEN;
+  const token = accessToken || GITLAB_TOKEN;
   if (!token) {
     throw new Error('GitLab access token is required. Either provide it in the task source config or set GITLAB_TOKEN environment variable.');
   }

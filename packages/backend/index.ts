@@ -1,13 +1,14 @@
 import { app } from './app'
 import { createLogger } from '../utils/logger'
+import { SERVER_PORT } from './config'
 
 const logger = createLogger({ namespace: 'backend' })
 
-if (!process.env.SERVER_PORT) {
+if (!SERVER_PORT) {
   throw new Error('SERVER_PORT environment variable is required')
 }
 
-const port = Number(process.env.SERVER_PORT)
+const port = SERVER_PORT
 
 // Pipeline monitor moved to micros-task-ops service
 // Backend is now a pure stateless API server

@@ -4,97 +4,63 @@ import { zValidator } from '@hono/zod-validator';
 import { z } from 'zod';
 import { createLogger } from '@utils/logger';
 import * as secretQueries from '@db/secrets';
-import { getClerkUserId } from '../middleware/clerk';
+import { reqAuthed } from '../middleware/authz';
+import {
+  JIRA_OAUTH_CLIENT_ID,
+  JIRA_OAUTH_REDIRECT_URI,
+  JIRA_OAUTH_CLIENT_SECRET,
+  GITLAB_ROOT_OAUTH_HOST,
+  GITLAB_OAUTH_CLIENT_ID,
+  GITLAB_OAUTH_REDIRECT_URI,
+  GITLAB_OAUTH_CLIENT_SECRET,
+} from '../config';
 
 const logger = createLogger({ namespace: 'oauth-handler' });
 
-/**
- * Jira OAuth configuration schema
- * Atlassian OAuth 2.0 (3LO) implementation
- * Docs: https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/
- */
-const _jiraOAuthConfigSchema = z.object({
-  client_id: z.string().min(1, 'Client ID is required'),
-  client_secret: z.string().min(1, 'Client secret is required'),
-  redirect_uri: z.string().url('Valid redirect URI is required'),
-  scopes: z.string().default('read:jira-work write:jira-work offline_access'),
-});
-
-const _jiraCallbackSchema = z.object({
-  code: z.string(),
-  state: z.string(),
-});
-
 const jiraExchangeTokenSchema = z.object({
-  projectId: z.string().uuid(),
+  projectId: z.uuid(),
   code: z.string(),
   secretName: z.string().min(1),
   cloudId: z.string().optional(),
 });
 
 export function createOAuthRoutes(db: Sql) {
-  const app = new Hono();
+  return new Hono()
+    .get('/jira/authorize', async (c) => {
+      const scopes = 'read:jira-work write:jira-work offline_access';
 
-  // ============================================================================
-  // JIRA OAUTH
-  // ============================================================================
+      if (!JIRA_OAUTH_CLIENT_ID || !JIRA_OAUTH_REDIRECT_URI) {
+        return c.json({ error: 'Jira OAuth not configured. Missing CLIENT_ID or REDIRECT_URI.' }, 500);
+      }
 
-  /**
-   * Initiate Jira OAuth flow
-   * GET /oauth/jira/authorize
-   * Atlassian OAuth docs: https://developer.atlassian.com/cloud/jira/platform/oauth-2-3lo-apps/
-   */
-  app.get('/jira/authorize', async (c) => {
-    const clientId = process.env.JIRA_OAUTH_CLIENT_ID;
-    const redirectUri = process.env.JIRA_OAUTH_REDIRECT_URI;
-    const scopes = 'read:jira-work write:jira-work offline_access';
+      const state = crypto.randomUUID();
 
-    if (!clientId || !redirectUri) {
-      return c.json({ error: 'Jira OAuth not configured. Missing CLIENT_ID or REDIRECT_URI.' }, 500);
-    }
+      // Build authorization URL
+      const authUrl = new URL('https://auth.atlassian.com/authorize');
+      authUrl.searchParams.set('audience', 'api.atlassian.com');
+      authUrl.searchParams.set('client_id', JIRA_OAUTH_CLIENT_ID);
+      authUrl.searchParams.set('scope', scopes);
+      authUrl.searchParams.set('redirect_uri', JIRA_OAUTH_REDIRECT_URI);
+      authUrl.searchParams.set('state', state);
+      authUrl.searchParams.set('response_type', 'code');
+      authUrl.searchParams.set('prompt', 'consent');
 
-    const state = crypto.randomUUID();
+      logger.info('Initiating Jira OAuth flow', { clientId: JIRA_OAUTH_CLIENT_ID, state, redirectUri: JIRA_OAUTH_REDIRECT_URI });
 
-    // Build authorization URL
-    const authUrl = new URL('https://auth.atlassian.com/authorize');
-    authUrl.searchParams.set('audience', 'api.atlassian.com');
-    authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('scope', scopes);
-    authUrl.searchParams.set('redirect_uri', redirectUri);
-    authUrl.searchParams.set('state', state);
-    authUrl.searchParams.set('response_type', 'code');
-    authUrl.searchParams.set('prompt', 'consent');
-
-    logger.info('Initiating Jira OAuth flow', { clientId, state, redirectUri });
-
-    return c.json({
-      authUrl: authUrl.toString(),
-      state,
-    });
-  });
-
-  /**
-   * Exchange authorization code for tokens
-   * POST /oauth/jira/exchange
-   * Body: { projectId, code, secretName, cloudId? }
-   */
-  app.post(
+      return c.json({
+        authUrl: authUrl.toString(),
+        state,
+      });
+    })
+    .post(
     '/jira/exchange',
     zValidator('json', jiraExchangeTokenSchema),
     async (c) => {
-      const userId = getClerkUserId(c);
-      if (!userId) {
-        return c.json({ error: 'Unauthorized' }, 401);
-      }
+      const userId = await reqAuthed(c);
 
       const { projectId, code, secretName, cloudId } = c.req.valid('json');
 
-      // Get OAuth config from environment
-      const clientId = process.env.JIRA_OAUTH_CLIENT_ID;
-      const clientSecret = process.env.JIRA_OAUTH_CLIENT_SECRET;
-      const redirectUri = process.env.JIRA_OAUTH_REDIRECT_URI;
-
-      if (!clientId || !clientSecret || !redirectUri) {
+      if (!JIRA_OAUTH_CLIENT_ID || !JIRA_OAUTH_CLIENT_SECRET || !JIRA_OAUTH_REDIRECT_URI) {
         logger.error('Jira OAuth not configured. Missing environment variables.');
         return c.json(
           { error: 'Jira OAuth is not configured on the server' },
@@ -112,10 +78,10 @@ export function createOAuthRoutes(db: Sql) {
           },
           body: JSON.stringify({
             grant_type: 'authorization_code',
-            client_id: clientId,
-            client_secret: clientSecret,
+            client_id: JIRA_OAUTH_CLIENT_ID,
+            client_secret: JIRA_OAUTH_CLIENT_SECRET,
             code,
-            redirect_uri: redirectUri,
+            redirect_uri: JIRA_OAUTH_REDIRECT_URI,
           }),
         });
 
@@ -154,45 +120,24 @@ export function createOAuthRoutes(db: Sql) {
         const resources = await resourcesResponse.json() as any[];
         logger.info('Fetched accessible Jira sites', { count: resources.length });
 
-        // Check if secret already exists
-        const existingSecretResult = await secretQueries.findSecretByProjectAndName(db, projectId, secretName);
+        // Upsert secret (create or update)
+        const secretResult = await secretQueries.upsertSecret(db, {
+          project_id: projectId,
+          name: secretName,
+          value: access_token,
+          description: `Jira OAuth token (auto-managed)${cloudId ? ` for cloud ID ${cloudId}` : ''}`,
+          oauth_provider: 'jira',
+          token_type: 'oauth',
+          refresh_token,
+          expires_at: expiresAt,
+          scopes: scope,
+        });
 
-        let secretResult;
-        if (existingSecretResult.ok) {
-          // Update existing secret
-          logger.info('Updating existing Jira OAuth secret', { secretId: existingSecretResult.data.id });
-          secretResult = await secretQueries.updateSecret(db, existingSecretResult.data.id, {
-            value: access_token,
-            description: `Jira OAuth token (auto-managed)${cloudId ? ` for cloud ID ${cloudId}` : ''}`,
-            refresh_token,
-            expires_at: expiresAt,
-            scopes: scope,
-          });
-        } else {
-          // Create new secret
-          secretResult = await secretQueries.createSecret(db, {
-            project_id: projectId,
-            name: secretName,
-            value: access_token,
-            description: `Jira OAuth token (auto-managed)${cloudId ? ` for cloud ID ${cloudId}` : ''}`,
-            oauth_provider: 'jira',
-            token_type: 'oauth',
-            refresh_token,
-            expires_at: expiresAt,
-            scopes: scope,
-          });
-        }
-
-        if (!secretResult.ok) {
-          logger.error('Failed to store OAuth secret', { error: secretResult.error });
-          return c.json({ error: 'Failed to store OAuth token' }, 500);
-        }
-
-        logger.info('Successfully stored Jira OAuth token', { secretId: secretResult.data.id });
+        logger.info('Successfully stored Jira OAuth token', { secretId: secretResult.id });
 
         return c.json({
           success: true,
-          secretId: secretResult.data.id,
+          secretId: secretResult.id,
           expiresAt: expiresAt,
           sites: resources.map((r: any) => ({
             id: r.id,
@@ -206,40 +151,22 @@ export function createOAuthRoutes(db: Sql) {
         return c.json({ error: 'Internal server error during token exchange' }, 500);
       }
     }
-  );
-
-  /**
-   * Refresh an expired OAuth token
-   * POST /oauth/jira/refresh/:secretId
-   */
-  app.post(
+  ).post(
     '/jira/refresh/:secretId',
     zValidator('param', z.object({ secretId: z.string().uuid() })),
     async (c) => {
-      const userId = getClerkUserId(c);
-      if (!userId) {
-        return c.json({ error: 'Unauthorized' }, 401);
-      }
+      const userId = await reqAuthed(c);
 
       const { secretId } = c.req.valid('param');
 
-      // Get OAuth config from environment
-      const clientId = process.env.JIRA_OAUTH_CLIENT_ID;
-      const clientSecret = process.env.JIRA_OAUTH_CLIENT_SECRET;
-
-      if (!clientId || !clientSecret) {
+      if (!JIRA_OAUTH_CLIENT_ID || !JIRA_OAUTH_CLIENT_SECRET) {
         logger.error('Jira OAuth not configured');
         return c.json({ error: 'Jira OAuth is not configured on the server' }, 500);
       }
 
       try {
         // Fetch existing secret
-        const secretResult = await secretQueries.findSecretById(db, secretId);
-        if (!secretResult.ok) {
-          return c.json({ error: 'Secret not found' }, 404);
-        }
-
-        const secret = secretResult.data;
+        const secret = await secretQueries.findSecretById(db, secretId);
 
         // Verify it's an OAuth token
         if (secret.token_type !== 'oauth' || secret.oauth_provider !== 'jira') {
@@ -259,8 +186,8 @@ export function createOAuthRoutes(db: Sql) {
           },
           body: JSON.stringify({
             grant_type: 'refresh_token',
-            client_id: clientId,
-            client_secret: clientSecret,
+            client_id: JIRA_OAUTH_CLIENT_ID,
+            client_secret: JIRA_OAUTH_CLIENT_SECRET,
             refresh_token: secret.refresh_token,
           }),
         });
@@ -288,11 +215,6 @@ export function createOAuthRoutes(db: Sql) {
           scopes: scope || secret.scopes,
         });
 
-        if (!updateResult.ok) {
-          logger.error('Failed to update secret with refreshed token', { error: updateResult.error });
-          return c.json({ error: 'Failed to update secret' }, 500);
-        }
-
         logger.info('Successfully refreshed Jira OAuth token', { secretId });
 
         return c.json({
@@ -304,23 +226,8 @@ export function createOAuthRoutes(db: Sql) {
         return c.json({ error: 'Internal server error during token refresh' }, 500);
       }
     }
-  );
-
-  // ============================================================================
-  // GITLAB OAUTH
-  // ============================================================================
-
-  /**
-   * Initiate GitLab OAuth flow
-   * GET /oauth/gitlab/authorize
-   * GitLab OAuth docs: https://docs.gitlab.com/ee/api/oauth2.html
-   */
-  app.get('/gitlab/authorize', async (c) => {
-    const gitlabHost = process.env.GITLAB_ROOT_OAUTH_HOST || 'https://gitlab.com';
-    const clientId = process.env.GITLAB_OAUTH_CLIENT_ID;
-    const redirectUri = process.env.GITLAB_OAUTH_REDIRECT_URI;
-
-    if (!clientId || !redirectUri) {
+  ).get('/gitlab/authorize', async (c) => {
+    if (!GITLAB_OAUTH_CLIENT_ID || !GITLAB_OAUTH_REDIRECT_URI) {
       return c.json({ error: 'GitLab OAuth not configured. Missing CLIENT_ID or REDIRECT_URI.' }, 500);
     }
 
@@ -328,26 +235,20 @@ export function createOAuthRoutes(db: Sql) {
     // Use only 'api' scope which covers all API access including repositories and user info
     const scopes = 'api';
 
-    const authUrl = new URL(`${gitlabHost}/oauth/authorize`);
-    authUrl.searchParams.set('client_id', clientId);
-    authUrl.searchParams.set('redirect_uri', redirectUri);
+    const authUrl = new URL(`${GITLAB_ROOT_OAUTH_HOST}/oauth/authorize`);
+    authUrl.searchParams.set('client_id', GITLAB_OAUTH_CLIENT_ID);
+    authUrl.searchParams.set('redirect_uri', GITLAB_OAUTH_REDIRECT_URI);
     authUrl.searchParams.set('response_type', 'code');
     authUrl.searchParams.set('state', state);
     authUrl.searchParams.set('scope', scopes);
 
-    logger.info('Initiating GitLab OAuth flow', { clientId, gitlabHost, state, redirectUri });
+    logger.info('Initiating GitLab OAuth flow', { clientId: GITLAB_OAUTH_CLIENT_ID, gitlabHost: GITLAB_ROOT_OAUTH_HOST, state, redirectUri: GITLAB_OAUTH_REDIRECT_URI });
 
     return c.json({
       authUrl: authUrl.toString(),
       state,
     });
-  });
-
-  /**
-   * Exchange GitLab authorization code for tokens
-   * POST /oauth/gitlab/exchange
-   */
-  app.post(
+  }).post(
     '/gitlab/exchange',
     zValidator('json', z.object({
       projectId: z.string().uuid(),
@@ -356,19 +257,13 @@ export function createOAuthRoutes(db: Sql) {
       gitlabHost: z.string().url().optional(),
     })),
     async (c) => {
-      const userId = getClerkUserId(c);
-      if (!userId) {
-        return c.json({ error: 'Unauthorized' }, 401);
-      }
+      const userId = await reqAuthed(c);
 
       const { projectId, code, secretName, gitlabHost } = c.req.valid('json');
 
-      const host = gitlabHost || process.env.GITLAB_ROOT_OAUTH_HOST || 'https://gitlab.com';
-      const clientId = process.env.GITLAB_OAUTH_CLIENT_ID;
-      const clientSecret = process.env.GITLAB_OAUTH_CLIENT_SECRET;
-      const redirectUri = process.env.GITLAB_OAUTH_REDIRECT_URI;
+      const host = gitlabHost || GITLAB_ROOT_OAUTH_HOST;
 
-      if (!clientId || !clientSecret || !redirectUri) {
+      if (!GITLAB_OAUTH_CLIENT_ID || !GITLAB_OAUTH_CLIENT_SECRET || !GITLAB_OAUTH_REDIRECT_URI) {
         logger.error('GitLab OAuth not configured');
         return c.json({ error: 'GitLab OAuth is not configured on the server' }, 500);
       }
@@ -382,11 +277,11 @@ export function createOAuthRoutes(db: Sql) {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            client_id: clientId,
-            client_secret: clientSecret,
+            client_id: GITLAB_OAUTH_CLIENT_ID,
+            client_secret: GITLAB_OAUTH_CLIENT_SECRET,
             code,
             grant_type: 'authorization_code',
-            redirect_uri: redirectUri,
+            redirect_uri: GITLAB_OAUTH_REDIRECT_URI,
           }),
         });
 
@@ -417,45 +312,24 @@ export function createOAuthRoutes(db: Sql) {
         const userData = await userResponse.json() as any;
         logger.info('GitLab OAuth successful', { username: userData.username, host });
 
-        // Check if secret already exists
-        const existingSecretResult = await secretQueries.findSecretByProjectAndName(db, projectId, secretName);
+        // Upsert secret (create or update)
+        const secretResult = await secretQueries.upsertSecret(db, {
+          project_id: projectId,
+          name: secretName,
+          value: access_token,
+          description: `GitLab OAuth token for ${userData.username} (auto-managed)`,
+          oauth_provider: 'gitlab',
+          token_type: 'oauth',
+          refresh_token,
+          expires_at: expiresAt,
+          scopes: scope,
+        });
 
-        let secretResult;
-        if (existingSecretResult.ok) {
-          // Update existing secret
-          logger.info('Updating existing GitLab OAuth secret', { secretId: existingSecretResult.data.id });
-          secretResult = await secretQueries.updateSecret(db, existingSecretResult.data.id, {
-            value: access_token,
-            description: `GitLab OAuth token for ${userData.username} (auto-managed)`,
-            refresh_token,
-            expires_at: expiresAt,
-            scopes: scope,
-          });
-        } else {
-          // Create new secret
-          secretResult = await secretQueries.createSecret(db, {
-            project_id: projectId,
-            name: secretName,
-            value: access_token,
-            description: `GitLab OAuth token for ${userData.username} (auto-managed)`,
-            oauth_provider: 'gitlab',
-            token_type: 'oauth',
-            refresh_token,
-            expires_at: expiresAt,
-            scopes: scope,
-          });
-        }
-
-        if (!secretResult.ok) {
-          logger.error('Failed to store GitLab OAuth secret', { error: secretResult.error });
-          return c.json({ error: 'Failed to store OAuth token' }, 500);
-        }
-
-        logger.info('Successfully stored GitLab OAuth token', { secretId: secretResult.data.id });
+        logger.info('Successfully stored GitLab OAuth token', { secretId: secretResult.id });
 
         return c.json({
           success: true,
-          secretId: secretResult.data.id,
+          secretId: secretResult.id,
           expiresAt: expiresAt,
           user: {
             username: userData.username,
@@ -468,39 +342,21 @@ export function createOAuthRoutes(db: Sql) {
         return c.json({ error: 'Internal server error during token exchange' }, 500);
       }
     }
-  );
-
-  /**
-   * Refresh GitLab OAuth token
-   * POST /oauth/gitlab/refresh/:secretId
-   */
-  app.post(
+  ).post(
     '/gitlab/refresh/:secretId',
     zValidator('param', z.object({ secretId: z.string().uuid() })),
     async (c) => {
-      const userId = getClerkUserId(c);
-      if (!userId) {
-        return c.json({ error: 'Unauthorized' }, 401);
-      }
+      const userId = await reqAuthed(c);
 
       const { secretId } = c.req.valid('param');
 
-      const clientId = process.env.GITLAB_OAUTH_CLIENT_ID;
-      const clientSecret = process.env.GITLAB_OAUTH_CLIENT_SECRET;
-      const gitlabHost = process.env.GITLAB_ROOT_OAUTH_HOST || 'https://gitlab.com';
-
-      if (!clientId || !clientSecret) {
+      if (!GITLAB_OAUTH_CLIENT_ID || !GITLAB_OAUTH_CLIENT_SECRET) {
         logger.error('GitLab OAuth not configured');
         return c.json({ error: 'GitLab OAuth is not configured' }, 500);
       }
 
       try {
-        const secretResult = await secretQueries.findSecretById(db, secretId);
-        if (!secretResult.ok) {
-          return c.json({ error: 'Secret not found' }, 404);
-        }
-
-        const secret = secretResult.data;
+        const secret = await secretQueries.findSecretById(db, secretId);
 
         if (secret.token_type !== 'oauth' || secret.oauth_provider !== 'gitlab') {
           return c.json({ error: 'Secret is not a GitLab OAuth token' }, 400);
@@ -511,15 +367,15 @@ export function createOAuthRoutes(db: Sql) {
         }
 
         // Refresh the token
-        const tokenUrl = `${gitlabHost}/oauth/token`;
+        const tokenUrl = `${GITLAB_ROOT_OAUTH_HOST}/oauth/token`;
         const tokenResponse = await fetch(tokenUrl, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            client_id: clientId,
-            client_secret: clientSecret,
+            client_id: GITLAB_OAUTH_CLIENT_ID,
+            client_secret: GITLAB_OAUTH_CLIENT_SECRET,
             refresh_token: secret.refresh_token,
             grant_type: 'refresh_token',
           }),
@@ -537,17 +393,12 @@ export function createOAuthRoutes(db: Sql) {
         const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString();
 
         // Update secret
-        const updateResult = await secretQueries.updateSecret(db, secretId, {
+        await secretQueries.updateSecret(db, secretId, {
           value: access_token,
           refresh_token: refresh_token || secret.refresh_token,
           expires_at: expiresAt,
           scopes: scope || secret.scopes,
         });
-
-        if (!updateResult.ok) {
-          logger.error('Failed to update secret with refreshed token', { error: updateResult.error });
-          return c.json({ error: 'Failed to update secret' }, 500);
-        }
 
         logger.info('Successfully refreshed GitLab OAuth token', { secretId });
 
@@ -561,6 +412,4 @@ export function createOAuthRoutes(db: Sql) {
       }
     }
   );
-
-  return app;
 }

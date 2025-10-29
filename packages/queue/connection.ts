@@ -11,7 +11,7 @@ import {
   TASK_IMPL_DLQ_CONFIG,
   TASK_IMPL_DLX
 } from './queues'
-import {singleton} from "@utils/singleton.ts";
+import {singleton} from "@utils/singleton";
 
 const logger = createLogger({ namespace: 'rabbitmq' });
 

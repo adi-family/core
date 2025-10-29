@@ -6,8 +6,10 @@ import { createLogger } from '@utils/logger.ts'
 import { syncTaskSource } from '../services/orchestrator'
 import { idParamSchema, createTaskSourceSchema, updateTaskSourceSchema, projectIdQuerySchema } from '../schemas'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
-import { getClerkUserId } from '../middleware/clerk'
+import { reqAuthed } from '../middleware/authz'
 import * as userAccessQueries from '../../db/user-access'
+import { getProjectOwnerId } from '../../db/user-access'
+import { selectAIProviderForEvaluation, QuotaExceededError } from '../services/ai-provider-selector'
 
 const logger = createLogger({ namespace: 'task-sources' })
 
@@ -17,11 +19,7 @@ export const createTaskSourceRoutes = (sql: Sql) => {
   return new Hono()
     .get('/', zValidator('query', projectIdQuerySchema), async (c) => {
       const { project_id } = c.req.valid('query')
-      const userId = getClerkUserId(c)
-
-      if (!userId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
+      const userId = await reqAuthed(c)
 
       if (project_id) {
         const hasAccess = await acl.project(project_id).viewer.gte.check(c)
@@ -51,17 +49,13 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.findTaskSourceById(sql, id)
+      const taskSource = await queries.findTaskSourceById(sql, id)
 
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      return c.json(taskSource)
     })
     .post('/', zValidator('json', createTaskSourceSchema), async (c) => {
       const body = c.req.valid('json')
-      const userId = getClerkUserId(c)
+      const userId = await reqAuthed(c)
 
       try {
         // Require developer access to project
@@ -76,15 +70,13 @@ export const createTaskSourceRoutes = (sql: Sql) => {
       const taskSource = await queries.createTaskSource(sql, body as import('../../types').CreateTaskSourceInput)
 
       // Grant write access to creator
-      if (userId) {
-        await userAccessQueries.grantAccess(sql, {
-          user_id: userId,
-          entity_type: 'task_source',
-          entity_id: taskSource.id,
-          role: 'write',
-          granted_by: userId,
-        })
-      }
+      await userAccessQueries.grantAccess(sql, {
+        user_id: userId,
+        entity_type: 'task_source',
+        entity_id: taskSource.id,
+        role: 'write',
+        granted_by: userId,
+      })
 
       // Automatically trigger initial sync for newly created task source
       // Sync will fetch issues and auto-queue evaluations for new tasks
@@ -94,7 +86,6 @@ export const createTaskSourceRoutes = (sql: Sql) => {
       let syncMessage: string | undefined
 
       try {
-        const { getProjectOwnerId } = await import('../../db/user-access')
         const ownerId = await getProjectOwnerId(sql, taskSource.project_id)
 
         if (!ownerId) {
@@ -102,7 +93,6 @@ export const createTaskSourceRoutes = (sql: Sql) => {
           logger.warn(`No project owner found for task source ${taskSource.id}, skipping automatic sync`)
         } else {
           // Check quota before syncing (sync auto-queues evaluations)
-          const { selectAIProviderForEvaluation, QuotaExceededError } = await import('../services/ai-provider-selector')
           try {
             await selectAIProviderForEvaluation(sql, ownerId, taskSource.project_id, 'simple')
 
@@ -156,13 +146,9 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.updateTaskSource(sql, id, body as import('../../types').UpdateTaskSourceInput)
+      const taskSource = await queries.updateTaskSource(sql, id, body as import('../../types').UpdateTaskSourceInput)
 
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      return c.json(taskSource)
     })
     .delete('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
@@ -177,11 +163,7 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.deleteTaskSource(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
+      await queries.deleteTaskSource(sql, id)
 
       return c.json({ success: true })
     })
@@ -198,16 +180,9 @@ export const createTaskSourceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.findTaskSourceById(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      const taskSource = result.data
+      const taskSource = await queries.findTaskSourceById(sql, id)
 
       // Check quota before syncing (sync automatically queues evaluations for new tasks)
-      const { getProjectOwnerId } = await import('../../db/user-access')
       const userId = await getProjectOwnerId(sql, taskSource.project_id)
 
       if (!userId) {
@@ -216,7 +191,6 @@ export const createTaskSourceRoutes = (sql: Sql) => {
 
       // Check if user has quota available for simple evaluation
       // Sync will auto-queue evaluations for new tasks, so we verify quota exists
-      const { selectAIProviderForEvaluation, QuotaExceededError } = await import('../services/ai-provider-selector')
       try {
         await selectAIProviderForEvaluation(sql, userId, taskSource.project_id, 'simple')
       } catch (error) {

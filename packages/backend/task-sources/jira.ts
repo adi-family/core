@@ -1,8 +1,9 @@
 import {BaseTaskSource} from './base';
 import {createLogger} from '@utils/logger.ts';
 import {sql} from '@db/client.ts';
-import {findSecretById} from '@db/secrets.ts';
+import {findSecretById, updateSecret} from '@db/secrets.ts';
 import type {JiraMetadata, TaskSource, TaskSourceIssue, TaskSourceJiraConfig} from "@types";
+import { JIRA_OAUTH_CLIENT_ID, JIRA_OAUTH_CLIENT_SECRET } from '@backend/config';
 
 interface JiraSearchResponse {
   total?: number;
@@ -98,13 +99,7 @@ export class JiraTaskSource extends BaseTaskSource {
       throw new Error('Access token secret ID is required for Jira integration');
     }
 
-    const secretResult = await findSecretById(sql, this.jiraConfig.access_token_secret_id);
-    if (!secretResult.ok) {
-      this.logger.error('Failed to retrieve access token secret');
-      throw new Error('Failed to retrieve access token secret');
-    }
-
-    const secret = secretResult.data;
+    const secret = await findSecretById(sql, this.jiraConfig.access_token_secret_id);
     let accessToken = secret.value;
 
     // Check if OAuth token is expired and refresh if needed
@@ -123,8 +118,8 @@ export class JiraTaskSource extends BaseTaskSource {
         }
 
         // Refresh the token
-        const clientId = process.env.JIRA_OAUTH_CLIENT_ID;
-        const clientSecret = process.env.JIRA_OAUTH_CLIENT_SECRET;
+        const clientId = JIRA_OAUTH_CLIENT_ID;
+        const clientSecret = JIRA_OAUTH_CLIENT_SECRET;
 
         if (!clientId || !clientSecret) {
           throw new Error('Jira OAuth not configured - cannot refresh token');
@@ -160,17 +155,11 @@ export class JiraTaskSource extends BaseTaskSource {
         const newExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
 
         // Update the secret in the database
-        const {updateSecret} = await import('@db/secrets.ts');
-        const updateResult = await updateSecret(sql, secret.id, {
+        await updateSecret(sql, secret.id, {
           value: newAccessToken,
           refresh_token: newRefreshToken,
           expires_at: newExpiresAt,
         });
-
-        if (!updateResult.ok) {
-          this.logger.error('Failed to update refreshed token', { error: updateResult.error });
-          throw new Error('Failed to save refreshed OAuth token');
-        }
 
         this.logger.info('Successfully refreshed OAuth token', {
           newExpiresAt,

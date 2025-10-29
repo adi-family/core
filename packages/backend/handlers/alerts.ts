@@ -2,16 +2,12 @@ import { Hono } from 'hono'
 import type { Sql } from 'postgres'
 import * as userAccessQueries from '../../db/user-access'
 import * as projectQueries from '../../db/projects'
-import { getClerkUserId } from '../middleware/clerk'
+import { reqAuthed } from '../middleware/authz'
 
 export const createAlertRoutes = (sql: Sql) => {
   return new Hono()
     .get('/', async (c) => {
-      const userId = getClerkUserId(c)
-
-      if (!userId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
+      const userId = await reqAuthed(c)
 
       const alerts: Array<{
         type: 'missing_api_keys'
@@ -34,19 +30,14 @@ export const createAlertRoutes = (sql: Sql) => {
         const projectsWithMissingKeys: Array<{ id: string; name: string; missingProviders: string[] }> = []
 
         for (const projectId of accessibleProjectIds) {
-          // Get project details
-          const projectResult = await projectQueries.findProjectById(sql, projectId)
-          if (!projectResult.ok) {
+          let project
+          try {
+            project = await projectQueries.findProjectById(sql, projectId)
+          } catch {
             continue
           }
 
-          const aiProvidersResult = await projectQueries.getProjectAIProviderConfigs(sql, projectId)
-
-          if (!aiProvidersResult.ok) {
-            continue
-          }
-
-          const configs = aiProvidersResult.data
+          const configs = await projectQueries.getProjectAIProviderConfigs(sql, projectId)
 
           // Check for missing providers
           const providers = ['anthropic', 'openai', 'google'] as const
@@ -71,13 +62,12 @@ export const createAlertRoutes = (sql: Sql) => {
           if (missingForThisProject.length > 0) {
             projectsWithMissingKeys.push({
               id: projectId,
-              name: projectResult.data.name,
+              name: project.name,
               missingProviders: missingForThisProject,
             })
           }
         }
 
-        // Only show projects that are missing ALL API keys
         const projectsMissingAllKeys = projectsWithMissingKeys.filter(
           project => project.missingProviders.length === 3
         )

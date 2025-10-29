@@ -21,6 +21,12 @@ export interface TaskOpsConfig {
   stuckEvalTimeoutMinutes: number
 }
 
+// ============================================================================
+// Database Configuration
+// ============================================================================
+
+export const DATABASE_URL = process.env.DATABASE_URL || ''
+
 /**
  * Load configuration from environment variables with defaults
  */

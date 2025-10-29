@@ -8,6 +8,8 @@ import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger.ts'
 import { syncTaskSource } from '../services/orchestrator'
 import * as taskSourceQueries from '../../db/task-sources'
+import crypto from 'crypto'
+import { GITLAB_WEBHOOK_SECRET, GITHUB_WEBHOOK_SECRET } from '../config'
 
 const logger = createLogger({ namespace: 'webhooks' })
 
@@ -25,8 +27,7 @@ export const createWebhookRoutes = (sql: Sql) => {
       logger.info(`Received GitLab webhook: ${event}`)
 
       // Verify webhook token if configured
-      const webhookSecret = process.env.GITLAB_WEBHOOK_SECRET
-      if (webhookSecret && token !== webhookSecret) {
+      if (GITLAB_WEBHOOK_SECRET && token !== GITLAB_WEBHOOK_SECRET) {
         logger.warn('Invalid GitLab webhook token')
         return c.json({ error: 'Unauthorized' }, 401)
       }
@@ -161,11 +162,9 @@ export const createWebhookRoutes = (sql: Sql) => {
       logger.info(`Received GitHub webhook: ${event}`)
 
       // Verify webhook signature if GITHUB_WEBHOOK_SECRET is configured
-      const webhookSecret = process.env.GITHUB_WEBHOOK_SECRET
-      if (webhookSecret && signature) {
-        const crypto = await import('crypto')
+      if (GITHUB_WEBHOOK_SECRET && signature) {
         const body = await c.req.text()
-        const hmac = crypto.createHmac('sha256', webhookSecret)
+        const hmac = crypto.createHmac('sha256', GITHUB_WEBHOOK_SECRET)
         const digest = 'sha256=' + hmac.update(body).digest('hex')
 
         if (signature !== digest) {
@@ -177,7 +176,7 @@ export const createWebhookRoutes = (sql: Sql) => {
         // Re-parse JSON since we consumed the body for signature verification
         const payload = JSON.parse(body)
         c.req.bodyCache.json = payload
-      } else if (webhookSecret && !signature) {
+      } else if (GITHUB_WEBHOOK_SECRET && !signature) {
         logger.warn('GitHub webhook secret configured but no signature provided')
         return c.json({ error: 'Signature required' }, 401)
       }

@@ -6,13 +6,15 @@ import * as secretQueries from '../../db/secrets'
 import * as userAccessQueries from '../../db/user-access'
 import * as workerRepoQueries from '../../db/worker-repositories'
 import { idParamSchema, createProjectSchema, updateProjectSchema, setJobExecutorSchema, setAIProviderEnterpriseConfigSchema, idAndProviderParamSchema } from '../schemas'
-import { getClerkUserId, requireClerkAuth } from '../middleware/clerk'
+import { requireClerkAuth } from '../middleware/clerk'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
 import { validateGitLabToken } from '../services/gitlab-executor-verifier'
 import * as secretsService from '../services/secrets'
 import * as aiProviderValidator from '../services/ai-provider-validator'
 import { CIRepositoryManager } from '@worker/ci-repository-manager'
 import { createLogger } from '@utils/logger'
+import { reqAuthed } from '@backend/middleware/authz'
+import { GITLAB_HOST, GITLAB_TOKEN, GITLAB_USER, ENCRYPTION_KEY } from '../config'
 
 const logger = createLogger({ namespace: 'projects-handler' })
 
@@ -21,12 +23,7 @@ export const createProjectRoutes = (sql: Sql) => {
 
   return new Hono()
     .get('/', async (c) => {
-      const userId = getClerkUserId(c)
-
-      if (!userId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
-
+      const userId = await reqAuthed(c);
       const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
       const allProjects = await queries.findAllProjects(sql)
       const filtered = allProjects.filter(p => accessibleProjectIds.includes(p.id))
@@ -35,23 +32,11 @@ export const createProjectRoutes = (sql: Sql) => {
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      try {
-        // Require viewer access
-        await acl.project(id).viewer.gte.throw(c)
-      } catch (error) {
-        if (error instanceof AccessDeniedError) {
-          return c.json({ error: error.message }, error.statusCode as 401 | 403)
-        }
-        throw error
-      }
+      await acl.project(id).viewer.gte.throw(c)
 
-      const result = await queries.findProjectById(sql, id)
+      const project = await queries.findProjectById(sql, id)
 
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      return c.json(project)
     })
     .get('/:id/stats', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
@@ -71,69 +56,67 @@ export const createProjectRoutes = (sql: Sql) => {
     })
     .post('/', zValidator('json', createProjectSchema), requireClerkAuth(), async (c) => {
       const body = c.req.valid('json')
-      const userId = getClerkUserId(c)
+      const userId = await reqAuthed(c)
 
       const project = await queries.createProject(sql, body)
 
       // Grant owner access to creator
-      if (userId) {
-        await userAccessQueries.grantAccess(sql, {
-          user_id: userId,
-          entity_type: 'project',
-          entity_id: project.id,
-          role: 'owner',
-          granted_by: userId,
-        })
-      }
+      await userAccessQueries.grantAccess(sql, {
+        user_id: userId,
+        entity_type: 'project',
+        entity_id: project.id,
+        role: 'owner',
+        granted_by: userId,
+      })
 
       // Automatically create worker repository if GitLab credentials are available
-      const requiredEnv = ['GITLAB_HOST', 'GITLAB_TOKEN', 'GITLAB_USER', 'ENCRYPTION_KEY']
-      const missingEnv = requiredEnv.filter((key) => !process.env[key])
-
-      if (missingEnv.length === 0) {
+      if (GITLAB_HOST && GITLAB_TOKEN && GITLAB_USER && ENCRYPTION_KEY) {
         try {
           logger.info(`🔧 Auto-creating worker repository for project: ${project.name}`)
 
           // Check if worker repository already exists
-          const existingRepo = await workerRepoQueries.findWorkerRepositoryByProjectId(sql, project.id)
+          try {
+            await workerRepoQueries.findWorkerRepositoryByProjectId(sql, project.id)
+            logger.info(`Worker repository already exists for project ${project.id}`)
+          } catch (error) {
+            if (error instanceof Error && error.constructor.name === 'NotFoundException') {
+              // Create worker repository in GitLab
+              const manager = new CIRepositoryManager()
+              const version = '2025-10-18-01'
+              // Use project ID suffix to ensure uniqueness (first 8 chars of UUID)
+              const projectIdShort = project.id.split('-')[0]
+              const customPath = `adi-worker-${project.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-${projectIdShort}`
 
-          if (!existingRepo.ok) {
-            // Create worker repository in GitLab
-            const manager = new CIRepositoryManager()
-            const version = '2025-10-18-01'
-            // Use project ID suffix to ensure uniqueness (first 8 chars of UUID)
-            const projectIdShort = project.id.split('-')[0]
-            const customPath = `adi-worker-${project.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-${projectIdShort}`
+              const source = await manager.createWorkerRepository({
+                projectName: project.name,
+                sourceType: 'gitlab',
+                host: GITLAB_HOST,
+                accessToken: GITLAB_TOKEN,
+                user: GITLAB_USER,
+                customPath,
+              })
 
-            const source = await manager.createWorkerRepository({
-              projectName: project.name,
-              sourceType: 'gitlab',
-              host: process.env.GITLAB_HOST!,
-              accessToken: process.env.GITLAB_TOKEN!,
-              user: process.env.GITLAB_USER!,
-              customPath,
-            })
+              logger.info(`✓ Created GitLab repository: ${source.project_path}`)
 
-            logger.info(`✓ Created GitLab repository: ${source.project_path}`)
+              // Upload CI files
+              await manager.uploadCIFiles({
+                source,
+                version,
+              })
 
-            // Upload CI files
-            await manager.uploadCIFiles({
-              source,
-              version,
-            })
+              logger.info(`✓ Uploaded CI files (version: ${version})`)
 
-            logger.info(`✓ Uploaded CI files (version: ${version})`)
+              // Save to database
+              await workerRepoQueries.createWorkerRepository(sql, {
+                project_id: project.id,
+                source_gitlab: source as unknown,
+                current_version: version,
+              })
 
-            // Save to database
-            await workerRepoQueries.createWorkerRepository(sql, {
-              project_id: project.id,
-              source_gitlab: source as unknown,
-              current_version: version,
-            })
-
-            logger.info(`✅ Worker repository auto-created for project ${project.id}`)
-          } else {
-            logger.info(`✓ Worker repository already exists for project ${project.id}`)
+              logger.info(`✅ Worker repository auto-created for project ${project.id}`)
+            } else {
+              throw error
+            }
           }
         } catch (error) {
           // Log the error but don't fail project creation
@@ -141,7 +124,12 @@ export const createProjectRoutes = (sql: Sql) => {
           // Continue without failing - user can manually set up worker repo later
         }
       } else {
-        logger.warn(`⚠️  Skipping worker repository auto-creation - missing env vars: ${missingEnv.join(', ')}`)
+        const missing = []
+        if (!GITLAB_HOST) missing.push('GITLAB_HOST')
+        if (!GITLAB_TOKEN) missing.push('GITLAB_TOKEN')
+        if (!GITLAB_USER) missing.push('GITLAB_USER')
+        if (!ENCRYPTION_KEY) missing.push('ENCRYPTION_KEY')
+        logger.warn(`⚠️  Skipping worker repository auto-creation - missing env vars: ${missing.join(', ')}`)
       }
 
       return c.json(project, 201)
@@ -160,13 +148,9 @@ export const createProjectRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.updateProject(sql, id, body)
+      const project = await queries.updateProject(sql, id, body)
 
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      return c.json(project)
     })
     .delete('/:id', zValidator('param', idParamSchema), requireClerkAuth(), async (c) => {
       const { id } = c.req.valid('param')
@@ -181,11 +165,7 @@ export const createProjectRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.deleteProject(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
+      await queries.deleteProject(sql, id)
 
       return c.json({ success: true })
     })
@@ -202,18 +182,14 @@ export const createProjectRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.getProjectJobExecutor(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
+      const config = await queries.getProjectJobExecutor(sql, id)
 
       // Return config with masked token
-      if (result.data) {
+      if (config) {
         return c.json({
-          host: result.data.host,
-          user: result.data.user,
-          verified_at: result.data.verified_at,
+          host: config.host,
+          user: config.user,
+          verified_at: config.verified_at,
           access_token: '***masked***'
         })
       }
@@ -238,10 +214,7 @@ export const createProjectRoutes = (sql: Sql) => {
 
       if (access_token_secret_id) {
         // Use existing secret
-        const secretResult = await secretQueries.findSecretById(sql, access_token_secret_id)
-        if (!secretResult.ok) {
-          return c.json({ error: 'Secret not found' }, 404)
-        }
+        await secretQueries.findSecretById(sql, access_token_secret_id)
         secretId = access_token_secret_id
       } else if (access_token) {
         // Upsert encrypted secret from raw token
@@ -277,11 +250,7 @@ export const createProjectRoutes = (sql: Sql) => {
         user: validationResult.username
       }
 
-      const result = await queries.setProjectJobExecutor(sql, id, executorConfig)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 500)
-      }
+      await queries.setProjectJobExecutor(sql, id, executorConfig)
 
       return c.json({
         host: executorConfig.host,
@@ -304,17 +273,13 @@ export const createProjectRoutes = (sql: Sql) => {
 
       // Get existing config to delete secret
       const existingConfig = await queries.getProjectJobExecutor(sql, id)
-      if (existingConfig.ok && existingConfig.data) {
+      if (existingConfig) {
         // Delete the secret
-        await secretQueries.deleteSecret(sql, existingConfig.data.access_token_secret_id)
+        await secretQueries.deleteSecret(sql, existingConfig.access_token_secret_id)
       }
 
       // Remove executor config
-      const result = await queries.removeProjectJobExecutor(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
+      await queries.removeProjectJobExecutor(sql, id)
 
       return c.json({ success: true })
     })
@@ -330,13 +295,9 @@ export const createProjectRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.getProjectAIProviderConfigs(sql, id)
+      const configs = await queries.getProjectAIProviderConfigs(sql, id)
 
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      if (!result.data) {
+      if (!configs) {
         return c.json({
           anthropic: null,
           openai: null,
@@ -345,9 +306,9 @@ export const createProjectRoutes = (sql: Sql) => {
       }
 
       return c.json({
-        anthropic: result.data.anthropic || null,
-        openai: result.data.openai || null,
-        google: result.data.google || null
+        anthropic: configs.anthropic || null,
+        openai: configs.openai || null,
+        google: configs.google || null
       })
     })
     .put('/:id/ai-providers/:provider', zValidator('param', idAndProviderParamSchema), zValidator('json', setAIProviderEnterpriseConfigSchema), requireClerkAuth(), async (c) => {
@@ -370,10 +331,7 @@ export const createProjectRoutes = (sql: Sql) => {
       const configWithSecretId = config as any
 
       if (configWithSecretId.api_key_secret_id) {
-        const secretResult = await secretQueries.findSecretById(sql, configWithSecretId.api_key_secret_id)
-        if (!secretResult.ok) {
-          return c.json({ error: 'Secret not found' }, 404)
-        }
+        await secretQueries.findSecretById(sql, configWithSecretId.api_key_secret_id)
         secretId = configWithSecretId.api_key_secret_id
       } else if (configWithSecretId.api_key) {
         // Upsert secret (insert or update if exists)
@@ -395,11 +353,7 @@ export const createProjectRoutes = (sql: Sql) => {
       }
       delete (finalConfig as any).api_key
 
-      const result = await queries.setProjectAIProviderConfig(sql, id, provider, finalConfig as any)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 500)
-      }
+      await queries.setProjectAIProviderConfig(sql, id, provider, finalConfig as any)
 
       return c.json({
         provider,
@@ -421,18 +375,14 @@ export const createProjectRoutes = (sql: Sql) => {
       }
 
       const providerConfig = await queries.getProjectAIProviderConfig(sql, id, provider)
-      if (providerConfig.ok && providerConfig.data) {
-        const secretId = providerConfig.data.api_key_secret_id
+      if (providerConfig) {
+        const secretId = providerConfig.api_key_secret_id
         if (secretId) {
           await secretQueries.deleteSecret(sql, secretId)
         }
       }
 
-      const result = await queries.removeProjectAIProviderConfig(sql, id, provider)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
+      await queries.removeProjectAIProviderConfig(sql, id, provider)
 
       return c.json({ success: true })
     })
@@ -476,4 +426,3 @@ export const createProjectRoutes = (sql: Sql) => {
       return c.json(validationResult)
     })
 }
-

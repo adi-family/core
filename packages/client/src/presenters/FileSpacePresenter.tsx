@@ -3,6 +3,7 @@ import { navigateTo } from '@/utils/navigation'
 import type { FileSpace } from '@types'
 import { Badge } from '@adi-simple/ui/badge'
 import { FolderGit2, CheckCircle2, XCircle } from 'lucide-react'
+import { client } from '@/lib/client'
 
 /**
  * Presenter for FileSpace model
@@ -101,7 +102,6 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
       {
         label: this.model.enabled ? 'Disable' : 'Enable',
         onClick: async (fileSpace: FileSpace) => {
-          const { client } = await import('@/lib/client')
           const res = await client["file-spaces"][":id"].$patch({
             param: { id: fileSpace.id },
             json: {
@@ -119,7 +119,6 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
       this.getDeleteAction(
         (fileSpace) => `Are you sure you want to delete "${fileSpace.name}"?`,
         async (fileSpace) => {
-          const { client } = await import('@/lib/client')
           const res = await client["file-spaces"][":id"].$delete({
             param: { id: fileSpace.id }
           })

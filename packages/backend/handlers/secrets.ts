@@ -4,10 +4,13 @@ import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/secrets'
 import { z } from 'zod'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
-import { getClerkUserId, requireClerkAuth } from '../middleware/clerk'
+import { reqAuthed } from '../middleware/authz'
+import { requireClerkAuth } from '../middleware/clerk'
 import * as userAccessQueries from '../../db/user-access'
 import * as secretsService from '../services/secrets'
 import { validateGitLabToken } from '../services/gitlab-executor-verifier'
+import { GitLabApiClient } from '@shared/gitlab-api-client'
+import { createLogger } from '@utils/logger'
 
 const idParamSchema = z.object({
   id: z.string()
@@ -63,11 +66,7 @@ export const createSecretRoutes = (sql: Sql) => {
 
   return new Hono()
     .get('/', async (c) => {
-      const userId = getClerkUserId(c)
-
-      if (!userId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
+      const userId = await reqAuthed(c)
 
       const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
       const allSecrets = await queries.findAllSecrets(sql)
@@ -105,13 +104,9 @@ export const createSecretRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.findSecretById(sql, id)
+      const secret = await queries.findSecretById(sql, id)
 
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      const sanitized = secretsService.sanitizeSecretForResponse(result.data)
+      const sanitized = secretsService.sanitizeSecretForResponse(secret)
       return c.json(sanitized)
     })
     .get('/:id/value', zValidator('param', idParamSchema), async (c) => {
@@ -127,24 +122,20 @@ export const createSecretRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.findSecretById(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
+      const secret = await queries.findSecretById(sql, id)
 
       // Return full secret data with decrypted value (for backend services)
       const decryptedValue = await secretsService.getDecryptedSecretValue(sql, id)
 
       return c.json({
-        ...result.data,
+        ...secret,
         value: decryptedValue,
         encrypted_value: undefined // Don't expose encrypted value
       })
     })
     .post('/', zValidator('json', createSecretSchema), requireClerkAuth(), async (c) => {
       const body = c.req.valid('json')
-      const userId = getClerkUserId(c)
+      const userId = await reqAuthed(c)
 
       try {
         // Require developer access to project to create secrets
@@ -208,19 +199,12 @@ export const createSecretRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.deleteSecret(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
+      await queries.deleteSecret(sql, id)
 
       return c.json({ success: true })
     })
     .post('/validate-gitlab-raw-token', zValidator('json', validateGitLabRawTokenSchema), requireClerkAuth(), async (c) => {
       const { token, scopes, hostname } = c.req.valid('json')
-
-      const { GitLabApiClient } = await import('@shared/gitlab-api-client')
-      const { createLogger } = await import('@utils/logger')
       const logger = createLogger({ namespace: 'gitlab-token-validation' })
 
       try {
@@ -354,12 +338,7 @@ export const createSecretRoutes = (sql: Sql) => {
       }
 
       // Fetch secret metadata to determine token type
-      const secretResult = await queries.findSecretById(sql, secretId)
-      if (!secretResult.ok) {
-        return c.json({ error: 'Secret not found' }, 404)
-      }
-
-      const secret = secretResult.data
+      const secret = await queries.findSecretById(sql, secretId)
 
       // Get decrypted token
       const token = await secretsService.getDecryptedSecretValue(sql, secretId)
@@ -403,8 +382,6 @@ export const createSecretRoutes = (sql: Sql) => {
     })
     .post('/validate-jira-raw-token', zValidator('json', validateJiraRawTokenSchema), requireClerkAuth(), async (c) => {
       const { token, email, hostname } = c.req.valid('json')
-
-      const { createLogger } = await import('@utils/logger')
       const logger = createLogger({ namespace: 'jira-token-validation' })
 
       try {
@@ -464,18 +441,11 @@ export const createSecretRoutes = (sql: Sql) => {
         }
         throw error
       }
-
-      const { createLogger } = await import('@utils/logger')
       const logger = createLogger({ namespace: 'jira-token-validation' })
 
       try {
         // Get secret metadata to check if it's OAuth
-        const secretResult = await queries.findSecretById(sql, secretId)
-        if (!secretResult.ok) {
-          return c.json({ valid: false, error: 'Secret not found' }, 404)
-        }
-
-        const secretMeta = secretResult.data
+        const secretMeta = await queries.findSecretById(sql, secretId)
         const isOAuth = secretMeta.token_type === 'oauth' && secretMeta.oauth_provider === 'jira'
 
         // Get decrypted token

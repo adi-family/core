@@ -4,6 +4,8 @@ import { Badge } from '@adi-simple/ui/badge'
 import { GitBranch, CheckCircle2, XCircle, Clock, Loader2, CheckCheck, AlertCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { GithubIcon } from '@/components/icons/GithubIcon'
+import { client } from '@/lib/client'
+import { toast } from 'sonner'
 
 /**
  * Presenter for TaskSource model
@@ -114,8 +116,6 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
       {
         label: 'Sync',
         onClick: async (taskSource: TaskSource) => {
-          const { client } = await import('@/lib/client')
-          const { toast } = await import('sonner')
           try {
             const res = await client['task-sources'][':id']['sync'].$post({
               param: { id: taskSource.id }
@@ -136,8 +136,6 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
         label: 'Delete',
         onClick: async (taskSource: TaskSource) => {
           if (confirm(`Are you sure you want to delete "${taskSource.name}"?`)) {
-            const { client } = await import('@/lib/client')
-            const { toast } = await import('sonner')
             try {
               const res = await client['task-sources'][':id'].$delete({
                 param: { id: taskSource.id }

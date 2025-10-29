@@ -4,10 +4,11 @@ import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/file-spaces'
 import { idParamSchema, createFileSpaceSchema, updateFileSpaceSchema, projectIdQuerySchema } from '../schemas'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
-import { getClerkUserId } from '../middleware/clerk'
+import { reqAuthed } from '../middleware/authz'
 import { isServiceAuthenticated } from '../middleware/service-auth'
 import * as userAccessQueries from '../../db/user-access'
 import { createLogger } from '@utils/logger'
+import { triggerWorkspaceSync } from '../services/workspace-sync'
 
 const logger = createLogger({ namespace: 'file-spaces' })
 
@@ -20,10 +21,11 @@ export const createFileSpaceRoutes = (sql: Sql) => {
 
       // Service authentication (API_TOKEN) bypasses user checks
       const isService = isServiceAuthenticated(c)
-      const userId = getClerkUserId(c)
 
-      if (!userId && !isService) {
-        return c.json({ error: 'Authentication required' }, 401)
+      // Get userId - will throw if not authenticated and not a service call
+      let userId: string | null = null
+      if (!isService) {
+        userId = await reqAuthed(c)
       }
 
       if (project_id) {
@@ -63,29 +65,22 @@ export const createFileSpaceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.findFileSpaceById(sql, id)
+      const fileSpace = await queries.findFileSpaceById(sql, id)
 
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      return c.json(fileSpace)
     })
     .post('/', zValidator('json', createFileSpaceSchema), async (c) => {
       const body = c.req.valid('json')
 
-      // Service authentication (API_TOKEN) bypasses user checks
       const isService = isServiceAuthenticated(c)
-      const userId = getClerkUserId(c)
 
-      if (!userId && !isService) {
-        return c.json({ error: 'Authentication required' }, 401)
+      let userId: string | null = null
+      if (!isService) {
+        userId = await reqAuthed(c)
       }
 
-      // For service calls, skip ACL check. For user calls, check access.
       if (!isService) {
         try {
-          // Require developer access to project
           await acl.project(body.project_id).developer.gte.throw(c)
         } catch (error) {
           if (error instanceof AccessDeniedError) {
@@ -97,7 +92,6 @@ export const createFileSpaceRoutes = (sql: Sql) => {
 
       const fileSpace = await queries.createFileSpace(sql, body)
 
-      // Grant write access to creator (only for user calls)
       if (userId && !isService) {
         await userAccessQueries.grantAccess(sql, {
           user_id: userId,
@@ -108,12 +102,10 @@ export const createFileSpaceRoutes = (sql: Sql) => {
         })
       }
 
-      // Automatically trigger workspace sync to add file space as git submodule
       let syncTriggered = false
       let syncMessage: string | undefined
 
       try {
-        const { triggerWorkspaceSync } = await import('../services/workspace-sync')
         const syncResult = await triggerWorkspaceSync(sql, {
           projectId: fileSpace.project_id
         })
@@ -129,7 +121,6 @@ export const createFileSpaceRoutes = (sql: Sql) => {
       } catch (error) {
         syncMessage = `Workspace sync failed: ${error instanceof Error ? error.message : String(error)}`
         logger.error(`Failed to trigger workspace sync for file space ${fileSpace.id}:`, error)
-        // Don't fail the creation if sync trigger fails
       }
 
       return c.json({
@@ -154,13 +145,9 @@ export const createFileSpaceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.updateFileSpace(sql, id, body as import('../../types').UpdateFileSpaceInput)
+      const fileSpace = await queries.updateFileSpace(sql, id, body as import('../../types').UpdateFileSpaceInput)
 
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      return c.json(fileSpace)
     })
     .delete('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
@@ -175,11 +162,7 @@ export const createFileSpaceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.deleteFileSpace(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
+      await queries.deleteFileSpace(sql, id)
 
       return c.json({ success: true })
     })
@@ -196,19 +179,12 @@ export const createFileSpaceRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.findFileSpaceById(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      const fileSpace = result.data
+      const fileSpace = await queries.findFileSpaceById(sql, id)
 
       // Trigger workspace sync for this file space's project
       logger.info(`Manual workspace sync requested for file space ${id}`)
 
       try {
-        const { triggerWorkspaceSync } = await import('../services/workspace-sync')
         const syncResult = await triggerWorkspaceSync(sql, {
           projectId: fileSpace.project_id
         })

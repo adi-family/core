@@ -14,6 +14,8 @@ import * as syncStateQueries from '@db/task-source-sync-state'
 import {assertNever} from "@utils/assert-never.ts";
 import type {TaskSource, TaskSourceIssue, CreateTaskInput, Task} from "@types";
 import { publishTaskEval } from '@adi/queue/publisher'
+import { getProjectOwnerId } from '@db/user-access'
+import { selectAIProviderForEvaluation, QuotaExceededError } from '@backend/services/ai-provider-selector'
 
 const logger = createLogger({ namespace: 'daemon-task-sync' })
 
@@ -117,11 +119,9 @@ export async function syncTaskSource(
             if (task.ai_evaluation_status === 'pending') {
               try {
                 // Check quota before auto-queueing evaluation
-                const { getProjectOwnerId } = await import('@db/user-access')
                 const userId = await getProjectOwnerId(sql, project.id)
 
                 if (userId) {
-                  const { selectAIProviderForEvaluation, QuotaExceededError } = await import('@backend/services/ai-provider-selector')
                   try {
                     await selectAIProviderForEvaluation(sql, userId, project.id, 'simple')
 
@@ -150,11 +150,9 @@ export async function syncTaskSource(
             if (task.ai_evaluation_status === 'pending') {
               try {
                 // Check quota before auto-queueing evaluation
-                const { getProjectOwnerId } = await import('@db/user-access')
                 const userId = await getProjectOwnerId(sql, project.id)
 
                 if (userId) {
-                  const { selectAIProviderForEvaluation, QuotaExceededError } = await import('@backend/services/ai-provider-selector')
                   try {
                     await selectAIProviderForEvaluation(sql, userId, project.id, 'simple')
 

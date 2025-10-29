@@ -1,6 +1,7 @@
 import { BasePresenter } from './base'
 import { navigateTo } from '@/utils/navigation'
 import type { Message } from '@types'
+import { toast } from 'sonner'
 
 /**
  * Presenter for Message model
@@ -58,7 +59,6 @@ export class MessagePresenter extends BasePresenter<Message> {
         onClick: async (message: Message) => {
           // TODO: Show modal or navigate to detail view
           console.log('Message data:', message.data)
-          const { toast } = await import('sonner')
           toast.info('Message data logged to console')
         },
         variant: 'default' as const,

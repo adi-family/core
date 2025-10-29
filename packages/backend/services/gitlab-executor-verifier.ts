@@ -107,16 +107,16 @@ export async function validateGitLabToken(
     logger.info(`Validating GitLab token from secret ${secretId} for host: ${hostname}`)
 
     // Fetch secret metadata to determine token type
-    const secretResult = await secretQueries.findSecretById(sql, secretId)
-    if (!secretResult.ok) {
+    let secret
+    try {
+      secret = await secretQueries.findSecretById(sql, secretId)
+    } catch (error) {
       logger.error(`✗ Secret ${secretId} not found`)
       return {
         valid: false,
         error: 'Secret not found'
       }
     }
-
-    const secret = secretResult.data
 
     // Retrieve and decrypt the token from database
     const accessToken = await getDecryptedSecretValue(sql, secretId)

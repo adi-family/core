@@ -12,6 +12,7 @@ import { triggerPipeline } from '@backend/worker-orchestration/pipeline-executor
 import { createBackendApiClient } from '@backend/api-client'
 import { evaluateSimple } from './simple-evaluator'
 import { selectAIProviderForEvaluation, QuotaExceededError } from '@backend/services/ai-provider-selector'
+import { getProjectOwnerId } from '@db/user-access'
 
 const logger = createLogger({ namespace: 'task-eval' })
 
@@ -59,7 +60,6 @@ export async function evaluateTask(
     }
 
     // Get project owner for quota tracking
-    const { getProjectOwnerId } = await import('@db/user-access')
     const userId = await getProjectOwnerId(sql, task.project_id)
 
     if (!userId) {

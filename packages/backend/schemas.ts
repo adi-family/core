@@ -539,8 +539,8 @@ export const releaseLockBodySchema = z.object({
 
 // API Usage Metrics schemas
 export const saveApiUsageSchema = z.object({
-  session_id: z.string().uuid(),
-  task_id: z.string().uuid(),
+  session_id: z.uuid(),
+  task_id: z.uuid(),
   provider: z.string(),
   model: z.string(),
   goal: z.string(),

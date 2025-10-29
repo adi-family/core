@@ -1,6 +1,7 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
 import type { FileSpace, CreateFileSpaceInput, UpdateFileSpaceInput, Result } from '@types'
 import { filterPresentColumns } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -10,12 +11,13 @@ export const findAllFileSpaces = async (sql: Sql): Promise<FileSpace[]> => {
   return get(sql<FileSpace[]>`SELECT * FROM file_spaces ORDER BY created_at DESC`)
 }
 
-export const findFileSpaceById = async (sql: Sql, id: string): Promise<Result<FileSpace>> => {
+export const findFileSpaceById = async (sql: Sql, id: string): Promise<FileSpace> => {
   const fileSpaces = await get(sql<FileSpace[]>`SELECT * FROM file_spaces WHERE id = ${id}`)
   const [fileSpace] = fileSpaces
+  if (!fileSpace) {
+    throw new NotFoundException('File space not found')
+  }
   return fileSpace
-    ? { ok: true, data: fileSpace }
-    : { ok: false, error: 'File space not found' }
 }
 
 export const findFileSpacesByProjectId = async (sql: Sql, projectId: string): Promise<FileSpace[]> => {
@@ -66,7 +68,7 @@ export const createFileSpace = async (sql: Sql, input: CreateFileSpaceInput): Pr
 }
 
 const updateFileSpaceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
-export const updateFileSpace = async (sql: Sql, id: string, input: UpdateFileSpaceInput): Promise<Result<FileSpace>> => {
+export const updateFileSpace = async (sql: Sql, id: string, input: UpdateFileSpaceInput): Promise<FileSpace> => {
   const presentCols = filterPresentColumns(input, updateFileSpaceCols)
 
   const fileSpaces = await get(sql<FileSpace[]>`
@@ -76,15 +78,16 @@ export const updateFileSpace = async (sql: Sql, id: string, input: UpdateFileSpa
     RETURNING *
   `)
   const [fileSpace] = fileSpaces
+  if (!fileSpace) {
+    throw new NotFoundException('File space not found')
+  }
   return fileSpace
-    ? { ok: true, data: fileSpace }
-    : { ok: false, error: 'File space not found' }
 }
 
-export const deleteFileSpace = async (sql: Sql, id: string): Promise<Result<void>> => {
+export const deleteFileSpace = async (sql: Sql, id: string): Promise<void> => {
   const resultSet = await get(sql`DELETE FROM file_spaces WHERE id = ${id}`)
   const deleted = resultSet.count > 0
-  return deleted
-    ? { ok: true, data: undefined }
-    : { ok: false, error: 'File space not found' }
+  if (!deleted) {
+    throw new NotFoundException('File space not found')
+  }
 }

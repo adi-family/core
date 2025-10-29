@@ -9,6 +9,10 @@ import { validateEnvironment } from './shared/env-validator'
 import { mkdir, writeFile } from 'fs/promises'
 import { createLogger } from './shared/logger'
 import { query } from '@anthropic-ai/claude-agent-sdk'
+import { existsSync } from 'fs'
+import { resolve } from 'path'
+import { fileURLToPath } from 'url'
+import { readFile, readdir } from 'fs/promises'
 
 const logger = createLogger({ namespace: 'evaluation-pipeline' })
 
@@ -164,7 +168,6 @@ Yes (Confidence: 80%)
   logger.info(`📦 Found ${workspaceCount} cloned workspace(s)`)
 
   // Verify workspaces exist
-  const { existsSync } = await import('fs')
   const validWorkspaces = []
 
   for (let i = 0; i < workspaceDirs.length; i++) {
@@ -267,9 +270,6 @@ Your final message should be brief (1-2 sentences) confirming files were created
     }
 
     // Construct absolute path to local claude executable
-    const { resolve } = await import('path')
-    const { fileURLToPath } = await import('url')
-    const { existsSync } = await import('fs')
     const __dirname = fileURLToPath(new URL('.', import.meta.url))
     const claudePath = resolve(__dirname, 'node_modules/.bin/claude')
     logger.info(`Using Claude executable: ${claudePath}`)
@@ -326,8 +326,7 @@ Your final message should be brief (1-2 sentences) confirming files were created
     }
 
     // Verify working directory exists
-    const { existsSync: existsSyncCheck } = await import('fs')
-    if (!existsSyncCheck(workingDir)) {
+    if (!existsSync(workingDir)) {
       logger.error(`❌ Working directory does not exist: ${workingDir}`)
       throw new Error(`Working directory not found: ${workingDir}`)
     }
@@ -423,7 +422,6 @@ Your final message should be brief (1-2 sentences) confirming files were created
   }
 
   // Read the files created by the agent
-  const { readFile, readdir } = await import('fs/promises')
 
   try {
     // First, check what files were actually created

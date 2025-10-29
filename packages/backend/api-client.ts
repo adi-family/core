@@ -4,6 +4,7 @@
  */
 
 import { hcWithType } from './client'
+import { BACKEND_URL, API_TOKEN } from './config'
 
 export const createBackendClient = (baseUrl: string, apiToken?: string) => {
   return hcWithType(baseUrl, {
@@ -14,8 +15,5 @@ export const createBackendClient = (baseUrl: string, apiToken?: string) => {
 export type BackendClient = ReturnType<typeof createBackendClient>
 
 export function createBackendApiClient(): BackendClient {
-  const baseUrl = process.env.BACKEND_URL || `http://localhost:${process.env.SERVER_PORT || 3000}`
-  const apiToken = process.env.API_TOKEN
-
-  return createBackendClient(baseUrl, apiToken)
+  return createBackendClient(BACKEND_URL, API_TOKEN)
 }

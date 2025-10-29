@@ -9,6 +9,7 @@ import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { extractGitLabCredentials, type GitLabSource } from '../worker-orchestration/gitlab-utils'
 import type { WorkerRepository } from '@types'
 import { updateProjectLastSyncedAt } from '../../db/projects'
+import { API_BASE_URL, API_TOKEN, GITLAB_TOKEN } from '@backend/config'
 
 const logger = createLogger({ namespace: 'workspace-sync' })
 
@@ -77,9 +78,9 @@ export async function triggerWorkspaceSync(
     }
 
     // Prepare pipeline variables
-    const apiBaseUrl = process.env.API_BASE_URL || process.env.GITLAB_RUNNER_API_URL || 'http://localhost:5174'
-    const apiToken = process.env.API_TOKEN || process.env.BACKEND_API_TOKEN || ''
-    const gitlabToken = process.env.GITLAB_TOKEN || ''
+    const apiBaseUrl = API_BASE_URL
+    const apiToken = API_TOKEN
+    const gitlabToken = GITLAB_TOKEN
 
     if (!apiToken) {
       const error = 'API_TOKEN not configured - cannot trigger pipeline'
@@ -113,11 +114,11 @@ export async function triggerWorkspaceSync(
     logger.info(`✅ Workspace sync pipeline #${pipeline.id} triggered: ${pipeline.web_url}`)
 
     // Update project's last synced timestamp
-    const updateResult = await updateProjectLastSyncedAt(sql, projectId)
-    if (!updateResult.ok) {
-      logger.warn(`⚠️  Failed to update last_synced_at for project ${projectId}: ${updateResult.error}`)
-    } else {
+    try {
+      await updateProjectLastSyncedAt(sql, projectId)
       logger.info(`✓ Updated last_synced_at for project ${projectId}`)
+    } catch (error) {
+      logger.warn(`⚠️  Failed to update last_synced_at for project ${projectId}:`, error)
     }
 
     return {

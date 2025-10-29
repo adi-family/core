@@ -1,6 +1,7 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
 import type { Project, CreateProjectInput, UpdateProjectInput, Result, GitlabExecutorConfig, AIProviderConfig, AnthropicConfig, OpenAIConfig, GoogleConfig } from '@types'
 import { filterPresentColumns } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -10,12 +11,13 @@ export const findAllProjects = async (sql: Sql): Promise<Project[]> => {
   return get(sql<Project[]>`SELECT * FROM projects ORDER BY created_at DESC`)
 }
 
-export const findProjectById = async (sql: Sql, id: string): Promise<Result<Project>> => {
+export const findProjectById = async (sql: Sql, id: string): Promise<Project> => {
   const projects = await get(sql<Project[]>`SELECT * FROM projects WHERE id = ${id}`)
   const [project] = projects
+  if (!project) {
+    throw new NotFoundException('Project not found')
+  }
   return project
-    ? { ok: true, data: project }
-    : { ok: false, error: 'Project not found' }
 }
 
 const createProjectCols = ['name', 'enabled'] as const
@@ -33,7 +35,7 @@ export const createProject = async (sql: Sql, input: CreateProjectInput): Promis
 }
 
 const updateProjectCols = ['name', 'enabled'] as const
-export const updateProject = async (sql: Sql, id: string, input: UpdateProjectInput): Promise<Result<Project>> => {
+export const updateProject = async (sql: Sql, id: string, input: UpdateProjectInput): Promise<Project> => {
   const presentCols = filterPresentColumns(input, updateProjectCols)
 
   const projects = await get(sql<Project[]>`
@@ -43,17 +45,18 @@ export const updateProject = async (sql: Sql, id: string, input: UpdateProjectIn
     RETURNING *
   `)
   const [project] = projects
+  if (!project) {
+    throw new NotFoundException('Project not found')
+  }
   return project
-    ? { ok: true, data: project }
-    : { ok: false, error: 'Project not found' }
 }
 
-export const deleteProject = async (sql: Sql, id: string): Promise<Result<void>> => {
+export const deleteProject = async (sql: Sql, id: string): Promise<void> => {
   const resultSet = await get(sql`DELETE FROM projects WHERE id = ${id}`)
   const deleted = resultSet.count > 0
-  return deleted
-    ? { ok: true, data: undefined }
-    : { ok: false, error: 'Project not found' }
+  if (!deleted) {
+    throw new NotFoundException('Project not found')
+  }
 }
 
 /**
@@ -63,7 +66,7 @@ export const setProjectJobExecutor = async (
   sql: Sql,
   projectId: string,
   config: GitlabExecutorConfig
-): Promise<Result<Project>> => {
+): Promise<Project> => {
   const projects = await get(sql<Project[]>`
     UPDATE projects
     SET
@@ -73,9 +76,10 @@ export const setProjectJobExecutor = async (
     RETURNING *
   `)
   const [project] = projects
+  if (!project) {
+    throw new NotFoundException('Project not found')
+  }
   return project
-    ? { ok: true, data: project }
-    : { ok: false, error: 'Project not found' }
 }
 
 /**
@@ -84,7 +88,7 @@ export const setProjectJobExecutor = async (
 export const removeProjectJobExecutor = async (
   sql: Sql,
   projectId: string
-): Promise<Result<Project>> => {
+): Promise<Project> => {
   const projects = await get(sql<Project[]>`
     UPDATE projects
     SET
@@ -94,9 +98,10 @@ export const removeProjectJobExecutor = async (
     RETURNING *
   `)
   const [project] = projects
+  if (!project) {
+    throw new NotFoundException('Project not found')
+  }
   return project
-    ? { ok: true, data: project }
-    : { ok: false, error: 'Project not found' }
 }
 
 /**
@@ -106,15 +111,9 @@ export const removeProjectJobExecutor = async (
 export const getProjectJobExecutor = async (
   sql: Sql,
   projectId: string
-): Promise<Result<GitlabExecutorConfig | null>> => {
-  const projectResult = await findProjectById(sql, projectId)
-  if (!projectResult.ok) {
-    return { ok: false, error: projectResult.error }
-  }
-  return {
-    ok: true,
-    data: projectResult.data.job_executor_gitlab
-  }
+): Promise<GitlabExecutorConfig | null> => {
+  const project = await findProjectById(sql, projectId)
+  return project.job_executor_gitlab
 }
 
 /**
@@ -124,15 +123,9 @@ export const getProjectJobExecutor = async (
 export const getProjectAIProviderConfigs = async (
   sql: Sql,
   projectId: string
-): Promise<Result<AIProviderConfig | null>> => {
-  const projectResult = await findProjectById(sql, projectId)
-  if (!projectResult.ok) {
-    return { ok: false, error: projectResult.error }
-  }
-  return {
-    ok: true,
-    data: projectResult.data.ai_provider_configs
-  }
+): Promise<AIProviderConfig | null> => {
+  const project = await findProjectById(sql, projectId)
+  return project.ai_provider_configs
 }
 
 /**
@@ -143,7 +136,7 @@ export const setProjectAIProviderConfig = async (
   projectId: string,
   provider: 'anthropic' | 'openai' | 'google',
   config: AnthropicConfig | OpenAIConfig | GoogleConfig
-): Promise<Result<Project>> => {
+): Promise<Project> => {
   const projects = await get(sql<Project[]>`
     UPDATE projects
     SET
@@ -153,9 +146,10 @@ export const setProjectAIProviderConfig = async (
     RETURNING *
   `)
   const [project] = projects
+  if (!project) {
+    throw new NotFoundException('Project not found')
+  }
   return project
-    ? { ok: true, data: project }
-    : { ok: false, error: 'Project not found' }
 }
 
 /**
@@ -165,7 +159,7 @@ export const removeProjectAIProviderConfig = async (
   sql: Sql,
   projectId: string,
   provider: 'anthropic' | 'openai' | 'google'
-): Promise<Result<Project>> => {
+): Promise<Project> => {
   const projects = await get(sql<Project[]>`
     UPDATE projects
     SET
@@ -175,9 +169,10 @@ export const removeProjectAIProviderConfig = async (
     RETURNING *
   `)
   const [project] = projects
+  if (!project) {
+    throw new NotFoundException('Project not found')
+  }
   return project
-    ? { ok: true, data: project }
-    : { ok: false, error: 'Project not found' }
 }
 
 /**
@@ -187,22 +182,15 @@ export const getProjectAIProviderConfig = async (
   sql: Sql,
   projectId: string,
   provider: 'anthropic' | 'openai' | 'google'
-): Promise<Result<AnthropicConfig | OpenAIConfig | GoogleConfig | null>> => {
-  const projectResult = await findProjectById(sql, projectId)
-  if (!projectResult.ok) {
-    return { ok: false, error: projectResult.error }
-  }
-
-  const config = projectResult.data.ai_provider_configs
+): Promise<AnthropicConfig | OpenAIConfig | GoogleConfig | null> => {
+  const project = await findProjectById(sql, projectId)
+  const config = project.ai_provider_configs
   if (!config) {
-    return { ok: true, data: null }
+    return null
   }
 
   const providerConfig = config[provider]
-  return {
-    ok: true,
-    data: providerConfig || null
-  }
+  return providerConfig || null
 }
 
 /**
@@ -211,7 +199,7 @@ export const getProjectAIProviderConfig = async (
 export const updateProjectLastSyncedAt = async (
   sql: Sql,
   projectId: string
-): Promise<Result<Project>> => {
+): Promise<Project> => {
   const projects = await get(sql<Project[]>`
     UPDATE projects
     SET
@@ -221,9 +209,10 @@ export const updateProjectLastSyncedAt = async (
     RETURNING *
   `)
   const [project] = projects
+  if (!project) {
+    throw new NotFoundException('Project not found')
+  }
   return project
-    ? { ok: true, data: project }
-    : { ok: false, error: 'Project not found' }
 }
 
 /**

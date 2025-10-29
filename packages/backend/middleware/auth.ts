@@ -1,5 +1,6 @@
 import type { Context, Next } from 'hono'
 import { createLogger } from '@utils/logger.ts'
+import { API_TOKEN } from '../config'
 
 const logger = createLogger({ namespace: 'auth' })
 
@@ -15,14 +16,13 @@ export const authMiddleware = async (c: Context, next: Next) => {
   }
 
   const token = authHeader.replace('Bearer ', '')
-  const apiToken = process.env.API_TOKEN
 
-  if (!apiToken) {
+  if (!API_TOKEN) {
     logger.error('API_TOKEN environment variable not set')
     return c.json({ error: 'Server configuration error' }, 500)
   }
 
-  if (token !== apiToken) {
+  if (token !== API_TOKEN) {
     return c.json({ error: 'Unauthorized' }, 401)
   }
 

@@ -1,6 +1,7 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
 import type { WorkerRepository, CreateWorkerRepositoryInput, UpdateWorkerRepositoryInput, Result } from '@types'
 import { filterPresentColumns } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -10,20 +11,22 @@ export const findAllWorkerRepositories = async (sql: Sql): Promise<WorkerReposit
   return get(sql<WorkerRepository[]>`SELECT * FROM worker_repositories ORDER BY created_at DESC`)
 }
 
-export const findWorkerRepositoryById = async (sql: Sql, id: string): Promise<Result<WorkerRepository>> => {
+export const findWorkerRepositoryById = async (sql: Sql, id: string): Promise<WorkerRepository> => {
   const repos = await get(sql<WorkerRepository[]>`SELECT * FROM worker_repositories WHERE id = ${id}`)
   const [repo] = repos
+  if (!repo) {
+    throw new NotFoundException('Worker repository not found')
+  }
   return repo
-    ? { ok: true, data: repo }
-    : { ok: false, error: 'Worker repository not found' }
 }
 
-export const findWorkerRepositoryByProjectId = async (sql: Sql, projectId: string): Promise<Result<WorkerRepository>> => {
+export const findWorkerRepositoryByProjectId = async (sql: Sql, projectId: string): Promise<WorkerRepository> => {
   const repos = await get(sql<WorkerRepository[]>`SELECT * FROM worker_repositories WHERE project_id = ${projectId}`)
   const [repo] = repos
+  if (!repo) {
+    throw new NotFoundException('Worker repository not found for project')
+  }
   return repo
-    ? { ok: true, data: repo }
-    : { ok: false, error: 'Worker repository not found for project' }
 }
 
 const createWorkerRepositoryCols = ['project_id', 'source_gitlab', 'current_version'] as const
@@ -39,7 +42,7 @@ export const createWorkerRepository = async (sql: Sql, input: CreateWorkerReposi
 }
 
 const updateWorkerRepositoryCols = ['source_gitlab', 'current_version'] as const
-export const updateWorkerRepository = async (sql: Sql, id: string, input: UpdateWorkerRepositoryInput): Promise<Result<WorkerRepository>> => {
+export const updateWorkerRepository = async (sql: Sql, id: string, input: UpdateWorkerRepositoryInput): Promise<WorkerRepository> => {
   const presentCols = filterPresentColumns(input, updateWorkerRepositoryCols)
 
   const repos = await get(sql<WorkerRepository[]>`
@@ -49,15 +52,79 @@ export const updateWorkerRepository = async (sql: Sql, id: string, input: Update
     RETURNING *
   `)
   const [repo] = repos
+  if (!repo) {
+    throw new NotFoundException('Worker repository not found')
+  }
   return repo
-    ? { ok: true, data: repo }
-    : { ok: false, error: 'Worker repository not found' }
 }
 
-export const deleteWorkerRepository = async (sql: Sql, id: string): Promise<Result<void>> => {
+export const deleteWorkerRepository = async (sql: Sql, id: string): Promise<void> => {
   const resultSet = await get(sql`DELETE FROM worker_repositories WHERE id = ${id}`)
   const deleted = resultSet.count > 0
-  return deleted
-    ? { ok: true, data: undefined }
-    : { ok: false, error: 'Worker repository not found' }
+  if (!deleted) {
+    throw new NotFoundException('Worker repository not found')
+  }
+}
+
+interface WorkerRepoWithProject {
+  id: string
+  project_id: string
+  project_name: string
+  source_gitlab: any
+  current_version: string
+}
+
+export const findWorkerRepositoriesWithProjects = async (sql: Sql): Promise<WorkerRepoWithProject[]> => {
+  return get(sql<WorkerRepoWithProject[]>`
+    SELECT
+      wr.id,
+      wr.project_id,
+      wr.source_gitlab,
+      wr.current_version,
+      p.name as project_name
+    FROM worker_repositories wr
+    JOIN projects p ON p.id = wr.project_id
+    ORDER BY p.name
+  `)
+}
+
+interface WorkerRepoStatus {
+  id: string
+  project_id: string
+  current_version: string
+  gitlab_path: string
+  gitlab_host: string
+  updated_at: Date
+  project_name: string
+}
+
+export const findWorkerRepositoryStatus = async (sql: Sql): Promise<WorkerRepoStatus[]> => {
+  return get(sql<WorkerRepoStatus[]>`
+    SELECT
+      wr.id,
+      wr.project_id,
+      wr.current_version,
+      wr.source_gitlab->>'project_path' as gitlab_path,
+      wr.source_gitlab->>'host' as gitlab_host,
+      wr.updated_at,
+      p.name as project_name
+    FROM worker_repositories wr
+    JOIN projects p ON p.id = wr.project_id
+    ORDER BY p.name
+  `)
+}
+
+interface ProjectWithoutRepo {
+  id: string
+  name: string
+}
+
+export const findProjectsWithoutWorkerRepositories = async (sql: Sql): Promise<ProjectWithoutRepo[]> => {
+  return get(sql<ProjectWithoutRepo[]>`
+    SELECT p.id, p.name
+    FROM projects p
+    LEFT JOIN worker_repositories wr ON wr.project_id = p.id
+    WHERE wr.id IS NULL
+    ORDER BY p.name
+  `)
 }

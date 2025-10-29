@@ -5,22 +5,20 @@ import * as queries from '../../db/tasks'
 import * as fileSpaceQueries from '../../db/file-spaces'
 import { idParamSchema, createTaskSchema, updateTaskSchema, taskQuerySchema } from '../schemas'
 import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
-import { getClerkUserId } from '../middleware/clerk'
+import { reqAuthed } from '../middleware/authz'
 import * as userAccessQueries from '../../db/user-access'
 import * as taskSourceQueries from '../../db/task-sources'
 import { publishTaskEval, publishTaskImpl } from '@adi/queue/publisher'
 import { createTaskSource } from '../task-sources/factory'
+import { getProjectOwnerId } from '@db/user-access'
+import { selectAIProviderForEvaluation, QuotaExceededError } from '@backend/services/ai-provider-selector'
 
 export const createTaskRoutes = (sql: Sql) => {
   const acl = createFluentACL(sql)
 
   return new Hono()
     .get('/', zValidator('query', taskQuerySchema), async (c) => {
-      const userId = getClerkUserId(c)
-
-      if (!userId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
+      const userId = await reqAuthed(c)
 
       const queryParams = c.req.valid('query')
       const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
@@ -74,11 +72,7 @@ export const createTaskRoutes = (sql: Sql) => {
     })
     .post('/', zValidator('json', createTaskSchema), async (c) => {
       const body = c.req.valid('json')
-      const userId = getClerkUserId(c)
-
-      if (!userId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
+      const userId = await reqAuthed(c)
 
       const task = await queries.createTask(sql, body)
       return c.json(task, 201)
@@ -153,7 +147,6 @@ export const createTaskRoutes = (sql: Sql) => {
       }
 
       // Get project owner for quota checking
-      const { getProjectOwnerId } = await import('@db/user-access')
       const userId = await getProjectOwnerId(sql, task.project_id)
 
       if (!userId) {
@@ -161,7 +154,6 @@ export const createTaskRoutes = (sql: Sql) => {
       }
 
       // Check if user has quota available for simple evaluation
-      const { selectAIProviderForEvaluation, QuotaExceededError } = await import('@backend/services/ai-provider-selector')
       try {
         await selectAIProviderForEvaluation(sql, userId, task.project_id, 'simple')
       } catch (error) {
@@ -228,12 +220,7 @@ export const createTaskRoutes = (sql: Sql) => {
       const task = taskResult.data
 
       // Get the task source
-      const taskSourceResult = await taskSourceQueries.findTaskSourceById(sql, task.task_source_id)
-      if (!taskSourceResult.ok) {
-        return c.json({ error: 'Task source not found' }, 404)
-      }
-
-      const taskSource = taskSourceResult.data
+      const taskSource = await taskSourceQueries.findTaskSourceById(sql, task.task_source_id)
 
       // Only GitLab tasks are supported for now
       if (taskSource.type !== 'gitlab_issues' || !task.source_gitlab_issue?.iid) {

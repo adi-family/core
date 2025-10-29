@@ -4,6 +4,7 @@
  */
 
 import type { Sql } from 'postgres'
+import type { TaskSource } from '@types'
 import { createLogger } from '@utils/logger'
 import * as taskSourceQueries from '@db/task-sources'
 import * as projectQueries from '@db/projects'
@@ -38,13 +39,13 @@ export async function syncTaskSource(
 
   try {
     // Fetch task source to validate it exists and is enabled
-    const taskSourceResult = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
-    if (!taskSourceResult.ok) {
+    let taskSource: TaskSource
+    try {
+      taskSource = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
+    } catch (error) {
       result.errors.push(`Task source not found: ${taskSourceId}`)
       return result
     }
-
-    const taskSource = taskSourceResult.data
 
     if (!taskSource.enabled) {
       result.errors.push(`Task source is disabled: ${taskSourceId}`)

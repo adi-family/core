@@ -21,6 +21,7 @@ import { createQuotaRoutes } from './handlers/quotas'
 import { createOAuthRoutes } from './handlers/oauth'
 import { authMiddleware } from './middleware/auth'
 import { clerkAuth, optionalClerkAuth } from './middleware/clerk'
+import { exceptionRecoverer } from './middleware/exception.ts'
 import * as sessionQueries from '@db/sessions'
 import * as messageQueries from '@db/messages'
 import * as pipelineExecutionQueries from '@db/pipeline-executions'
@@ -45,6 +46,7 @@ import {
   createPipelineArtifactSchema,
   updatePipelineExecutionSchema
 } from './schemas'
+import { SERVICE_FQDN_CLIENT, GITLAB_HOST, GITLAB_TOKEN, GITLAB_USER } from './config'
 
 const app = new Hono()
   // Health check endpoint - must be before CORS and auth for simplicity
@@ -53,7 +55,7 @@ const app = new Hono()
   })
   // CORS middleware - must be before authentication to handle preflight requests
   .use('*', cors({
-    origin: process.env.SERVICE_FQDN_CLIENT ? `https://${process.env.SERVICE_FQDN_CLIENT}` : 'http://localhost:4173',
+    origin: SERVICE_FQDN_CLIENT ? `https://${SERVICE_FQDN_CLIENT}` : 'http://localhost:4173',
     credentials: true,
     allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowHeaders: ['Content-Type', 'Authorization'],
@@ -68,6 +70,7 @@ const app = new Hono()
     }
     return clerkAuth(c, next)
   })
+  .use('*', exceptionRecoverer)
   // Set userId in context if authenticated (optional for most routes)
   .use('*', optionalClerkAuth())
   // Mount main routes
@@ -132,19 +135,18 @@ const app = new Hono()
   // Projects -> Worker Repository
   .get('/projects/:projectId/worker-repository', zValidator('param', projectIdParamSchema), async (c) => {
     const { projectId } = c.req.valid('param')
-    const result = await workerRepoQueries.findWorkerRepositoryByProjectId(sql, projectId)
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-    return c.json(result.data)
+    const repo = await workerRepoQueries.findWorkerRepositoryByProjectId(sql, projectId)
+    return c.json(repo)
   })
   .post('/projects/:projectId/worker-repository/setup', zValidator('param', projectIdParamSchema), zValidator('json', setupWorkerRepositorySchema), authMiddleware, async (c) => {
     const { projectId } = c.req.valid('param')
     const body = c.req.valid('json')
 
     // Validate environment
-    const requiredEnv = ['GITLAB_HOST', 'GITLAB_TOKEN', 'GITLAB_USER', 'ENCRYPTION_KEY']
-    const missing = requiredEnv.filter((key) => !process.env[key])
+    const missing = []
+    if (!GITLAB_HOST) missing.push('GITLAB_HOST')
+    if (!GITLAB_TOKEN) missing.push('GITLAB_TOKEN')
+    if (!GITLAB_USER) missing.push('GITLAB_USER')
 
     if (missing.length > 0) {
       return c.json(
@@ -157,26 +159,25 @@ const app = new Hono()
 
     try {
       // Check if worker repository already exists
-      const existingRepo = await workerRepoQueries.findWorkerRepositoryByProjectId(sql, projectId)
-
-      if (existingRepo.ok) {
+      try {
+        const existingRepo = await workerRepoQueries.findWorkerRepositoryByProjectId(sql, projectId)
+        // If we get here, repo exists
         return c.json(
           {
             error: 'Worker repository already exists for this project',
-            repository: existingRepo.data,
+            repository: existingRepo,
           },
           409
         )
+      } catch (error) {
+        // NotFoundException means no existing repo, continue
+        if (!(error instanceof Error && error.constructor.name === 'NotFoundException')) {
+          throw error
+        }
       }
 
       // Fetch project
-      const projectResult = await projectQueries.findProjectById(sql, projectId)
-
-      if (!projectResult.ok) {
-        return c.json({ error: 'Project not found' }, 404)
-      }
-
-      const project = projectResult.data
+      const project = await projectQueries.findProjectById(sql, projectId)
       logger.info(`Setting up worker repository for project: ${project.name}`)
 
       // Create worker repository in GitLab
@@ -187,9 +188,9 @@ const app = new Hono()
       const source = await manager.createWorkerRepository({
         projectName: project.name,
         sourceType: 'gitlab',
-        host: process.env.GITLAB_HOST!,
-        accessToken: process.env.GITLAB_TOKEN!,
-        user: process.env.GITLAB_USER!,
+        host: GITLAB_HOST,
+        accessToken: GITLAB_TOKEN,
+        user: GITLAB_USER,
         customPath,
       })
 

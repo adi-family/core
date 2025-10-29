@@ -4,14 +4,16 @@
  */
 
 import { GitLabApiClient } from '../shared/gitlab-api-client'
-import { readFile, readdir } from 'fs/promises'
-import { join, relative } from 'path'
+import { readFile } from 'fs/promises'
+import { join } from 'path'
 import { encrypt, decrypt } from '../shared/crypto-utils'
 import { createLogger } from '../utils/logger'
+import { assertNever } from "@utils/assert-never.ts"
+import { getAllFiles } from '@utils/file-system'
 
 const logger = createLogger({ namespace: 'ci-repository-manager' })
 
-export interface WorkerRepositorySource {
+export interface WorkerRepositorySourceGitlab {
   type: 'gitlab'
   project_id?: string
   project_path?: string
@@ -20,7 +22,9 @@ export interface WorkerRepositorySource {
   access_token_encrypted: string
 }
 
-export interface CreateWorkerRepositoryConfig {
+export type WorkerRepositorySource = WorkerRepositorySourceGitlab;
+
+interface CreateGitlabWorkerRepositoryConfig {
   projectName: string
   sourceType: 'gitlab'
   host: string
@@ -29,10 +33,23 @@ export interface CreateWorkerRepositoryConfig {
   customPath: string
 }
 
-export interface UploadCIFilesConfig {
-  source: WorkerRepositorySource
+export type CreateWorkerRepositoryConfig = CreateGitlabWorkerRepositoryConfig;
+
+export interface UploadCIFilesConfigGitlab {
+  source: WorkerRepositorySourceGitlab
   version: string
   templateBasePath?: string
+}
+
+export type UploadCIFilesConfig = UploadCIFilesConfigGitlab;
+
+interface CreateProjectConfig {
+  name: string,
+  path: string,
+  fullPath: string;
+  namespace_id: number;
+  visibility: 'private';
+  description: string;
 }
 
 export class CIRepositoryManager {
@@ -43,55 +60,33 @@ export class CIRepositoryManager {
       templateBasePath || join(__dirname, 'templates')
   }
 
-  /**
-   * Create a worker repository in GitLab (or use existing if already created)
-   */
-  async createWorkerRepository(
-    config: CreateWorkerRepositoryConfig
-  ): Promise<WorkerRepositorySource> {
-    if (config.sourceType !== 'gitlab') {
-      throw new Error(
-        `Unsupported source type: ${config.sourceType}. Only 'gitlab' is currently supported.`
-      )
+  private async upsertProject(client: GitLabApiClient, config: CreateProjectConfig) {
+    const existingProject = await client.findProjectByPath(config.fullPath);
+    if (existingProject) {
+      return existingProject;
     }
 
+    return client.createProject({
+      name: config.name,
+      path: config.path,
+      namespace_id: config.namespace_id,
+      visibility: config.visibility,
+      description: config.description,
+    })
+  }
+
+  private async createGitlabWorkerRepository(config: CreateWorkerRepositoryConfig): Promise<WorkerRepositorySource> {
     const client = new GitLabApiClient(config.host, config.accessToken)
 
     // Get user information
     const user = await client.getCurrentUser()
     const namespaceId = user.namespace_id
 
-    // Build expected project path
     const projectPath = config.customPath.split('/').pop() || config.customPath
     const fullPath = `${config.user}/${projectPath}`
 
-    // Check if project already exists
-    const existingProject = await client.findProjectByPath(fullPath)
-
-    if (existingProject) {
-      logger.info(`✓ Found existing GitLab project: ${existingProject.path_with_namespace}`)
-
-      // Enable external pipeline variables for existing projects too
-      // This ensures projects created before this feature was added get the correct settings
-      try {
-        await client.enableExternalPipelineVariables(existingProject.id.toString())
-        logger.info(`✓ Enabled external pipeline variables for existing project ${existingProject.path_with_namespace}`)
-      } catch (error) {
-        logger.warn(`⚠️  Failed to enable external pipeline variables for existing project: ${error instanceof Error ? error.message : String(error)}`)
-      }
-
-      return {
-        type: 'gitlab',
-        project_id: existingProject.id.toString(),
-        project_path: existingProject.path_with_namespace,
-        host: config.host,
-        user: config.user,
-        access_token_encrypted: encrypt(config.accessToken),
-      }
-    }
-
-    // Create GitLab project if it doesn't exist
-    const project = await client.createProject({
+    const project = await this.upsertProject(client, {
+      fullPath,
       name: projectPath,
       path: projectPath,
       namespace_id: namespaceId,
@@ -101,7 +96,6 @@ export class CIRepositoryManager {
 
     logger.info(`✓ Created GitLab project: ${project.path_with_namespace}`)
 
-    // Enable external pipeline variables for the newly created project
     try {
       await client.enableExternalPipelineVariables(project.id.toString())
       logger.info(`✓ Enabled external pipeline variables for project ${project.path_with_namespace}`)
@@ -119,41 +113,18 @@ export class CIRepositoryManager {
     }
   }
 
-  /**
-   * Recursively get all files in a directory
-   */
-  private async getAllFiles(dirPath: string, baseDir: string = dirPath): Promise<string[]> {
-    const entries = await readdir(dirPath, { withFileTypes: true })
-    const files: string[] = []
-
-    for (const entry of entries) {
-      const fullPath = join(dirPath, entry.name)
-
-      if (entry.isDirectory()) {
-        // Skip node_modules and other common directories that should not be uploaded
-        if (entry.name === 'node_modules' || entry.name === '.git' || entry.name === 'dist' || entry.name === 'build') {
-          continue
-        }
-        const subFiles = await this.getAllFiles(fullPath, baseDir)
-        files.push(...subFiles)
-      } else if (entry.isFile()) {
-        files.push(relative(baseDir, fullPath))
-      }
+  async createWorkerRepository(
+    config: CreateWorkerRepositoryConfig
+  ): Promise<WorkerRepositorySource> {
+    switch (config.sourceType) {
+      case 'gitlab':
+        return this.createGitlabWorkerRepository(config);
+      default:
+        assertNever(config.sourceType);
     }
-
-    return files
   }
 
-  /**
-   * Upload CI files to worker repository
-   */
-  async uploadCIFiles(config: UploadCIFilesConfig): Promise<void> {
-    if (config.source.type !== 'gitlab') {
-      throw new Error(
-        `Unsupported source type: ${config.source.type}`
-      )
-    }
-
+  private async uploadCIFilesGitlab(config: UploadCIFilesConfigGitlab) {
     const client = new GitLabApiClient(
       config.source.host,
       decrypt(config.source.access_token_encrypted)
@@ -164,21 +135,16 @@ export class CIRepositoryManager {
     const basePath = config.templateBasePath || this.templateBasePath
     const versionDir = join(basePath, versionPath)
 
-    // Check if CI files for this version already exist by checking for a key file
     const markerFilePath = `${versionPath}/worker-scripts/evaluation-pipeline.ts`
     try {
       await client.getFile(projectId, markerFilePath, 'main')
       logger.info(`✓ CI files for version ${versionPath} already exist, skipping upload`)
       return
     } catch {
-      // Marker file doesn't exist, proceed with upload
       logger.info(`📤 Uploading CI files for version ${versionPath}...`)
     }
 
-    // Get all files recursively from version directory
-    const allFiles = await this.getAllFiles(versionDir)
-
-    // Prepare all files for batch upload
+    const allFiles = await getAllFiles(versionDir)
     const filesToUpload: Array<{ path: string; content: string }> = []
 
     for (const file of allFiles) {
@@ -214,20 +180,24 @@ export class CIRepositoryManager {
     logger.info(`✅ Successfully uploaded ${allFiles.length} files for version ${versionPath} in a single commit`)
   }
 
+  async uploadCIFiles(config: UploadCIFilesConfig): Promise<void> {
+    switch (config.source.type) {
+      case "gitlab":
+        return this.uploadCIFilesGitlab(config)
+      default:
+        assertNever(config.source.type);
+    }
+  }
+
   /**
    * Update worker repository to a new version
    */
   async updateVersion(
     source: WorkerRepositorySource,
-    newVersion: string
+    version: string
   ): Promise<void> {
-    logger.info(`🔄 Updating worker repository to version ${newVersion}...`)
-
-    await this.uploadCIFiles({
-      source,
-      version: newVersion,
-    })
-
-    logger.info(`✅ Worker repository updated to version ${newVersion}`)
+    logger.debug(`🔄 Updating worker repository to version ${version}...`)
+    await this.uploadCIFiles({ source, version })
+    logger.debug(`✅ Worker repository updated to version ${version}`)
   }
 }

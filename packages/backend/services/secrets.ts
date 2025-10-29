@@ -126,13 +126,7 @@ export async function updateEncryptedSecret(
 }
 
 export async function getDecryptedSecretValue(sql: Sql, secretId: string): Promise<string> {
-  const result = await secretsDb.findSecretById(sql, secretId)
-
-  if (!result.ok) {
-    throw new Error('Secret not found')
-  }
-
-  const secret = result.data
+  const secret = await secretsDb.findSecretById(sql, secretId)
 
   if (secret.is_encrypted && secret.encrypted_value) {
     return decrypt(secret.encrypted_value)
@@ -150,13 +144,7 @@ export async function getDecryptedSecretByName(
   projectId: string,
   name: string
 ): Promise<string> {
-  const result = await secretsDb.findSecretByProjectAndName(sql, projectId, name)
-
-  if (!result.ok) {
-    throw new Error(`Secret '${name}' not found for project ${projectId}`)
-  }
-
-  const secret = result.data
+  const secret = await secretsDb.findSecretByProjectAndName(sql, projectId, name)
 
   if (secret.is_encrypted && secret.encrypted_value) {
     return decrypt(secret.encrypted_value)
@@ -189,13 +177,7 @@ export function sanitizeSecretForResponse(secret: Secret): Omit<Secret, 'value' 
 }
 
 export async function getSecretWithMetadata(sql: Sql, secretId: string): Promise<{ value: string; tokenType: 'oauth' | 'api' | null }> {
-  const result = await secretsDb.findSecretById(sql, secretId)
-
-  if (!result.ok) {
-    throw new Error('Secret not found')
-  }
-
-  const secret = result.data
+  const secret = await secretsDb.findSecretById(sql, secretId)
 
   let decryptedValue: string
   if (secret.is_encrypted && secret.encrypted_value) {

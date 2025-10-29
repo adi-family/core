@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { ENCRYPTION_KEY } from './config';
 
 const ALGORITHM = 'aes-256-gcm';
 const IV_LENGTH = 16;
@@ -8,13 +9,12 @@ const KEY_LENGTH = 32;
 const ITERATIONS = 100000;
 
 // Validate encryption key on module load
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY;
 if (!ENCRYPTION_KEY) {
   throw new Error('ENCRYPTION_KEY environment variable is required');
 }
 
 function getEncryptionKey(): string {
-  return ENCRYPTION_KEY!;
+  return ENCRYPTION_KEY;
 }
 
 export function decrypt(encryptedData: string): string {

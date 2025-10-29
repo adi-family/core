@@ -5,24 +5,16 @@
 
 import { Hono } from 'hono'
 import type { Sql } from 'postgres'
-import { getClerkUserId } from '../middleware/clerk'
-import * as quotaQueries from '../../db/user-quotas'
-import * as taskQueries from '../../db/tasks'
+import * as quotaQueries from '@db/user-quotas'
+import * as taskQueries from '@db/tasks'
 import { selectAIProviderForEvaluation, checkProjectHasAnthropicProvider, QuotaExceededError } from '../services/ai-provider-selector'
 import { hasPlatformAnthropicConfig } from '../config'
+import { reqAdminAuthed, reqAuthed } from '@backend/middleware/authz'
 
 export const createQuotaRoutes = (sql: Sql) => {
   return new Hono()
-    /**
-     * Get current user's quota status
-     * GET /user/quota
-     */
     .get('/user/quota', async (c) => {
-      const userId = getClerkUserId(c)
-
-      if (!userId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
+      const userId = await reqAuthed(c);
 
       try {
         const quota = await quotaQueries.getUserQuota(sql, userId)
@@ -51,17 +43,8 @@ export const createQuotaRoutes = (sql: Sql) => {
       }
     })
 
-    /**
-     * Check if evaluation can proceed (before triggering)
-     * POST /tasks/:id/check-evaluation-quota
-     */
-    .post('/tasks/:id/check-evaluation-quota', async (c) => {
-      const userId = getClerkUserId(c)
-
-      if (!userId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
-
+    .post('/tasks/:id/check-evaluation-quota', (async (c) => {
+      const userId = await reqAuthed(c);
       const taskId = c.req.param('id')
       const body = await c.req.json()
       const evaluationType = body.evaluation_type as 'simple' | 'advanced'
@@ -84,7 +67,7 @@ export const createQuotaRoutes = (sql: Sql) => {
         }
 
         // Check quota
-        const quotaCheck = await quotaQueries.checkQuotaAvailable(sql, userId!, evaluationType)
+        const quotaCheck = await quotaQueries.checkQuotaAvailable(sql, userId, evaluationType)
 
         // Check if project has its own provider
         const hasProjectProvider = await checkProjectHasAnthropicProvider(sql, task.project_id)
@@ -116,19 +99,10 @@ export const createQuotaRoutes = (sql: Sql) => {
       } catch (error: any) {
         return c.json({ error: error.message }, 500)
       }
-    })
+    }))
 
-    /**
-     * Get AI provider selection for a task evaluation (called from CI or microservice)
-     * GET /tasks/:id/ai-provider-selection?type=simple|advanced
-     */
-    .get('/tasks/:id/ai-provider-selection', async (c) => {
-      const userId = getClerkUserId(c)
-
-      if (!userId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
-
+    .get('/tasks/:id/ai-provider-selection', (async (c) => {
+      const userId = await reqAuthed(c);
       const taskId = c.req.param('id')
       const evaluationType = c.req.query('type') as 'simple' | 'advanced'
 
@@ -152,7 +126,7 @@ export const createQuotaRoutes = (sql: Sql) => {
         // Select AI provider based on quota
         const selection = await selectAIProviderForEvaluation(
           sql,
-          userId!,
+          userId,
           task.project_id,
           evaluationType
         )
@@ -167,34 +141,10 @@ export const createQuotaRoutes = (sql: Sql) => {
         }
         return c.json({ error: error.message }, 500)
       }
-    })
+    }))
 
-    /**
-     * Admin: Get all user quotas
-     * GET /admin/quotas
-     */
-    .get('/admin/quotas', async (c) => {
-      const userId = getClerkUserId(c)
-
-      if (!userId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
-
-      // Check if user has admin privileges
-      const hasAdminAccess = await sql<[{ has_admin: boolean }]>`
-        SELECT EXISTS(
-          SELECT 1 FROM user_access
-          WHERE user_id = ${userId}
-          AND entity_type = 'project'
-          AND role IN ('owner', 'admin')
-          AND (expires_at IS NULL OR expires_at > NOW())
-        ) as has_admin
-      `
-
-      if (!hasAdminAccess[0]?.has_admin) {
-        return c.json({ error: 'Admin access required' }, 403)
-      }
-
+    .get('/admin/quotas', (async (c) => {
+      await reqAdminAuthed(c, sql);
       try {
         const quotas = await quotaQueries.getAllUserQuotas(sql)
 
@@ -218,34 +168,10 @@ export const createQuotaRoutes = (sql: Sql) => {
       } catch (error: any) {
         return c.json({ error: error.message }, 500)
       }
-    })
+    }))
 
-    /**
-     * Admin: Set custom quota limits for a user
-     * PUT /admin/quotas/:userId
-     */
-    .put('/admin/quotas/:userId', async (c) => {
-      const requestingUserId = getClerkUserId(c)
-
-      if (!requestingUserId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
-
-      // Check if user has admin privileges
-      const hasAdminAccess = await sql<[{ has_admin: boolean }]>`
-        SELECT EXISTS(
-          SELECT 1 FROM user_access
-          WHERE user_id = ${requestingUserId}
-          AND entity_type = 'project'
-          AND role IN ('owner', 'admin')
-          AND (expires_at IS NULL OR expires_at > NOW())
-        ) as has_admin
-      `
-
-      if (!hasAdminAccess[0]?.has_admin) {
-        return c.json({ error: 'Admin access required' }, 403)
-      }
-
+    .put('/admin/quotas/:userId', (async (c) => {
+      await reqAdminAuthed(c, sql);
       const targetUserId = c.req.param('userId')
       const body = await c.req.json()
 
@@ -288,34 +214,14 @@ export const createQuotaRoutes = (sql: Sql) => {
       } catch (error: any) {
         return c.json({ error: error.message }, 500)
       }
-    })
+    }))
 
     /**
      * Admin: Reset quota usage for a user
      * POST /admin/quotas/:userId/reset
      */
-    .post('/admin/quotas/:userId/reset', async (c) => {
-      const requestingUserId = getClerkUserId(c)
-
-      if (!requestingUserId) {
-        return c.json({ error: 'Authentication required' }, 401)
-      }
-
-      // Check if user has admin privileges
-      const hasAdminAccess = await sql<[{ has_admin: boolean }]>`
-        SELECT EXISTS(
-          SELECT 1 FROM user_access
-          WHERE user_id = ${requestingUserId}
-          AND entity_type = 'project'
-          AND role IN ('owner', 'admin')
-          AND (expires_at IS NULL OR expires_at > NOW())
-        ) as has_admin
-      `
-
-      if (!hasAdminAccess[0]?.has_admin) {
-        return c.json({ error: 'Admin access required' }, 403)
-      }
-
+    .post('/admin/quotas/:userId/reset', (async (c) => {
+      await reqAdminAuthed(c, sql);
       const targetUserId = c.req.param('userId')
       const body = await c.req.json()
       const resetType = body.reset_type as 'simple' | 'advanced' | 'both'
@@ -345,5 +251,5 @@ export const createQuotaRoutes = (sql: Sql) => {
       } catch (error: any) {
         return c.json({ error: error.message }, 500)
       }
-    })
+    }))
 }
