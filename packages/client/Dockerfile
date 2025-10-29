@@ -1,15 +1,31 @@
-FROM oven/bun:1.2.23 AS builder
+# Turborepo-optimized multi-stage build for client service
+# Stage 1: Pruner - extracts only the required workspace dependencies
+FROM oven/bun:1.2.23-slim AS pruner
 WORKDIR /app
 
-# First, copy all package.json files explicitly
-COPY package.json ./
-COPY packages/*/package.json ./packages/
+# Install turbo globally
+RUN bun install -g turbo
 
-# Then copy everything else
+# Copy entire monorepo
 COPY . .
 
-# Install all dependencies (including devDependencies for build)
-RUN bun install
+# Prune the monorepo for the client package
+# Creates out/json/ with package.json files and out/full/ with source code
+RUN turbo prune client --docker
+
+# Stage 2: Installer & Builder
+FROM oven/bun:1.2.23 AS installer
+WORKDIR /app
+
+# Copy lockfile and package.json files from pruner
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/bun.lock ./bun.lock
+
+# Install dependencies with lockfile for deterministic builds
+RUN bun install --frozen-lockfile
+
+# Copy source code from pruner
+COPY --from=pruner /app/out/full/ .
 
 # Build the client
 ENV CLIENT_PORT=4173
@@ -18,16 +34,16 @@ ENV VITE_API_URL=/api
 WORKDIR /app/packages/client
 RUN bunx vite build
 
-# Production stage
-FROM oven/bun:1.2.23
+# Stage 3: Runner - production image
+FROM oven/bun:1.2.23-slim AS runner
 WORKDIR /app
 
 # Copy built files and config
-COPY --from=builder /app/packages/client/dist ./dist
-COPY --from=builder /app/packages/client/vite.config.ts ./vite.config.ts
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=installer /app/packages/client/dist ./dist
+COPY --from=installer /app/packages/client/vite.config.ts ./vite.config.ts
+COPY --from=installer /app/tsconfig.json ./tsconfig.json
 
-# Install vite and dependencies for preview server
+# Install only production dependencies for preview server
 RUN bun add vite @vitejs/plugin-react vite-tsconfig-paths
 
 # Set environment

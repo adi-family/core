@@ -1,38 +1,41 @@
-FROM oven/bun:1.2.23 AS builder
+# Turborepo-optimized multi-stage build for micros-task-ops service
+# Stage 1: Pruner - extracts only the required workspace dependencies
+FROM oven/bun:1.2.23-slim AS pruner
 WORKDIR /app
 
-# First, copy all package.json files explicitly
-COPY package.json ./
-COPY packages/*/package.json ./packages/
+# Install turbo globally
+RUN bun install -g turbo
 
-# Then copy everything else
+# Copy entire monorepo
 COPY . .
 
-# Install all dependencies
-RUN bun install
+# Prune the monorepo for the micros-task-ops package
+# Creates out/json/ with package.json files and out/full/ with source code
+RUN turbo prune micros-task-ops --docker
 
-# Production stage
-FROM oven/bun:1.2.23
+# Stage 2: Installer
+FROM oven/bun:1.2.23 AS installer
 WORKDIR /app
 
-# Copy all required workspace dependencies
-COPY --from=builder /app/packages/micros-task-ops ./micros-task-ops
-COPY --from=builder /app/packages/micros-task-sync ./micros-task-sync
-COPY --from=builder /app/packages/micros-task-eval ./micros-task-eval
-COPY --from=builder /app/packages/micros-task-impl ./micros-task-impl
-COPY --from=builder /app/packages/db ./db
-COPY --from=builder /app/packages/utils ./utils
-COPY --from=builder /app/packages/shared ./shared
-COPY --from=builder /app/packages/types ./types
-COPY --from=builder /app/packages/queue ./queue
-COPY --from=builder /app/packages/backend ./backend
-COPY --from=builder /app/packages/worker ./worker
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
+# Copy lockfile and package.json files from pruner
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/bun.lock ./bun.lock
+
+# Install dependencies with lockfile for deterministic builds
+RUN bun install --frozen-lockfile
+
+# Copy source code from pruner
+COPY --from=pruner /app/out/full/ .
+
+# Stage 3: Runner - production image
+FROM oven/bun:1.2.23-slim AS runner
+WORKDIR /app
 
 # Set environment
 ENV NODE_ENV=production
 
-WORKDIR /app/micros-task-ops
+# Copy installed node_modules and source from installer
+COPY --from=installer /app .
+
+WORKDIR /app/packages/micros-task-ops
 CMD ["bun", "run", "index.ts"]

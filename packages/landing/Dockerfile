@@ -1,25 +1,37 @@
-# Multi-stage Dockerfile for Next.js landing page deployment
-# Uses Bun for package management and Next.js standalone output
-
-# Stage 1: Builder
-FROM oven/bun:1.2.23-slim AS builder
+# Turborepo-optimized multi-stage build for Next.js landing page
+# Stage 1: Pruner - extracts only the required workspace dependencies
+FROM oven/bun:1.2.23-slim AS pruner
 WORKDIR /app
 
-# First, copy all package.json files explicitly
-COPY package.json ./
-COPY packages/*/package.json ./packages/
+# Install turbo globally
+RUN bun install -g turbo
 
-# Then copy everything else
+# Copy entire monorepo
 COPY . .
 
-# Install dependencies
-RUN bun install
+# Prune the monorepo for the landing package
+# Creates out/json/ with package.json files and out/full/ with source code
+RUN turbo prune landing --docker
+
+# Stage 2: Installer & Builder
+FROM oven/bun:1.2.23 AS installer
+WORKDIR /app
+
+# Copy lockfile and package.json files from pruner
+COPY --from=pruner /app/out/json/ .
+COPY --from=pruner /app/out/bun.lock ./bun.lock
+
+# Install dependencies with lockfile for deterministic builds
+RUN bun install --frozen-lockfile
+
+# Copy source code from pruner
+COPY --from=pruner /app/out/full/ .
 
 # Build the landing page
 WORKDIR /app/packages/landing
 RUN bun run build
 
-# Stage 2: Runner
+# Stage 3: Runner - production image
 FROM oven/bun:1.2.23-slim AS runner
 WORKDIR /app
 
@@ -31,9 +43,9 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Copy Next.js standalone output
-COPY --from=builder --chown=nextjs:nodejs /app/packages/landing/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/packages/landing/.next/static ./packages/landing/.next/static
-COPY --from=builder --chown=nextjs:nodejs /app/packages/landing/public ./packages/landing/public
+COPY --from=installer --chown=nextjs:nodejs /app/packages/landing/.next/standalone ./
+COPY --from=installer --chown=nextjs:nodejs /app/packages/landing/.next/static ./packages/landing/.next/static
+COPY --from=installer --chown=nextjs:nodejs /app/packages/landing/public ./packages/landing/public
 
 USER nextjs
 

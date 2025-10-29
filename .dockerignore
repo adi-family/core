@@ -2,8 +2,8 @@
 node_modules
 npm-debug.log
 yarn-error.log
-bun.lock
-bun.lockb
+# IMPORTANT: Do NOT ignore lockfiles - they're needed for deterministic builds
+# bun.lock and bun.lockb are required for turbo prune
 
 # Development
 .env.local
