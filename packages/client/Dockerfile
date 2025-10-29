@@ -1,17 +1,11 @@
 FROM oven/bun:1.2.23 AS builder
 WORKDIR /app
 
-# Copy workspace configuration and all package.json files
-COPY package.json bun.lock* ./
-COPY packages/client/package.json ./packages/client/
-COPY packages/ui/package.json ./packages/ui/
-COPY packages/types/package.json ./packages/types/
+# Copy everything (node_modules excluded by .dockerignore)
+COPY . .
 
 # Install all dependencies (including devDependencies for build)
 RUN bun install
-
-# Copy all source code
-COPY . .
 
 # Build the client
 ENV CLIENT_PORT=4173
