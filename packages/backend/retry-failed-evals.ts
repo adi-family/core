@@ -1,6 +1,6 @@
 #!/usr/bin/env bun
 import { sql } from '@db/client'
-import { publishTaskEval } from '@queue/publisher'
+import { publishTaskEval } from '@adi/queue/publisher.ts'
 import { createLogger } from '@utils/logger'
 import type { Task } from '@types'
 

@@ -13,7 +13,7 @@ import * as projectQueries from '@db/projects'
 import * as syncStateQueries from '@db/task-source-sync-state'
 import {assertNever} from "@utils/assert-never.ts";
 import type {TaskSource, TaskSourceIssue, CreateTaskInput, Task} from "@types";
-import { publishTaskEval } from '@queue/publisher'
+import { publishTaskEval } from '@adi/queue/publisher.ts'
 
 const logger = createLogger({ namespace: 'daemon-task-sync' })
 

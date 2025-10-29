@@ -296,6 +296,9 @@
     "packages/utils": {
       "name": "@adi-simple/utils",
       "version": "0.0.1",
+      "dependencies": {
+        "@gitbeaker/rest": "^43.5.0",
+      },
       "devDependencies": {
         "typescript": "~5.9.3",
       },

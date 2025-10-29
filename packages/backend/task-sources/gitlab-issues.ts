@@ -1,5 +1,5 @@
 import {BaseTaskSource} from './base';
-import {getGitlabIssueList, getGitlabIssuesByIids} from '../../../gitlab';
+import {getGitlabIssueList, getGitlabIssuesByIids} from '@utils/gitlab';
 import {sql} from '@db/client.ts';
 import {getDecryptedSecretValue} from '../services/secrets';
 import type {GitlabIssuesConfig, GitlabMetadata, TaskSource, TaskSourceIssue} from "@types";

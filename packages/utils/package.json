@@ -12,6 +12,9 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint ."
   },
+  "dependencies": {
+    "@gitbeaker/rest": "^43.5.0"
+  },
   "devDependencies": {
     "typescript": "~5.9.3"
   }
