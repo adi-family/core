@@ -51,11 +51,16 @@ const app = new Hono()
   .use('*', cors({
     origin: process.env.SERVICE_FQDN_CLIENT ? `https://${process.env.SERVICE_FQDN_CLIENT}` : 'http://localhost:4173',
     credentials: true,
+    allowMethods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowHeaders: ['Content-Type', 'Authorization'],
+    exposeHeaders: ['Content-Length'],
+    maxAge: 600,
   }))
-  // Skip Clerk auth for OPTIONS requests (preflight)
+  // Skip Clerk auth for OPTIONS requests (preflight) and return 204
   .use('*', async (c, next) => {
     if (c.req.method === 'OPTIONS') {
-      return next()
+      // CORS middleware already added headers, just return 204 No Content
+      return c.body(null, 204)
     }
     return clerkAuth(c, next)
   })
