@@ -95,6 +95,7 @@
       "name": "@adi-simple/client",
       "version": "0.0.1",
       "dependencies": {
+        "@adi-simple/shared": "workspace:*",
         "@adi-simple/types": "workspace:*",
         "@adi-simple/ui": "workspace:*",
         "@clerk/clerk-react": "^5.53.2",
@@ -2649,7 +2650,7 @@
 
     "@adi-simple/client/eslint-plugin-react-refresh": ["eslint-plugin-react-refresh@0.4.24", "", { "peerDependencies": { "eslint": ">=8.40" } }, "sha512-nLHIW7TEq3aLrEYWpVaJ1dRgFR+wLDPN8e8FpYAql/bMV2oBEfC37K0gLEGgv9fy66juNShSMV8OkTqzltcG/w=="],
 
-    "@adi-simple/client/simple-icons": ["simple-icons@15.17.0", "", {}, "sha512-viOcugYj+JFYVWJvDh4Ph1xHk9iTGhzt+NoPrfAQYSCADvmZFSQUWyKEbSMuqVRUsaRgvADn+Cczysemsf1N3Q=="],
+    "@adi-simple/client/simple-icons": ["simple-icons@15.18.0", "", {}, "sha512-lYpvaIuZZr6N50YSdYZQzrKccSSF3dqcgcoz2vMKVQCc/fJWD8nFszJVZz2tCDTSu082rqRYfuYRUPhjdixDAA=="],
 
     "@adi-simple/client/tailwindcss": ["tailwindcss@4.1.16", "", {}, "sha512-pONL5awpaQX4LN5eiv7moSiSPd/DLDzKVRJz8Q9PgzmAdd1R4307GQS2ZpfiN7ZmekdQrfhZZiSE5jkLR4WNaA=="],
 
