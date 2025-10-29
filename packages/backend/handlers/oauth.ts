@@ -316,7 +316,7 @@ export function createOAuthRoutes(db: Sql) {
    * GitLab OAuth docs: https://docs.gitlab.com/ee/api/oauth2.html
    */
   app.get('/gitlab/authorize', async (c) => {
-    const gitlabHost = process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com';
+    const gitlabHost = process.env.GITLAB_ROOT_OAUTH_HOST || 'https://gitlab.com';
     const clientId = process.env.GITLAB_OAUTH_CLIENT_ID;
     const redirectUri = process.env.GITLAB_OAUTH_REDIRECT_URI;
 
@@ -363,7 +363,7 @@ export function createOAuthRoutes(db: Sql) {
 
       const { projectId, code, secretName, gitlabHost } = c.req.valid('json');
 
-      const host = gitlabHost || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com';
+      const host = gitlabHost || process.env.GITLAB_ROOT_OAUTH_HOST || 'https://gitlab.com';
       const clientId = process.env.GITLAB_OAUTH_CLIENT_ID;
       const clientSecret = process.env.GITLAB_OAUTH_CLIENT_SECRET;
       const redirectUri = process.env.GITLAB_OAUTH_REDIRECT_URI;
@@ -487,7 +487,7 @@ export function createOAuthRoutes(db: Sql) {
 
       const clientId = process.env.GITLAB_OAUTH_CLIENT_ID;
       const clientSecret = process.env.GITLAB_OAUTH_CLIENT_SECRET;
-      const gitlabHost = process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com';
+      const gitlabHost = process.env.GITLAB_ROOT_OAUTH_HOST || 'https://gitlab.com';
 
       if (!clientId || !clientSecret) {
         logger.error('GitLab OAuth not configured');
