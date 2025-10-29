@@ -1,7 +1,11 @@
 FROM oven/bun:1.2.23 AS builder
 WORKDIR /app
 
-# Copy everything (node_modules and lockfiles excluded by .dockerignore)
+# First, copy all package.json files explicitly
+COPY package.json ./
+COPY packages/*/package.json ./packages/
+
+# Then copy everything else
 COPY . .
 
 # Install all dependencies (including devDependencies for build)
