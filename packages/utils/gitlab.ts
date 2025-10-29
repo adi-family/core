@@ -1,4 +1,3 @@
-import { Gitlab } from '@gitbeaker/rest';
 import { Issue } from "./issue";
 
 export interface GitlabIssueListMinimal {
