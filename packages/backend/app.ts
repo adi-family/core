@@ -52,8 +52,13 @@ const app = new Hono()
     origin: process.env.SERVICE_FQDN_CLIENT || 'http://localhost:4173',
     credentials: true,
   }))
-  // Global Clerk authentication middleware
-  .use('*', clerkAuth)
+  // Skip Clerk auth for OPTIONS requests (preflight)
+  .use('*', async (c, next) => {
+    if (c.req.method === 'OPTIONS') {
+      return next()
+    }
+    return clerkAuth(c, next)
+  })
   // Set userId in context if authenticated (optional for most routes)
   .use('*', optionalClerkAuth())
   // Mount main routes
