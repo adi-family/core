@@ -172,6 +172,11 @@ Yes (Confidence: 80%)
     const name = workspaceNames[i] || `workspace-${i}`
     const branch = workspaceBranches[i] || 'unknown'
 
+    if (!dir) {
+      logger.warn(`   ⚠️  Workspace ${i} has no directory, skipping`)
+      continue
+    }
+
     logger.info(`   Checking workspace ${i + 1}/${workspaceCount}: ${name}`)
     logger.info(`     Directory: ${dir}`)
     logger.info(`     Branch: ${branch}`)
@@ -198,7 +203,7 @@ Yes (Confidence: 80%)
   // Build codebase info for Claude
   let codebaseInfo: string
   if (validWorkspaces.length === 1) {
-    const ws = validWorkspaces[0]
+    const ws = validWorkspaces[0]!
     codebaseInfo = `Codebase cloned from repository (branch: ${ws.branch}) at: ${ws.dir}`
     logger.info(`   Using single workspace: ${ws.name}`)
   } else {
@@ -294,21 +299,24 @@ Your final message should be brief (1-2 sentences) confirming files were created
     logger.info(`   Workspace count: ${workspaceCount}`)
     logger.info(`   Workspace dirs length: ${workspaceDirs.length}`)
 
-    let workingDir = '..'
+    let workingDir: string = '..'
 
     if (workspaceCount > 0 && workspaceDirs.length > 0) {
-      if (workspaceCount === 1) {
+      const firstDir = workspaceDirs[0]
+      if (!firstDir) {
+        logger.warn(`   ⚠️  First workspace directory is undefined, using fallback`)
+      } else if (workspaceCount === 1) {
         // Single workspace: work directly in it
-        workingDir = workspaceDirs[0]
+        workingDir = firstDir
         logger.info(`   Strategy: Single workspace`)
         logger.info(`   Selected: ${workingDir}`)
       } else {
         // Multiple workspaces: use parent directory that contains all of them
         // Extract parent from first workspace path (e.g., /tmp/workspace-xxx/workspace-0 -> /tmp/workspace-xxx)
-        const parentDir = workspaceDirs[0].replace(/\/workspace-\d+$/, '')
+        const parentDir = firstDir.replace(/\/workspace-\d+$/, '')
         workingDir = parentDir
         logger.info(`   Strategy: Multiple workspaces`)
-        logger.info(`   First workspace: ${workspaceDirs[0]}`)
+        logger.info(`   First workspace: ${firstDir}`)
         logger.info(`   Extracted parent: ${parentDir}`)
         logger.info(`   Selected: ${workingDir}`)
       }
