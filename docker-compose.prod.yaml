@@ -84,7 +84,7 @@ services:
     environment:
       - NODE_ENV=production
       - BACKEND_URL=http://backend:3000
-      - VITE_API_URL=/api
+      - VITE_API_URL=https://adi-api.the-ihor.com
     restart: unless-stopped
 
   landing:
