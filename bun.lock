@@ -71,6 +71,7 @@
         "@adi-simple/shared": "workspace:*",
         "@adi-simple/types": "workspace:*",
         "@adi-simple/utils": "workspace:*",
+        "@adi-simple/worker": "workspace:*",
         "@hono/clerk-auth": "^3.0.3",
         "@hono/zod-validator": "^0.7.4",
         "dotenv": "^17.2.3",
