@@ -1,0 +1,28 @@
+{
+  "name": "@adi-simple/worker",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --env-file=../../.env --watch ci-repository-manager.ts",
+    "build": "bun build ci-repository-manager.ts --outdir dist --target bun",
+    "start": "bun --env-file=../../.env ci-repository-manager.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@adi-simple/db": "workspace:*",
+    "@adi-simple/shared": "workspace:*",
+    "@adi-simple/types": "workspace:*",
+    "@adi-simple/utils": "workspace:*",
+    "@anthropic-ai/claude-agent-sdk": "^0.1.27",
+    "@anthropic-ai/sdk": "^0.67.0",
+    "@gitbeaker/rest": "^43.5.0",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^24.7.1",
+    "typescript": "~5.9.3"
+  }
+}

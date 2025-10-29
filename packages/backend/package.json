@@ -1,0 +1,30 @@
+{
+  "name": "@adi-simple/backend",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --env-file=../../.env --watch index.ts",
+    "build": "bun build index.ts --outdir dist --target bun",
+    "start": "bun --env-file=../../.env index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@hono/clerk-auth": "^3.0.3",
+    "@hono/zod-validator": "^0.7.4",
+    "dotenv": "^17.2.3",
+    "hono": "^4.10.1",
+    "postgres": "^3.4.7",
+    "zod": "^4.1.12",
+    "@adi-simple/db": "workspace:*",
+    "@adi-simple/utils": "workspace:*",
+    "@adi-simple/shared": "workspace:*",
+    "@adi-simple/types": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^24.7.1",
+    "typescript": "~5.9.3"
+  }
+}
