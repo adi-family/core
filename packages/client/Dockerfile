@@ -38,7 +38,7 @@ WORKDIR /app
 # Copy built files and config
 COPY --from=installer /app/packages/client/dist ./dist
 COPY --from=installer /app/packages/client/vite.config.ts ./vite.config.ts
-COPY --from=installer /app/tsconfig.json ./tsconfig.json
+COPY --from=installer /app/packages/client/tsconfig.json ./tsconfig.json
 
 # Install only production dependencies for preview server
 RUN bun add vite @vitejs/plugin-react vite-tsconfig-paths
