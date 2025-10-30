@@ -50,26 +50,14 @@ export async function syncTaskEvaluationStatus(
 
   try {
     // Fetch session to get task_id and runner type (direct DB)
-    const sessionResult = await sessionQueries.findSessionById(sql, execution.session_id)
-    if (!sessionResult.ok) {
-      logger.warn(`⚠️  Session not found for execution ${execution.id}`)
-      return
-    }
-
-    const session = sessionResult.data
+    const session = await sessionQueries.findSessionById(sql, execution.session_id)
     if (!session.task_id) {
       // Session has no task - this is normal for non-task pipelines
       return
     }
 
     // Fetch task (direct DB)
-    const taskResult = await taskQueries.findTaskById(sql, session.task_id)
-    if (!taskResult.ok) {
-      logger.warn(`⚠️  Task not found: ${session.task_id}`)
-      return
-    }
-
-    const task = taskResult.data
+    const task = await taskQueries.findTaskById(sql, session.task_id)
 
     // Determine if this is an evaluation or implementation pipeline based on runner type
     const isEvaluationPipeline = session.runner === 'evaluation'

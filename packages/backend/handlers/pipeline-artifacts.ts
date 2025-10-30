@@ -13,22 +13,12 @@ export const createPipelineArtifactRoutes = (sql: Sql) => {
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
-      const result = await queries.findPipelineArtifactById(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      const artifact = await queries.findPipelineArtifactById(sql, id)
+      return c.json(artifact)
     })
     .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
-      const result = await queries.deletePipelineArtifact(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
+      await queries.deletePipelineArtifact(sql, id)
       return c.json({ success: true })
     })
     .get('/by-execution/:executionId', zValidator('param', executionIdParamSchema), async (c) => {

@@ -56,7 +56,7 @@ export function createOAuthRoutes(db: Sql) {
     '/jira/exchange',
     zValidator('json', jiraExchangeTokenSchema),
     async (c) => {
-      const userId = await reqAuthed(c);
+      await reqAuthed(c);
 
       const { projectId, code, secretName, cloudId } = c.req.valid('json');
 
@@ -155,7 +155,7 @@ export function createOAuthRoutes(db: Sql) {
     '/jira/refresh/:secretId',
     zValidator('param', z.object({ secretId: z.string().uuid() })),
     async (c) => {
-      const userId = await reqAuthed(c);
+      await reqAuthed(c);
 
       const { secretId } = c.req.valid('param');
 
@@ -208,7 +208,7 @@ export function createOAuthRoutes(db: Sql) {
         const expiresAt = new Date(Date.now() + expires_in * 1000).toISOString();
 
         // Update secret with new token
-        const updateResult = await secretQueries.updateSecret(db, secretId, {
+        await secretQueries.updateSecret(db, secretId, {
           value: access_token,
           refresh_token: refresh_token || secret.refresh_token, // Keep old refresh token if new one not provided
           expires_at: expiresAt,
@@ -257,7 +257,7 @@ export function createOAuthRoutes(db: Sql) {
       gitlabHost: z.string().url().optional(),
     })),
     async (c) => {
-      const userId = await reqAuthed(c);
+      await reqAuthed(c);
 
       const { projectId, code, secretName, gitlabHost } = c.req.valid('json');
 
@@ -346,7 +346,7 @@ export function createOAuthRoutes(db: Sql) {
     '/gitlab/refresh/:secretId',
     zValidator('param', z.object({ secretId: z.string().uuid() })),
     async (c) => {
-      const userId = await reqAuthed(c);
+      await reqAuthed(c);
 
       const { secretId } = c.req.valid('param');
 

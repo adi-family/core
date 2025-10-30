@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { TaskSource, CreateTaskSourceInput, UpdateTaskSourceInput, Result } from '@types'
+import type { TaskSource, CreateTaskSourceInput, UpdateTaskSourceInput } from '@types'
 import { filterPresentColumns } from './utils'
 import { NotFoundException } from '../utils/exceptions'
 

@@ -275,11 +275,8 @@ const app = new Hono()
   .patch('/pipeline-executions/:id', zValidator('param', idParamSchema), zValidator('json', updatePipelineExecutionSchema), authMiddleware, async (c) => {
     const { id } = c.req.valid('param')
     const body = c.req.valid('json')
-    const result = await pipelineExecutionQueries.updatePipelineExecution(sql, id, body)
-    if (!result.ok) {
-      return c.json({ error: result.error }, 404)
-    }
-    return c.json(result.data)
+    const execution = await pipelineExecutionQueries.updatePipelineExecution(sql, id, body)
+    return c.json(execution)
   })
 
 export { app }

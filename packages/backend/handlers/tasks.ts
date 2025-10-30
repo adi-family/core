@@ -62,17 +62,12 @@ export const createTaskRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.findTaskById(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      const task = await queries.findTaskById(sql, id)
+      return c.json(task)
     })
     .post('/', zValidator('json', createTaskSchema), async (c) => {
       const body = c.req.valid('json')
-      const userId = await reqAuthed(c)
+      await reqAuthed(c)
 
       const task = await queries.createTask(sql, body)
       return c.json(task, 201)
@@ -91,13 +86,8 @@ export const createTaskRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.updateTask(sql, id, body)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      const task = await queries.updateTask(sql, id, body)
+      return c.json(task)
     })
     .delete('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
@@ -112,12 +102,7 @@ export const createTaskRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await queries.deleteTask(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
+      await queries.deleteTask(sql, id)
       return c.json({ success: true })
     })
     .post('/:id/evaluate', zValidator('param', idParamSchema), async (c) => {
@@ -134,12 +119,7 @@ export const createTaskRoutes = (sql: Sql) => {
       }
 
       // Verify task exists
-      const taskResult = await queries.findTaskById(sql, id)
-      if (!taskResult.ok) {
-        return c.json({ error: 'Task not found' }, 404)
-      }
-
-      const task = taskResult.data
+      const task = await queries.findTaskById(sql, id)
 
       // Check quota before queuing evaluation
       if (!task.project_id) {
@@ -185,10 +165,7 @@ export const createTaskRoutes = (sql: Sql) => {
       }
 
       // Verify task exists
-      const taskResult = await queries.findTaskById(sql, id)
-      if (!taskResult.ok) {
-        return c.json({ error: 'Task not found' }, 404)
-      }
+      await queries.findTaskById(sql, id)
 
       // Publish implementation message to queue
       await publishTaskImpl({ taskId: id })
@@ -212,12 +189,7 @@ export const createTaskRoutes = (sql: Sql) => {
       }
 
       // Get the task
-      const taskResult = await queries.findTaskById(sql, id)
-      if (!taskResult.ok) {
-        return c.json({ error: 'Task not found' }, 404)
-      }
-
-      const task = taskResult.data
+      const task = await queries.findTaskById(sql, id)
 
       // Get the task source
       const taskSource = await taskSourceQueries.findTaskSourceById(sql, task.task_source_id)
@@ -251,7 +223,7 @@ export const createTaskRoutes = (sql: Sql) => {
         }
 
         // Update the task with the current remote status
-        const updateResult = await queries.updateTask(sql, id, {
+        const updatedTask = await queries.updateTask(sql, id, {
           remote_status: currentIssue.state || 'opened',
           title: currentIssue.title,
           source_gitlab_issue: {
@@ -261,13 +233,9 @@ export const createTaskRoutes = (sql: Sql) => {
           }
         })
 
-        if (!updateResult.ok) {
-          return c.json({ error: updateResult.error }, 500)
-        }
-
         return c.json({
           message: 'Task refreshed successfully',
-          task: updateResult.data
+          task: updatedTask
         })
       } catch (error) {
         console.error('Error refreshing task:', error)
@@ -282,10 +250,7 @@ export const createTaskRoutes = (sql: Sql) => {
       const body = await c.req.json()
 
       // Verify task exists
-      const taskResult = await queries.findTaskById(sql, id)
-      if (!taskResult.ok) {
-        return c.json({ error: 'Task not found' }, 404)
-      }
+      await queries.findTaskById(sql, id)
 
       // Validate status
       const validStatuses = ['pending', 'queued', 'evaluating', 'completed', 'failed']
@@ -294,17 +259,13 @@ export const createTaskRoutes = (sql: Sql) => {
       }
 
       // Update task evaluation status
-      const updateResult = await queries.updateTask(sql, id, {
+      const updatedTask = await queries.updateTask(sql, id, {
         ai_evaluation_status: body.status
       })
 
-      if (!updateResult.ok) {
-        return c.json({ error: updateResult.error }, 500)
-      }
-
       return c.json({
         message: 'Evaluation status updated successfully',
-        task: updateResult.data
+        task: updatedTask
       })
     })
     .patch('/:id/evaluation-result', zValidator('param', idParamSchema), async (c) => {
@@ -312,10 +273,7 @@ export const createTaskRoutes = (sql: Sql) => {
       const body = await c.req.json()
 
       // Verify task exists
-      const taskResult = await queries.findTaskById(sql, id)
-      if (!taskResult.ok) {
-        return c.json({ error: 'Task not found' }, 404)
-      }
+      await queries.findTaskById(sql, id)
 
       // Validate result
       const validResults = ['ready', 'needs_clarification']
@@ -324,15 +282,11 @@ export const createTaskRoutes = (sql: Sql) => {
       }
 
       // Update task evaluation result
-      const updateResult = await queries.updateTaskEvaluationResult(sql, id, body.result)
-
-      if (!updateResult.ok) {
-        return c.json({ error: updateResult.error }, 500)
-      }
+      const updatedTask = await queries.updateTaskEvaluationResult(sql, id, body.result)
 
       return c.json({
         message: 'Evaluation result updated successfully',
-        task: updateResult.data
+        task: updatedTask
       })
     })
     .patch('/:id/evaluation-simple', zValidator('param', idParamSchema), async (c) => {
@@ -340,23 +294,16 @@ export const createTaskRoutes = (sql: Sql) => {
       const body = await c.req.json()
 
       // Verify task exists
-      const taskResult = await queries.findTaskById(sql, id)
-      if (!taskResult.ok) {
-        return c.json({ error: 'Task not found' }, 404)
-      }
+      await queries.findTaskById(sql, id)
 
       // Update task simple evaluation result
-      const updateResult = await queries.updateTask(sql, id, {
+      const updatedTask = await queries.updateTask(sql, id, {
         ai_evaluation_simple_result: body.simpleResult
       })
 
-      if (!updateResult.ok) {
-        return c.json({ error: updateResult.error }, 500)
-      }
-
       return c.json({
         message: 'Simple evaluation result updated successfully',
-        task: updateResult.data
+        task: updatedTask
       })
     })
     .patch('/:id/evaluation-agentic', zValidator('param', idParamSchema), async (c) => {
@@ -364,23 +311,16 @@ export const createTaskRoutes = (sql: Sql) => {
       const body = await c.req.json()
 
       // Verify task exists
-      const taskResult = await queries.findTaskById(sql, id)
-      if (!taskResult.ok) {
-        return c.json({ error: 'Task not found' }, 404)
-      }
+      await queries.findTaskById(sql, id)
 
       // Update task agentic evaluation result
-      const updateResult = await queries.updateTask(sql, id, {
+      const updatedTask = await queries.updateTask(sql, id, {
         ai_evaluation_agentic_result: body.agenticResult
       })
 
-      if (!updateResult.ok) {
-        return c.json({ error: updateResult.error }, 500)
-      }
-
       return c.json({
         message: 'Agentic evaluation result updated successfully',
-        task: updateResult.data
+        task: updatedTask
       })
     })
     .get('/:id/file-spaces', zValidator('param', idParamSchema), async (c) => {

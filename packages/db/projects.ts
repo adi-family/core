@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { Project, CreateProjectInput, UpdateProjectInput, Result, GitlabExecutorConfig, AIProviderConfig, AnthropicConfig, OpenAIConfig, GoogleConfig } from '@types'
+import type { Project, CreateProjectInput, UpdateProjectInput, GitlabExecutorConfig, AIProviderConfig, AnthropicConfig, OpenAIConfig, GoogleConfig } from '@types'
 import { filterPresentColumns } from './utils'
 import { NotFoundException } from '../utils/exceptions'
 

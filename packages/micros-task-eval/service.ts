@@ -42,14 +42,7 @@ export async function evaluateTask(
 
   try {
     // Fetch task to validate it exists
-    const taskResult = await taskQueries.findTaskById(sql, taskId)
-    if (!taskResult.ok) {
-      result.errors.push(`Task not found: ${taskId}`)
-      await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'failed')
-      return result
-    }
-
-    const task = taskResult.data
+    const task = await taskQueries.findTaskById(sql, taskId)
 
     if (!task.project_id) {
       const errorMsg = 'Task has no associated project'
@@ -122,7 +115,7 @@ export async function evaluateTask(
           api_key: aiProviderSelection.config.api_key,
           model: aiProviderSelection.config.model,
           max_tokens: aiProviderSelection.config.max_tokens,
-          temperature: aiProviderSelection.config.temperature,
+          temperature: 'temperature' in aiProviderSelection.config ? aiProviderSelection.config.temperature : 1.0,
           endpoint_url: aiProviderSelection.config.type === 'self-hosted'
             ? aiProviderSelection.config.endpoint_url
             : undefined

@@ -85,17 +85,13 @@ export const createUserAccessRoutes = (sql: Sql) => {
           return c.json({ error: 'Admin access required to revoke permissions' }, 403)
         }
 
-        const result = await userAccessQueries.revokeAccess(
+        await userAccessQueries.revokeAccess(
           sql,
           body.user_id,
           body.entity_type,
           body.entity_id,
           body.role
         )
-
-        if (!result.ok) {
-          return c.json({ error: result.error }, 404)
-        }
 
         return c.body(null, 204)
       })

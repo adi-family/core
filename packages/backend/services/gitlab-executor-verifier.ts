@@ -110,7 +110,7 @@ export async function validateGitLabToken(
     let secret
     try {
       secret = await secretQueries.findSecretById(sql, secretId)
-    } catch (error) {
+    } catch {
       logger.error(`✗ Secret ${secretId} not found`)
       return {
         valid: false,
@@ -120,14 +120,6 @@ export async function validateGitLabToken(
 
     // Retrieve and decrypt the token from database
     const accessToken = await getDecryptedSecretValue(sql, secretId)
-
-    if (!accessToken) {
-      logger.error(`✗ Secret ${secretId} has no value`)
-      return {
-        valid: false,
-        error: 'Secret has no value'
-      }
-    }
 
     // Determine token type based on secret metadata
     const tokenType = secret.token_type === 'oauth' ? 'oauth' : 'pat'

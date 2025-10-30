@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { FileSpace, CreateFileSpaceInput, UpdateFileSpaceInput, Result } from '@types'
+import type { FileSpace, CreateFileSpaceInput, UpdateFileSpaceInput } from '@types'
 import { filterPresentColumns } from './utils'
 import { NotFoundException } from '../utils/exceptions'
 

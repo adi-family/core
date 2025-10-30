@@ -13,13 +13,8 @@ export const createMessageRoutes = (sql: Sql) => {
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
-      const result = await queries.findMessageById(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      const message = await queries.findMessageById(sql, id)
+      return c.json(message)
     })
     .post('/', zValidator('json', createMessageSchema), authMiddleware, async (c) => {
       const body = c.req.valid('json')
@@ -28,12 +23,7 @@ export const createMessageRoutes = (sql: Sql) => {
     })
     .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
-      const result = await queries.deleteMessage(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
+      await queries.deleteMessage(sql, id)
       return c.json({ success: true })
     })
 }

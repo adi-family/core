@@ -105,11 +105,7 @@ export async function updatePipelineStatus(executionId: string, sql: Sql): Promi
 
   try {
     // Fetch pipeline execution (direct DB)
-    const execResult = await pipelineExecutionQueries.findPipelineExecutionById(sql, executionId)
-    if (!execResult.ok) {
-      throw new Error(`Pipeline execution not found: ${executionId}`)
-    }
-    const execution = execResult.data
+    const execution = await pipelineExecutionQueries.findPipelineExecutionById(sql, executionId)
 
     // Validate execution has pipeline_id
     if (!execution.pipeline_id) {
@@ -120,16 +116,10 @@ export async function updatePipelineStatus(executionId: string, sql: Sql): Promi
     }
 
     // Fetch worker repository (direct DB)
-    const workerRepoResult = await workerRepositoryQueries.findWorkerRepositoryById(
+    const workerRepo = await workerRepositoryQueries.findWorkerRepositoryById(
       sql,
       execution.worker_repository_id
     )
-    if (!workerRepoResult.ok) {
-      throw new Error(
-        `Worker repository not found: ${execution.worker_repository_id}`
-      )
-    }
-    const workerRepo = workerRepoResult.data
 
     // Parse source from JSONB
     const source = workerRepo.source_gitlab as unknown as {
@@ -193,16 +183,10 @@ export async function updatePipelineStatus(executionId: string, sql: Sql): Promi
       )
 
       // Update pipeline execution (direct DB)
-      const updateResult = await pipelineExecutionQueries.updatePipelineExecution(sql, execution.id, {
+      await pipelineExecutionQueries.updatePipelineExecution(sql, execution.id, {
         status: newStatus,
         last_status_update: new Date().toISOString(),
       })
-
-      if (!updateResult.ok) {
-        throw new Error(
-          `Failed to update pipeline execution ${execution.id} status to ${newStatus}`
-        )
-      }
 
       logger.info(`✓ Updated pipeline execution status to: ${newStatus}`)
 

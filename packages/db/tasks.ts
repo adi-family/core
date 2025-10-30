@@ -1,6 +1,7 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { Task, CreateTaskInput, UpdateTaskInput, Result } from '@types'
+import type { Task, CreateTaskInput, UpdateTaskInput } from '@types'
 import { filterPresentColumns } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -198,12 +199,13 @@ export const findTasksWithFiltersPaginated = async (sql: Sql, options: TaskQuery
   }
 }
 
-export const findTaskById = async (sql: Sql, id: string): Promise<Result<Task>> => {
+export const findTaskById = async (sql: Sql, id: string): Promise<Task> => {
   const tasks = await get(sql<Task[]>`SELECT * FROM tasks WHERE id = ${id}`)
   const [task] = tasks
+  if (!task) {
+    throw new NotFoundException('Task not found')
+  }
   return task
-    ? { ok: true, data: task }
-    : { ok: false, error: 'Task not found' }
 }
 
 const createTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
@@ -222,7 +224,7 @@ export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task
 
 const updateTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'ai_evaluation_status', 'ai_evaluation_session_id', 'ai_evaluation_result', 'ai_evaluation_simple_result', 'ai_evaluation_agentic_result', 'ai_implementation_status', 'ai_implementation_session_id'] as const
 
-export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): Promise<Result<Task>> => {
+export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): Promise<Task> => {
   const presentCols = filterPresentColumns(input, updateTaskCols)
 
   if (presentCols.length === 0) {
@@ -234,9 +236,10 @@ export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): 
       RETURNING *
     `)
     const [task] = tasks
+    if (!task) {
+      throw new NotFoundException('Task not found')
+    }
     return task
-      ? { ok: true, data: task }
-      : { ok: false, error: 'Task not found' }
   }
 
   // Build update object with only present columns
@@ -252,17 +255,18 @@ export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): 
     RETURNING *
   `)
   const [task] = tasks
+  if (!task) {
+    throw new NotFoundException('Task not found')
+  }
   return task
-    ? { ok: true, data: task }
-    : { ok: false, error: 'Task not found' }
 }
 
-export const deleteTask = async (sql: Sql, id: string): Promise<Result<void>> => {
+export const deleteTask = async (sql: Sql, id: string): Promise<void> => {
   const resultSet = await get(sql`DELETE FROM tasks WHERE id = ${id}`)
   const deleted = resultSet.count > 0
-  return deleted
-    ? { ok: true, data: undefined }
-    : { ok: false, error: 'Task not found' }
+  if (!deleted) {
+    throw new NotFoundException('Task not found')
+  }
 }
 
 const upsertTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
@@ -340,7 +344,7 @@ export const updateTaskEvaluationStatus = async (
   taskId: string,
   status: 'pending' | 'queued' | 'evaluating' | 'completed' | 'failed',
   sessionId?: string
-): Promise<Result<Task>> => {
+): Promise<Task> => {
   const tasks = await get(sql<Task[]>`
     UPDATE tasks
     SET
@@ -351,9 +355,10 @@ export const updateTaskEvaluationStatus = async (
     RETURNING *
   `)
   const [task] = tasks
+  if (!task) {
+    throw new NotFoundException('Task not found')
+  }
   return task
-    ? { ok: true, data: task }
-    : { ok: false, error: 'Task not found' }
 }
 
 /**
@@ -364,7 +369,7 @@ export const updateTaskEvaluationResult = async (
   sql: Sql,
   taskId: string,
   result: 'ready' | 'needs_clarification'
-): Promise<Result<Task>> => {
+): Promise<Task> => {
   const tasks = await get(sql<Task[]>`
     UPDATE tasks
     SET
@@ -374,9 +379,10 @@ export const updateTaskEvaluationResult = async (
     RETURNING *
   `)
   const [task] = tasks
+  if (!task) {
+    throw new NotFoundException('Task not found')
+  }
   return task
-    ? { ok: true, data: task }
-    : { ok: false, error: 'Task not found' }
 }
 
 /**
@@ -387,7 +393,7 @@ export const updateTaskEvaluationSimpleResult = async (
   sql: Sql,
   taskId: string,
   simpleResult: unknown
-): Promise<Result<Task>> => {
+): Promise<Task> => {
   const tasks = await get(sql<Task[]>`
     UPDATE tasks
     SET
@@ -397,9 +403,10 @@ export const updateTaskEvaluationSimpleResult = async (
     RETURNING *
   `)
   const [task] = tasks
+  if (!task) {
+    throw new NotFoundException('Task not found')
+  }
   return task
-    ? { ok: true, data: task }
-    : { ok: false, error: 'Task not found' }
 }
 
 /**
@@ -410,7 +417,7 @@ export const updateTaskEvaluationAgenticResult = async (
   sql: Sql,
   taskId: string,
   agenticResult: unknown
-): Promise<Result<Task>> => {
+): Promise<Task> => {
   const tasks = await get(sql<Task[]>`
     UPDATE tasks
     SET
@@ -420,9 +427,10 @@ export const updateTaskEvaluationAgenticResult = async (
     RETURNING *
   `)
   const [task] = tasks
+  if (!task) {
+    throw new NotFoundException('Task not found')
+  }
   return task
-    ? { ok: true, data: task }
-    : { ok: false, error: 'Task not found' }
 }
 
 /**
@@ -444,7 +452,7 @@ export const updateTaskImplementationStatus = async (
   taskId: string,
   status: 'pending' | 'queued' | 'implementing' | 'completed' | 'failed',
   sessionId?: string
-): Promise<Result<Task>> => {
+): Promise<Task> => {
   const tasks = await get(sql<Task[]>`
     UPDATE tasks
     SET
@@ -455,7 +463,8 @@ export const updateTaskImplementationStatus = async (
     RETURNING *
   `)
   const [task] = tasks
+  if (!task) {
+    throw new NotFoundException('Task not found')
+  }
   return task
-    ? { ok: true, data: task }
-    : { ok: false, error: 'Task not found' }
 }

@@ -1,5 +1,6 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { Session, CreateSessionInput, Result } from '@types'
+import type { Session, CreateSessionInput } from '@types'
+import { NotFoundException } from '../utils/exceptions'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -9,12 +10,13 @@ export const findAllSessions = async (sql: Sql): Promise<Session[]> => {
   return get(sql<Session[]>`SELECT * FROM sessions ORDER BY created_at DESC`)
 }
 
-export const findSessionById = async (sql: Sql, id: string): Promise<Result<Session>> => {
+export const findSessionById = async (sql: Sql, id: string): Promise<Session> => {
   const sessions = await get(sql<Session[]>`SELECT * FROM sessions WHERE id = ${id}`)
   const [session] = sessions
+  if (!session) {
+    throw new NotFoundException('Session not found')
+  }
   return session
-    ? { ok: true, data: session }
-    : { ok: false, error: 'Session not found' }
 }
 
 export const findSessionsByTaskId = async (sql: Sql, taskId: string): Promise<Session[]> => {
@@ -33,10 +35,10 @@ export const createSession = async (sql: Sql, input: CreateSessionInput): Promis
   return session
 }
 
-export const deleteSession = async (sql: Sql, id: string): Promise<Result<void>> => {
+export const deleteSession = async (sql: Sql, id: string): Promise<void> => {
   const resultSet = await get(sql`DELETE FROM sessions WHERE id = ${id}`)
   const deleted = resultSet.count > 0
-  return deleted
-    ? { ok: true, data: undefined }
-    : { ok: false, error: 'Session not found' }
+  if (!deleted) {
+    throw new NotFoundException('Session not found')
+  }
 }

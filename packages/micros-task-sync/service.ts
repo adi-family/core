@@ -53,14 +53,7 @@ export async function syncTaskSource(
     await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'syncing')
 
     // Fetch task source
-    const taskSourceResult = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
-    if (!taskSourceResult.ok) {
-      result.errors.push(`Task source not found: ${taskSourceId}`)
-      await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'failed')
-      return result
-    }
-
-    const taskSource = taskSourceResult.data
+    const taskSource = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
 
     if (!taskSource.enabled) {
       result.errors.push(`Task source is disabled: ${taskSourceId}`)
@@ -69,14 +62,7 @@ export async function syncTaskSource(
     }
 
     // Fetch project to validate it exists and is enabled
-    const projectResult = await projectQueries.findProjectById(sql, taskSource.project_id)
-    if (!projectResult.ok) {
-      result.errors.push(`Project not found: ${taskSource.project_id}`)
-      await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'failed')
-      return result
-    }
-
-    const project = projectResult.data
+    const project = await projectQueries.findProjectById(sql, taskSource.project_id)
 
     if (!project.enabled) {
       result.errors.push(`Project is disabled: ${project.id}`)
@@ -238,13 +224,7 @@ export async function revalidateTasksStatus(
 
   try {
     // Fetch task source
-    const taskSourceResult = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
-    if (!taskSourceResult.ok) {
-      result.errors.push(`Task source not found: ${taskSourceId}`)
-      return result
-    }
-
-    const taskSource = taskSourceResult.data
+    const taskSource = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
 
     // Only GitLab and GitHub sources support revalidation for now
     if (taskSource.type !== 'gitlab_issues') {

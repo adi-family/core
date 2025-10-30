@@ -20,13 +20,8 @@ export const createPipelineExecutionRoutes = (sql: Sql) => {
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
-      const result = await queries.findPipelineExecutionById(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      const execution = await queries.findPipelineExecutionById(sql, id)
+      return c.json(execution)
     })
     .post('/', zValidator('json', createPipelineExecutionSchema), authMiddleware, async (c) => {
       const body = c.req.valid('json')
@@ -36,22 +31,12 @@ export const createPipelineExecutionRoutes = (sql: Sql) => {
     .patch('/:id', zValidator('param', idParamSchema), zValidator('json', updatePipelineExecutionSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
-      const result = await queries.updatePipelineExecution(sql, id, body)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      const execution = await queries.updatePipelineExecution(sql, id, body)
+      return c.json(execution)
     })
     .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
-      const result = await queries.deletePipelineExecution(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
+      await queries.deletePipelineExecution(sql, id)
       return c.json({ success: true })
     })
     // Note: This route needs special handling in app.ts since it uses /sessions/:sessionId prefix

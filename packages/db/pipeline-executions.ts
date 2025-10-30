@@ -1,5 +1,6 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { PipelineExecution, CreatePipelineExecutionInput, UpdatePipelineExecutionInput, Result } from '@types'
+import type { PipelineExecution, CreatePipelineExecutionInput, UpdatePipelineExecutionInput } from '@types'
+import { NotFoundException } from '../utils/exceptions'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -9,12 +10,13 @@ export const findAllPipelineExecutions = async (sql: Sql): Promise<PipelineExecu
   return get(sql<PipelineExecution[]>`SELECT * FROM pipeline_executions ORDER BY created_at DESC`)
 }
 
-export const findPipelineExecutionById = async (sql: Sql, id: string): Promise<Result<PipelineExecution>> => {
+export const findPipelineExecutionById = async (sql: Sql, id: string): Promise<PipelineExecution> => {
   const executions = await get(sql<PipelineExecution[]>`SELECT * FROM pipeline_executions WHERE id = ${id}`)
   const [execution] = executions
+  if (!execution) {
+    throw new NotFoundException('Pipeline execution not found')
+  }
   return execution
-    ? { ok: true, data: execution }
-    : { ok: false, error: 'Pipeline execution not found' }
 }
 
 export const findPipelineExecutionsBySessionId = async (sql: Sql, sessionId: string): Promise<PipelineExecution[]> => {
@@ -49,7 +51,7 @@ export const createPipelineExecution = async (sql: Sql, input: CreatePipelineExe
   return execution
 }
 
-export const updatePipelineExecution = async (sql: Sql, id: string, input: UpdatePipelineExecutionInput): Promise<Result<PipelineExecution>> => {
+export const updatePipelineExecution = async (sql: Sql, id: string, input: UpdatePipelineExecutionInput): Promise<PipelineExecution> => {
   const lastStatusUpdate = input.last_status_update || new Date().toISOString()
   const updatedAt = new Date().toISOString()
 
@@ -89,15 +91,16 @@ export const updatePipelineExecution = async (sql: Sql, id: string, input: Updat
   }
 
   const [execution] = executions
+  if (!execution) {
+    throw new NotFoundException('Pipeline execution not found')
+  }
   return execution
-    ? { ok: true, data: execution }
-    : { ok: false, error: 'Pipeline execution not found' }
 }
 
-export const deletePipelineExecution = async (sql: Sql, id: string): Promise<Result<void>> => {
+export const deletePipelineExecution = async (sql: Sql, id: string): Promise<void> => {
   const resultSet = await get(sql`DELETE FROM pipeline_executions WHERE id = ${id}`)
   const deleted = resultSet.count > 0
-  return deleted
-    ? { ok: true, data: undefined }
-    : { ok: false, error: 'Pipeline execution not found' }
+  if (!deleted) {
+    throw new NotFoundException('Pipeline execution not found')
+  }
 }

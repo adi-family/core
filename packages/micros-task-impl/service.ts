@@ -42,14 +42,7 @@ export async function implementTask(
     logger.info(`Task ${taskId} marked as queued for implementation`)
 
     // Fetch task to validate it exists
-    const taskResult = await taskQueries.findTaskById(sql, taskId)
-    if (!taskResult.ok) {
-      result.errors.push(`Task not found: ${taskId}`)
-      await taskQueries.updateTaskImplementationStatus(sql, taskId, 'failed')
-      return result
-    }
-
-    const task = taskResult.data
+    const task = await taskQueries.findTaskById(sql, taskId)
     logger.info(`Implementing task: ${task.title}`)
 
     // Create implementation session with runner="claude" (claude-pipeline.ts handles implementation)

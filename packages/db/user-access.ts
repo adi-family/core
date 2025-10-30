@@ -1,5 +1,6 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { UserAccess, CreateUserAccessInput, Result } from '@types'
+import type { UserAccess, CreateUserAccessInput } from '@types'
+import { NotFoundException } from '../utils/exceptions'
 
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
   return q.then(v => v);
@@ -234,7 +235,7 @@ export const revokeAccess = async (
   entityType: EntityType,
   entityId: string,
   role?: Role
-): Promise<Result<void>> => {
+): Promise<void> => {
   const resultSet = role
     ? await get(sql`
         DELETE FROM user_access
@@ -251,9 +252,9 @@ export const revokeAccess = async (
       `)
 
   const deleted = resultSet.count > 0
-  return deleted
-    ? { ok: true, data: undefined }
-    : { ok: false, error: 'Access not found' }
+  if (!deleted) {
+    throw new NotFoundException('Access not found')
+  }
 }
 
 export const getUserAccessibleProjects = async (

@@ -3,7 +3,7 @@
  * Constants for pricing tokens and CI time
  */
 
-import type { ApiUsageMetric as BaseApiUsageMetric } from '@types'
+// Removed unused import: ApiUsageMetric as BaseApiUsageMetric
 
 // CONSTANT PRICING - NOT CONFIGURABLE
 export const PRICING = {

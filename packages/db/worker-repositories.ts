@@ -1,5 +1,5 @@
 import type {MaybeRow, PendingQuery, Sql} from 'postgres'
-import type { WorkerRepository, CreateWorkerRepositoryInput, UpdateWorkerRepositoryInput, Result } from '@types'
+import type { WorkerRepository, CreateWorkerRepositoryInput, UpdateWorkerRepositoryInput } from '@types'
 import { filterPresentColumns } from './utils'
 import { NotFoundException } from '../utils/exceptions'
 

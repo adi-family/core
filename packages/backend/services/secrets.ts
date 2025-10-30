@@ -1,7 +1,8 @@
 import type { Sql } from 'postgres'
-import type { Secret, CreateSecretInput, UpdateSecretInput, Result } from '@types'
+import type { Secret, CreateSecretInput, UpdateSecretInput } from '@types'
 import { encrypt, decrypt } from '@adi-simple/shared/crypto-utils'
 import * as secretsDb from '../../db/secrets'
+import { NotFoundException } from '@utils/exceptions'
 
 const ENCRYPTION_VERSION = 'aes-256-gcm-v1'
 
@@ -91,7 +92,7 @@ export async function updateEncryptedSecret(
   sql: Sql,
   id: string,
   input: UpdateSecretInput
-): Promise<Result<Secret>> {
+): Promise<Secret> {
   const updateData: any = {
     updated_at: new Date()
   }
@@ -120,9 +121,10 @@ export async function updateEncryptedSecret(
     RETURNING *
   `
 
+  if (!secret) {
+    throw new NotFoundException('Secret not found')
+  }
   return secret
-    ? { ok: true, data: secret }
-    : { ok: false, error: 'Secret not found' }
 }
 
 export async function getDecryptedSecretValue(sql: Sql, secretId: string): Promise<string> {

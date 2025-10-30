@@ -42,7 +42,7 @@ export async function syncTaskSource(
     let taskSource: TaskSource
     try {
       taskSource = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
-    } catch (error) {
+    } catch {
       result.errors.push(`Task source not found: ${taskSourceId}`)
       return result
     }

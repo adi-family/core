@@ -55,12 +55,7 @@ export const createQuotaRoutes = (sql: Sql) => {
 
       try {
         // Get task to check project_id
-        const taskResult = await taskQueries.findTaskById(sql, taskId)
-        if (!taskResult.ok) {
-          return c.json({ error: 'Task not found' }, 404)
-        }
-
-        const task = taskResult.data
+        const task = await taskQueries.findTaskById(sql, taskId)
 
         if (!task.project_id) {
           return c.json({ error: 'Task has no associated project' }, 400)
@@ -112,12 +107,7 @@ export const createQuotaRoutes = (sql: Sql) => {
 
       try {
         // Get task to check project_id
-        const taskResult = await taskQueries.findTaskById(sql, taskId)
-        if (!taskResult.ok) {
-          return c.json({ error: 'Task not found' }, 404)
-        }
-
-        const task = taskResult.data
+        const task = await taskQueries.findTaskById(sql, taskId)
 
         if (!task.project_id) {
           return c.json({ error: 'Task has no associated project' }, 400)

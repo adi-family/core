@@ -177,13 +177,8 @@ export const createSecretRoutes = (sql: Sql) => {
         throw error
       }
 
-      const result = await secretsService.updateEncryptedSecret(sql, id, body)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      const sanitized = secretsService.sanitizeSecretForResponse(result.data)
+      const secret = await secretsService.updateEncryptedSecret(sql, id, body)
+      const sanitized = secretsService.sanitizeSecretForResponse(secret)
       return c.json(sanitized)
     })
     .delete('/:id', zValidator('param', idParamSchema), requireClerkAuth(), async (c) => {
@@ -342,9 +337,6 @@ export const createSecretRoutes = (sql: Sql) => {
 
       // Get decrypted token
       const token = await secretsService.getDecryptedSecretValue(sql, secretId)
-      if (!token) {
-        return c.json({ error: 'Token not found or could not be decrypted' }, 400)
-      }
 
       // Fetch repositories from GitLab
       try {

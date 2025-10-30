@@ -13,13 +13,8 @@ export const createSessionRoutes = (sql: Sql) => {
     })
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
-      const result = await queries.findSessionById(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
-      return c.json(result.data)
+      const session = await queries.findSessionById(sql, id)
+      return c.json(session)
     })
     .post('/', zValidator('json', createSessionSchema), authMiddleware, async (c) => {
       const body = c.req.valid('json')
@@ -28,12 +23,7 @@ export const createSessionRoutes = (sql: Sql) => {
     })
     .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
       const { id } = c.req.valid('param')
-      const result = await queries.deleteSession(sql, id)
-
-      if (!result.ok) {
-        return c.json({ error: result.error }, 404)
-      }
-
+      await queries.deleteSession(sql, id)
       return c.json({ success: true })
     })
 }
