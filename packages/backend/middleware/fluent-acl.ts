@@ -1,9 +1,14 @@
 import type { Context } from 'hono'
-import type { Sql } from 'postgres'
+import type { Sql, MaybeRow, PendingQuery } from 'postgres'
 import type { EntityType, Role } from '../../db/user-access'
 import { hasProjectAccess, hasAccessToResource } from '../../db/user-access'
 import { getClerkUserId } from './clerk'
 import { isServiceAuthenticated } from './service-auth'
+import { getApiKeyAuth, setApiKeyContext, getApiKeyContext } from './api-key-auth'
+
+function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
+  return q.then(v => v);
+}
 
 /**
  * Fluent API for access control
@@ -38,6 +43,7 @@ class ProjectAccessCheck {
    * Check if user has access
    * Returns userId if has access, throws 401/403 if not
    * Internal service calls (API_TOKEN) bypass ACL checks
+   * API key authentication grants access if key belongs to the project
    */
   async throw(c: Context): Promise<string> {
     // Internal service calls bypass ACL checks
@@ -45,6 +51,27 @@ class ProjectAccessCheck {
       return 'service' // Return special marker for service calls
     }
 
+    // Check for API key authentication
+    let apiKeyInfo = getApiKeyContext(c)
+    if (!apiKeyInfo) {
+      // Try to authenticate with API key if not already done
+      const apiKeyAuth = await getApiKeyAuth(c, this.sql)
+      if (apiKeyAuth && apiKeyAuth.valid) {
+        setApiKeyContext(c, { projectId: apiKeyAuth.projectId!, apiKey: apiKeyAuth.apiKey })
+        apiKeyInfo = getApiKeyContext(c)
+      }
+    }
+
+    if (apiKeyInfo) {
+      // API key authentication - check if key belongs to this project
+      if (apiKeyInfo.projectId !== this.projectId) {
+        throw new AccessDeniedError('API key does not have access to this project', 403)
+      }
+      // Return special marker for API key calls
+      return `apikey:${apiKeyInfo.apiKey.id}`
+    }
+
+    // Fall back to Clerk user authentication
     const userId = getClerkUserId(c)
 
     if (!userId) {
@@ -107,6 +134,7 @@ class ResourceAccessCheck {
    * Check if user has access
    * Returns userId if has access, throws 401/403 if not
    * Internal service calls (API_TOKEN) bypass ACL checks
+   * API key authentication grants access if key has permission to the resource's project
    */
   async throw(c: Context): Promise<string> {
     // Internal service calls bypass ACL checks
@@ -114,6 +142,29 @@ class ResourceAccessCheck {
       return 'service' // Return special marker for service calls
     }
 
+    // Check for API key authentication
+    let apiKeyInfo = getApiKeyContext(c)
+    if (!apiKeyInfo) {
+      // Try to authenticate with API key if not already done
+      const apiKeyAuth = await getApiKeyAuth(c, this.sql)
+      if (apiKeyAuth && apiKeyAuth.valid) {
+        setApiKeyContext(c, { projectId: apiKeyAuth.projectId!, apiKey: apiKeyAuth.apiKey })
+        apiKeyInfo = getApiKeyContext(c)
+      }
+    }
+
+    if (apiKeyInfo) {
+      // API key authentication - verify access through project
+      // The resource must belong to the same project as the API key
+      const hasAccess = await this.checkApiKeyResourceAccess(apiKeyInfo.projectId)
+      if (!hasAccess) {
+        throw new AccessDeniedError(`API key does not have access to this ${this.entityType}`, 403)
+      }
+      // Return special marker for API key calls
+      return `apikey:${apiKeyInfo.apiKey.id}`
+    }
+
+    // Fall back to Clerk user authentication
     const userId = getClerkUserId(c)
 
     if (!userId) {
@@ -127,6 +178,21 @@ class ResourceAccessCheck {
     }
 
     return userId
+  }
+
+  /**
+   * Check if API key has access to a resource by verifying it belongs to the same project
+   */
+  private async checkApiKeyResourceAccess(projectId: string): Promise<boolean> {
+    // Query to check if the resource belongs to the project
+    const result = await get(this.sql<any[]>`
+      SELECT EXISTS (
+        SELECT 1 FROM ${this.sql(this.entityType + 's')}
+        WHERE id = ${this.entityId}
+        AND project_id = ${projectId}
+      ) as has_access
+    `)
+    return result[0]?.has_access || false
   }
 
   /**

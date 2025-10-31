@@ -553,3 +553,28 @@ export const saveApiUsageSchema = z.object({
   iteration_number: z.number().int().min(0).optional(),
   metadata: z.any().optional()
 })
+
+// API Keys schemas
+export const apiKeyPermissionsSchema = z.object({
+  pipeline_execute: z.boolean().optional(),
+  read_project: z.boolean().optional(),
+  write_project: z.boolean().optional(),
+  read_tasks: z.boolean().optional(),
+  write_tasks: z.boolean().optional()
+})
+
+export const createApiKeySchema = z.object({
+  project_id: z.string().uuid(),
+  name: z.string().min(1).max(255),
+  permissions: apiKeyPermissionsSchema.optional(),
+  expires_at: z.string().datetime().nullable().optional()
+})
+
+export const updateApiKeySchema = z.object({
+  name: z.string().min(1).max(255).optional(),
+  permissions: apiKeyPermissionsSchema.optional()
+})
+
+export const apiKeyIdParamSchema = z.object({
+  apiKeyId: z.string().uuid()
+})

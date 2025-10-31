@@ -15,6 +15,7 @@ import { getProjectOwnerId } from '@db/user-access'
 import { checkQuotaAvailable, incrementQuotaUsage } from '@db/user-quotas'
 import { getPlatformAnthropicConfig } from '@backend/config'
 import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'
+import { getCachedPipelineApiKey } from '@backend/services/pipeline-api-key'
 import { sql as defaultSql } from '@db/client'
 
 const logger = createLogger({ namespace: 'pipeline-executor' })
@@ -816,7 +817,11 @@ async function preparePipelineConfig(
   logger.info(`✓ Using CI runner: ${context.session.runner}`)
 
   const apiBaseUrl = process.env.GITLAB_RUNNER_API_URL || process.env.API_BASE_URL || process.env.BACKEND_URL || 'http://localhost:3000'
-  const apiToken = process.env.API_TOKEN || process.env.BACKEND_API_TOKEN || ''
+
+  // Get project-specific API key for pipeline authentication
+  logger.info(`🔑 Retrieving pipeline API key for project ${context.project.id}`)
+  const apiToken = await getCachedPipelineApiKey(sql, context.project.id)
+  logger.info(`✓ Pipeline API key obtained`)
 
   const aiEnvVars = await getAIProviderEnvVars({
     projectId: context.project.id,

@@ -25,15 +25,41 @@ This repository contains GitLab CI pipelines for running AI agents (Claude, Code
 └── README.md
 ```
 
-## GitLab CI/CD Variables
+## Authentication
 
-Configure these in GitLab → Settings → CI/CD → Variables:
+This worker template uses **project-specific API keys** for authentication with the backend API.
 
-- `API_BASE_URL` - Backend API URL (e.g., https://api.adi.com)
-- `API_TOKEN` - Backend authentication token (masked/protected)
-- `ANTHROPIC_API_KEY` - Claude API key (masked/protected)
-- `OPENAI_API_KEY` - Codex API key (masked/protected)
-- `GOOGLE_API_KEY` - Gemini API key (masked/protected)
+### API Key System
+
+- **Auto-generated**: Each project automatically gets a dedicated API key for pipeline execution
+- **Project-scoped**: Keys are tied to specific projects and only grant access to that project's resources
+- **Secure**: Keys are stored hashed (SHA-256) in the database and transmitted securely to pipelines
+- **Cached**: Keys are cached for 24 hours to improve performance, then automatically rotated
+- **No manual setup required**: The system automatically creates and manages pipeline API keys
+
+### Environment Variables
+
+The `API_TOKEN` environment variable is automatically injected by the pipeline executor with the project-specific API key. You do **not** need to configure it manually.
+
+**Automatically injected variables:**
+- `API_BASE_URL` - Backend API URL
+- `API_TOKEN` - Project-specific API key (auto-generated)
+- `SESSION_ID` - Session UUID
+- `PIPELINE_EXECUTION_ID` - Pipeline execution UUID
+- `PROJECT_ID` - Project UUID
+
+**AI Provider API keys** (if configured):
+- `ANTHROPIC_API_KEY` - Claude API key (from project or platform config)
+- `OPENAI_API_KEY` - OpenAI API key (from project config)
+- `GOOGLE_API_KEY` - Google Gemini API key (from project config)
+
+### Permissions
+
+Pipeline API keys have the following permissions:
+- `pipeline_execute`: Execute pipelines
+- `read_project`: Read project information
+- `read_tasks`: Read task details
+- `write_tasks`: Update task status and results
 
 ## Pipeline Trigger
 

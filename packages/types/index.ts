@@ -577,3 +577,43 @@ export interface UsageMetricsFilters {
   provider?: string
   goal?: string
 }
+
+// API Keys Types
+export type ApiKeyPermissions = {
+  pipeline_execute?: boolean
+  read_project?: boolean
+  write_project?: boolean
+  read_tasks?: boolean
+  write_tasks?: boolean
+}
+
+export type ApiKey = {
+  id: string
+  project_id: string
+  name: string
+  key_hash: string
+  key_prefix: string
+  permissions: ApiKeyPermissions
+  last_used_at: string | null
+  expires_at: string | null
+  revoked_at: string | null
+  created_by: string
+  created_at: string
+  updated_at: string
+}
+
+export type ApiKeyWithSecret = ApiKey & {
+  key: string // Only returned on creation
+}
+
+export type CreateApiKeyInput = {
+  project_id: string
+  name: string
+  permissions?: ApiKeyPermissions
+  expires_at?: string | null
+}
+
+export type UpdateApiKeyInput = {
+  name?: string
+  permissions?: ApiKeyPermissions
+}

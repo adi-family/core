@@ -19,6 +19,7 @@ import { createAlertRoutes } from './handlers/alerts'
 import { createAdminRoutes } from './handlers/admin'
 import { createQuotaRoutes } from './handlers/quotas'
 import { createOAuthRoutes } from './handlers/oauth'
+import { createApiKeyRoutes } from './handlers/api-keys'
 import { authMiddleware } from './middleware/auth'
 import { clerkAuth, optionalClerkAuth } from './middleware/clerk'
 import { exceptionRecoverer } from './middleware/exception.ts'
@@ -91,6 +92,7 @@ const app = new Hono()
   .route('/secrets', createSecretRoutes(sql))
   .route('/user-access', createUserAccessRoutes(sql))
   .route('/oauth', createOAuthRoutes(sql))
+  .route('/', createApiKeyRoutes(sql))
   // Nested routes that need special handling
   // Tasks -> Sessions
   .get('/tasks/:taskId/sessions', zValidator('param', taskIdParamSchema), async (c) => {
