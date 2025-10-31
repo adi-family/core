@@ -3,7 +3,7 @@ import type { Sql } from 'postgres'
 import { getAuth } from '@hono/clerk-auth'
 import { createLogger } from '@utils/logger'
 import { hasAdminAccess } from '@db/user-access.ts'
-import {AuthRequiredException, NotEnoughRightsException} from "@utils/exceptions.ts";
+import { AuthRequiredException, NotEnoughRightsException } from "@utils/exceptions.ts";
 
 const logger = createLogger({ namespace: 'auth' })
 

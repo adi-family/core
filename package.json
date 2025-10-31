@@ -11,12 +11,16 @@
     "dev": "turbo run dev",
     "build": "turbo run build",
     "typecheck": "turbo run typecheck",
-    "lint": "turbo run lint",
-    "lint:fix": "turbo run lint --fix",
+    "lint": "eslint .",
+    "lint:workspaces": "turbo run lint",
+    "lint:fix": "eslint . --fix",
     "hooks:install": "sh hooks/install.sh",
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
-    "db:reset": "sh scripts/reset-db.sh"
+    "db:reset": "sh scripts/reset-db.sh",
+    "worker:build": "bun --cwd packages/worker run build:bundles",
+    "worker:build:watch": "bun --cwd packages/worker run build:bundles:watch",
+    "worker:clean": "bun --cwd packages/worker run build:bundles:clean"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.1",

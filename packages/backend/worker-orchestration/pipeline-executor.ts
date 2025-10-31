@@ -9,7 +9,7 @@ import type { BackendClient } from '../api-client'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { retry, isRetryableError } from '@utils/retry'
 import { createLogger } from '@utils/logger'
-import { CIRepositoryManager } from '../../worker/ci-repository-manager'
+import { CIRepositoryManager } from '@worker/ci-repository-manager.ts'
 import { validateGitLabSource, decryptGitLabToken, type GitLabSource } from './gitlab-utils'
 import { getProjectOwnerId } from '@db/user-access'
 import { checkQuotaAvailable, incrementQuotaUsage } from '@db/user-quotas'
@@ -46,17 +46,13 @@ async function ensureWorkerRepository(
   project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null },
   apiClient: BackendClient
 ): Promise<{ id: string; current_version: string | null; source_gitlab: unknown }> {
-  // Try to fetch existing worker repository
   const workerRepoRes = await apiClient.projects[':projectId']['worker-repository'].$get({
     param: { projectId: project.id }
   })
 
   if (workerRepoRes.ok) {
-    // Worker repository exists
     const workerRepo = await workerRepoRes.json()
 
-    // Ensure the GitLab project has correct settings for external pipeline variables
-    // This is important for projects created before this feature was added
     try {
       const source = workerRepo.source_gitlab as unknown as GitLabSource
       if (source && source.type === 'gitlab' && source.project_id && source.host && source.access_token_encrypted) {
@@ -67,27 +63,22 @@ async function ensureWorkerRepository(
         logger.info(`✓ Ensured external pipeline variables enabled for worker repository ${source.project_path}`)
       }
     } catch (error) {
-      // Log warning but don't fail - the setting might already be correct
       logger.warn(`⚠️  Could not update GitLab project settings for worker repository: ${error instanceof Error ? error.message : String(error)}`)
     }
 
     return workerRepo
   }
 
-  // Worker repository doesn't exist, auto-create it
   logger.info(`Worker repository not found for project ${project.name}, auto-creating...`)
 
-  // Determine credentials to use
   let gitlabHost: string
   let gitlabToken: string
   let gitlabUser: string
 
   if (project.job_executor_gitlab) {
-    // Use user-configured executor credentials
     const executor = project.job_executor_gitlab
     gitlabHost = executor.host
 
-    // Fetch secret for access token with decrypted value
     const secretRes = await apiClient.secrets[':id'].value.$get({
       param: { id: executor.access_token_secret_id }
     })
@@ -99,7 +90,6 @@ async function ensureWorkerRepository(
     const secret = await secretRes.json() as any
     gitlabToken = secret.value
 
-    // Extract user from token (call GitLab API)
     const gitlabClient = new GitLabApiClient(gitlabHost, gitlabToken)
     const user = await gitlabClient.getCurrentUser()
     gitlabUser = user.username
@@ -122,7 +112,6 @@ async function ensureWorkerRepository(
     logger.info(`Using default GitLab credentials: ${gitlabHost} (user: ${gitlabUser})`)
   }
 
-  // Create worker repository
   const manager = new CIRepositoryManager()
   const version = '2025-10-18-01'
   const customPath = `adi-worker-${project.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')}`
@@ -379,8 +368,6 @@ async function getAIProviderEnvVars(
 ): Promise<Record<string, string>> {
   const envVars: Record<string, string> = {}
 
-  // Check implementation quota and get API key
-  // If project has no Anthropic config, check quota and use platform key
   if (userId && !aiProviderConfigs?.anthropic) {
     try {
       const quotaCheck = await checkQuotaAvailable(sql, userId, 'implementation')
@@ -489,7 +476,6 @@ async function getAIProviderEnvVars(
             envVars.OPENAI_API_KEY = apiKey
             logger.info(`✓ Loaded OPENAI_API_KEY from secret ${config.api_key_secret_id}`)
 
-            // Set additional configuration only if API key is valid
             if (config.type === 'azure') {
               envVars.OPENAI_API_BASE = config.endpoint_url
               envVars.OPENAI_API_TYPE = 'azure'
@@ -505,12 +491,6 @@ async function getAIProviderEnvVars(
 
             if (config.model) {
               envVars.OPENAI_MODEL = config.model
-            }
-            if (config.max_tokens) {
-              envVars.OPENAI_MAX_TOKENS = config.max_tokens.toString()
-            }
-            if (config.temperature !== undefined) {
-              envVars.OPENAI_TEMPERATURE = config.temperature.toString()
             }
           } else {
             logger.warn(`⚠️  OpenAI API key secret ${config.api_key_secret_id} exists but value is empty`)

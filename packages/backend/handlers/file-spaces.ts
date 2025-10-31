@@ -19,17 +19,14 @@ export const createFileSpaceRoutes = (sql: Sql) => {
     .get('/', zValidator('query', projectIdQuerySchema), async (c) => {
       const { project_id } = c.req.valid('query')
 
-      // Service authentication (API_TOKEN) bypasses user checks
       const isService = isServiceAuthenticated(c)
 
-      // Get userId - will throw if not authenticated and not a service call
       let userId: string | null = null
       if (!isService) {
         userId = await reqAuthed(c)
       }
 
       if (project_id) {
-        // For service calls, skip ACL check. For user calls, check access.
         if (!isService) {
           const hasAccess = await acl.project(project_id).viewer.gte.check(c)
           if (!hasAccess) {
@@ -41,7 +38,6 @@ export const createFileSpaceRoutes = (sql: Sql) => {
         return c.json(fileSpaces)
       }
 
-      // Service calls return all file spaces, user calls return only accessible ones
       if (isService) {
         const allFileSpaces = await queries.findAllFileSpaces(sql)
         return c.json(allFileSpaces)

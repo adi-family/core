@@ -54,20 +54,14 @@ export const createQuotaRoutes = (sql: Sql) => {
       }
 
       try {
-        // Get task to check project_id
         const task = await taskQueries.findTaskById(sql, taskId)
 
         if (!task.project_id) {
           return c.json({ error: 'Task has no associated project' }, 400)
         }
 
-        // Check quota
         const quotaCheck = await quotaQueries.checkQuotaAvailable(sql, userId, evaluationType)
-
-        // Check if project has its own provider
         const hasProjectProvider = await checkProjectHasAnthropicProvider(sql, task.project_id)
-
-        // Check if platform provider is available
         const platformAvailable = hasPlatformAnthropicConfig()
 
         return c.json({
@@ -105,32 +99,19 @@ export const createQuotaRoutes = (sql: Sql) => {
         return c.json({ error: 'Invalid type query parameter. Must be "simple" or "advanced"' }, 400)
       }
 
-      try {
-        // Get task to check project_id
-        const task = await taskQueries.findTaskById(sql, taskId)
-
-        if (!task.project_id) {
-          return c.json({ error: 'Task has no associated project' }, 400)
-        }
-
-        // Select AI provider based on quota
-        const selection = await selectAIProviderForEvaluation(
-          sql,
-          userId,
-          task.project_id,
-          evaluationType
-        )
-
-        return c.json(selection)
-      } catch (error: any) {
-        if (error instanceof QuotaExceededError) {
-          return c.json({
-            error: error.message,
-            quota: error.quotaCheck,
-          }, 402) // 402 Payment Required seems appropriate for quota exceeded
-        }
-        return c.json({ error: error.message }, 500)
+      const task = await taskQueries.findTaskById(sql, taskId)
+      if (!task.project_id) {
+        return c.json({ error: 'Task has no associated project' }, 400)
       }
+
+      const selection = await selectAIProviderForEvaluation(
+        sql,
+        userId,
+        task.project_id,
+        evaluationType
+      )
+
+      return c.json(selection)
     }))
 
     .get('/admin/quotas', (async (c) => {
@@ -165,45 +146,41 @@ export const createQuotaRoutes = (sql: Sql) => {
       const targetUserId = c.req.param('userId')
       const body = await c.req.json()
 
-      try {
-        const limits: {
-          simple_soft?: number
-          simple_hard?: number
-          advanced_soft?: number
-          advanced_hard?: number
-        } = {}
+      const limits: {
+        simple_soft?: number
+        simple_hard?: number
+        advanced_soft?: number
+        advanced_hard?: number
+      } = {}
 
-        if (body.simple_soft_limit !== undefined) {
-          limits.simple_soft = body.simple_soft_limit
-        }
-        if (body.simple_hard_limit !== undefined) {
-          limits.simple_hard = body.simple_hard_limit
-        }
-        if (body.advanced_soft_limit !== undefined) {
-          limits.advanced_soft = body.advanced_soft_limit
-        }
-        if (body.advanced_hard_limit !== undefined) {
-          limits.advanced_hard = body.advanced_hard_limit
-        }
-
-        const quota = await quotaQueries.setUserQuotaLimits(sql, targetUserId, limits)
-
-        return c.json({
-          user_id: quota.user_id,
-          simple: {
-            used: quota.simple_evaluations_used,
-            soft_limit: quota.simple_evaluations_soft_limit,
-            hard_limit: quota.simple_evaluations_hard_limit,
-          },
-          advanced: {
-            used: quota.advanced_evaluations_used,
-            soft_limit: quota.advanced_evaluations_soft_limit,
-            hard_limit: quota.advanced_evaluations_hard_limit,
-          },
-        })
-      } catch (error: any) {
-        return c.json({ error: error.message }, 500)
+      if (body.simple_soft_limit !== undefined) {
+        limits.simple_soft = body.simple_soft_limit
       }
+      if (body.simple_hard_limit !== undefined) {
+        limits.simple_hard = body.simple_hard_limit
+      }
+      if (body.advanced_soft_limit !== undefined) {
+        limits.advanced_soft = body.advanced_soft_limit
+      }
+      if (body.advanced_hard_limit !== undefined) {
+        limits.advanced_hard = body.advanced_hard_limit
+      }
+
+      const quota = await quotaQueries.setUserQuotaLimits(sql, targetUserId, limits)
+
+      return c.json({
+        user_id: quota.user_id,
+        simple: {
+          used: quota.simple_evaluations_used,
+          soft_limit: quota.simple_evaluations_soft_limit,
+          hard_limit: quota.simple_evaluations_hard_limit,
+        },
+        advanced: {
+          used: quota.advanced_evaluations_used,
+          soft_limit: quota.advanced_evaluations_soft_limit,
+          hard_limit: quota.advanced_evaluations_hard_limit,
+        },
+      });
     }))
 
     /**
@@ -220,26 +197,21 @@ export const createQuotaRoutes = (sql: Sql) => {
         return c.json({ error: 'Invalid reset_type. Must be "simple", "advanced", or "both"' }, 400)
       }
 
-      try {
-        // Map 'both' to 'all' for the database function (both means simple + advanced + implementation)
-        const dbResetType = resetType === 'both' ? 'all' : resetType
-        const quota = await quotaQueries.resetUserQuotaUsage(sql, targetUserId, dbResetType)
+      const dbResetType = resetType === 'both' ? 'all' : resetType
+      const quota = await quotaQueries.resetUserQuotaUsage(sql, targetUserId, dbResetType)
 
-        return c.json({
-          user_id: quota.user_id,
-          simple: {
-            used: quota.simple_evaluations_used,
-            soft_limit: quota.simple_evaluations_soft_limit,
-            hard_limit: quota.simple_evaluations_hard_limit,
-          },
-          advanced: {
-            used: quota.advanced_evaluations_used,
-            soft_limit: quota.advanced_evaluations_soft_limit,
-            hard_limit: quota.advanced_evaluations_hard_limit,
-          },
-        })
-      } catch (error: any) {
-        return c.json({ error: error.message }, 500)
-      }
+      return c.json({
+        user_id: quota.user_id,
+        simple: {
+          used: quota.simple_evaluations_used,
+          soft_limit: quota.simple_evaluations_soft_limit,
+          hard_limit: quota.simple_evaluations_hard_limit,
+        },
+        advanced: {
+          used: quota.advanced_evaluations_used,
+          soft_limit: quota.advanced_evaluations_soft_limit,
+          hard_limit: quota.advanced_evaluations_hard_limit,
+        },
+      });
     }))
 }

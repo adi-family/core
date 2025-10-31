@@ -9,7 +9,7 @@ import { promisify } from 'util'
 import { readdir } from 'fs/promises'
 import { ApiClient } from './shared/api-client'
 import { createLogger } from './shared/logger'
-import { GitLabApiClient } from './shared/gitlab-api-client'
+import { GitLabApiClient } from '@adi-simple/shared/gitlab-api-client'
 import { getWorkspaceName } from './shared/workspace-utils'
 
 const exec = promisify(execCallback)

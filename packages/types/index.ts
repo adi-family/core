@@ -74,8 +74,6 @@ export type OpenAICloudConfig = {
   api_key_secret_id: string
   organization_id?: string
   model?: string
-  max_tokens?: number
-  temperature?: number
 }
 
 export type OpenAIAzureConfig = {

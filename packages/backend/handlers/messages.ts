@@ -25,5 +25,5 @@ export const createMessageRoutes = (sql: Sql) => {
       const { id } = c.req.valid('param')
       await queries.deleteMessage(sql, id)
       return c.json({ success: true })
-    })
+    });
 }

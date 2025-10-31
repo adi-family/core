@@ -1,4 +1,4 @@
-import type {MaybeRow, PendingQuery, Sql} from 'postgres'
+import type { MaybeRow, PendingQuery, Sql } from 'postgres'
 import type { Task, CreateTaskInput, UpdateTaskInput } from '@types'
 import { filterPresentColumns } from './utils'
 import { NotFoundException } from '../utils/exceptions'

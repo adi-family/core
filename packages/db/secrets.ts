@@ -1,4 +1,4 @@
-import type {MaybeRow, PendingQuery, Sql} from 'postgres'
+import type { MaybeRow, PendingQuery, Sql } from 'postgres'
 import type { Secret, CreateSecretInput, UpdateSecretInput } from '@types'
 import { filterPresentColumns } from './utils'
 import { NotFoundException } from '../utils/exceptions'

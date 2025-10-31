@@ -42,13 +42,9 @@ sync-only:
         echo "✓ Workspace credentials configured"
       fi
     - cd worker-scripts
-    - bun install
+    - echo "✓ Using pre-bundled scripts"
     - bun run sync-workspaces.ts
     - echo "✓ Submodules synced successfully"
-  cache:
-    paths:
-      - worker-scripts/node_modules/
-  rules:
     - if: '$SYNC_ONLY == "true"'
 
 prepare:
@@ -63,17 +59,13 @@ prepare:
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
     - cd worker-scripts
-    - bun install
+    - echo "✓ Using pre-bundled scripts"
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
 
     # Sync all workspace repositories
     - echo "Syncing workspace repositories"
     - bun run sync-workspaces.ts
-  cache:
-    paths:
-      - worker-scripts/node_modules/
-  rules:
     - if: '$SYNC_ONLY == "true"'
       when: never
     - when: always
@@ -105,7 +97,7 @@ execute:
         -d '{"status":"running"}'
 
     # Run Gemini pipeline (TypeScript with Bun)
-    - bun run gemini-pipeline.ts
+    - bun 2025-10-18-01/bundles/gemini-pipeline.js
 
     # Capture exit code
     - EXIT_CODE=$?
@@ -128,10 +120,6 @@ execute:
     paths:
       - results/
     expire_in: 7 days
-  cache:
-    paths:
-      - worker-scripts/node_modules/
-    policy: pull
   rules:
     - if: '$SYNC_ONLY == "true"'
       when: never
@@ -148,10 +136,6 @@ report:
     - bun run upload-results.ts
   dependencies:
     - execute
-  cache:
-    paths:
-      - worker-scripts/node_modules/
-    policy: pull
   rules:
     - if: '$SYNC_ONLY == "true"'
       when: never

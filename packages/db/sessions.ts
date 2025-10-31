@@ -1,4 +1,4 @@
-import type {MaybeRow, PendingQuery, Sql} from 'postgres'
+import type { MaybeRow, PendingQuery, Sql } from 'postgres'
 import type { Session, CreateSessionInput } from '@types'
 import { NotFoundException } from '../utils/exceptions'
 

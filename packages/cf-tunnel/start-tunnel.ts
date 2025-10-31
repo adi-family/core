@@ -63,7 +63,7 @@ function startTunnel() {
   })
 
   currentTunnel = tunnel
-  let tunnelStartTime = Date.now()
+  const tunnelStartTime = Date.now()
   let hasConnected = false
 
   tunnel.stdout.on('data', (data) => {

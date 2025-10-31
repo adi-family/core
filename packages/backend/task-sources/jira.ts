@@ -1,8 +1,8 @@
-import {BaseTaskSource} from './base';
-import {createLogger} from '@utils/logger.ts';
-import {sql} from '@db/client.ts';
-import {findSecretById, updateSecret} from '@db/secrets.ts';
-import type {JiraMetadata, TaskSource, TaskSourceIssue, TaskSourceJiraConfig} from "@types";
+import { BaseTaskSource } from './base';
+import { createLogger } from '@utils/logger.ts';
+import { sql } from '@db/client.ts';
+import { findSecretById, updateSecret } from '@db/secrets.ts';
+import type { JiraMetadata, TaskSource, TaskSourceIssue, TaskSourceJiraConfig } from "@types";
 import { JIRA_OAUTH_CLIENT_ID, JIRA_OAUTH_CLIENT_SECRET } from '@backend/config';
 
 interface JiraSearchResponse {

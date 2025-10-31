@@ -1,4 +1,4 @@
-import {type FormEvent, useState, useMemo, useEffect} from "react"
+import { type FormEvent, useState, useMemo, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@clerk/clerk-react"
 import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"

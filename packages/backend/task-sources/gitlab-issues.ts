@@ -1,8 +1,8 @@
-import {BaseTaskSource} from './base';
-import {getGitlabIssueList, getGitlabIssuesByIids} from '@utils/gitlab';
-import {sql} from '@db/client.ts';
-import {getSecretWithMetadata} from '../services/secrets';
-import type {GitlabIssuesConfig, GitlabMetadata, TaskSource, TaskSourceIssue} from "@types";
+import { BaseTaskSource } from './base';
+import { getGitlabIssueList, getGitlabIssuesByIids } from '@utils/gitlab';
+import { sql } from '@db/client.ts';
+import { getSecretWithMetadata } from '../services/secrets';
+import type { GitlabIssuesConfig, GitlabMetadata, TaskSource, TaskSourceIssue } from "@types";
 
 export class GitlabIssuesTaskSource extends BaseTaskSource {
   private gitlabConfig: GitlabIssuesConfig;

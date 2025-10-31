@@ -1,6 +1,7 @@
-import type {Context, Next} from "hono";
-import {AuthRequiredException, NotFoundException} from "@utils/exceptions.ts";
-import {AccessDeniedError} from "@backend/middleware/fluent-acl.ts";
+import type { Context, Next } from "hono";
+import { AuthRequiredException, NotFoundException, BadRequestException } from "@utils/exceptions.ts";
+import { AccessDeniedError } from "@backend/middleware/fluent-acl.ts";
+import {QuotaExceededError} from "@backend/services/ai-provider-selector.ts";
 
 export async function exceptionRecoverer(c: Context, next: Next) {
   try {
@@ -16,6 +17,17 @@ export async function exceptionRecoverer(c: Context, next: Next) {
 
     if (error instanceof NotFoundException) {
       return c.json({ error: error.message || 'Not found' }, 404)
+    }
+
+    if (error instanceof QuotaExceededError) {
+      return c.json({
+        error: error.message,
+        quota: error.quotaCheck,
+      }, 402);
+    }
+
+    if (error instanceof BadRequestException) {
+      return c.json({ error: error.message || 'Bad request' }, 400)
     }
   }
 }

@@ -1,4 +1,4 @@
-import type {ReactNode} from "react";
+import type { ReactNode } from "react";
 
 /**
  * Base presenter abstract class for type-safe model presentation

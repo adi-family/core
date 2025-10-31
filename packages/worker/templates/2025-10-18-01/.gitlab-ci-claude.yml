@@ -44,13 +44,9 @@ sync-only:
         echo "✓ Workspace credentials configured"
       fi
 
-    - cd 2025-10-18-01/worker-scripts
-    - bun install
-    - bun run sync-workspaces.ts
+    # Run sync-workspaces (bundled version)
+    - bun 2025-10-18-01/bundles/sync-workspaces.js
     - echo "✓ Submodules synced successfully"
-  cache:
-    paths:
-      - 2025-10-18-01/worker-scripts/node_modules/
   rules:
     - if: '$SYNC_ONLY == "true"'
 
@@ -60,10 +56,7 @@ prepare:
   tags:
     - claude
   script:
-    - echo "Installing dependencies for Claude implementation pipeline"
-    - cd 2025-10-18-01/worker-scripts
-    - bun install
-
+    - echo "✓ Using pre-bundled scripts, no installation needed"
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
     - echo "PROJECT_ID=$PROJECT_ID"
@@ -81,9 +74,6 @@ prepare:
       else
         echo "✓ API_TOKEN is set (length: ${#API_TOKEN})"
       fi
-  cache:
-    paths:
-      - 2025-10-18-01/worker-scripts/node_modules/
   rules:
     - if: '$SYNC_ONLY == "true"'
       when: never
@@ -154,8 +144,8 @@ execute:
         echo "⚠️  API_BASE_URL not set, skipping status update"
       fi
 
-    # Run Claude implementation pipeline and capture exit code
-    - bun run claude-pipeline.ts || EXIT_CODE=$?
+    # Run Claude implementation pipeline (bundled version) and capture exit code
+    - bun 2025-10-18-01/bundles/claude-pipeline.js || EXIT_CODE=$?
     - EXIT_CODE=${EXIT_CODE:-0}
 
     # Update status based on exit code
@@ -174,10 +164,6 @@ execute:
     paths:
       - 2025-10-18-01/results/
     expire_in: 7 days
-  cache:
-    paths:
-      - 2025-10-18-01/worker-scripts/node_modules/
-    policy: pull
   rules:
     - if: '$SYNC_ONLY == "true"'
       when: never
@@ -199,16 +185,10 @@ report:
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@adi-pipeline.dev}"
     - git config --global user.name "${GITLAB_USER_NAME:-ADI Pipeline}"
 
-    - cd 2025-10-18-01/worker-scripts
-
-    # Upload implementation artifacts via our API (includes pushing to file spaces and creating MRs)
-    - bun run upload-results.ts
+    # Upload implementation artifacts via our API (includes pushing to file spaces and creating MRs, bundled version)
+    - bun 2025-10-18-01/bundles/upload-results.js
   dependencies:
     - execute
-  cache:
-    paths:
-      - 2025-10-18-01/worker-scripts/node_modules/
-    policy: pull
   rules:
     - if: '$SYNC_ONLY == "true"'
       when: never

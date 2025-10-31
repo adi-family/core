@@ -4,8 +4,11 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --env-file=../../.env --watch ci-repository-manager.ts",
-    "build": "bun build ci-repository-manager.ts --outdir dist --target bun",
+    "dev": "concurrently --names \"manager,bundles\" -c \"cyan,magenta\" \"bun --env-file=../../.env --watch ci-repository-manager.ts\" \"bun scripts/build-bundles.ts watch\"",
+    "build": "bun build ci-repository-manager.ts --outdir dist --target bun && bun scripts/build-bundles.ts",
+    "build:bundles": "bun scripts/build-bundles.ts",
+    "build:bundles:watch": "bun scripts/build-bundles.ts watch",
+    "build:bundles:clean": "bun scripts/build-bundles.ts clean",
     "start": "bun --env-file=../../.env ci-repository-manager.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint ."

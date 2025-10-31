@@ -1,7 +1,7 @@
 import { createLogger } from '@utils/logger'
 import { TASK_SYNC_QUEUE, TASK_EVAL_QUEUE, TASK_IMPL_QUEUE } from './queues'
 import type { TaskSyncMessage, TaskEvalMessage, TaskImplMessage } from './types'
-import {channel} from "@adi/queue/connection";
+import { channel } from "@adi/queue/connection";
 
 const logger = createLogger({ namespace: 'queue-publisher' })
 

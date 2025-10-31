@@ -1,5 +1,5 @@
-import {assertNever} from '@utils/assert-never';
-import type {TaskSource, TaskSourceIssue} from "@types";
+import { assertNever } from '@utils/assert-never';
+import type { TaskSource, TaskSourceIssue } from "@types";
 
 export abstract class BaseTaskSource {
   protected taskSource: TaskSource;
@@ -41,6 +41,6 @@ export abstract class BaseTaskSource {
   }
 
   getConfig(): Readonly<Record<string, unknown>> {
-    return {...this.config};
+    return { ...this.config };
   }
 }

@@ -1,7 +1,7 @@
 import type { Sql } from 'postgres'
 import type { AnthropicConfig } from '@types'
-import { checkQuotaAvailable, type QuotaCheck } from '../../db/user-quotas'
-import { getProjectAIProviderConfig } from '../../db/projects'
+import { checkQuotaAvailable, type QuotaCheck } from '@db/user-quotas.ts'
+import { getProjectAIProviderConfig } from '@db/projects.ts'
 import { getDecryptedSecretValue } from './secrets'
 import { getPlatformAnthropicConfig, type PlatformAnthropicConfig } from '../config'
 
@@ -9,37 +9,18 @@ import { getPlatformAnthropicConfig, type PlatformAnthropicConfig } from '../con
  * Result of AI provider selection for evaluation
  */
 export interface AIProviderSelection {
-  /**
-   * Anthropic configuration to use (either platform or project)
-   */
   config: PlatformAnthropicConfig | ResolvedAnthropicConfig
-
-  /**
-   * Whether the platform token is being used (vs project token)
-   */
   use_platform_token: boolean
-
-  /**
-   * Quota information (if using platform token)
-   */
   quota_info?: QuotaCheck
-
-  /**
-   * Warning message (e.g., at soft limit)
-   */
   warning?: string
 }
 
-/**
- * Anthropic config with decrypted API key
- */
 export interface ResolvedAnthropicConfig {
   type: 'cloud' | 'self-hosted'
   api_key: string
   endpoint_url?: string
   model?: string
   max_tokens?: number
-  temperature?: number
   additional_headers?: Record<string, string>
 }
 
@@ -128,7 +109,6 @@ async function resolveAnthropicConfig(
       api_key: apiKey,
       model: config.model,
       max_tokens: config.max_tokens,
-      temperature: config.temperature,
     }
   } else {
     return {
@@ -137,7 +117,6 @@ async function resolveAnthropicConfig(
       endpoint_url: config.endpoint_url,
       model: config.model,
       max_tokens: config.max_tokens,
-      temperature: config.temperature,
       additional_headers: config.additional_headers,
     }
   }
