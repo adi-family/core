@@ -109,346 +109,438 @@ async function cleanupOrphanedGitModules(): Promise<void> {
   }
 }
 
-async function main() {
-  logger.info('🔄 Workspace Sync Started')
+/**
+ * Configuration context for workspace sync
+ */
+interface SyncContext {
+  projectId: string
+  apiClient: ApiClient
+}
+
+/**
+ * File space configuration from API
+ */
+interface FileSpaceConfig {
+  repo: string
+  host?: string
+  access_token_secret_id?: string
+}
+
+/**
+ * Initialize sync context with API client
+ */
+function initializeSyncContext(): SyncContext {
+  validateEnvironment()
+
+  const projectId = process.env.PROJECT_ID!
+  logger.info(`Project ID: ${projectId}`)
+
+  const apiClient = new ApiClient(
+    process.env.API_BASE_URL!,
+    process.env.API_TOKEN!
+  )
+
+  return { projectId, apiClient }
+}
+
+/**
+ * Fetch and validate file spaces from API
+ */
+async function fetchFileSpaces(context: SyncContext) {
+  logger.info('📥 Fetching file spaces from API...')
+  const fileSpaces = await context.apiClient.getFileSpacesByProject(context.projectId)
+  logger.info(`✓ Found ${fileSpaces.length} file space(s)`)
+
+  if (fileSpaces.length === 0) {
+    logger.info('ℹ️  No file spaces to sync')
+    process.exit(0)
+  }
+
+  return fileSpaces
+}
+
+/**
+ * Prepare workspace directory and read existing modules
+ */
+async function prepareWorkspace() {
+  await mkdir('../workspaces', { recursive: true })
+  logger.info('✓ Workspaces directory ready')
+
+  let gitmodulesContent = ''
+  try {
+    gitmodulesContent = await readFile('../.gitmodules', 'utf-8')
+    logger.info('✓ Loaded existing .gitmodules')
+  } catch {
+    logger.info('📝 Creating new .gitmodules file')
+  }
+
+  const existingModules = new Set<string>()
+  const moduleRegex = /\[submodule "([^"]+)"\]/g
+  let match: RegExpExecArray | null
+  while ((match = moduleRegex.exec(gitmodulesContent)) !== null) {
+    if (match[1]) {
+      existingModules.add(match[1])
+    }
+  }
+
+  return existingModules
+}
+
+/**
+ * Construct full repository URL from config
+ */
+function constructRepoUrl(config: FileSpaceConfig): string {
+  let repoUrl = config.repo
+
+  if (
+    !repoUrl.startsWith('http://') &&
+    !repoUrl.startsWith('https://') &&
+    !repoUrl.startsWith('git@')
+  ) {
+    const host = config.host || 'https://gitlab.com'
+    const cleanHost = host.replace(/\/$/, '')
+    const cleanRepo = repoUrl.replace(/^\//, '')
+    repoUrl = `${cleanHost}/${cleanRepo}.git`
+    logger.info(`   Constructed URL from host: ${repoUrl}`)
+  }
+
+  return repoUrl
+}
+
+/**
+ * Inject authentication token into HTTPS URL
+ */
+async function addAuthToUrl(repoUrl: string, config: FileSpaceConfig, apiClient: ApiClient, fileSpaceName: string): Promise<string> {
+  if (!repoUrl.startsWith('https://')) {
+    return repoUrl
+  }
+
+  const url = new URL(repoUrl)
+  if (url.username || url.password) {
+    return repoUrl
+  }
+
+  let token: string | undefined
+
+  if (config.access_token_secret_id) {
+    try {
+      token = await apiClient.getSecretValue(config.access_token_secret_id)
+      logger.info(`   ✓ Using per-workspace token from secret`)
+    } catch (error) {
+      logger.warn(
+        `   ⚠️  Failed to fetch workspace token: ${error instanceof Error ? error.message : String(error)}`
+      )
+      logger.warn(`   ⚠️  Falling back to GITLAB_TOKEN environment variable`)
+      token = process.env.GITLAB_TOKEN
+    }
+  } else {
+    token = process.env.GITLAB_TOKEN
+    if (token) {
+      logger.info(`   ✓ Using global GITLAB_TOKEN`)
+    }
+  }
+
+  if (token) {
+    url.username = 'oauth2'
+    url.password = token
+    logger.info(`   ✓ Added authentication to URL`)
+    return url.toString()
+  }
+
+  logger.warn(`   ⚠️  No authentication token available for ${fileSpaceName}`)
+  return repoUrl
+}
+
+/**
+ * Validate repository URL format
+ */
+function validateRepoUrl(repoUrl: string): void {
+  if (
+    !repoUrl.startsWith('http://') &&
+    !repoUrl.startsWith('https://') &&
+    !repoUrl.startsWith('git@')
+  ) {
+    throw new Error(
+      `Invalid repository URL format: ${repoUrl}. Must start with http://, https://, or git@`
+    )
+  }
+}
+
+/**
+ * Add or update a git submodule
+ */
+async function syncSubmodule(workspacePath: string, repoUrl: string, existingModules: Set<string>): Promise<void> {
+  if (existingModules.has(workspacePath)) {
+    logger.info(`   ✓ Submodule already registered`)
+    await exec(`cd .. && git config submodule.${workspacePath}.url ${repoUrl}`)
+    logger.info(`   ✓ Submodule URL updated`)
+  } else {
+    logger.info(`   📦 Adding submodule...`)
+
+    const workspaceName = workspacePath.split('/')[1]
+    const { stdout: templateDirName } = await exec('cd .. && basename $(pwd)')
+    const templateName = templateDirName.trim()
+    const gitModulePath = `.git/modules/${templateName}/workspaces/${workspaceName}`
+
+    const { stdout: gitModuleCheck } = await exec(`cd ../.. && test -d ${gitModulePath} && echo "exists" || echo "not found"`)
+
+    if (gitModuleCheck.trim() === 'exists') {
+      logger.info(`   🧹 Found orphaned .git/modules entry, cleaning up...`)
+      await exec(`cd ../.. && rm -rf ${gitModulePath}`)
+      logger.info(`   ✓ Cleaned up orphaned entry`)
+    }
+
+    await exec(`cd .. && git submodule add ${repoUrl} ${workspacePath}`)
+    logger.info(`   ✓ Submodule added`)
+  }
+
+  await exec(`cd .. && git submodule update --init --recursive ${workspacePath}`)
+  logger.info(`   ✓ Submodule initialized and updated`)
+}
+
+/**
+ * Process a single file space and sync as submodule
+ */
+async function processFileSpace(fileSpace: any, apiClient: ApiClient, existingModules: Set<string>): Promise<string | null> {
+  if (
+    !fileSpace.enabled ||
+    !fileSpace.config ||
+    typeof fileSpace.config !== 'object' ||
+    !('repo' in fileSpace.config)
+  ) {
+    logger.warn(
+      `⚠️  Skipping ${fileSpace.name}: not enabled or missing repo config`
+    )
+    return null
+  }
+
+  const config = fileSpace.config as FileSpaceConfig
+  let repoUrl = constructRepoUrl(config)
+  repoUrl = await addAuthToUrl(repoUrl, config, apiClient, fileSpace.name)
+
+  const workspaceName = getWorkspaceName(fileSpace.name, fileSpace.id)
+  const workspacePath = `workspaces/${workspaceName}`
+
+  logger.info(`\n📦 Syncing workspace: ${fileSpace.name}`)
+  logger.info(`   Repository: ${repoUrl}`)
 
   try {
-    // Validate environment
-    validateEnvironment()
-
-    const projectId = process.env.PROJECT_ID!
-
-    logger.info(`Project ID: ${projectId}`)
-
-    const apiClient = new ApiClient(
-      process.env.API_BASE_URL!,
-      process.env.API_TOKEN!
+    validateRepoUrl(repoUrl)
+    await syncSubmodule(workspacePath, repoUrl, existingModules)
+    return workspacePath
+  } catch (error) {
+    logger.error(
+      `   ❌ Failed to sync ${fileSpace.name}:`,
+      error instanceof Error ? error.message : String(error)
     )
+    return null
+  }
+}
 
-    // Clean up orphaned git modules before starting
-    await cleanupOrphanedGitModules()
+/**
+ * Process all file spaces and return desired submodules
+ */
+async function syncAllFileSpaces(fileSpaces: any[], apiClient: ApiClient, existingModules: Set<string>): Promise<Set<string>> {
+  const desiredSubmodules = new Set<string>()
 
-    // Fetch all file spaces for this project
-    logger.info('📥 Fetching file spaces from API...')
-    const fileSpaces = await apiClient.getFileSpacesByProject(projectId)
-    logger.info(`✓ Found ${fileSpaces.length} file space(s)`)
-
-    if (fileSpaces.length === 0) {
-      logger.info('ℹ️  No file spaces to sync')
-      process.exit(0)
-    }
-
-    // Create workspaces directory
-    await mkdir('../workspaces', { recursive: true })
-    logger.info('✓ Workspaces directory ready')
-
-    // Read or initialize .gitmodules file
-    let gitmodulesContent = ''
-    try {
-      gitmodulesContent = await readFile('../.gitmodules', 'utf-8')
-      logger.info('✓ Loaded existing .gitmodules')
-    } catch {
-      logger.info('📝 Creating new .gitmodules file')
-    }
-
-    const existingModules = new Set<string>()
-    const moduleRegex = /\[submodule "([^"]+)"\]/g
-    let match: RegExpExecArray | null
-    while ((match = moduleRegex.exec(gitmodulesContent)) !== null) {
-      if (match[1]) {
-        existingModules.add(match[1])
-      }
-    }
-
-    // Track which submodules should exist
-    const desiredSubmodules = new Set<string>()
-
-    // Add or update each workspace as a submodule
-    for (const fileSpace of fileSpaces) {
-      if (
-        !fileSpace.enabled ||
-        !fileSpace.config ||
-        typeof fileSpace.config !== 'object' ||
-        !('repo' in fileSpace.config)
-      ) {
-        logger.warn(
-          `⚠️  Skipping ${fileSpace.name}: not enabled or missing repo config`
-        )
-        continue
-      }
-
-      const config = fileSpace.config as { repo: string; host?: string; access_token_secret_id?: string }
-      let repoUrl = config.repo
-
-      // If repo is not a full URL, construct it from host + repo path
-      if (
-        !repoUrl.startsWith('http://') &&
-        !repoUrl.startsWith('https://') &&
-        !repoUrl.startsWith('git@')
-      ) {
-        const host = config.host || 'https://gitlab.com'
-        // Ensure host doesn't end with slash
-        const cleanHost = host.replace(/\/$/, '')
-        // Ensure repo doesn't start with slash
-        const cleanRepo = repoUrl.replace(/^\//, '')
-        repoUrl = `${cleanHost}/${cleanRepo}.git`
-        logger.info(`   Constructed URL from host: ${repoUrl}`)
-      }
-
-      // Inject authentication token into HTTPS URLs for private repos
-      // For GitLab, use oauth2 token format: https://oauth2:TOKEN@gitlab.com/repo.git
-      if (repoUrl.startsWith('https://')) {
-        const url = new URL(repoUrl)
-        // Only inject if no auth is already present
-        if (!url.username && !url.password) {
-          let token: string | undefined
-
-          // Prefer per-workspace token from secrets
-          if (config.access_token_secret_id) {
-            try {
-              token = await apiClient.getSecretValue(config.access_token_secret_id)
-              logger.info(`   ✓ Using per-workspace token from secret`)
-            } catch (error) {
-              logger.warn(
-                `   ⚠️  Failed to fetch workspace token: ${error instanceof Error ? error.message : String(error)}`
-              )
-              logger.warn(`   ⚠️  Falling back to GITLAB_TOKEN environment variable`)
-              token = process.env.GITLAB_TOKEN
-            }
-          } else {
-            // Fall back to global GITLAB_TOKEN
-            token = process.env.GITLAB_TOKEN
-            if (token) {
-              logger.info(`   ✓ Using global GITLAB_TOKEN`)
-            }
-          }
-
-          if (token) {
-            url.username = 'oauth2'
-            url.password = token
-            repoUrl = url.toString()
-            logger.info(`   ✓ Added authentication to URL`)
-          } else {
-            logger.warn(`   ⚠️  No authentication token available for ${fileSpace.name}`)
-          }
-        }
-      }
-
-      const workspaceName = getWorkspaceName(fileSpace.name, fileSpace.id)
-      const workspacePath = `workspaces/${workspaceName}`
-
+  for (const fileSpace of fileSpaces) {
+    const workspacePath = await processFileSpace(fileSpace, apiClient, existingModules)
+    if (workspacePath) {
       desiredSubmodules.add(workspacePath)
-
-      logger.info(`\n📦 Syncing workspace: ${fileSpace.name}`)
-      logger.info(`   Repository: ${repoUrl}`)
-
-      try {
-        // Final validation - should now always be a valid URL
-        if (
-          !repoUrl.startsWith('http://') &&
-          !repoUrl.startsWith('https://') &&
-          !repoUrl.startsWith('git@')
-        ) {
-          throw new Error(
-            `Invalid repository URL format: ${repoUrl}. Must start with http://, https://, or git@`
-          )
-        }
-
-        // Check if submodule already exists
-        if (existingModules.has(workspacePath)) {
-          logger.info(`   ✓ Submodule already registered`)
-
-          // Update submodule URL in case it changed
-          await exec(`cd .. && git config submodule.${workspacePath}.url ${repoUrl}`)
-          logger.info(`   ✓ Submodule URL updated`)
-        } else {
-          // Add new submodule
-          logger.info(`   📦 Adding submodule...`)
-
-          // Check if there's an orphaned .git/modules entry for this specific submodule
-          // Git root is parent of template directory, and modules are at .git/modules/<template>/workspaces/
-          const workspaceName = workspacePath.split('/')[1]
-          const { stdout: templateDirName } = await exec('cd .. && basename $(pwd)')
-          const templateName = templateDirName.trim()
-          const gitModulePath = `.git/modules/${templateName}/workspaces/${workspaceName}`
-
-          const { stdout: gitModuleCheck } = await exec(`cd ../.. && test -d ${gitModulePath} && echo "exists" || echo "not found"`)
-
-          if (gitModuleCheck.trim() === 'exists') {
-            logger.info(`   🧹 Found orphaned .git/modules entry, cleaning up...`)
-            await exec(`cd ../.. && rm -rf ${gitModulePath}`)
-            logger.info(`   ✓ Cleaned up orphaned entry`)
-          }
-
-          await exec(`cd .. && git submodule add ${repoUrl} ${workspacePath}`)
-          logger.info(`   ✓ Submodule added`)
-        }
-
-        // Initialize and update submodule
-        await exec(`cd .. && git submodule update --init --recursive ${workspacePath}`)
-        logger.info(`   ✓ Submodule initialized and updated`)
-      } catch (error) {
-        logger.error(
-          `   ❌ Failed to sync ${fileSpace.name}:`,
-          error instanceof Error ? error.message : String(error)
-        )
-        // Continue with other workspaces even if one fails
-      }
     }
+  }
 
-    // Remove submodules that are no longer in the file spaces list
-    logger.info('\n🔍 Checking for old submodules to remove...')
-    let removedCount = 0
+  return desiredSubmodules
+}
 
-    for (const existingModule of existingModules) {
-      if (existingModule.startsWith('workspaces/') && !desiredSubmodules.has(existingModule)) {
-        logger.info(`\n🗑️  Removing old submodule: ${existingModule}`)
+/**
+ * Remove a single submodule completely
+ */
+async function removeSubmodule(modulePath: string): Promise<void> {
+  logger.info(`\n🗑️  Removing old submodule: ${modulePath}`)
+
+  await exec(`cd .. && git submodule deinit -f ${modulePath}`)
+  logger.info(`   ✓ Submodule deinitialized`)
+
+  await exec(`cd .. && git rm -f ${modulePath}`)
+  logger.info(`   ✓ Removed from git index`)
+
+  await exec(`cd .. && rm -rf .git/modules/${modulePath}`)
+  logger.info(`   ✓ Removed .git/modules entry`)
+
+  await exec(`cd .. && rm -rf ${modulePath}`)
+  logger.info(`   ✓ Cleaned up directory`)
+
+  logger.info(`   ✅ Submodule completely removed`)
+}
+
+/**
+ * Remove submodules no longer in file spaces list
+ */
+async function removeOldSubmodules(existingModules: Set<string>, desiredSubmodules: Set<string>): Promise<void> {
+  logger.info('\n🔍 Checking for old submodules to remove...')
+  let removedCount = 0
+
+  for (const existingModule of existingModules) {
+    if (!existingModule.startsWith('workspaces/')) continue
+    if (desiredSubmodules.has(existingModule)) continue
+
+    try {
+      await removeSubmodule(existingModule)
+      removedCount++
+    } catch (error) {
+      logger.warn(
+        `   ⚠️  Failed to remove submodule ${existingModule}:`,
+        error instanceof Error ? error.message : String(error)
+      )
+    }
+  }
+
+  if (removedCount > 0) {
+    logger.info(`\n✅ Removed ${removedCount} old submodule(s)`)
+  } else {
+    logger.info(`\nℹ️  No old submodules to remove`)
+  }
+}
+
+/**
+ * Clean up orphaned workspace directories
+ */
+async function cleanupOrphanedDirectories(desiredSubmodules: Set<string>): Promise<void> {
+  logger.info('\n🧹 Cleaning up orphaned workspace directories...')
+
+  try {
+    const { stdout: workspacesList } = await exec('cd .. && ls -1 workspaces 2>/dev/null || true')
+    if (!workspacesList.trim()) return
+
+    const physicalDirs = workspacesList.trim().split('\n')
+    let cleanedDirs = 0
+
+    for (const dir of physicalDirs) {
+      const workspacePath = `workspaces/${dir}`
+
+      if (!desiredSubmodules.has(workspacePath)) {
+        logger.info(`   🗑️  Removing orphaned directory: ${workspacePath}`)
         try {
-          // Step 1: Deinitialize the submodule
-          await exec(`cd .. && git submodule deinit -f ${existingModule}`)
-          logger.info(`   ✓ Submodule deinitialized`)
-
-          // Step 2: Remove from git index and working tree
-          await exec(`cd .. && git rm -f ${existingModule}`)
-          logger.info(`   ✓ Removed from git index`)
-
-          // Step 3: Remove .git/modules entry
-          await exec(`cd .. && rm -rf .git/modules/${existingModule}`)
-          logger.info(`   ✓ Removed .git/modules entry`)
-
-          // Step 4: Clean up any remaining directory
-          await exec(`cd .. && rm -rf ${existingModule}`)
-          logger.info(`   ✓ Cleaned up directory`)
-
-          removedCount++
-          logger.info(`   ✅ Submodule completely removed`)
+          await exec(`cd .. && rm -rf ${workspacePath}`)
+          logger.info(`   ✓ Directory removed`)
+          cleanedDirs++
         } catch (error) {
           logger.warn(
-            `   ⚠️  Failed to remove submodule ${existingModule}:`,
+            `   ⚠️  Failed to remove directory ${workspacePath}:`,
             error instanceof Error ? error.message : String(error)
           )
         }
       }
     }
 
-    if (removedCount > 0) {
-      logger.info(`\n✅ Removed ${removedCount} old submodule(s)`)
+    if (cleanedDirs > 0) {
+      logger.info(`✅ Cleaned up ${cleanedDirs} orphaned workspace director${cleanedDirs === 1 ? 'y' : 'ies'}`)
     } else {
-      logger.info(`\nℹ️  No old submodules to remove`)
+      logger.info(`ℹ️  No orphaned workspace directories found`)
+    }
+  } catch (error) {
+    logger.warn(`⚠️  Failed to clean up workspace directories: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+/**
+ * Get authenticated push URL if token available
+ */
+async function getPushUrl(): Promise<string> {
+  if (!process.env.WORKER_REPO_TOKEN) {
+    return 'origin'
+  }
+
+  try {
+    const { stdout: remoteUrl } = await exec('cd .. && git remote get-url origin')
+    const originalUrl = remoteUrl.trim()
+    logger.info(`📍 Original remote URL: ${originalUrl}`)
+
+    if (!originalUrl.startsWith('https://')) {
+      return 'origin'
     }
 
-    // Clean up orphaned physical directories in workspaces folder
-    logger.info('\n🧹 Cleaning up orphaned workspace directories...')
-    try {
-      const { stdout: workspacesList } = await exec('cd .. && ls -1 workspaces 2>/dev/null || true')
+    const url = new URL(originalUrl)
+    url.username = 'oauth2'
+    url.password = process.env.WORKER_REPO_TOKEN
 
-      if (workspacesList.trim()) {
-        const physicalDirs = workspacesList.trim().split('\n')
-        let cleanedDirs = 0
+    logger.info(`✓ ${originalUrl.includes('@') ? 'Replaced' : 'Injected'} authentication in push URL`)
+    return url.toString()
+  } catch {
+    logger.warn('Could not get/modify remote URL, using origin')
+    return 'origin'
+  }
+}
 
-        for (const dir of physicalDirs) {
-          const workspacePath = `workspaces/${dir}`
+/**
+ * Get current branch name, handling detached HEAD state
+ */
+async function getCurrentBranch(): Promise<string> {
+  const { stdout: branchName } = await exec('cd .. && git rev-parse --abbrev-ref HEAD')
+  const branch = branchName.trim()
 
-          // If this directory is not in our desired submodules list, remove it
-          if (!desiredSubmodules.has(workspacePath)) {
-            logger.info(`   🗑️  Removing orphaned directory: ${workspacePath}`)
-            try {
-              await exec(`cd .. && rm -rf ${workspacePath}`)
-              logger.info(`   ✓ Directory removed`)
-              cleanedDirs++
-            } catch (error) {
-              logger.warn(
-                `   ⚠️  Failed to remove directory ${workspacePath}:`,
-                error instanceof Error ? error.message : String(error)
-              )
-            }
-          }
-        }
+  if (branch === 'HEAD') {
+    const fallbackBranch = process.env.CI_COMMIT_REF_NAME || 'main'
+    logger.info(`⚠️  Detached HEAD detected, using branch: ${fallbackBranch}`)
+    return fallbackBranch
+  }
 
-        if (cleanedDirs > 0) {
-          logger.info(`✅ Cleaned up ${cleanedDirs} orphaned workspace director${cleanedDirs === 1 ? 'y' : 'ies'}`)
-        } else {
-          logger.info(`ℹ️  No orphaned workspace directories found`)
-        }
-      }
-    } catch (error) {
-      logger.warn(`⚠️  Failed to clean up workspace directories: ${error instanceof Error ? error.message : String(error)}`)
+  return branch
+}
+
+/**
+ * Commit and push changes if any
+ */
+async function commitAndPushChanges(): Promise<void> {
+  try {
+    const { stdout: statusOutput } = await exec('cd .. && git status --porcelain')
+    if (!statusOutput.trim()) {
+      logger.info('\nℹ️  No changes detected')
+      return
     }
 
-    // Commit and push changes to .gitmodules and workspaces if any
-    try {
-      const { stdout: statusOutput } = await exec('cd .. && git status --porcelain')
-      if (statusOutput.trim()) {
-        logger.info('\n💾 Committing workspace changes...')
+    logger.info('\n💾 Committing workspace changes...')
+    await exec('cd .. && git add .gitmodules workspaces/ 2>/dev/null || true')
 
-        // Add .gitmodules and workspaces directory
-        await exec('cd .. && git add .gitmodules workspaces/ 2>/dev/null || true')
-
-        // Check if there are changes to commit
-        const { stdout: diffOutput } = await exec('cd .. && git diff --cached --name-only')
-        if (diffOutput.trim()) {
-          await exec('cd .. && git commit -m "🔧 Update workspace submodules"')
-          logger.info('✓ Changes committed')
-
-          // Get current remote URL and inject token if needed
-          let pushUrl = 'origin'
-          if (process.env.WORKER_REPO_TOKEN) {
-            try {
-              const { stdout: remoteUrl } = await exec('cd .. && git remote get-url origin')
-              const originalUrl = remoteUrl.trim()
-              logger.info(`📍 Original remote URL: ${originalUrl}`)
-
-              // If URL is HTTPS and doesn't have auth, inject the token
-              if (originalUrl.startsWith('https://') && !originalUrl.includes('@')) {
-                const url = new URL(originalUrl)
-                url.username = 'oauth2'
-                url.password = process.env.WORKER_REPO_TOKEN
-                pushUrl = url.toString()
-                logger.info(`✓ Injected authentication into push URL`)
-              } else if (originalUrl.startsWith('https://') && originalUrl.includes('@')) {
-                // URL already has auth, replace it
-                const url = new URL(originalUrl)
-                url.username = 'oauth2'
-                url.password = process.env.WORKER_REPO_TOKEN
-                pushUrl = url.toString()
-                logger.info(`✓ Replaced authentication in push URL`)
-              }
-            } catch {
-              logger.warn('Could not get/modify remote URL, using origin')
-            }
-          }
-
-          // Push changes to remote
-          logger.info('📤 Pushing changes to remote...')
-          // When pushing to a URL, we need to specify the full refspec
-          // Get current branch name - handle detached HEAD state in CI
-          const { stdout: branchName } = await exec('cd .. && git rev-parse --abbrev-ref HEAD')
-          let branch = branchName.trim()
-
-          // In CI, we might be in detached HEAD state
-          // Use CI_COMMIT_REF_NAME or fall back to main/master
-          if (branch === 'HEAD') {
-            branch = process.env.CI_COMMIT_REF_NAME || 'main'
-            logger.info(`⚠️  Detached HEAD detected, using branch: ${branch}`)
-          }
-
-          if (pushUrl === 'origin') {
-            // Push to named remote
-            await exec(`cd .. && git push origin ${branch}`)
-          } else {
-            // Push to URL with full refspec
-            await exec(`cd .. && git push ${pushUrl} HEAD:refs/heads/${branch}`)
-          }
-          logger.info('✓ Changes pushed successfully')
-        } else {
-          logger.info('ℹ️  No changes staged for commit')
-        }
-      } else {
-        logger.info('\nℹ️  No changes detected')
-      }
-    } catch (error) {
-      logger.warn(`⚠️  Could not commit/push changes: ${error instanceof Error ? error.message : String(error)}`)
+    const { stdout: diffOutput } = await exec('cd .. && git diff --cached --name-only')
+    if (!diffOutput.trim()) {
+      logger.info('ℹ️  No changes staged for commit')
+      return
     }
+
+    await exec('cd .. && git commit -m "🔧 Update workspace submodules"')
+    logger.info('✓ Changes committed')
+
+    const pushUrl = await getPushUrl()
+    const branch = await getCurrentBranch()
+
+    logger.info('📤 Pushing changes to remote...')
+    if (pushUrl === 'origin') {
+      await exec(`cd .. && git push origin ${branch}`)
+    } else {
+      await exec(`cd .. && git push ${pushUrl} HEAD:refs/heads/${branch}`)
+    }
+    logger.info('✓ Changes pushed successfully')
+  } catch (error) {
+    logger.warn(`⚠️  Could not commit/push changes: ${error instanceof Error ? error.message : String(error)}`)
+  }
+}
+
+async function main() {
+  logger.info('🔄 Workspace Sync Started')
+
+  try {
+    const context = initializeSyncContext()
+    await cleanupOrphanedGitModules()
+
+    const fileSpaces = await fetchFileSpaces(context)
+    const existingModules = await prepareWorkspace()
+    const desiredSubmodules = await syncAllFileSpaces(fileSpaces, context.apiClient, existingModules)
+
+    await removeOldSubmodules(existingModules, desiredSubmodules)
+    await cleanupOrphanedDirectories(desiredSubmodules)
+    await commitAndPushChanges()
 
     logger.info('\n✅ Workspace sync completed successfully')
     process.exit(0)

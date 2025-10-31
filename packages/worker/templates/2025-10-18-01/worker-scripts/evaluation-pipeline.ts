@@ -17,13 +17,18 @@ import { readFile, readdir } from 'fs/promises'
 const logger = createLogger({ namespace: 'evaluation-pipeline' })
 
 /**
- * Advanced Agentic Evaluation - Generate agent instructions using Claude Code Agent SDK
- * Note: Simple evaluation is now handled by microservice before CI is triggered
+ * Workspace information
  */
-async function agenticEvaluation(
-  task: { id: string; title: string; description: string | null },
-  env: Record<string, string>
-): Promise<{
+interface WorkspaceInfo {
+  dir: string
+  name: string
+  branch: string
+}
+
+/**
+ * Evaluation result structure
+ */
+interface EvaluationResult {
   verdict: {
     can_implement: boolean
     confidence: number
@@ -37,36 +42,32 @@ async function agenticEvaluation(
     risks: string[]
   }
   report: string
-}> {
-  logger.info('🔬 Phase 2: Running deep agentic evaluation...')
+}
 
-  // Check for MOCK_MODE environment variable
-  if (process.env.MOCK_MODE === 'true') {
-    logger.info('🎭 MOCK MODE ENABLED - Returning mock agentic evaluation')
+/**
+ * Handle mock mode - returns mock evaluation data
+ */
+async function handleMockMode(task: { title: string; description: string | null }): Promise<EvaluationResult> {
+  logger.info('🎭 MOCK MODE ENABLED - Returning mock agentic evaluation')
 
-    const mockVerdict = {
-      can_implement: true,
-      confidence: 80,
-      agent_instructions: {
-        required_context_files: [
-          'src/example.ts:1-50',
-          'src/models/user.ts:10-30'
-        ],
-        suggested_steps: [
-          'Analyze existing implementation patterns',
-          'Create new feature following established conventions',
-          'Add appropriate tests'
-        ],
-        follow_patterns_from: [
-          'src/features/similar-feature.ts:20-100'
-        ]
-      },
-      missing_information: [],
-      blockers: [],
-      risks: ['Standard implementation risks apply']
-    }
+  const mockVerdict = {
+    can_implement: true,
+    confidence: 80,
+    agent_instructions: {
+      required_context_files: ['src/example.ts:1-50', 'src/models/user.ts:10-30'],
+      suggested_steps: [
+        'Analyze existing implementation patterns',
+        'Create new feature following established conventions',
+        'Add appropriate tests'
+      ],
+      follow_patterns_from: ['src/features/similar-feature.ts:20-100']
+    },
+    missing_information: [],
+    blockers: [],
+    risks: ['Standard implementation risks apply']
+  }
 
-    const mockReport = `# Mock Evaluation Report
+  const mockReport = `# Mock Evaluation Report
 
 ## Task
 **Title:** ${task.title}
@@ -97,47 +98,35 @@ Yes (Confidence: 80%)
 *Generated in MOCK_MODE - no real codebase analysis performed*
 `
 
-    // Create mock files
-    await writeFile(
-      '../results/agentic-verdict.json',
-      JSON.stringify(mockVerdict, null, 2),
-      'utf-8'
-    )
+  await writeFile('../results/agentic-verdict.json', JSON.stringify(mockVerdict, null, 2), 'utf-8')
+  await writeFile('../results/evaluation-report.md', mockReport, 'utf-8')
 
-    await writeFile(
-      '../results/evaluation-report.md',
-      mockReport,
-      'utf-8'
-    )
-
-    // Create mock usage data
-    const agenticUsage = {
-      provider: 'anthropic',
-      model: 'claude-sonnet-4-5',
-      goal: 'evaluation',
-      phase: 'agentic_eval',
-      input_tokens: 2000,
-      output_tokens: 800,
-      cache_creation_input_tokens: 0,
-      cache_read_input_tokens: 0,
-      ci_duration_seconds: 1,
-      iteration_number: 1,
-      metadata: { iterations: 1, sdk_cost_usd: 0.0001, mock: true }
-    }
-
-    await writeFile(
-      '../results/agentic-usage.json',
-      JSON.stringify(agenticUsage, null, 2),
-      'utf-8'
-    )
-
-    logger.info('📊 Mock agentic evaluation usage tracked')
-    logger.info('✓ Mock agentic evaluation completed')
-
-    return { verdict: mockVerdict, report: mockReport }
+  const agenticUsage = {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-5',
+    goal: 'evaluation',
+    phase: 'agentic_eval',
+    input_tokens: 2000,
+    output_tokens: 800,
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+    ci_duration_seconds: 1,
+    iteration_number: 1,
+    metadata: { iterations: 1, sdk_cost_usd: 0.0001, mock: true }
   }
 
-  // Check for cloned workspaces (from clone-workspace.sh)
+  await writeFile('../results/agentic-usage.json', JSON.stringify(agenticUsage, null, 2), 'utf-8')
+
+  logger.info('📊 Mock agentic evaluation usage tracked')
+  logger.info('✓ Mock agentic evaluation completed')
+
+  return { verdict: mockVerdict, report: mockReport }
+}
+
+/**
+ * Discover workspaces from environment variables
+ */
+function discoverWorkspaces() {
   logger.info('🔍 Checking for cloned workspaces...')
   logger.info(`   Environment variables:`)
   logger.info(`   - WORKSPACE_COUNT: ${process.env.WORKSPACE_COUNT || 'not set'}`)
@@ -166,9 +155,19 @@ Yes (Confidence: 80%)
   }
 
   logger.info(`📦 Found ${workspaceCount} cloned workspace(s)`)
+  return { workspaceCount, workspaceDirs, workspaceNames, workspaceBranches }
+}
 
-  // Verify workspaces exist
-  const validWorkspaces = []
+/**
+ * Validate workspace directories exist
+ */
+function validateWorkspaces(
+  workspaceDirs: string[],
+  workspaceNames: string[],
+  workspaceBranches: string[],
+  workspaceCount: number
+): WorkspaceInfo[] {
+  const validWorkspaces: WorkspaceInfo[] = []
 
   for (let i = 0; i < workspaceDirs.length; i++) {
     const dir = workspaceDirs[i]
@@ -202,22 +201,32 @@ Yes (Confidence: 80%)
   }
 
   logger.info(`✓ ${validWorkspaces.length} valid workspace(s) ready for evaluation`)
+  return validWorkspaces
+}
 
-  // Build codebase info for Claude
-  let codebaseInfo: string
+/**
+ * Build codebase info string for prompt
+ */
+function buildCodebaseInfo(validWorkspaces: WorkspaceInfo[]): string {
   if (validWorkspaces.length === 1) {
     const ws = validWorkspaces[0]!
-    codebaseInfo = `Codebase cloned from repository (branch: ${ws.branch}) at: ${ws.dir}`
     logger.info(`   Using single workspace: ${ws.name}`)
-  } else {
-    codebaseInfo = `Multiple codebases available for analysis:\n${validWorkspaces.map(ws => `- ${ws.name} (branch: ${ws.branch}): ${ws.dir}`).join('\n')}`
-    logger.info(`   Using multiple workspaces:`)
-    validWorkspaces.forEach(ws => {
-      logger.info(`     - ${ws.name} (${ws.branch}): ${ws.dir}`)
-    })
+    return `Codebase cloned from repository (branch: ${ws.branch}) at: ${ws.dir}`
   }
 
-  const prompt = `You MUST evaluate a task by exploring the codebase and creating two files.
+  logger.info(`   Using multiple workspaces:`)
+  validWorkspaces.forEach(ws => {
+    logger.info(`     - ${ws.name} (${ws.branch}): ${ws.dir}`)
+  })
+
+  return `Multiple codebases available for analysis:\n${validWorkspaces.map(ws => `- ${ws.name} (branch: ${ws.branch}): ${ws.dir}`).join('\n')}`
+}
+
+/**
+ * Build evaluation prompt for Claude
+ */
+function buildEvaluationPrompt(task: { title: string; description: string | null }, codebaseInfo: string): string {
+  return `You MUST evaluate a task by exploring the codebase and creating two files.
 
 # Task to Evaluate
 **Title:** ${task.title}
@@ -256,158 +265,220 @@ ${codebaseInfo}
 **CRITICAL**: You MUST use the Write tool TWICE - once for each file. Do NOT just describe what the files should contain. ACTUALLY CREATE THEM using Write tool calls.
 
 Your final message should be brief (1-2 sentences) confirming files were created. The actual content goes IN the files, not in your response.`
+}
 
-  // Execute Claude Agent SDK
+/**
+ * Prepare Claude environment with API key and proxy settings
+ */
+function prepareClaudeEnvironment(env: Record<string, string>) {
+  if (env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY) {
+    process.env.ANTHROPIC_API_KEY = env.ANTHROPIC_API_KEY
+  }
+
+  const claudeEnv = { ...process.env }
+
+  if (process.env.PROXY_HOST && process.env.PROXY_USER && process.env.PROXY_PASS) {
+    const proxyUrl = `http://${process.env.PROXY_USER}:${process.env.PROXY_PASS}@${process.env.PROXY_HOST}`
+    claudeEnv.HTTP_PROXY = proxyUrl
+    claudeEnv.HTTPS_PROXY = proxyUrl
+    logger.info(`✓ Configured standard proxy environment variables for Claude Code`)
+  }
+
+  return claudeEnv
+}
+
+/**
+ * Get Claude Code executable path
+ */
+function getClaudePath(): string {
+  const __dirname = fileURLToPath(new URL('.', import.meta.url))
+  const claudePath = resolve(__dirname, 'node_modules/.bin/claude')
+  logger.info(`Using Claude executable: ${claudePath}`)
+
+  if (!existsSync(claudePath)) {
+    logger.error(`❌ Claude executable not found at: ${claudePath}`)
+    logger.info('Checking alternative locations...')
+    const altPath = resolve(__dirname, '../node_modules/.bin/claude')
+    logger.info(`Alternative path: ${altPath} - exists: ${existsSync(altPath)}`)
+  } else {
+    logger.info(`✓ Claude executable found at: ${claudePath}`)
+  }
+
+  return claudePath
+}
+
+/**
+ * Determine working directory for Claude Code
+ */
+function determineWorkingDirectory(workspaceCount: number, workspaceDirs: string[]): string {
+  logger.info('📂 Determining Claude Code working directory...')
+  logger.info(`   Workspace count: ${workspaceCount}`)
+  logger.info(`   Workspace dirs length: ${workspaceDirs.length}`)
+
+  if (workspaceCount === 0 || workspaceDirs.length === 0) {
+    logger.info(`   Strategy: Fallback (no workspaces)`)
+    logger.info(`   Selected: ..`)
+    return '..'
+  }
+
+  const firstDir = workspaceDirs[0]
+  if (!firstDir) {
+    logger.warn(`   ⚠️  First workspace directory is undefined, using fallback`)
+    return '..'
+  }
+
+  if (workspaceCount === 1) {
+    logger.info(`   Strategy: Single workspace`)
+    logger.info(`   Selected: ${firstDir}`)
+    return firstDir
+  }
+
+  const parentDir = firstDir.replace(/\/workspace-\d+$/, '')
+  logger.info(`   Strategy: Multiple workspaces`)
+  logger.info(`   First workspace: ${firstDir}`)
+  logger.info(`   Extracted parent: ${parentDir}`)
+  logger.info(`   Selected: ${parentDir}`)
+  return parentDir
+}
+
+/**
+ * Execute Claude Agent SDK and process results
+ */
+async function executeClaudeAgent(
+  prompt: string,
+  claudeEnv: NodeJS.ProcessEnv,
+  claudePath: string,
+  workingDir: string,
+  agenticStart: number
+): Promise<void> {
+  if (!existsSync(workingDir)) {
+    throw new Error(`Working directory not found: ${workingDir}`)
+  }
+  logger.info(`   ✓ Working directory exists`)
+
+  logger.info('')
+  logger.info(`📋 Claude Code query options:`)
+  logger.info(`  - permissionMode: acceptEdits`)
+  logger.info(`  - claudePath: ${claudePath}`)
+  logger.info(`  - cwd: ${workingDir}`)
+  logger.info(`  - allowedTools: Bash, Read, Glob, Grep, Write`)
+  logger.info(`  - ANTHROPIC_API_KEY set: ${!!claudeEnv.ANTHROPIC_API_KEY}`)
+  logger.info(`  - HTTP_PROXY set: ${!!claudeEnv.HTTP_PROXY}`)
+  logger.info(`  - HTTPS_PROXY set: ${!!claudeEnv.HTTPS_PROXY}`)
+
+  const iterator = query({
+    prompt,
+    options: {
+      permissionMode: 'acceptEdits',
+      systemPrompt: 'You are a code evaluation assistant. Your job is to explore codebases, analyze task feasibility, and create structured evaluation reports. Always use the Write tool to create files - never just describe what files should contain. Be thorough in your analysis and concrete in your recommendations.',
+      env: claudeEnv,
+      pathToClaudeCodeExecutable: claudePath,
+      cwd: workingDir,
+      allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
+      stderr: (data: string) => {
+        logger.error(`[Claude Code stderr] ${data}`)
+      },
+    },
+  })
+
+  logger.info('✓ Query iterator created, starting iteration...')
+
   let iterations = 0
+  for await (const chunk of iterator) {
+    iterations++
+    logger.info(`📥 Iteration ${iterations}: chunk type = ${chunk.type}`)
+
+    if (chunk.type === 'system') {
+      logger.info(`[System] subtype=${chunk.subtype}`)
+      if ('message' in chunk) {
+        logger.info(`[System] message=${JSON.stringify(chunk.message)}`)
+      }
+    }
+
+    if (chunk.type === 'assistant') {
+      logger.info(`[Assistant] ${JSON.stringify(chunk.message)}`)
+    }
+
+    if (chunk.type === 'stream_event') {
+      logger.info(`[Stream] event=${JSON.stringify(chunk.event)}`)
+    }
+
+    if (chunk.type === 'result') {
+      const cost = chunk.total_cost_usd || 0
+      logger.info(`✓ Claude Agent completed - Cost: $${cost.toFixed(4)}, Iterations: ${iterations}`)
+
+      const agenticUsage = {
+        provider: 'anthropic',
+        model: 'claude-sonnet-4-5',
+        goal: 'evaluation',
+        phase: 'agentic_eval',
+        input_tokens: chunk.usage?.input_tokens || 0,
+        output_tokens: chunk.usage?.output_tokens || 0,
+        cache_creation_input_tokens: chunk.usage?.cache_creation_input_tokens || 0,
+        cache_read_input_tokens: chunk.usage?.cache_read_input_tokens || 0,
+        ci_duration_seconds: Math.floor((Date.now() - agenticStart) / 1000),
+        iteration_number: iterations,
+        metadata: { iterations, sdk_cost_usd: cost }
+      }
+
+      await writeFile('../results/agentic-usage.json', JSON.stringify(agenticUsage, null, 2), 'utf-8')
+      logger.info('📊 Agentic evaluation usage tracked')
+    }
+  }
+
+  logger.info('✓ Claude Agent SDK execution completed')
+}
+
+/**
+ * Read evaluation results from files created by agent
+ */
+async function readEvaluationResults(): Promise<EvaluationResult> {
+  logger.info('Checking results directory...')
+  try {
+    const files = await readdir('../results')
+    logger.info(`Files in results directory: ${files.join(', ')}`)
+  } catch {
+    logger.error('Results directory not found or empty')
+  }
+
+  const verdictJson = await readFile('../results/agentic-verdict.json', 'utf-8')
+  const verdict = JSON.parse(verdictJson)
+
+  const report = await readFile('../results/evaluation-report.md', 'utf-8')
+
+  logger.info(`✓ Agentic evaluation: can_implement=${verdict.can_implement}, confidence=${verdict.confidence}`)
+  return { verdict, report }
+}
+
+/**
+ * Advanced Agentic Evaluation - Generate agent instructions using Claude Code Agent SDK
+ * Note: Simple evaluation is now handled by microservice before CI is triggered
+ */
+async function agenticEvaluation(
+  task: { id: string; title: string; description: string | null },
+  env: Record<string, string>
+): Promise<EvaluationResult> {
+  logger.info('🔬 Phase 2: Running deep agentic evaluation...')
+
+  if (process.env.MOCK_MODE === 'true') {
+    return await handleMockMode(task)
+  }
+
+  const { workspaceCount, workspaceDirs, workspaceNames, workspaceBranches } = discoverWorkspaces()
+  const validWorkspaces = validateWorkspaces(workspaceDirs, workspaceNames, workspaceBranches, workspaceCount)
+  const codebaseInfo = buildCodebaseInfo(validWorkspaces)
+  const prompt = buildEvaluationPrompt(task, codebaseInfo)
+
+  const claudeEnv = prepareClaudeEnvironment(env)
+  const claudePath = getClaudePath()
+  const workingDir = determineWorkingDirectory(workspaceCount, workspaceDirs)
+
   const agenticStart = Date.now()
 
   try {
     logger.info('🤖 Starting Claude Agent SDK for evaluation...')
-
-    // Ensure ANTHROPIC_API_KEY is in process.env for Claude Code
-    if (env.ANTHROPIC_API_KEY && !process.env.ANTHROPIC_API_KEY) {
-      process.env.ANTHROPIC_API_KEY = env.ANTHROPIC_API_KEY
-    }
-
-    // Construct absolute path to local claude executable
-    const __dirname = fileURLToPath(new URL('.', import.meta.url))
-    const claudePath = resolve(__dirname, 'node_modules/.bin/claude')
-    logger.info(`Using Claude executable: ${claudePath}`)
-
-    // Check if claude executable exists
-    if (!existsSync(claudePath)) {
-      logger.error(`❌ Claude executable not found at: ${claudePath}`)
-      logger.info('Checking alternative locations...')
-      const altPath = resolve(__dirname, '../node_modules/.bin/claude')
-      logger.info(`Alternative path: ${altPath} - exists: ${existsSync(altPath)}`)
-    } else {
-      logger.info(`✓ Claude executable found at: ${claudePath}`)
-    }
-
-    // Prepare environment for Claude Code
-    // Convert custom proxy vars to standard HTTP_PROXY format if needed
-    const claudeEnv = { ...process.env }
-    if (process.env.PROXY_HOST && process.env.PROXY_USER && process.env.PROXY_PASS) {
-      const proxyUrl = `http://${process.env.PROXY_USER}:${process.env.PROXY_PASS}@${process.env.PROXY_HOST}`
-      claudeEnv.HTTP_PROXY = proxyUrl
-      claudeEnv.HTTPS_PROXY = proxyUrl
-      logger.info(`✓ Configured standard proxy environment variables for Claude Code`)
-    }
-
-    // Determine working directory
-    logger.info('📂 Determining Claude Code working directory...')
-    logger.info(`   Workspace count: ${workspaceCount}`)
-    logger.info(`   Workspace dirs length: ${workspaceDirs.length}`)
-
-    let workingDir: string = '..'
-
-    if (workspaceCount > 0 && workspaceDirs.length > 0) {
-      const firstDir = workspaceDirs[0]
-      if (!firstDir) {
-        logger.warn(`   ⚠️  First workspace directory is undefined, using fallback`)
-      } else if (workspaceCount === 1) {
-        // Single workspace: work directly in it
-        workingDir = firstDir
-        logger.info(`   Strategy: Single workspace`)
-        logger.info(`   Selected: ${workingDir}`)
-      } else {
-        // Multiple workspaces: use parent directory that contains all of them
-        // Extract parent from first workspace path (e.g., /tmp/workspace-xxx/workspace-0 -> /tmp/workspace-xxx)
-        const parentDir = firstDir.replace(/\/workspace-\d+$/, '')
-        workingDir = parentDir
-        logger.info(`   Strategy: Multiple workspaces`)
-        logger.info(`   First workspace: ${firstDir}`)
-        logger.info(`   Extracted parent: ${parentDir}`)
-        logger.info(`   Selected: ${workingDir}`)
-      }
-    } else {
-      logger.info(`   Strategy: Fallback (no workspaces)`)
-      logger.info(`   Selected: ${workingDir}`)
-    }
-
-    // Verify working directory exists
-    if (!existsSync(workingDir)) {
-      logger.error(`❌ Working directory does not exist: ${workingDir}`)
-      throw new Error(`Working directory not found: ${workingDir}`)
-    }
-    logger.info(`   ✓ Working directory exists`)
-
-    logger.info('')
-    logger.info(`📋 Claude Code query options:`)
-    logger.info(`  - permissionMode: acceptEdits`)
-    logger.info(`  - claudePath: ${claudePath}`)
-    logger.info(`  - cwd: ${workingDir}`)
-    logger.info(`  - allowedTools: Bash, Read, Glob, Grep, Write`)
-    logger.info(`  - ANTHROPIC_API_KEY set: ${!!claudeEnv.ANTHROPIC_API_KEY}`)
-    logger.info(`  - HTTP_PROXY set: ${!!claudeEnv.HTTP_PROXY}`)
-    logger.info(`  - HTTPS_PROXY set: ${!!claudeEnv.HTTPS_PROXY}`)
-
-    const iterator = query({
-      prompt,
-      options: {
-        permissionMode: 'acceptEdits',
-        systemPrompt: 'You are a code evaluation assistant. Your job is to explore codebases, analyze task feasibility, and create structured evaluation reports. Always use the Write tool to create files - never just describe what files should contain. Be thorough in your analysis and concrete in your recommendations.',
-        env: claudeEnv,
-        pathToClaudeCodeExecutable: claudePath,
-        cwd: workingDir,
-        allowedTools: ['Bash', 'Read', 'Glob', 'Grep', 'Write'],
-        stderr: (data: string) => {
-          logger.error(`[Claude Code stderr] ${data}`)
-        },
-      },
-    })
-
-    logger.info('✓ Query iterator created, starting iteration...')
-
-    for await (const chunk of iterator) {
-      iterations++
-      logger.info(`📥 Iteration ${iterations}: chunk type = ${chunk.type}`)
-
-      if (chunk.type === 'system') {
-        logger.info(`[System] subtype=${chunk.subtype}`)
-        if ('message' in chunk) {
-          logger.info(`[System] message=${JSON.stringify(chunk.message)}`)
-        }
-      }
-
-      if (chunk.type === 'assistant') {
-        const message = JSON.stringify(chunk.message)
-        logger.info(`[Assistant] ${message}`)
-      }
-
-      if (chunk.type === 'stream_event') {
-        logger.info(`[Stream] event=${JSON.stringify(chunk.event)}`)
-      }
-
-      if (chunk.type === 'result') {
-        const cost = chunk.total_cost_usd || 0
-        logger.info(`✓ Claude Agent completed - Cost: $${cost.toFixed(4)}, Iterations: ${iterations}`)
-
-        // Track agentic evaluation usage
-        const agenticUsage = {
-          provider: 'anthropic',
-          model: 'claude-sonnet-4-5',
-          goal: 'evaluation',
-          phase: 'agentic_eval',
-          input_tokens: chunk.usage?.input_tokens || 0,
-          output_tokens: chunk.usage?.output_tokens || 0,
-          cache_creation_input_tokens: chunk.usage?.cache_creation_input_tokens || 0,
-          cache_read_input_tokens: chunk.usage?.cache_read_input_tokens || 0,
-          ci_duration_seconds: Math.floor((Date.now() - agenticStart) / 1000),
-          iteration_number: iterations,
-          metadata: { iterations, sdk_cost_usd: cost }
-        }
-
-        await writeFile(
-          '../results/agentic-usage.json',
-          JSON.stringify(agenticUsage, null, 2),
-          'utf-8'
-        )
-        logger.info('📊 Agentic evaluation usage tracked')
-      }
-    }
-
-    logger.info('✓ Claude Agent SDK execution completed')
+    await executeClaudeAgent(prompt, claudeEnv, claudePath, workingDir, agenticStart)
+    return await readEvaluationResults()
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : String(error)
     const errorStack = error instanceof Error ? error.stack : undefined
@@ -416,33 +487,8 @@ Your final message should be brief (1-2 sentences) confirming files were created
     if (errorStack) {
       logger.error(`Stack trace:\n${errorStack}`)
     }
-    logger.error(`Total iterations before failure: ${iterations}`)
 
     throw new Error(`Claude Agent SDK execution failed: ${errorMsg}`)
-  }
-
-  // Read the files created by the agent
-
-  try {
-    // First, check what files were actually created
-    logger.info('Checking results directory...')
-    try {
-      const files = await readdir('../results')
-      logger.info(`Files in results directory: ${files.join(', ')}`)
-    } catch {
-      logger.error('Results directory not found or empty')
-    }
-
-    const verdictJson = await readFile('../results/agentic-verdict.json', 'utf-8')
-    const verdict = JSON.parse(verdictJson)
-
-    const report = await readFile('../results/evaluation-report.md', 'utf-8')
-
-    logger.info(`✓ Agentic evaluation: can_implement=${verdict.can_implement}, confidence=${verdict.confidence}`)
-    return { verdict, report }
-  } catch (readError) {
-    logger.error('Failed to read agent-created files')
-    throw new Error(`Failed to read evaluation files: ${readError instanceof Error ? readError.message : String(readError)}`)
   }
 }
 

@@ -359,209 +359,252 @@ async function getExecutorConfig(
 /**
  * Fetch and decrypt AI provider configurations and prepare environment variables
  */
-async function getAIProviderEnvVars(
-  projectId: string,
-  userId: string | null,
-  aiProviderConfigs: AIProviderConfig | null,
-  apiClient: BackendClient,
+/**
+ * Context for AI provider environment variable setup
+ */
+interface AIProviderContext {
+  projectId: string
+  userId: string | null
+  aiProviderConfigs: AIProviderConfig | null
+  apiClient: BackendClient
   sql: Sql
+}
+
+/**
+ * Fetch secret value from backend
+ */
+async function fetchSecretValue(secretId: string, apiClient: BackendClient): Promise<string | null> {
+  try {
+    const secretRes = await apiClient.secrets[':id'].value.$get({ param: { id: secretId } })
+    if (!secretRes.ok) {
+      logger.warn(`⚠️  Failed to fetch secret ${secretId}`)
+      return null
+    }
+
+    const secret = await secretRes.json() as any
+    const value = secret.value
+
+    if (!value || !value.trim()) {
+      logger.warn(`⚠️  Secret ${secretId} exists but value is empty`)
+      return null
+    }
+
+    return value
+  } catch (error) {
+    logger.warn(`⚠️  Failed to fetch secret ${secretId}: ${error}`)
+    return null
+  }
+}
+
+/**
+ * Try to use platform Anthropic key with quota check
+ */
+async function tryUsePlatformAnthropicKey(
+  userId: string,
+  projectId: string,
+  sql: Sql
+): Promise<Record<string, string> | null> {
+  try {
+    const quotaCheck = await checkQuotaAvailable(sql, userId, 'implementation')
+
+    if (quotaCheck.at_hard_limit) {
+      const hasProjectKey = await checkProjectHasAnthropicProvider(sql, projectId)
+      if (!hasProjectKey) {
+        throw new Error(
+          `Implementation quota exceeded (${quotaCheck.used}/${quotaCheck.hard_limit}). ` +
+          `Please configure your own Anthropic API key in project settings to continue.`
+        )
+      }
+      return null // Use project key instead
+    }
+
+    const platformConfig = getPlatformAnthropicConfig()
+    if (!platformConfig) {
+      logger.warn(`⚠️  No platform API key configured`)
+      return null
+    }
+
+    const envVars: Record<string, string> = {
+      ANTHROPIC_API_KEY: platformConfig.api_key
+    }
+
+    logger.info(`✓ Using platform Anthropic API key for implementation (${quotaCheck.used}/${quotaCheck.hard_limit})`)
+
+    if (quotaCheck.at_soft_limit) {
+      logger.warn(`⚠️  Implementation quota at soft limit (${quotaCheck.used}/${quotaCheck.hard_limit})`)
+    }
+
+    if (platformConfig.model) {
+      envVars.ANTHROPIC_MODEL = platformConfig.model
+    }
+    if (platformConfig.max_tokens) {
+      envVars.ANTHROPIC_MAX_TOKENS = platformConfig.max_tokens.toString()
+    }
+    if (platformConfig.temperature !== undefined) {
+      envVars.ANTHROPIC_TEMPERATURE = platformConfig.temperature.toString()
+    }
+
+    return envVars
+  } catch (error) {
+    logger.warn(`⚠️  Could not check implementation quota: ${error}`)
+    return null
+  }
+}
+
+/**
+ * Load Anthropic environment variables
+ */
+async function loadAnthropicEnvVars(
+  config: AIProviderConfig['anthropic'],
+  apiClient: BackendClient
 ): Promise<Record<string, string>> {
   const envVars: Record<string, string> = {}
 
-  if (userId && !aiProviderConfigs?.anthropic) {
-    try {
-      const quotaCheck = await checkQuotaAvailable(sql, userId, 'implementation')
+  if (!config) return envVars
 
-      // If user at hard limit, require project API key
-      if (quotaCheck.at_hard_limit) {
-        const hasProjectKey = await checkProjectHasAnthropicProvider(sql, projectId)
-        if (!hasProjectKey) {
-          throw new Error(
-            `Implementation quota exceeded (${quotaCheck.used}/${quotaCheck.hard_limit}). ` +
-            `Please configure your own Anthropic API key in project settings to continue.`
-          )
-        }
-        // Fall through to use project key
-      } else {
-        // User has quota - use platform key
-        const platformConfig = getPlatformAnthropicConfig()
+  const apiKey = await fetchSecretValue(config.api_key_secret_id, apiClient)
+  if (!apiKey) return envVars
 
-        if (platformConfig) {
-          envVars.ANTHROPIC_API_KEY = platformConfig.api_key
-          logger.info(`✓ Using platform Anthropic API key for implementation (${quotaCheck.used}/${quotaCheck.hard_limit})`)
+  envVars.ANTHROPIC_API_KEY = apiKey
+  const maskedKey = apiKey.substring(0, 10) + '...' + apiKey.substring(apiKey.length - 4)
+  logger.info(`✓ Loaded ANTHROPIC_API_KEY from secret ${config.api_key_secret_id} (${maskedKey}, length: ${apiKey.length})`)
 
-          if (quotaCheck.at_soft_limit) {
-            logger.warn(`⚠️  Implementation quota at soft limit (${quotaCheck.used}/${quotaCheck.hard_limit})`)
-          }
+  if (config.type === 'self-hosted' && config.endpoint_url) {
+    envVars.ANTHROPIC_API_URL = config.endpoint_url
+    logger.info(`✓ Set ANTHROPIC_API_URL to ${config.endpoint_url}`)
+  }
 
-          // Platform config is always cloud type, no endpoint_url needed
-          if (platformConfig.model) {
-            envVars.ANTHROPIC_MODEL = platformConfig.model
-          }
-          if (platformConfig.max_tokens) {
-            envVars.ANTHROPIC_MAX_TOKENS = platformConfig.max_tokens.toString()
-          }
-          if (platformConfig.temperature !== undefined) {
-            envVars.ANTHROPIC_TEMPERATURE = platformConfig.temperature.toString()
-          }
+  if (config.model) {
+    envVars.ANTHROPIC_MODEL = config.model
+  }
+  if (config.max_tokens) {
+    envVars.ANTHROPIC_MAX_TOKENS = config.max_tokens.toString()
+  }
+  if (config.temperature !== undefined) {
+    envVars.ANTHROPIC_TEMPERATURE = config.temperature.toString()
+  }
 
-          // Return early since we got platform config
-          return envVars
-        } else {
-          logger.warn(`⚠️  No platform API key configured`)
-          // Fall through to try project configs
-        }
+  return envVars
+}
+
+/**
+ * Load OpenAI environment variables
+ */
+async function loadOpenAIEnvVars(
+  config: AIProviderConfig['openai'],
+  apiClient: BackendClient
+): Promise<Record<string, string>> {
+  const envVars: Record<string, string> = {}
+
+  if (!config) return envVars
+
+  const apiKey = await fetchSecretValue(config.api_key_secret_id, apiClient)
+  if (!apiKey) return envVars
+
+  envVars.OPENAI_API_KEY = apiKey
+  logger.info(`✓ Loaded OPENAI_API_KEY from secret ${config.api_key_secret_id}`)
+
+  switch (config.type) {
+    case 'azure':
+      envVars.OPENAI_API_BASE = config.endpoint_url
+      envVars.OPENAI_API_TYPE = 'azure'
+      envVars.OPENAI_API_VERSION = config.api_version
+      envVars.OPENAI_DEPLOYMENT_NAME = config.deployment_name
+      logger.info(`✓ Configured Azure OpenAI with deployment ${config.deployment_name}`)
+      break
+    case 'self-hosted':
+      envVars.OPENAI_API_BASE = config.endpoint_url
+      logger.info(`✓ Set OPENAI_API_BASE to ${config.endpoint_url}`)
+      break
+    case 'cloud':
+      if (config.organization_id) {
+        envVars.OPENAI_ORGANIZATION = config.organization_id
       }
-    } catch (error) {
-      logger.warn(`⚠️  Could not check implementation quota: ${error}`)
-      // Fall through to try project configs
+      break
+  }
+
+  if (config.model) {
+    envVars.OPENAI_MODEL = config.model
+  }
+
+  return envVars
+}
+
+/**
+ * Load Google environment variables
+ */
+async function loadGoogleEnvVars(
+  config: AIProviderConfig['google'],
+  apiClient: BackendClient
+): Promise<Record<string, string>> {
+  const envVars: Record<string, string> = {}
+
+  if (!config) return envVars
+
+  const apiKey = await fetchSecretValue(config.api_key_secret_id, apiClient)
+  if (!apiKey) return envVars
+
+  envVars.GOOGLE_API_KEY = apiKey
+  logger.info(`✓ Loaded GOOGLE_API_KEY from secret ${config.api_key_secret_id}`)
+
+  switch (config.type) {
+    case 'vertex':
+      envVars.GOOGLE_PROJECT_ID = config.project_id
+      envVars.GOOGLE_LOCATION = config.location
+      logger.info(`✓ Configured Vertex AI with project ${config.project_id} in ${config.location}`)
+      break
+    case 'self-hosted':
+      envVars.GOOGLE_API_ENDPOINT = config.endpoint_url
+      logger.info(`✓ Set GOOGLE_API_ENDPOINT to ${config.endpoint_url}`)
+      break
+    case 'cloud':
+      // Cloud type doesn't need additional configuration
+      break
+  }
+
+  if (config.model) {
+    envVars.GOOGLE_MODEL = config.model
+  }
+  if (config.max_tokens) {
+    envVars.GOOGLE_MAX_TOKENS = config.max_tokens.toString()
+  }
+  if (config.temperature !== undefined) {
+    envVars.GOOGLE_TEMPERATURE = config.temperature.toString()
+  }
+
+  return envVars
+}
+
+/**
+ * Get AI provider environment variables with quota checking
+ */
+async function getAIProviderEnvVars(context: AIProviderContext): Promise<Record<string, string>> {
+  const { projectId, userId, aiProviderConfigs, apiClient, sql } = context
+
+  // Try platform Anthropic key if user has quota and no project config
+  if (userId && !aiProviderConfigs?.anthropic) {
+    const platformEnvVars = await tryUsePlatformAnthropicKey(userId, projectId, sql)
+    if (platformEnvVars) {
+      return platformEnvVars
     }
   }
 
   if (!aiProviderConfigs) {
-    return envVars
+    return {}
   }
 
   try {
-    // Process Anthropic configuration
-    if (aiProviderConfigs.anthropic) {
-      const config = aiProviderConfigs.anthropic
-      try {
-        const secretRes = await apiClient.secrets[':id'].value.$get({ param: { id: config.api_key_secret_id } })
-        if (secretRes.ok) {
-          const secret = await secretRes.json() as any
-          const apiKey = secret.value
+    const [anthropicVars, openaiVars, googleVars] = await Promise.all([
+      loadAnthropicEnvVars(aiProviderConfigs.anthropic, apiClient),
+      loadOpenAIEnvVars(aiProviderConfigs.openai, apiClient),
+      loadGoogleEnvVars(aiProviderConfigs.google, apiClient)
+    ])
 
-          if (apiKey && apiKey.trim()) {
-            envVars.ANTHROPIC_API_KEY = apiKey
-            const maskedKey = apiKey.substring(0, 10) + '...' + apiKey.substring(apiKey.length - 4)
-            logger.info(`✓ Loaded ANTHROPIC_API_KEY from secret ${config.api_key_secret_id} (${maskedKey}, length: ${apiKey.length})`)
-
-            // Set additional configuration only if API key is valid
-            if (config.type === 'self-hosted' && config.endpoint_url) {
-              envVars.ANTHROPIC_API_URL = config.endpoint_url
-              logger.info(`✓ Set ANTHROPIC_API_URL to ${config.endpoint_url}`)
-            }
-
-            if (config.model) {
-              envVars.ANTHROPIC_MODEL = config.model
-            }
-            if (config.max_tokens) {
-              envVars.ANTHROPIC_MAX_TOKENS = config.max_tokens.toString()
-            }
-            if (config.temperature !== undefined) {
-              envVars.ANTHROPIC_TEMPERATURE = config.temperature.toString()
-            }
-          } else {
-            logger.warn(`⚠️  Anthropic API key secret ${config.api_key_secret_id} exists but value is empty`)
-          }
-        } else {
-          logger.warn(`⚠️  Failed to fetch Anthropic API key secret ${config.api_key_secret_id}`)
-        }
-      } catch (error) {
-        logger.warn(`⚠️  Failed to load Anthropic config: ${error}`)
-      }
-    }
-
-    // Process OpenAI configuration
-    if (aiProviderConfigs.openai) {
-      const config = aiProviderConfigs.openai
-      try {
-        const secretRes = await apiClient.secrets[':id'].value.$get({ param: { id: config.api_key_secret_id } })
-        if (secretRes.ok) {
-          const secret = await secretRes.json() as any
-          const apiKey = secret.value
-
-          if (apiKey && apiKey.trim()) {
-            envVars.OPENAI_API_KEY = apiKey
-            logger.info(`✓ Loaded OPENAI_API_KEY from secret ${config.api_key_secret_id}`)
-
-            switch (config.type) {
-              case 'azure':
-                envVars.OPENAI_API_BASE = config.endpoint_url
-                envVars.OPENAI_API_TYPE = 'azure'
-                envVars.OPENAI_API_VERSION = config.api_version
-                envVars.OPENAI_DEPLOYMENT_NAME = config.deployment_name
-                logger.info(`✓ Configured Azure OpenAI with deployment ${config.deployment_name}`)
-                break
-              case 'self-hosted':
-                envVars.OPENAI_API_BASE = config.endpoint_url
-                logger.info(`✓ Set OPENAI_API_BASE to ${config.endpoint_url}`)
-                break
-              case 'cloud':
-                if (config.organization_id) {
-                  envVars.OPENAI_ORGANIZATION = config.organization_id
-                }
-                break
-            }
-
-            if (config.model) {
-              envVars.OPENAI_MODEL = config.model
-            }
-          } else {
-            logger.warn(`⚠️  OpenAI API key secret ${config.api_key_secret_id} exists but value is empty`)
-          }
-        } else {
-          logger.warn(`⚠️  Failed to fetch OpenAI API key secret ${config.api_key_secret_id}`)
-        }
-      } catch (error) {
-        logger.warn(`⚠️  Failed to load OpenAI config: ${error}`)
-      }
-    }
-
-    // Process Google configuration
-    if (aiProviderConfigs.google) {
-      const config = aiProviderConfigs.google
-      try {
-        const secretRes = await apiClient.secrets[':id'].value.$get({ param: { id: config.api_key_secret_id } })
-        if (secretRes.ok) {
-          const secret = await secretRes.json() as any
-          const apiKey = secret.value
-
-          if (apiKey && apiKey.trim()) {
-            envVars.GOOGLE_API_KEY = apiKey
-            logger.info(`✓ Loaded GOOGLE_API_KEY from secret ${config.api_key_secret_id}`)
-
-            // Set additional configuration only if API key is valid
-            switch (config.type) {
-              case 'vertex':
-                envVars.GOOGLE_PROJECT_ID = config.project_id
-                envVars.GOOGLE_LOCATION = config.location
-                logger.info(`✓ Configured Vertex AI with project ${config.project_id} in ${config.location}`)
-                break
-              case 'self-hosted':
-                envVars.GOOGLE_API_ENDPOINT = config.endpoint_url
-                logger.info(`✓ Set GOOGLE_API_ENDPOINT to ${config.endpoint_url}`)
-                break
-              case 'cloud':
-                // Cloud type doesn't need additional configuration
-                break
-            }
-
-            if (config.model) {
-              envVars.GOOGLE_MODEL = config.model
-            }
-            if (config.max_tokens) {
-              envVars.GOOGLE_MAX_TOKENS = config.max_tokens.toString()
-            }
-            if (config.temperature !== undefined) {
-              envVars.GOOGLE_TEMPERATURE = config.temperature.toString()
-            }
-          } else {
-            logger.warn(`⚠️  Google API key secret ${config.api_key_secret_id} exists but value is empty`)
-          }
-        } else {
-          logger.warn(`⚠️  Failed to fetch Google API key secret ${config.api_key_secret_id}`)
-        }
-      } catch (error) {
-        logger.warn(`⚠️  Failed to load Google config: ${error}`)
-      }
-    }
+    return { ...anthropicVars, ...openaiVars, ...googleVars }
   } catch (error) {
     logger.error(`❌ Failed to fetch AI provider configurations for project ${projectId}: ${error}`)
+    return {}
   }
-
-  return envVars
 }
 
 /**
@@ -617,13 +660,13 @@ async function preparePipelineConfig(
   const apiToken = process.env.API_TOKEN || process.env.BACKEND_API_TOKEN || ''
 
   // Fetch AI provider configurations and prepare environment variables
-  const aiEnvVars = await getAIProviderEnvVars(
-    context.project.id,
-    context.userId,
-    context.project.ai_provider_configs,
+  const aiEnvVars = await getAIProviderEnvVars({
+    projectId: context.project.id,
+    userId: context.userId,
+    aiProviderConfigs: context.project.ai_provider_configs,
     apiClient,
     sql
-  )
+  })
 
   // Validate that required API keys are present before triggering pipeline
   validateRequiredApiKeys(context.session.runner, aiEnvVars)
