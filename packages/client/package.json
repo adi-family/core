@@ -28,6 +28,7 @@
     "simple-icons": "^15.17.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",
+    "valtio": "^2.1.8",
     "vite-tsconfig-paths": "^5.1.4"
   },
   "devDependencies": {
