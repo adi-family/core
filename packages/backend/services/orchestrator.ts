@@ -54,17 +54,21 @@ export async function syncTaskSource(
 
     // Extract provider from task source type
     let provider: 'gitlab' | 'jira' | 'github'
-    if (taskSource.type === 'gitlab_issues') {
-      provider = 'gitlab'
-    } else if (taskSource.type === 'jira') {
-      provider = 'jira'
-    } else if (taskSource.type === 'github_issues') {
-      provider = 'github'
-    } else {
-      // TypeScript exhaustiveness check - this should never happen
-      assertNever(taskSource)
-      result.errors.push(`Unsupported task source type: ${taskSource?.type}`)
-      return result
+    switch (taskSource.type) {
+      case 'gitlab_issues':
+        provider = 'gitlab'
+        break
+      case 'jira':
+        provider = 'jira'
+        break
+      case 'github_issues':
+        provider = 'github'
+        break
+      default:
+        // TypeScript exhaustiveness check - this should never happen
+        assertNever(taskSource)
+        result.errors.push(`Unsupported task source type: ${taskSource?.type}`)
+        return result
     }
 
     // Mark as queued before publishing

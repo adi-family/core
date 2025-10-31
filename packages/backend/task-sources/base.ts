@@ -6,21 +6,25 @@ export abstract class BaseTaskSource {
   protected config: Record<string, unknown>;
 
   constructor(taskSource: TaskSource) {
-    if (taskSource.type === 'gitlab_issues') {
-      if (!taskSource.config.repo || taskSource.config.repo.trim() === '') {
-        throw new Error('GitLab task source requires non-empty repo in config');
-      }
-    } else if (taskSource.type === 'jira') {
-      if (!taskSource.config.host || taskSource.config.host.trim() === '') {
-        throw new Error('Jira task source requires non-empty host in config');
-      }
-      // project_key and jql_filter are both optional - will use default "resolution = Unresolved" if neither provided
-    } else if (taskSource.type === 'github_issues') {
-      if (!taskSource.config.repo || taskSource.config.repo.trim() === '') {
-        throw new Error('GitHub task source requires non-empty repo in config');
-      }
-    } else {
-      assertNever(taskSource);
+    switch (taskSource.type) {
+      case 'gitlab_issues':
+        if (!taskSource.config.repo || taskSource.config.repo.trim() === '') {
+          throw new Error('GitLab task source requires non-empty repo in config');
+        }
+        break;
+      case 'jira':
+        if (!taskSource.config.host || taskSource.config.host.trim() === '') {
+          throw new Error('Jira task source requires non-empty host in config');
+        }
+        // project_key and jql_filter are both optional - will use default "resolution = Unresolved" if neither provided
+        break;
+      case 'github_issues':
+        if (!taskSource.config.repo || taskSource.config.repo.trim() === '') {
+          throw new Error('GitHub task source requires non-empty repo in config');
+        }
+        break;
+      default:
+        assertNever(taskSource);
     }
 
     this.taskSource = taskSource;

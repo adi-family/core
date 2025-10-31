@@ -3,12 +3,13 @@ import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/file-spaces'
 import { idParamSchema, createFileSpaceSchema, updateFileSpaceSchema, projectIdQuerySchema } from '../schemas'
-import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
+import { createFluentACL } from '../middleware/fluent-acl'
 import { reqAuthed } from '../middleware/authz'
 import { isServiceAuthenticated } from '../middleware/service-auth'
 import * as userAccessQueries from '../../db/user-access'
 import { createLogger } from '@utils/logger'
 import { triggerWorkspaceSync } from '../services/workspace-sync'
+import type { UpdateFileSpaceInput } from '@types'
 
 const logger = createLogger({ namespace: 'file-spaces' })
 
@@ -27,13 +28,7 @@ export const createFileSpaceRoutes = (sql: Sql) => {
       }
 
       if (project_id) {
-        if (!isService) {
-          const hasAccess = await acl.project(project_id).viewer.gte.check(c)
-          if (!hasAccess) {
-            return c.json({ error: 'Insufficient permissions' }, 403)
-          }
-        }
-
+        await acl.project(project_id).viewer.gte.throw(c)
         const fileSpaces = await queries.findFileSpacesByProjectId(sql, project_id)
         return c.json(fileSpaces)
       }
@@ -51,16 +46,7 @@ export const createFileSpaceRoutes = (sql: Sql) => {
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      try {
-        // Require read access
-        await acl.fileSpace(id).read.throw(c)
-      } catch (error) {
-        if (error instanceof AccessDeniedError) {
-          return c.json({ error: error.message }, error.statusCode as 401 | 403)
-        }
-        throw error
-      }
-
+      await acl.fileSpace(id).read.throw(c)
       const fileSpace = await queries.findFileSpaceById(sql, id)
 
       return c.json(fileSpace)
@@ -76,14 +62,7 @@ export const createFileSpaceRoutes = (sql: Sql) => {
       }
 
       if (!isService) {
-        try {
-          await acl.project(body.project_id).developer.gte.throw(c)
-        } catch (error) {
-          if (error instanceof AccessDeniedError) {
-            return c.json({ error: error.message }, error.statusCode as 401 | 403)
-          }
-          throw error
-        }
+        await acl.project(body.project_id).developer.gte.throw(c)
       }
 
       const fileSpace = await queries.createFileSpace(sql, body)
@@ -95,7 +74,7 @@ export const createFileSpaceRoutes = (sql: Sql) => {
           entity_id: fileSpace.id,
           role: 'write',
           granted_by: userId,
-        })
+        });
       }
 
       let syncTriggered = false
@@ -131,33 +110,15 @@ export const createFileSpaceRoutes = (sql: Sql) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
 
-      try {
-        // Require write access
-        await acl.fileSpace(id).write.throw(c)
-      } catch (error) {
-        if (error instanceof AccessDeniedError) {
-          return c.json({ error: error.message }, error.statusCode as 401 | 403)
-        }
-        throw error
-      }
-
-      const fileSpace = await queries.updateFileSpace(sql, id, body as import('../../types').UpdateFileSpaceInput)
+      await acl.fileSpace(id).write.throw(c)
+      const fileSpace = await queries.updateFileSpace(sql, id, body as UpdateFileSpaceInput)
 
       return c.json(fileSpace)
     })
     .delete('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      try {
-        // Require write access
-        await acl.fileSpace(id).write.throw(c)
-      } catch (error) {
-        if (error instanceof AccessDeniedError) {
-          return c.json({ error: error.message }, error.statusCode as 401 | 403)
-        }
-        throw error
-      }
-
+      await acl.fileSpace(id).write.throw(c)
       await queries.deleteFileSpace(sql, id)
 
       return c.json({ success: true })
@@ -165,44 +126,27 @@ export const createFileSpaceRoutes = (sql: Sql) => {
     .post('/:id/sync', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      try {
-        // Require write access
-        await acl.fileSpace(id).write.throw(c)
-      } catch (error) {
-        if (error instanceof AccessDeniedError) {
-          return c.json({ error: error.message }, error.statusCode as 401 | 403)
-        }
-        throw error
-      }
-
+      await acl.fileSpace(id).write.throw(c)
       const fileSpace = await queries.findFileSpaceById(sql, id)
 
-      // Trigger workspace sync for this file space's project
       logger.info(`Manual workspace sync requested for file space ${id}`)
 
-      try {
-        const syncResult = await triggerWorkspaceSync(sql, {
-          projectId: fileSpace.project_id
-        })
+      const syncResult = await triggerWorkspaceSync(sql, {
+        projectId: fileSpace.project_id
+      })
 
-        if (syncResult.success) {
-          return c.json({
-            success: true,
-            pipelineId: syncResult.pipelineId,
-            pipelineUrl: syncResult.pipelineUrl,
-            message: 'Workspace sync pipeline triggered successfully'
-          })
-        } else {
-          return c.json({
-            success: false,
-            error: syncResult.error
-          }, 400)
-        }
-      } catch (error) {
-        logger.error(`Failed to trigger workspace sync for file space ${id}:`, error)
+      if (syncResult.success) {
         return c.json({
-          error: error instanceof Error ? error.message : 'Workspace sync failed'
-        }, 500)
+          success: true,
+          pipelineId: syncResult.pipelineId,
+          pipelineUrl: syncResult.pipelineUrl,
+          message: 'Workspace sync pipeline triggered successfully'
+        })
+      } else {
+        return c.json({
+          success: false,
+          error: syncResult.error
+        }, 400)
       }
     })
 }

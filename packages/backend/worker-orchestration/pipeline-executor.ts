@@ -476,17 +476,23 @@ async function getAIProviderEnvVars(
             envVars.OPENAI_API_KEY = apiKey
             logger.info(`✓ Loaded OPENAI_API_KEY from secret ${config.api_key_secret_id}`)
 
-            if (config.type === 'azure') {
-              envVars.OPENAI_API_BASE = config.endpoint_url
-              envVars.OPENAI_API_TYPE = 'azure'
-              envVars.OPENAI_API_VERSION = config.api_version
-              envVars.OPENAI_DEPLOYMENT_NAME = config.deployment_name
-              logger.info(`✓ Configured Azure OpenAI with deployment ${config.deployment_name}`)
-            } else if (config.type === 'self-hosted') {
-              envVars.OPENAI_API_BASE = config.endpoint_url
-              logger.info(`✓ Set OPENAI_API_BASE to ${config.endpoint_url}`)
-            } else if (config.type === 'cloud' && config.organization_id) {
-              envVars.OPENAI_ORGANIZATION = config.organization_id
+            switch (config.type) {
+              case 'azure':
+                envVars.OPENAI_API_BASE = config.endpoint_url
+                envVars.OPENAI_API_TYPE = 'azure'
+                envVars.OPENAI_API_VERSION = config.api_version
+                envVars.OPENAI_DEPLOYMENT_NAME = config.deployment_name
+                logger.info(`✓ Configured Azure OpenAI with deployment ${config.deployment_name}`)
+                break
+              case 'self-hosted':
+                envVars.OPENAI_API_BASE = config.endpoint_url
+                logger.info(`✓ Set OPENAI_API_BASE to ${config.endpoint_url}`)
+                break
+              case 'cloud':
+                if (config.organization_id) {
+                  envVars.OPENAI_ORGANIZATION = config.organization_id
+                }
+                break
             }
 
             if (config.model) {
@@ -517,13 +523,19 @@ async function getAIProviderEnvVars(
             logger.info(`✓ Loaded GOOGLE_API_KEY from secret ${config.api_key_secret_id}`)
 
             // Set additional configuration only if API key is valid
-            if (config.type === 'vertex') {
-              envVars.GOOGLE_PROJECT_ID = config.project_id
-              envVars.GOOGLE_LOCATION = config.location
-              logger.info(`✓ Configured Vertex AI with project ${config.project_id} in ${config.location}`)
-            } else if (config.type === 'self-hosted') {
-              envVars.GOOGLE_API_ENDPOINT = config.endpoint_url
-              logger.info(`✓ Set GOOGLE_API_ENDPOINT to ${config.endpoint_url}`)
+            switch (config.type) {
+              case 'vertex':
+                envVars.GOOGLE_PROJECT_ID = config.project_id
+                envVars.GOOGLE_LOCATION = config.location
+                logger.info(`✓ Configured Vertex AI with project ${config.project_id} in ${config.location}`)
+                break
+              case 'self-hosted':
+                envVars.GOOGLE_API_ENDPOINT = config.endpoint_url
+                logger.info(`✓ Set GOOGLE_API_ENDPOINT to ${config.endpoint_url}`)
+                break
+              case 'cloud':
+                // Cloud type doesn't need additional configuration
+                break
             }
 
             if (config.model) {

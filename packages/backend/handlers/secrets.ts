@@ -3,7 +3,7 @@ import type { Sql } from 'postgres'
 import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/secrets'
 import { z } from 'zod'
-import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
+import { createFluentACL } from '../middleware/fluent-acl'
 import { reqAuthed } from '../middleware/authz'
 import { requireClerkAuth } from '../middleware/clerk'
 import * as userAccessQueries from '../../db/user-access'
@@ -74,14 +74,7 @@ async function handleListAllSecrets(c: any, sql: Sql) {
 async function handleListSecretsByProject(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { projectId } = c.req.valid('param')
 
-  try {
-    await acl.project(projectId).viewer.gte.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.project(projectId).viewer.gte.throw(c)
 
   const secrets = await queries.findSecretsByProjectId(sql, projectId)
   const sanitized = secrets.map(s => secretsService.sanitizeSecretForResponse(s))
@@ -91,14 +84,7 @@ async function handleListSecretsByProject(c: any, sql: Sql, acl: ReturnType<type
 async function handleGetSecretById(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.secret(id).read.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.secret(id).read.throw(c)
 
   const secret = await queries.findSecretById(sql, id)
   const sanitized = secretsService.sanitizeSecretForResponse(secret)
@@ -108,14 +94,7 @@ async function handleGetSecretById(c: any, sql: Sql, acl: ReturnType<typeof crea
 async function handleGetSecretValue(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.secret(id).read.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.secret(id).read.throw(c)
 
   const secret = await queries.findSecretById(sql, id)
   const decryptedValue = await secretsService.getDecryptedSecretValue(sql, id)
@@ -131,14 +110,7 @@ async function handleCreateSecret(c: any, sql: Sql, acl: ReturnType<typeof creat
   const body = c.req.valid('json')
   const userId = await reqAuthed(c)
 
-  try {
-    await acl.project(body.project_id).developer.gte.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.project(body.project_id).developer.gte.throw(c)
 
   const secret = await secretsService.createEncryptedSecret(sql, body)
 
@@ -160,14 +132,7 @@ async function handleUpdateSecret(c: any, sql: Sql, acl: ReturnType<typeof creat
   const { id } = c.req.valid('param')
   const body = c.req.valid('json')
 
-  try {
-    await acl.secret(id).write.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.secret(id).write.throw(c)
 
   const secret = await secretsService.updateEncryptedSecret(sql, id, body)
   const sanitized = secretsService.sanitizeSecretForResponse(secret)
@@ -177,14 +142,7 @@ async function handleUpdateSecret(c: any, sql: Sql, acl: ReturnType<typeof creat
 async function handleDeleteSecret(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.secret(id).write.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.secret(id).write.throw(c)
 
   await queries.deleteSecret(sql, id)
   return c.json({ success: true })
@@ -270,14 +228,7 @@ async function handleValidateGitLabRawToken(c: any) {
 async function handleValidateGitLabToken(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { secretId, scopes, hostname } = c.req.valid('json')
 
-  try {
-    await acl.secret(secretId).read.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.secret(secretId).read.throw(c)
 
   const result = await validateGitLabToken(sql, { secretId, scopes, hostname })
 
@@ -302,14 +253,7 @@ async function handleValidateGitLabToken(c: any, sql: Sql, acl: ReturnType<typeo
 async function handleGetGitLabRepositories(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { secretId, hostname, search } = c.req.valid('json')
 
-  try {
-    await acl.secret(secretId).read.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.secret(secretId).read.throw(c)
 
   const secret = await queries.findSecretById(sql, secretId)
   const token = await secretsService.getDecryptedSecretValue(sql, secretId)
@@ -393,14 +337,7 @@ async function handleValidateJiraRawToken(c: any) {
 async function handleValidateJiraToken(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { secretId, hostname } = c.req.valid('json')
 
-  try {
-    await acl.secret(secretId).read.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.secret(secretId).read.throw(c)
 
   const logger = createLogger({ namespace: 'jira-token-validation' })
 

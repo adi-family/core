@@ -4,7 +4,7 @@ import { zValidator } from '@hono/zod-validator'
 import * as queries from '../../db/tasks'
 import * as fileSpaceQueries from '../../db/file-spaces'
 import { idParamSchema, createTaskSchema, updateTaskSchema, taskQuerySchema } from '../schemas'
-import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
+import { createFluentACL } from '../middleware/fluent-acl'
 import { reqAuthed } from '../middleware/authz'
 import * as userAccessQueries from '../../db/user-access'
 import * as taskSourceQueries from '../../db/task-sources'
@@ -44,14 +44,7 @@ async function handleListTasks(c: any, sql: Sql) {
 async function handleGetTaskById(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.task(id).read.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.task(id).read.throw(c)
 
   const task = await queries.findTaskById(sql, id)
   return c.json(task)
@@ -68,14 +61,7 @@ async function handleUpdateTask(c: any, sql: Sql, acl: ReturnType<typeof createF
   const { id } = c.req.valid('param')
   const body = c.req.valid('json')
 
-  try {
-    await acl.task(id).write.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.task(id).write.throw(c)
 
   const task = await queries.updateTask(sql, id, body)
   return c.json(task)
@@ -84,14 +70,7 @@ async function handleUpdateTask(c: any, sql: Sql, acl: ReturnType<typeof createF
 async function handleDeleteTask(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.task(id).write.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.task(id).write.throw(c)
 
   await queries.deleteTask(sql, id)
   return c.json({ success: true })
@@ -100,14 +79,7 @@ async function handleDeleteTask(c: any, sql: Sql, acl: ReturnType<typeof createF
 async function handleEvaluateTask(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.task(id).read.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.task(id).read.throw(c)
 
   const task = await queries.findTaskById(sql, id)
 
@@ -141,14 +113,7 @@ async function handleEvaluateTask(c: any, sql: Sql, acl: ReturnType<typeof creat
 async function handleImplementTask(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.task(id).write.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.task(id).write.throw(c)
 
   await queries.findTaskById(sql, id)
   await publishTaskImpl({ taskId: id })
@@ -162,14 +127,7 @@ async function handleImplementTask(c: any, sql: Sql, acl: ReturnType<typeof crea
 async function handleRefreshTask(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.task(id).read.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.task(id).read.throw(c)
 
   const task = await queries.findTaskById(sql, id)
   const taskSource = await taskSourceQueries.findTaskSourceById(sql, task.task_source_id)
@@ -297,14 +255,7 @@ async function handleUpdateAgenticEvaluation(c: any, sql: Sql) {
 async function handleGetTaskFileSpaces(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.task(id).read.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.task(id).read.throw(c)
 
   const fileSpaces = await fileSpaceQueries.findFileSpacesByTaskId(sql, id)
   return c.json(fileSpaces)

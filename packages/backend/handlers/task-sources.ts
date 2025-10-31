@@ -5,7 +5,7 @@ import * as queries from '../../db/task-sources'
 import { createLogger } from '@utils/logger.ts'
 import { syncTaskSource } from '../services/orchestrator'
 import { idParamSchema, createTaskSourceSchema, updateTaskSourceSchema, projectIdQuerySchema } from '../schemas'
-import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
+import { createFluentACL } from '../middleware/fluent-acl'
 import { reqAuthed } from '../middleware/authz'
 import * as userAccessQueries from '../../db/user-access'
 import { getProjectOwnerId } from '../../db/user-access'
@@ -39,15 +39,8 @@ export const createTaskSourceRoutes = (sql: Sql) => {
     .get('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      try {
-        // Require read access
-        await acl.taskSource(id).read.throw(c)
-      } catch (error) {
-        if (error instanceof AccessDeniedError) {
-          return c.json({ error: error.message }, error.statusCode as 401 | 403)
-        }
-        throw error
-      }
+      // Require read access
+      await acl.taskSource(id).read.throw(c)
 
       const taskSource = await queries.findTaskSourceById(sql, id)
 
@@ -57,15 +50,8 @@ export const createTaskSourceRoutes = (sql: Sql) => {
       const body = c.req.valid('json')
       const userId = await reqAuthed(c)
 
-      try {
-        // Require developer access to project
-        await acl.project(body.project_id).developer.gte.throw(c)
-      } catch (error) {
-        if (error instanceof AccessDeniedError) {
-          return c.json({ error: error.message }, error.statusCode as 401 | 403)
-        }
-        throw error
-      }
+      // Require developer access to project
+      await acl.project(body.project_id).developer.gte.throw(c)
 
       const taskSource = await queries.createTaskSource(sql, body as import('../../types').CreateTaskSourceInput)
 
@@ -136,15 +122,8 @@ export const createTaskSourceRoutes = (sql: Sql) => {
       const { id } = c.req.valid('param')
       const body = c.req.valid('json')
 
-      try {
-        // Require write access
-        await acl.taskSource(id).write.throw(c)
-      } catch (error) {
-        if (error instanceof AccessDeniedError) {
-          return c.json({ error: error.message }, error.statusCode as 401 | 403)
-        }
-        throw error
-      }
+      // Require write access
+      await acl.taskSource(id).write.throw(c)
 
       const taskSource = await queries.updateTaskSource(sql, id, body as import('../../types').UpdateTaskSourceInput)
 
@@ -153,15 +132,8 @@ export const createTaskSourceRoutes = (sql: Sql) => {
     .delete('/:id', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      try {
-        // Require write access
-        await acl.taskSource(id).write.throw(c)
-      } catch (error) {
-        if (error instanceof AccessDeniedError) {
-          return c.json({ error: error.message }, error.statusCode as 401 | 403)
-        }
-        throw error
-      }
+      // Require write access
+      await acl.taskSource(id).write.throw(c)
 
       await queries.deleteTaskSource(sql, id)
 
@@ -170,15 +142,8 @@ export const createTaskSourceRoutes = (sql: Sql) => {
     .post('/:id/sync', zValidator('param', idParamSchema), async (c) => {
       const { id } = c.req.valid('param')
 
-      try {
-        // Require write access to sync
-        await acl.taskSource(id).write.throw(c)
-      } catch (error) {
-        if (error instanceof AccessDeniedError) {
-          return c.json({ error: error.message }, error.statusCode as 401 | 403)
-        }
-        throw error
-      }
+      // Require write access to sync
+      await acl.taskSource(id).write.throw(c)
 
       const taskSource = await queries.findTaskSourceById(sql, id)
 

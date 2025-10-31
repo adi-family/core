@@ -7,7 +7,7 @@ import * as userAccessQueries from '../../db/user-access'
 import * as workerRepoQueries from '../../db/worker-repositories'
 import { idParamSchema, createProjectSchema, updateProjectSchema, setJobExecutorSchema, setAIProviderEnterpriseConfigSchema, idAndProviderParamSchema } from '../schemas'
 import { requireClerkAuth } from '../middleware/clerk'
-import { createFluentACL, AccessDeniedError } from '../middleware/fluent-acl'
+import { createFluentACL } from '../middleware/fluent-acl'
 import { validateGitLabToken } from '../services/gitlab-executor-verifier'
 import * as secretsService from '../services/secrets'
 import * as aiProviderValidator from '../services/ai-provider-validator'
@@ -38,14 +38,7 @@ async function handleGetProjectById(c: any, sql: Sql, acl: ReturnType<typeof cre
 async function handleGetProjectStats(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.project(id).viewer.gte.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.project(id).viewer.gte.throw(c)
 
   const stats = await queries.getProjectStats(sql, id)
   return c.json(stats)
@@ -219,14 +212,7 @@ async function handleDeleteJobExecutor(c: any, sql: Sql, acl: ReturnType<typeof 
 async function handleGetAIProviders(c: any, sql: Sql, acl: ReturnType<typeof createFluentACL>) {
   const { id } = c.req.valid('param')
 
-  try {
-    await acl.project(id).viewer.gte.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.project(id).viewer.gte.throw(c)
 
   const configs = await queries.getProjectAIProviderConfigs(sql, id)
 
@@ -250,14 +236,7 @@ async function handleSetAIProvider(c: any, sql: Sql, acl: ReturnType<typeof crea
   const { provider } = c.req.valid('param')
   const config = c.req.valid('json')
 
-  try {
-    await acl.project(id).developer.gte.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.project(id).developer.gte.throw(c)
 
   let secretId: string
   const configWithSecretId = config as any
@@ -293,14 +272,7 @@ async function handleDeleteAIProvider(c: any, sql: Sql, acl: ReturnType<typeof c
   const { id } = c.req.valid('param')
   const { provider } = c.req.valid('param')
 
-  try {
-    await acl.project(id).developer.gte.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.project(id).developer.gte.throw(c)
 
   const providerConfig = await queries.getProjectAIProviderConfig(sql, id, provider)
   if (providerConfig) {
@@ -319,14 +291,7 @@ async function handleValidateAIProvider(c: any, sql: Sql, acl: ReturnType<typeof
   const { provider } = c.req.valid('param')
   const config = c.req.valid('json')
 
-  try {
-    await acl.project(id).developer.gte.throw(c)
-  } catch (error) {
-    if (error instanceof AccessDeniedError) {
-      return c.json({ error: error.message }, error.statusCode as 401 | 403)
-    }
-    throw error
-  }
+  await acl.project(id).developer.gte.throw(c)
 
   const configWithKey = config as any
   let apiKey: string
