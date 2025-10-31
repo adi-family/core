@@ -18,14 +18,11 @@ export const createAlertRoutes = (sql: Sql) => {
       }> = []
 
       try {
-        // Get all projects the user has access to
         const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
-
         if (accessibleProjectIds.length === 0) {
           return c.json({ alerts })
         }
 
-        // Check each project for missing AI provider configs
         const allMissingProviders = new Set<string>()
         const projectsWithMissingKeys: Array<{ id: string; name: string; missingProviders: string[] }> = []
 
@@ -39,18 +36,15 @@ export const createAlertRoutes = (sql: Sql) => {
 
           const configs = await projectQueries.getProjectAIProviderConfigs(sql, projectId)
 
-          // Check for missing providers
           const providers = ['anthropic', 'openai', 'google'] as const
           const missingForThisProject: string[] = []
 
           if (!configs) {
-            // No configs at all means all providers are missing
             for (const provider of providers) {
               allMissingProviders.add(provider)
               missingForThisProject.push(provider)
             }
           } else {
-            // Check which specific providers are missing
             for (const provider of providers) {
               if (!configs[provider]) {
                 allMissingProviders.add(provider)

@@ -7,7 +7,7 @@ import { Hono } from 'hono'
 import type { Sql } from 'postgres'
 import * as quotaQueries from '@db/user-quotas'
 import * as taskQueries from '@db/tasks'
-import { selectAIProviderForEvaluation, checkProjectHasAnthropicProvider, QuotaExceededError } from '../services/ai-provider-selector'
+import { selectAIProviderForEvaluation, checkProjectHasAnthropicProvider } from '../services/ai-provider-selector'
 import { hasPlatformAnthropicConfig } from '../config'
 import { reqAdminAuthed, reqAuthed } from '@backend/middleware/authz'
 
@@ -183,10 +183,6 @@ export const createQuotaRoutes = (sql: Sql) => {
       });
     }))
 
-    /**
-     * Admin: Reset quota usage for a user
-     * POST /admin/quotas/:userId/reset
-     */
     .post('/admin/quotas/:userId/reset', (async (c) => {
       await reqAdminAuthed(c, sql);
       const targetUserId = c.req.param('userId')
