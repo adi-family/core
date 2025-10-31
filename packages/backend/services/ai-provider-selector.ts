@@ -110,15 +110,15 @@ async function resolveAnthropicConfig(
       model: config.model,
       max_tokens: config.max_tokens,
     }
-  } else {
-    return {
-      type: 'self-hosted',
-      api_key: apiKey,
-      endpoint_url: config.endpoint_url,
-      model: config.model,
-      max_tokens: config.max_tokens,
-      additional_headers: config.additional_headers,
-    }
+  }
+
+  return {
+    type: 'self-hosted',
+    api_key: apiKey,
+    endpoint_url: config.endpoint_url,
+    model: config.model,
+    max_tokens: config.max_tokens,
+    additional_headers: config.additional_headers,
   }
 }
 
@@ -128,7 +128,7 @@ async function resolveAnthropicConfig(
 export class QuotaExceededError extends Error {
   constructor(
     message: string,
-    public quotaCheck: QuotaCheck
+    public quotaCheck: QuotaCheck,
   ) {
     super(message)
     this.name = 'QuotaExceededError'

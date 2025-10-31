@@ -31,6 +31,155 @@ export interface SyncTaskSourceResult {
 }
 
 /**
+ * Validate task source is enabled
+ */
+async function validateTaskSource(sql: Sql, taskSourceId: string): Promise<TaskSource> {
+  const taskSource = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
+
+  if (!taskSource.enabled) {
+    throw new Error(`Task source is disabled: ${taskSourceId}`)
+  }
+
+  return taskSource
+}
+
+/**
+ * Validate project is enabled
+ */
+async function validateProject(sql: Sql, projectId: string) {
+  const project = await projectQueries.findProjectById(sql, projectId)
+
+  if (!project.enabled) {
+    throw new Error(`Project is disabled: ${project.id}`)
+  }
+
+  return project
+}
+
+/**
+ * Queue evaluation for task if quota available
+ */
+async function queueEvaluationIfQuotaAvailable(sql: Sql, task: Task, projectId: string): Promise<void> {
+  if (task.ai_evaluation_status !== 'pending') return
+
+  try {
+    const userId = await getProjectOwnerId(sql, projectId)
+
+    if (!userId) {
+      logger.warn(`No project owner found for project ${projectId}, skipping auto-evaluation for task ${task.id}`)
+      return
+    }
+
+    try {
+      await selectAIProviderForEvaluation(sql, userId, projectId, 'simple')
+      await publishTaskEval({ taskId: task.id })
+      logger.debug(`Queued evaluation for task ${task.id}`)
+    } catch (quotaError) {
+      if (quotaError instanceof QuotaExceededError) {
+        logger.warn(`Skipping auto-evaluation for task ${task.id}: ${quotaError.message}`)
+      } else {
+        throw quotaError
+      }
+    }
+  } catch (evalError) {
+    logger.error(`Failed to queue evaluation for task ${task.id}:`, evalError)
+  }
+}
+
+/**
+ * Process a single issue - create or update task
+ */
+async function processIssue(
+  sql: Sql,
+  issue: TaskSourceIssue,
+  taskSource: TaskSource,
+  projectId: string,
+  existingStateMap: Map<string, any>
+): Promise<{ isNew: boolean; isUpdated: boolean; task: Task | null }> {
+  const existingState = existingStateMap.get(issue.id)
+  const isNew = !existingState
+  const isUpdated = existingState && existingState.issue_updated_at !== issue.updatedAt
+
+  if (!isNew && !isUpdated) {
+    return { isNew: false, isUpdated: false, task: null }
+  }
+
+  const task = await createTaskFromIssue(sql, {
+    taskSourceId: taskSource.id,
+    projectId,
+    issue
+  })
+
+  logger.debug(`${isNew ? 'Created new' : 'Updated'} task for issue ${issue.id}`)
+  await queueEvaluationIfQuotaAvailable(sql, task, projectId)
+
+  return { isNew, isUpdated, task }
+}
+
+/**
+ * Process all issues from task source
+ */
+async function processIssues(
+  sql: Sql,
+  issues: TaskSourceIssue[],
+  taskSource: TaskSource,
+  projectId: string,
+  existingStateMap: Map<string, any>
+): Promise<{ tasksCreated: number; tasksUpdated: number; errors: string[]; syncStateUpdates: any[] }> {
+  const result = {
+    tasksCreated: 0,
+    tasksUpdated: 0,
+    errors: [] as string[],
+    syncStateUpdates: [] as any[]
+  }
+
+  for (const issue of issues) {
+    try {
+      const { isNew, isUpdated } = await processIssue(sql, issue, taskSource, projectId, existingStateMap)
+
+      if (isNew) result.tasksCreated++
+      if (isUpdated) result.tasksUpdated++
+
+      result.syncStateUpdates.push({
+        task_source_id: taskSource.id,
+        issue_id: issue.id,
+        issue_updated_at: issue.updatedAt
+      })
+    } catch (error) {
+      const errorMsg = `Failed to process issue ${issue.id}: ${error instanceof Error ? error.message : String(error)}`
+      logger.error(errorMsg)
+      result.errors.push(errorMsg)
+    }
+  }
+
+  return result
+}
+
+/**
+ * Perform revalidation and merge errors
+ */
+async function performRevalidation(
+  sql: Sql,
+  input: SyncTaskSourceInput,
+  taskSourceName: string,
+  errors: string[]
+): Promise<void> {
+  try {
+    logger.info(`Starting revalidation for task source ${taskSourceName}`)
+    const revalidationResult = await revalidateTasksStatus(sql, input)
+    logger.info(`Revalidation completed: ${revalidationResult.tasksUpdated} tasks updated`)
+
+    if (revalidationResult.errors.length > 0) {
+      errors.push(...revalidationResult.errors)
+    }
+  } catch (revalidationError) {
+    const errorMsg = `Revalidation failed: ${revalidationError instanceof Error ? revalidationError.message : String(revalidationError)}`
+    logger.error(errorMsg)
+    errors.push(errorMsg)
+  }
+}
+
+/**
  * Sync a task source: fetch all issues and create tasks
  * This is the main entry point called by the RabbitMQ consumer
  */
@@ -39,6 +188,7 @@ export async function syncTaskSource(
   input: SyncTaskSourceInput
 ): Promise<SyncTaskSourceResult> {
   const { taskSourceId, provider } = input
+  const syncStartTime = new Date()
 
   const result: SyncTaskSourceResult = {
     tasksCreated: 0,
@@ -46,158 +196,32 @@ export async function syncTaskSource(
     errors: []
   }
 
-  const syncStartTime = new Date()
-
   try {
-    // Mark sync as started
     await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'syncing')
 
-    // Fetch task source
-    const taskSource = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
+    const taskSource = await validateTaskSource(sql, taskSourceId)
+    const project = await validateProject(sql, taskSource.project_id)
 
-    if (!taskSource.enabled) {
-      result.errors.push(`Task source is disabled: ${taskSourceId}`)
-      await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'failed')
-      return result
-    }
-
-    // Fetch project to validate it exists and is enabled
-    const project = await projectQueries.findProjectById(sql, taskSource.project_id)
-
-    if (!project.enabled) {
-      result.errors.push(`Project is disabled: ${project.id}`)
-      await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'failed')
-      return result
-    }
-
-    // Fetch issues from task source
     logger.info(`Fetching issues from task source ${taskSource.name} (provider: ${provider})`)
     const issues = await fetchIssuesFromTaskSource(taskSource)
     logger.info(`Fetched ${issues.length} issues from ${provider} task source ${taskSource.name}`)
 
-    // Get existing sync state to detect updates
     const existingSyncState = await syncStateQueries.findSyncStateByTaskSourceId(sql, taskSource.id)
-    const existingStateMap = new Map(
-      existingSyncState.map(s => [s.issue_id, s])
-    )
+    const existingStateMap = new Map(existingSyncState.map(s => [s.issue_id, s]))
 
-    // Process each issue
-    const syncStateUpdates: { task_source_id: string; issue_id: string; issue_updated_at: string }[] = []
+    const processResult = await processIssues(sql, issues, taskSource, project.id, existingStateMap)
+    result.tasksCreated = processResult.tasksCreated
+    result.tasksUpdated = processResult.tasksUpdated
+    result.errors.push(...processResult.errors)
 
-    for (const issue of issues) {
-      try {
-        const existingState = existingStateMap.get(issue.id)
-        const isNew = !existingState
-        const isUpdated = existingState && existingState.issue_updated_at !== issue.updatedAt
-
-        if (isNew || isUpdated) {
-          const task = await createTaskFromIssue(sql, {
-            taskSourceId: taskSource.id,
-            projectId: project.id,
-            issue
-          })
-
-          if (isNew) {
-            result.tasksCreated++
-            logger.debug(`Created new task for issue ${issue.id}`)
-
-            // Queue evaluation for newly created tasks (check quota first)
-            if (task.ai_evaluation_status === 'pending') {
-              try {
-                // Check quota before auto-queueing evaluation
-                const userId = await getProjectOwnerId(sql, project.id)
-
-                if (userId) {
-                  try {
-                    await selectAIProviderForEvaluation(sql, userId, project.id, 'simple')
-
-                    // Quota available - queue evaluation
-                    await publishTaskEval({ taskId: task.id })
-                    logger.debug(`Queued evaluation for new task ${task.id}`)
-                  } catch (quotaError) {
-                    if (quotaError instanceof QuotaExceededError) {
-                      logger.warn(`Skipping auto-evaluation for task ${task.id}: ${quotaError.message}`)
-                    } else {
-                      throw quotaError
-                    }
-                  }
-                } else {
-                  logger.warn(`No project owner found for project ${project.id}, skipping auto-evaluation for task ${task.id}`)
-                }
-              } catch (evalError) {
-                logger.error(`Failed to queue evaluation for task ${task.id}:`, evalError)
-              }
-            }
-          } else {
-            result.tasksUpdated++
-            logger.debug(`Updated task for issue ${issue.id}`)
-
-            // Queue evaluation for updated tasks (check quota first)
-            if (task.ai_evaluation_status === 'pending') {
-              try {
-                // Check quota before auto-queueing evaluation
-                const userId = await getProjectOwnerId(sql, project.id)
-
-                if (userId) {
-                  try {
-                    await selectAIProviderForEvaluation(sql, userId, project.id, 'simple')
-
-                    // Quota available - queue evaluation
-                    await publishTaskEval({ taskId: task.id })
-                    logger.debug(`Queued evaluation for updated task ${task.id}`)
-                  } catch (quotaError) {
-                    if (quotaError instanceof QuotaExceededError) {
-                      logger.warn(`Skipping auto-evaluation for updated task ${task.id}: ${quotaError.message}`)
-                    } else {
-                      throw quotaError
-                    }
-                  }
-                } else {
-                  logger.warn(`No project owner found for project ${project.id}, skipping auto-evaluation for updated task ${task.id}`)
-                }
-              } catch (evalError) {
-                logger.error(`Failed to queue evaluation for updated task ${task.id}:`, evalError)
-              }
-            }
-          }
-        }
-
-        // Track this issue in sync state
-        syncStateUpdates.push({
-          task_source_id: taskSource.id,
-          issue_id: issue.id,
-          issue_updated_at: issue.updatedAt
-        })
-      } catch (error) {
-        const errorMsg = `Failed to process issue ${issue.id}: ${error instanceof Error ? error.message : String(error)}`
-        logger.error(errorMsg)
-        result.errors.push(errorMsg)
-      }
+    if (processResult.syncStateUpdates.length > 0) {
+      await syncStateQueries.batchUpsertSyncStates(sql, processResult.syncStateUpdates)
     }
 
-    // Batch update sync state
-    if (syncStateUpdates.length > 0) {
-      await syncStateQueries.batchUpsertSyncStates(sql, syncStateUpdates)
-    }
-
-    // Mark sync as completed
     await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'completed', syncStartTime)
-
     logger.info(`Sync completed for task source ${taskSource.name}: ${result.tasksCreated} created, ${result.tasksUpdated} updated`)
 
-    // Revalidate existing tasks to detect closed issues
-    try {
-      logger.info(`Starting revalidation for task source ${taskSource.name}`)
-      const revalidationResult = await revalidateTasksStatus(sql, input)
-      logger.info(`Revalidation completed: ${revalidationResult.tasksUpdated} tasks updated`)
-      if (revalidationResult.errors.length > 0) {
-        result.errors.push(...revalidationResult.errors)
-      }
-    } catch (revalidationError) {
-      const errorMsg = `Revalidation failed: ${revalidationError instanceof Error ? revalidationError.message : String(revalidationError)}`
-      logger.error(errorMsg)
-      result.errors.push(errorMsg)
-    }
+    await performRevalidation(sql, input, taskSource.name, result.errors)
   } catch (error) {
     const errorMsg = `Failed to sync task source ${taskSourceId}: ${error instanceof Error ? error.message : String(error)}`
     logger.error(errorMsg)

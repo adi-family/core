@@ -2,14 +2,14 @@ import { Hono } from 'hono'
 import { zValidator } from '@hono/zod-validator'
 import type { Sql } from 'postgres'
 import { z } from 'zod'
-import * as userAccessQueries from '../../db/user-access'
-import { hasAdminAccess } from '../../db/user-access'
+import * as userAccessQueries from '@db/user-access'
+import { hasAdminAccess } from '@db/user-access.ts'
 import { reqAdminAuthed, reqAuthed } from '@backend/middleware/authz'
 
 const grantAccessSchema = z.object({
   user_id: z.string(),
   entity_type: z.enum(['project', 'task_source', 'file_space', 'secret', 'task']),
-  entity_id: z.string().uuid(),
+  entity_id: z.uuid(),
   role: z.enum(['owner', 'admin', 'developer', 'viewer', 'read', 'write', 'use']),
   granted_by: z.string().optional(),
   expires_at: z.string().datetime().optional(),

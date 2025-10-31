@@ -643,6 +643,168 @@ function validateRequiredApiKeys(
 }
 
 /**
+ * Fetch access token for a file space
+ */
+async function fetchFileSpaceToken(
+  apiClient: BackendClient,
+  secretId: string,
+  fileSpaceName: string
+): Promise<string | undefined> {
+  try {
+    const secretRes = await apiClient.secrets[':id'].value.$get({
+      param: { id: secretId }
+    })
+
+    if (secretRes.ok) {
+      const secret = await secretRes.json() as any
+      logger.info(`✓ Access token loaded for ${fileSpaceName}`)
+      return secret.value
+    }
+  } catch (error) {
+    logger.warn(`⚠️  Failed to load token for ${fileSpaceName}: ${error}`)
+  }
+  return undefined
+}
+
+/**
+ * Build file space configuration from API response
+ */
+async function buildFileSpaceConfig(fileSpace: any, apiClient: BackendClient): Promise<any | null> {
+  if (!fileSpace) {
+    logger.warn('⚠️  File space is undefined, skipping')
+    return null
+  }
+
+  const config = fileSpace.config as any
+  if (!config.repo) {
+    logger.warn(`⚠️  File space ${fileSpace.name} has no repo URL, skipping`)
+    return null
+  }
+
+  const spaceConfig: any = {
+    name: fileSpace.name,
+    id: fileSpace.id,
+    repo: config.repo,
+    host: config.host
+  }
+
+  if (config.access_token_secret_id) {
+    const token = await fetchFileSpaceToken(apiClient, config.access_token_secret_id, fileSpace.name)
+    if (token) {
+      spaceConfig.token = token
+    }
+  }
+
+  logger.info(`✓ Configured file space: ${fileSpace.name} (${config.repo})`)
+  return spaceConfig
+}
+
+/**
+ * Load and configure file spaces for pipeline
+ */
+async function loadFileSpaces(
+  apiClient: BackendClient,
+  taskId: string,
+  runnerType: string
+): Promise<Record<string, string>> {
+  logger.info(`🔍 Loading file spaces for task ${taskId}...`)
+
+  const fileSpacesRes = await apiClient.tasks[':id']['file-spaces'].$get({
+    param: { id: taskId }
+  })
+
+  if (!fileSpacesRes.ok) {
+    logger.warn(`⚠️  Failed to fetch file spaces: HTTP ${fileSpacesRes.status}`)
+    return {}
+  }
+
+  const fileSpaces = await fileSpacesRes.json()
+  logger.info(`📦 API returned ${fileSpaces.length} file space(s) for task`)
+
+  if (fileSpaces.length === 0) {
+    logger.error(`❌ Task has no file spaces configured`)
+    logger.error(`   ${runnerType} pipelines require at least one file space with code to analyze`)
+    logger.error(`   Please configure file spaces for this task before running evaluation or implementation`)
+    throw new Error(
+      `Cannot run ${runnerType} pipeline: Task has no file spaces configured. ` +
+      `Please add at least one file space with a repository URL to this task.`
+    )
+  }
+
+  logger.info(`📦 Processing ${fileSpaces.length} file space(s)...`)
+  const fileSpaceConfigs = []
+
+  for (const fileSpace of fileSpaces) {
+    const config = await buildFileSpaceConfig(fileSpace, apiClient)
+    if (config) {
+      fileSpaceConfigs.push(config)
+    }
+  }
+
+  if (fileSpaceConfigs.length === 0) {
+    logger.error(`❌ No valid file spaces after filtering`)
+    logger.error(`   All file spaces are missing repository URLs`)
+    logger.error(`   Each file space must have a 'repo' field in its config with a valid git repository URL`)
+    throw new Error(
+      `Cannot run ${runnerType} pipeline: All file spaces are missing repository URLs. ` +
+      `Please ensure each file space has a 'repo' field configured with a valid git repository URL.`
+    )
+  }
+
+  logger.info(`✓ ${fileSpaceConfigs.length} file space(s) will be cloned`)
+  logger.info(`   FILE_SPACES variable will be passed to pipeline`)
+
+  return { FILE_SPACES: JSON.stringify(fileSpaceConfigs) }
+}
+
+/**
+ * Get proxy environment variables if configured
+ */
+function getProxyVars(): Record<string, string> {
+  if (process.env.PROXY_HOST && process.env.PROXY_USER && process.env.PROXY_PASS) {
+    logger.info(`✓ Proxy configuration will be passed to pipeline: ${process.env.PROXY_HOST}`)
+    return {
+      PROXY_HOST: process.env.PROXY_HOST,
+      PROXY_USER: process.env.PROXY_USER,
+      PROXY_PASS: process.env.PROXY_PASS
+    }
+  }
+  return {}
+}
+
+/**
+ * Get mock mode environment variables if configured
+ */
+function getMockModeVars(): Record<string, string> {
+  if (process.env.MOCK_MODE === 'true') {
+    logger.info(`🎭 MOCK_MODE enabled - AI API calls will be mocked`)
+    return { MOCK_MODE: 'true' }
+  }
+  return {}
+}
+
+/**
+ * Log pipeline variables for debugging
+ */
+function logPipelineVariables(variables: Record<string, string>): void {
+  logger.info(`🔍 DEBUG - Pipeline variables to be sent:`)
+  logger.info(`  RUNNER_TYPE = ${variables.RUNNER_TYPE}`)
+  logger.info(`  SESSION_ID = ${variables.SESSION_ID}`)
+  logger.info(`  PIPELINE_EXECUTION_ID = ${variables.PIPELINE_EXECUTION_ID}`)
+
+  if (variables.FILE_SPACES) {
+    const fileSpaceCount = JSON.parse(variables.FILE_SPACES).length
+    logger.info(`  FILE_SPACES = [${fileSpaceCount} workspace(s)]`)
+  } else {
+    logger.info(`  FILE_SPACES = not set`)
+  }
+
+  if (variables.MOCK_MODE) {
+    logger.info(`  🎭 MOCK_MODE = ${variables.MOCK_MODE}`)
+  }
+}
+
+/**
  * Prepare pipeline configuration (variables)
  */
 async function preparePipelineConfig(
@@ -650,16 +812,12 @@ async function preparePipelineConfig(
   executionId: string,
   apiClient: BackendClient,
   sql: Sql
-): Promise<{
-  variables: Record<string, string>
-}> {
+): Promise<{ variables: Record<string, string> }> {
   logger.info(`✓ Using CI runner: ${context.session.runner}`)
 
-  // Get API base URL from environment - prefer GITLAB_RUNNER_API_URL for public-facing access
   const apiBaseUrl = process.env.GITLAB_RUNNER_API_URL || process.env.API_BASE_URL || process.env.BACKEND_URL || 'http://localhost:3000'
   const apiToken = process.env.API_TOKEN || process.env.BACKEND_API_TOKEN || ''
 
-  // Fetch AI provider configurations and prepare environment variables
   const aiEnvVars = await getAIProviderEnvVars({
     projectId: context.project.id,
     userId: context.userId,
@@ -668,155 +826,36 @@ async function preparePipelineConfig(
     sql
   })
 
-  // Validate that required API keys are present before triggering pipeline
   validateRequiredApiKeys(context.session.runner, aiEnvVars)
   logger.info(`✓ Required API keys validated for runner type: ${context.session.runner}`)
 
-  // Prepare repository access variables for codebase cloning
-  const repoVars: Record<string, string> = {}
+  let repoVars: Record<string, string> = {}
   try {
-    logger.info(`🔍 Loading file spaces for task ${context.task.id}...`)
-
-    // Get file spaces associated with this task via junction table
-    const fileSpacesRes = await apiClient.tasks[':id']['file-spaces'].$get({
-      param: { id: context.task.id }
-    })
-
-    if (!fileSpacesRes.ok) {
-      logger.warn(`⚠️  Failed to fetch file spaces: HTTP ${fileSpacesRes.status}`)
-    } else {
-      const fileSpaces = await fileSpacesRes.json()
-      logger.info(`📦 API returned ${fileSpaces.length} file space(s) for task`)
-
-      if (fileSpaces.length === 0) {
-        logger.error(`❌ Task has no file spaces configured`)
-        logger.error(`   ${context.session.runner} pipelines require at least one file space with code to analyze`)
-        logger.error(`   Please configure file spaces for this task before running evaluation or implementation`)
-        throw new Error(
-          `Cannot run ${context.session.runner} pipeline: Task has no file spaces configured. ` +
-          `Please add at least one file space with a repository URL to this task.`
-        )
-      }
-
-      if (fileSpaces.length > 0) {
-        logger.info(`📦 Processing ${fileSpaces.length} file space(s)...`)
-
-        // Prepare array of file space configurations for cloning
-        const fileSpaceConfigs = []
-
-        for (const fileSpace of fileSpaces) {
-          if (!fileSpace) {
-            logger.warn('⚠️  File space is undefined, skipping')
-            continue
-          }
-
-          const config = fileSpace.config as any
-          if (!config.repo) {
-            logger.warn(`⚠️  File space ${fileSpace.name} has no repo URL, skipping`)
-            continue
-          }
-
-          const spaceConfig: any = {
-            name: fileSpace.name,
-            id: fileSpace.id,
-            repo: config.repo,
-            host: config.host
-          }
-
-          // Fetch access token from secret if configured
-          if (config.access_token_secret_id) {
-            try {
-              const secretRes = await apiClient.secrets[':id'].value.$get({
-                param: { id: config.access_token_secret_id }
-              })
-
-              if (secretRes.ok) {
-                const secret = await secretRes.json() as any
-                spaceConfig.token = secret.value
-                logger.info(`✓ Access token loaded for ${fileSpace.name}`)
-              }
-            } catch (error) {
-              logger.warn(`⚠️  Failed to load token for ${fileSpace.name}: ${error}`)
-            }
-          }
-
-          fileSpaceConfigs.push(spaceConfig)
-          logger.info(`✓ Configured file space: ${fileSpace.name} (${config.repo})`)
-        }
-
-        // Pass all file spaces as JSON
-        if (fileSpaceConfigs.length > 0) {
-          repoVars.FILE_SPACES = JSON.stringify(fileSpaceConfigs)
-          logger.info(`✓ ${fileSpaceConfigs.length} file space(s) will be cloned`)
-          logger.info(`   FILE_SPACES variable will be passed to pipeline`)
-        } else {
-          logger.error(`❌ No valid file spaces after filtering`)
-          logger.error(`   All file spaces are missing repository URLs`)
-          logger.error(`   Each file space must have a 'repo' field in its config with a valid git repository URL`)
-          throw new Error(
-            `Cannot run ${context.session.runner} pipeline: All file spaces are missing repository URLs. ` +
-            `Please ensure each file space has a 'repo' field configured with a valid git repository URL.`
-          )
-        }
-      }
-    }
+    repoVars = await loadFileSpaces(apiClient, context.task.id, context.session.runner!)
   } catch (error) {
-    // If it's one of our validation errors, re-throw it
     if (error instanceof Error && error.message.includes('Cannot run')) {
       throw error
     }
-
-    // Otherwise log and continue (file spaces are optional for some pipelines)
     logger.error(`❌ Failed to load file space configuration: ${error}`)
     if (error instanceof Error) {
       logger.error(`   Error stack: ${error.stack}`)
     }
   }
 
-  // Add proxy configuration from environment variables (optional)
-  const proxyVars: Record<string, string> = {}
-  if (process.env.PROXY_HOST && process.env.PROXY_USER && process.env.PROXY_PASS) {
-    proxyVars.PROXY_HOST = process.env.PROXY_HOST
-    proxyVars.PROXY_USER = process.env.PROXY_USER
-    proxyVars.PROXY_PASS = process.env.PROXY_PASS
-    logger.info(`✓ Proxy configuration will be passed to pipeline: ${process.env.PROXY_HOST}`)
-  }
-
-  // Add MOCK_MODE configuration from environment (optional)
-  const mockModeVars: Record<string, string> = {}
-  if (process.env.MOCK_MODE === 'true') {
-    mockModeVars.MOCK_MODE = 'true'
-    logger.info(`🎭 MOCK_MODE enabled - AI API calls will be mocked`)
-  }
-
   const variables: Record<string, string> = {
     SESSION_ID: context.session.id,
     PIPELINE_EXECUTION_ID: executionId,
     PROJECT_ID: context.project.id,
-    RUNNER_TYPE: context.session.runner!, // Already validated in validateAndFetchPipelineContext
+    RUNNER_TYPE: context.session.runner!,
     API_BASE_URL: apiBaseUrl,
     API_TOKEN: apiToken,
     ...aiEnvVars,
     ...repoVars,
-    ...proxyVars,
-    ...mockModeVars
+    ...getProxyVars(),
+    ...getMockModeVars()
   }
 
-  // 🔍 DEBUG: Log pipeline variables being sent
-  logger.info(`🔍 DEBUG - Pipeline variables to be sent:`)
-  logger.info(`  RUNNER_TYPE = ${variables.RUNNER_TYPE}`)
-  logger.info(`  SESSION_ID = ${variables.SESSION_ID}`)
-  logger.info(`  PIPELINE_EXECUTION_ID = ${variables.PIPELINE_EXECUTION_ID}`)
-  if (variables.FILE_SPACES) {
-    const fileSpaceCount = JSON.parse(variables.FILE_SPACES).length
-    logger.info(`  FILE_SPACES = [${fileSpaceCount} workspace(s)]`)
-  } else {
-    logger.info(`  FILE_SPACES = not set`)
-  }
-  if (variables.MOCK_MODE) {
-    logger.info(`  🎭 MOCK_MODE = ${variables.MOCK_MODE}`)
-  }
-
+  logPipelineVariables(variables)
   return { variables }
 }
 
