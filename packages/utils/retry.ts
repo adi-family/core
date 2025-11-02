@@ -3,6 +3,8 @@
  * Provides retry logic with exponential backoff for operations
  */
 
+import { RETRY_DEFAULTS } from '@adi-simple/config'
+
 export interface RetryOptions {
   maxAttempts?: number
   initialDelayMs?: number
@@ -12,10 +14,10 @@ export interface RetryOptions {
 }
 
 const DEFAULT_OPTIONS: Required<RetryOptions> = {
-  maxAttempts: 3,
-  initialDelayMs: 1000,
-  maxDelayMs: 10000,
-  backoffMultiplier: 2,
+  maxAttempts: RETRY_DEFAULTS.maxAttempts,
+  initialDelayMs: RETRY_DEFAULTS.initialDelayMs,
+  maxDelayMs: RETRY_DEFAULTS.maxDelayMs,
+  backoffMultiplier: RETRY_DEFAULTS.backoffMultiplier,
   onRetry: () => {},
 }
 

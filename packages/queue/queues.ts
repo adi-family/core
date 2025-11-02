@@ -1,4 +1,5 @@
 import type { QueueConfig } from './types'
+import { QUEUE_DEFAULTS } from '@adi-simple/config'
 
 export const TASK_SYNC_QUEUE = 'task-sync'
 export const TASK_SYNC_DLQ = 'task-sync.dlq'
@@ -9,8 +10,8 @@ export const TASK_SYNC_CONFIG: QueueConfig = {
   durable: true,
   deadLetterExchange: TASK_SYNC_DLX,
   deadLetterQueue: TASK_SYNC_DLQ,
-  messageTtl: 3600000, // 1 hour
-  maxRetries: 3
+  messageTtl: QUEUE_DEFAULTS.messageRetention.sync,
+  maxRetries: QUEUE_DEFAULTS.maxRetries
 }
 
 export const TASK_SYNC_DLQ_CONFIG: QueueConfig = {
@@ -27,8 +28,8 @@ export const TASK_EVAL_CONFIG: QueueConfig = {
   durable: true,
   deadLetterExchange: TASK_EVAL_DLX,
   deadLetterQueue: TASK_EVAL_DLQ,
-  messageTtl: 3600000, // 1 hour
-  maxRetries: 3
+  messageTtl: QUEUE_DEFAULTS.messageRetention.evaluation,
+  maxRetries: QUEUE_DEFAULTS.maxRetries
 }
 
 export const TASK_EVAL_DLQ_CONFIG: QueueConfig = {
@@ -45,8 +46,8 @@ export const TASK_IMPL_CONFIG: QueueConfig = {
   durable: true,
   deadLetterExchange: TASK_IMPL_DLX,
   deadLetterQueue: TASK_IMPL_DLQ,
-  messageTtl: 7200000, // 2 hours (longer for implementation)
-  maxRetries: 3
+  messageTtl: QUEUE_DEFAULTS.messageRetention.implementation,
+  maxRetries: QUEUE_DEFAULTS.maxRetries
 }
 
 export const TASK_IMPL_DLQ_CONFIG: QueueConfig = {

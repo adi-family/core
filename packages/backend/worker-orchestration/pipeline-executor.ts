@@ -17,6 +17,13 @@ import { getPlatformAnthropicConfig } from '@backend/config'
 import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'
 import { getCachedPipelineApiKey } from '@backend/services/pipeline-api-key'
 import { sql as defaultSql } from '@db/client'
+import { getSessionConfig } from '@adi/api-contracts/sessions'
+import { getTaskConfig } from '@adi/api-contracts/tasks'
+import { getProjectConfig } from '@adi/api-contracts/projects'
+import { getWorkerRepositoryByProjectConfig, createWorkerRepositoryConfig } from '@adi/api-contracts/worker-repositories'
+import { getSecretValueConfig } from '@adi/api-contracts/secrets'
+import { listFileSpacesConfig, getTaskFileSpacesConfig } from '@adi/api-contracts/file-spaces'
+import { createPipelineExecutionConfig, updatePipelineExecutionConfig } from '@adi/api-contracts/pipeline-executions'
 
 const logger = createLogger({ namespace: 'pipeline-executor' })
 
@@ -47,12 +54,10 @@ async function ensureWorkerRepository(
   project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null },
   apiClient: BackendClient
 ): Promise<{ id: string; current_version: string | null; source_gitlab: unknown }> {
-  const workerRepoRes = await apiClient.projects[':projectId']['worker-repository'].$get({
-    param: { projectId: project.id }
-  })
-
-  if (workerRepoRes.ok) {
-    const workerRepo = await workerRepoRes.json()
+  try {
+    const workerRepo = await apiClient.run(getWorkerRepositoryByProjectConfig, {
+      params: { projectId: project.id }
+    })
 
     try {
       const source = workerRepo.source_gitlab as unknown as GitLabSource
@@ -68,6 +73,8 @@ async function ensureWorkerRepository(
     }
 
     return workerRepo
+  } catch {
+    // Worker repository not found, proceed with auto-creation
   }
 
   logger.info(`Worker repository not found for project ${project.name}, auto-creating...`)
@@ -80,15 +87,10 @@ async function ensureWorkerRepository(
     const executor = project.job_executor_gitlab
     gitlabHost = executor.host
 
-    const secretRes = await apiClient.secrets[':id'].value.$get({
-      param: { id: executor.access_token_secret_id }
+    const secret = await apiClient.run(getSecretValueConfig, {
+      params: { id: executor.access_token_secret_id }
     })
 
-    if (!secretRes.ok) {
-      throw new Error(`Failed to fetch GitLab executor secret for project ${project.id}`)
-    }
-
-    const secret = await secretRes.json() as any
     gitlabToken = secret.value
 
     const gitlabClient = new GitLabApiClient(gitlabHost, gitlabToken)
@@ -133,19 +135,14 @@ async function ensureWorkerRepository(
   logger.info(`✓ Uploaded CI files (version: ${version})`)
 
   // Save to database
-  const createRes = await apiClient['worker-repositories'].$post({
-    json: {
+  const workerRepo = await apiClient.run(createWorkerRepositoryConfig, {
+    body: {
       project_id: project.id,
       source_gitlab: source as unknown,
       current_version: version,
     }
   })
 
-  if (!createRes.ok) {
-    throw new Error('Failed to create worker repository record in database')
-  }
-
-  const workerRepo = await createRes.json()
   logger.info(`✓ Worker repository auto-created: ${workerRepo.id}`)
 
   return workerRepo
@@ -161,11 +158,9 @@ async function checkWorkspaceSyncStatus(
 ): Promise<{ needsSync: boolean; reason?: string }> {
   try {
     // Fetch project to get last_synced_at
-    const projectRes = await apiClient.projects[':id'].$get({ param: { id: projectId } })
-    if (!projectRes.ok) {
-      return { needsSync: false } // Let other validation handle missing project
-    }
-    const project = await projectRes.json()
+    const project = await apiClient.run(getProjectConfig, {
+      params: { id: projectId }
+    })
 
     // If never synced, workspace needs sync
     if (!project.last_synced_at) {
@@ -176,29 +171,29 @@ async function checkWorkspaceSyncStatus(
     }
 
     // Fetch all file spaces for project
-    const fileSpacesRes = await apiClient['file-spaces'].$get({
-      query: { project_id: projectId }
-    })
-    if (!fileSpacesRes.ok) {
-      return { needsSync: false } // No file spaces configured
-    }
+    try {
+      const fileSpacesData = await apiClient.run(listFileSpacesConfig, {
+        query: { project_id: projectId }
+      })
+      const fileSpaces = Array.isArray(fileSpacesData) ? fileSpacesData : (fileSpacesData as any).data || []
 
-    const fileSpacesData = await fileSpacesRes.json()
-    const fileSpaces = Array.isArray(fileSpacesData) ? fileSpacesData : (fileSpacesData as any).data || []
+      // Check if any file space was created after last sync
+      const lastSyncTime = new Date(project.last_synced_at).getTime()
+      const newFileSpaces = fileSpaces.filter((fs: any) => {
+        const createdTime = new Date(fs.created_at).getTime()
+        return createdTime > lastSyncTime
+      })
 
-    // Check if any file space was created after last sync
-    const lastSyncTime = new Date(project.last_synced_at).getTime()
-    const newFileSpaces = fileSpaces.filter((fs: any) => {
-      const createdTime = new Date(fs.created_at).getTime()
-      return createdTime > lastSyncTime
-    })
-
-    if (newFileSpaces.length > 0) {
-      const fsNames = newFileSpaces.map((fs: any) => fs.name).join(', ')
-      return {
-        needsSync: true,
-        reason: `Workspace is outdated. ${newFileSpaces.length} file space(s) created after last sync: ${fsNames}. Please wait for workspace sync to complete.`
+      if (newFileSpaces.length > 0) {
+        const fsNames = newFileSpaces.map((fs: any) => fs.name).join(', ')
+        return {
+          needsSync: true,
+          reason: `Workspace is outdated. ${newFileSpaces.length} file space(s) created after last sync: ${fsNames}. Please wait for workspace sync to complete.`
+        }
       }
+    } catch {
+      // No file spaces configured
+      return { needsSync: false }
     }
 
     return { needsSync: false }
@@ -260,33 +255,27 @@ async function waitForWorkspaceSync(
  */
 async function validateAndFetchPipelineContext(apiClient: BackendClient, sessionId: string, sql: Sql): Promise<PipelineContext> {
   // Fetch session
-  const sessionRes = await apiClient.sessions[':id'].$get({ param: { id: sessionId } })
-  if (!sessionRes.ok) {
-    throw new Error(`Session not found: ${sessionId}`)
-  }
-  const session = await sessionRes.json()
+  const session = await apiClient.run(getSessionConfig, {
+    params: { id: sessionId }
+  })
 
   if (!session.task_id) {
     throw new Error(`Session ${sessionId} has no associated task. Please ensure the session is properly configured.`)
   }
 
   // Fetch task
-  const taskRes = await apiClient.tasks[':id'].$get({ param: { id: session.task_id } })
-  if (!taskRes.ok) {
-    throw new Error(`Task not found: ${session.task_id}`)
-  }
-  const task = await taskRes.json()
+  const task = await apiClient.run(getTaskConfig, {
+    params: { id: session.task_id }
+  })
 
   if (!task.project_id) {
     throw new Error(`Task ${task.id} has no associated project. Please ensure the task is properly configured.`)
   }
 
   // Fetch project
-  const projectRes = await apiClient.projects[':id'].$get({ param: { id: task.project_id } })
-  if (!projectRes.ok) {
-    throw new Error(`Project not found: ${task.project_id}`)
-  }
-  const project = await projectRes.json()
+  const project = await apiClient.run(getProjectConfig, {
+    params: { id: task.project_id }
+  })
 
   // Get project owner for AI provider selection
   const userId = await getProjectOwnerId(sql, task.project_id)
@@ -326,17 +315,9 @@ async function getExecutorConfig(
     logger.info(`Using project-specific GitLab executor: ${executor.host}`)
 
     // Fetch secret for access token with decrypted value
-    const secretRes = await apiClient.secrets[':id'].value.$get({
-      param: { id: executor.access_token_secret_id }
+    const secret = await apiClient.run(getSecretValueConfig, {
+      params: { id: executor.access_token_secret_id }
     })
-
-    if (!secretRes.ok) {
-      throw new Error(
-        `Failed to fetch GitLab executor secret for project ${context.project.id}. Secret ID: ${executor.access_token_secret_id}`
-      )
-    }
-
-    const secret = await secretRes.json() as any
 
     return {
       host: executor.host,
@@ -376,13 +357,10 @@ interface AIProviderContext {
  */
 async function fetchSecretValue(secretId: string, apiClient: BackendClient): Promise<string | null> {
   try {
-    const secretRes = await apiClient.secrets[':id'].value.$get({ param: { id: secretId } })
-    if (!secretRes.ok) {
-      logger.warn(`⚠️  Failed to fetch secret ${secretId}`)
-      return null
-    }
+    const secret = await apiClient.run(getSecretValueConfig, {
+      params: { id: secretId }
+    })
 
-    const secret = await secretRes.json() as any
     const value = secret.value
 
     if (!value || !value.trim()) {
@@ -652,15 +630,11 @@ async function fetchFileSpaceToken(
   fileSpaceName: string
 ): Promise<string | undefined> {
   try {
-    const secretRes = await apiClient.secrets[':id'].value.$get({
-      param: { id: secretId }
+    const secret = await apiClient.run(getSecretValueConfig, {
+      params: { id: secretId }
     })
-
-    if (secretRes.ok) {
-      const secret = await secretRes.json() as any
-      logger.info(`✓ Access token loaded for ${fileSpaceName}`)
-      return secret.value
-    }
+    logger.info(`✓ Access token loaded for ${fileSpaceName}`)
+    return secret.value
   } catch (error) {
     logger.warn(`⚠️  Failed to load token for ${fileSpaceName}: ${error}`)
   }
@@ -710,52 +684,50 @@ async function loadFileSpaces(
 ): Promise<Record<string, string>> {
   logger.info(`🔍 Loading file spaces for task ${taskId}...`)
 
-  const fileSpacesRes = await apiClient.tasks[':id']['file-spaces'].$get({
-    param: { id: taskId }
-  })
+  try {
+    const fileSpaces = await apiClient.run(getTaskFileSpacesConfig, {
+      params: { id: taskId }
+    })
+    logger.info(`📦 API returned ${fileSpaces.length} file space(s) for task`)
 
-  if (!fileSpacesRes.ok) {
-    logger.warn(`⚠️  Failed to fetch file spaces: HTTP ${fileSpacesRes.status}`)
+    if (fileSpaces.length === 0) {
+      logger.error(`❌ Task has no file spaces configured`)
+      logger.error(`   ${runnerType} pipelines require at least one file space with code to analyze`)
+      logger.error(`   Please configure file spaces for this task before running evaluation or implementation`)
+      throw new Error(
+        `Cannot run ${runnerType} pipeline: Task has no file spaces configured. ` +
+        `Please add at least one file space with a repository URL to this task.`
+      )
+    }
+
+    logger.info(`📦 Processing ${fileSpaces.length} file space(s)...`)
+    const fileSpaceConfigs = []
+
+    for (const fileSpace of fileSpaces) {
+      const config = await buildFileSpaceConfig(fileSpace, apiClient)
+      if (config) {
+        fileSpaceConfigs.push(config)
+      }
+    }
+
+    if (fileSpaceConfigs.length === 0) {
+      logger.error(`❌ No valid file spaces after filtering`)
+      logger.error(`   All file spaces are missing repository URLs`)
+      logger.error(`   Each file space must have a 'repo' field in its config with a valid git repository URL`)
+      throw new Error(
+        `Cannot run ${runnerType} pipeline: All file spaces are missing repository URLs. ` +
+        `Please ensure each file space has a 'repo' field configured with a valid git repository URL.`
+      )
+    }
+
+    logger.info(`✓ ${fileSpaceConfigs.length} file space(s) will be cloned`)
+    logger.info(`   FILE_SPACES variable will be passed to pipeline`)
+
+    return { FILE_SPACES: JSON.stringify(fileSpaceConfigs) }
+  } catch (error) {
+    logger.warn(`⚠️  Failed to fetch file spaces: ${error}`)
     return {}
   }
-
-  const fileSpaces = await fileSpacesRes.json()
-  logger.info(`📦 API returned ${fileSpaces.length} file space(s) for task`)
-
-  if (fileSpaces.length === 0) {
-    logger.error(`❌ Task has no file spaces configured`)
-    logger.error(`   ${runnerType} pipelines require at least one file space with code to analyze`)
-    logger.error(`   Please configure file spaces for this task before running evaluation or implementation`)
-    throw new Error(
-      `Cannot run ${runnerType} pipeline: Task has no file spaces configured. ` +
-      `Please add at least one file space with a repository URL to this task.`
-    )
-  }
-
-  logger.info(`📦 Processing ${fileSpaces.length} file space(s)...`)
-  const fileSpaceConfigs = []
-
-  for (const fileSpace of fileSpaces) {
-    const config = await buildFileSpaceConfig(fileSpace, apiClient)
-    if (config) {
-      fileSpaceConfigs.push(config)
-    }
-  }
-
-  if (fileSpaceConfigs.length === 0) {
-    logger.error(`❌ No valid file spaces after filtering`)
-    logger.error(`   All file spaces are missing repository URLs`)
-    logger.error(`   Each file space must have a 'repo' field in its config with a valid git repository URL`)
-    throw new Error(
-      `Cannot run ${runnerType} pipeline: All file spaces are missing repository URLs. ` +
-      `Please ensure each file space has a 'repo' field configured with a valid git repository URL.`
-    )
-  }
-
-  logger.info(`✓ ${fileSpaceConfigs.length} file space(s) will be cloned`)
-  logger.info(`   FILE_SPACES variable will be passed to pipeline`)
-
-  return { FILE_SPACES: JSON.stringify(fileSpaceConfigs) }
 }
 
 /**
@@ -902,20 +874,15 @@ async function executePipelineTrigger(
   logger.info(`✓ GitLab pipeline triggered: ${pipeline.id}`)
 
   // Update execution record
-  const updateRes = await apiClient['pipeline-executions'][':id'].$patch({
-    param: { id: executionId },
-    json: {
+  const execution = await apiClient.run(updatePipelineExecutionConfig, {
+    params: { id: executionId },
+    body: {
       pipeline_id: pipeline.id.toString(),
       status: 'pending' as const,
       last_status_update: new Date().toISOString(),
     }
-  })
+  }) as unknown as PipelineExecution
 
-  if (!updateRes.ok) {
-    throw new Error(`Failed to update pipeline execution ${executionId} with pipeline ID ${pipeline.id}`)
-  }
-
-  const execution = await updateRes.json() as unknown as PipelineExecution
   const pipelineUrl = `${executorConfig.host}/${executorConfig.projectPath}/-/pipelines/${pipeline.id}`
 
   return {
@@ -961,17 +928,13 @@ export async function triggerPipeline(
     logger.info(`✓ Workspace is up-to-date, proceeding with pipeline execution`)
 
     // Create pipeline execution record
-    const createRes = await input.apiClient['pipeline-executions'].$post({
-      json: {
+    const execution = await input.apiClient.run(createPipelineExecutionConfig, {
+      body: {
         session_id: context.session.id,
         worker_repository_id: context.workerRepo.id,
         status: 'pending' as const,
       }
     })
-    if (!createRes.ok) {
-      throw new Error('Failed to create pipeline execution record')
-    }
-    const execution = await createRes.json()
     executionId = execution.id
     logger.info(`✓ Created pipeline execution record: ${execution.id}`)
 
@@ -1009,9 +972,9 @@ export async function triggerPipeline(
     logger.error(`❌ Pipeline execution failed for session ${input.sessionId}: ${errorMessage}`)
 
     if (executionId) {
-      await input.apiClient['pipeline-executions'][':id'].$patch({
-        param: { id: executionId },
-        json: {
+      await input.apiClient.run(updatePipelineExecutionConfig, {
+        params: { id: executionId },
+        body: {
           status: 'failed' as const,
           last_status_update: new Date().toISOString(),
         }

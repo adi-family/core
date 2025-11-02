@@ -3,4 +3,6 @@
  * RabbitMQ connection settings
  */
 
-export const RABBITMQ_URL = process.env.RABBITMQ_URL || 'amqp://localhost:5672'
+import { QUEUE_DEFAULTS } from '@adi-simple/config'
+
+export const RABBITMQ_URL = process.env.RABBITMQ_URL || QUEUE_DEFAULTS.connectionUrl

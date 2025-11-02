@@ -14,6 +14,5 @@ export function createTaskSource(taskSource: TaskSource): BaseTaskSource {
       throw new Error('GithubIssuesTaskSource not yet implemented');
     default:
       assertNever(taskSource);
-      throw new Error('Unreachable');
   }
 }

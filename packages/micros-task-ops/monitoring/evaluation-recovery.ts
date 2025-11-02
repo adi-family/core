@@ -7,6 +7,7 @@
 import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger'
 import { recoverStuckEvaluationsFromDatabase } from '../core/evaluation-sync-service'
+import { EVALUATION_RECOVERY } from '@adi-simple/config'
 
 const logger = createLogger({ namespace: 'evaluation-recovery' })
 
@@ -16,8 +17,8 @@ export interface EvaluationRecoveryConfig {
   sql: Sql
 }
 
-const DEFAULT_TIMEOUT_MINUTES = 60
-const DEFAULT_CHECK_INTERVAL_MS = 15 * 60 * 1000 // 15 minutes
+const DEFAULT_TIMEOUT_MINUTES = EVALUATION_RECOVERY.stuckEvaluationTimeoutMinutes
+const DEFAULT_CHECK_INTERVAL_MS = EVALUATION_RECOVERY.checkIntervalMinutes * 60 * 1000
 
 export interface Runner {
   start: () => void | Promise<void>

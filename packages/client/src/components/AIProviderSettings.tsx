@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "react"
+import { useEffect, useMemo, useCallback } from "react"
 import { useAuth } from "@clerk/clerk-react"
 import { proxy, useSnapshot } from "valtio"
 import { Input } from '@adi-simple/ui/input'
@@ -9,13 +9,12 @@ import type { AIProviderConfig, AIProviderValidationResult } from "@types"
 import { CheckCircle2, XCircle, Loader2, AlertCircle, Trash2 } from "lucide-react"
 import { siAnthropic, siOpenai, siGoogle } from "simple-icons"
 import { toast } from "sonner"
+import type { Provider, ProviderType } from "@adi-simple/config"
+import { supportedProviders } from "@adi-simple/config"
 
 type AIProviderSettingsProps = {
   projectId: string
 }
-
-type Provider = 'anthropic' | 'openai' | 'google'
-type ProviderType = 'cloud' | 'azure' | 'vertex' | 'self-hosted'
 
 type FormData = {
   type: ProviderType
@@ -48,8 +47,6 @@ type StoreState = {
   validationResult: AIProviderValidationResult | null
 }
 
-const PROVIDERS = ['anthropic', 'openai', 'google'] as const
-
 const isProviderType = (value: string): value is ProviderType => {
   return ['cloud', 'azure', 'vertex', 'self-hosted'].includes(value)
 }
@@ -58,7 +55,6 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
 
-  // Local Valtio proxy for component state
   const store = useMemo(() => proxy<StoreState>({
     currentConfigs: null,
     selectedProvider: null,
@@ -98,23 +94,9 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     }
 
     fetchConfigs()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId])
+  }, [projectId, client, store])
 
-  // Auto-select first available provider when configs load
-  useEffect(() => {
-    if (!snap.ui.loading && snap.currentConfigs && !snap.selectedProvider) {
-      // Select first supported provider (currently only Anthropic)
-      const supportedProviders: Provider[] = ['anthropic', 'openai', 'google']
-      const firstSupported = supportedProviders.find(p => p === 'anthropic')
-      if (firstSupported) {
-        handleProviderSelect(firstSupported)
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [snap.ui.loading, snap.currentConfigs])
-
-  const handleProviderSelect = (provider: Provider) => {
+  const handleProviderSelect = useCallback((provider: Provider) => {
     store.selectedProvider = provider
     store.validationResult = null
     store.ui.error = null
@@ -142,7 +124,17 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         api_key: '',
       }
     }
-  }
+  }, [store])
+
+  // Auto-select first available provider when configs load
+  useEffect(() => {
+    if (!snap.ui.loading && snap.currentConfigs && !snap.selectedProvider) {
+      const firstSupported = supportedProviders.find(p => p === 'anthropic')
+      if (firstSupported) {
+        handleProviderSelect(firstSupported)
+      }
+    }
+  }, [snap.ui.loading, snap.currentConfigs, snap.selectedProvider, handleProviderSelect])
 
   const handleTestConnection = async () => {
     if (!snap.selectedProvider) return
@@ -513,7 +505,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
 
       {/* Current Configurations */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {PROVIDERS.map((provider) => {
+        {supportedProviders.map((provider) => {
           const config = snap.currentConfigs?.[provider]
           const isConfigured = !!config
           const isSupported = provider === 'anthropic'

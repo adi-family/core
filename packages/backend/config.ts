@@ -3,11 +3,13 @@
  * Centralized environment variable access for backend services
  */
 
+import { DEFAULT_HOSTS, DEFAULT_MODELS, getProxyConfig as getProxyConfigFromShared, DEFAULT_PORTS, AI_MODEL_DEFAULTS } from '@adi-simple/config'
+
 // ============================================================================
 // Server Configuration
 // ============================================================================
 
-export const SERVER_PORT = Number(process.env.SERVER_PORT || '3000')
+export const SERVER_PORT = Number(process.env.SERVER_PORT || DEFAULT_PORTS.backend)
 export const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${SERVER_PORT}`
 
 // ============================================================================
@@ -34,7 +36,7 @@ export const GITLAB_RUNNER_API_URL = process.env.GITLAB_RUNNER_API_URL || ''
 // GitLab Configuration
 // ============================================================================
 
-export const GITLAB_HOST = process.env.GITLAB_HOST || 'https://gitlab.com'
+export const GITLAB_HOST = process.env.GITLAB_HOST || DEFAULT_HOSTS.gitlab
 export const GITLAB_TOKEN = process.env.GITLAB_TOKEN || ''
 export const GITLAB_USER = process.env.GITLAB_USER || ''
 export const GITLAB_ROOT_OAUTH_HOST = process.env.GITLAB_ROOT_OAUTH_HOST || GITLAB_HOST
@@ -72,18 +74,9 @@ export const PROXY_PASS = process.env.PROXY_PASS
 
 /**
  * Get proxy configuration if all required values are set
+ * @deprecated Use getProxyConfig from @adi-simple/config instead
  */
-export function getProxyConfig() {
-  if (!PROXY_HOST || !PROXY_USER || !PROXY_PASS) {
-    return null
-  }
-
-  return {
-    host: PROXY_HOST,
-    user: PROXY_USER,
-    pass: PROXY_PASS,
-  }
-}
+export const getProxyConfig = getProxyConfigFromShared
 
 // ============================================================================
 // Feature Flags
@@ -120,8 +113,8 @@ export function getPlatformAnthropicConfig(): PlatformAnthropicConfig | null {
   return {
     type: 'cloud',
     api_key: apiKey,
-    model: process.env.PLATFORM_ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929',
-    max_tokens: Number(process.env.PLATFORM_ANTHROPIC_MAX_TOKENS || '8000'),
+    model: process.env.PLATFORM_ANTHROPIC_MODEL || DEFAULT_MODELS.anthropic,
+    max_tokens: Number(process.env.PLATFORM_ANTHROPIC_MAX_TOKENS || AI_MODEL_DEFAULTS.maxTokensForPlatform),
     temperature: process.env.PLATFORM_ANTHROPIC_TEMPERATURE
       ? Number(process.env.PLATFORM_ANTHROPIC_TEMPERATURE)
       : undefined,

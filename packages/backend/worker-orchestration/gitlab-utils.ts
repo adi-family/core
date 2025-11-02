@@ -17,10 +17,6 @@ export interface GitLabSource {
   access_token_encrypted?: string
 }
 
-/**
- * Validate GitLab source has required fields
- * @throws Error if validation fails
- */
 export function validateGitLabSource(source: GitLabSource): void {
   if (!source.project_id || !source.host || !source.access_token_encrypted) {
     throw new Error(
@@ -35,10 +31,6 @@ export function validateGitLabSource(source: GitLabSource): void {
   }
 }
 
-/**
- * Decrypt GitLab access token with proper error handling
- * @throws Error with detailed message if decryption fails
- */
 export function decryptGitLabToken(encryptedToken: string): string {
   try {
     return decrypt(encryptedToken)
@@ -51,15 +43,13 @@ export function decryptGitLabToken(encryptedToken: string): string {
   }
 }
 
-/**
- * Extract GitLab credentials from source with validation and decryption
- * @returns Validated and decrypted credentials
- */
-export function extractGitLabCredentials(source: GitLabSource): {
+interface GitlabCredentials {
   host: string
   projectId: string
   accessToken: string
-} {
+}
+
+export function extractGitLabCredentials(source: GitLabSource): GitlabCredentials {
   validateGitLabSource(source)
 
   return {

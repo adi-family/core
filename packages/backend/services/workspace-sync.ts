@@ -8,7 +8,7 @@ import { createLogger } from '@utils/logger'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { extractGitLabCredentials, type GitLabSource } from '../worker-orchestration/gitlab-utils'
 import type { WorkerRepository } from '@types'
-import { updateProjectLastSyncedAt } from '../../db/projects'
+import { updateProjectLastSyncedAt } from '@db/projects.ts'
 import { API_BASE_URL, API_TOKEN, GITLAB_TOKEN } from '@backend/config'
 
 const logger = createLogger({ namespace: 'workspace-sync' })
@@ -37,7 +37,6 @@ export async function triggerWorkspaceSync(
   try {
     logger.info(`🔄 Triggering workspace sync for project ${projectId}`)
 
-    // Get worker repository for the project
     const workerRepos = await sql<WorkerRepository[]>`
       SELECT * FROM worker_repositories
       WHERE project_id = ${projectId}
@@ -46,7 +45,7 @@ export async function triggerWorkspaceSync(
 
     if (workerRepos.length === 0) {
       const error = 'No worker repository found for project'
-      logger.warn(`⚠️  ${error}: ${projectId}`)
+      logger.warn(`${error}: ${projectId}`)
       return { success: false, error }
     }
 
@@ -54,7 +53,7 @@ export async function triggerWorkspaceSync(
 
     if (!repo || !repo.source_gitlab) {
       const error = 'Worker repository is not GitLab-based'
-      logger.warn(`⚠️  ${error}`)
+      logger.warn(`${error}`)
       return { success: false, error }
     }
 
@@ -84,7 +83,7 @@ export async function triggerWorkspaceSync(
 
     if (!apiToken) {
       const error = 'API_TOKEN not configured - cannot trigger pipeline'
-      logger.error(`❌ ${error}`)
+      logger.error(error)
       return { success: false, error }
     }
 

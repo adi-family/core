@@ -7,6 +7,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { createLogger } from '@utils/logger'
+import { AI_MODEL_DEFAULTS } from '@adi-simple/config'
 
 const logger = createLogger({ namespace: 'simple-evaluator' })
 
@@ -210,7 +211,7 @@ export async function evaluateSimple(
 
   // Use model from config or default
   const model = aiConfig?.model || process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-5-20250929'
-  const maxTokens = aiConfig?.max_tokens || 4000
+  const maxTokens = aiConfig?.max_tokens || AI_MODEL_DEFAULTS.maxTokensForEvaluation
 
   const prompt = `You are a quick filter for automated task evaluation. Your job is to determine if an AI agent can implement this task.
 

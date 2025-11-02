@@ -1,6 +1,7 @@
 import { ExternalLink, Folder, GitBranch } from "lucide-react"
 import { siGitlab, siGithub } from 'simple-icons'
 import type { FileSpace, Project } from "@types"
+import { DEFAULT_HOSTS } from '@adi-simple/config'
 
 /**
  * SimpleIcon component to render simple-icons SVG icons
@@ -36,11 +37,11 @@ export function FileSpaceRow({
 
   const getRepoUrl = () => {
     if (fileSpace.type === 'gitlab') {
-      const host = fileSpace.config.host || 'https://gitlab.com'
+      const host = fileSpace.config.host || DEFAULT_HOSTS.gitlab
       return `${host}/${fileSpace.config.repo}`
     }
     if (fileSpace.type === 'github') {
-      const host = fileSpace.config.host || 'https://github.com'
+      const host = fileSpace.config.host || DEFAULT_HOSTS.github
       return `${host}/${fileSpace.config.repo}`
     }
     return null

@@ -1,29 +1,31 @@
-import { Hono } from 'hono'
-import type { Sql } from 'postgres'
-import { zValidator } from '@hono/zod-validator'
-import * as queries from '../../db/sessions'
-import { idParamSchema, createSessionSchema } from '../schemas'
-import { authMiddleware } from '../middleware/auth'
+/**
+ * Session handlers using @adi/http system
+ */
 
-export const createSessionRoutes = (sql: Sql) => {
-  return new Hono()
-    .get('/', async (c) => {
-      const sessions = await queries.findAllSessions(sql)
-      return c.json(sessions)
-    })
-    .get('/:id', zValidator('param', idParamSchema), async (c) => {
-      const { id } = c.req.valid('param')
-      const session = await queries.findSessionById(sql, id)
-      return c.json(session)
-    })
-    .post('/', zValidator('json', createSessionSchema), authMiddleware, async (c) => {
-      const body = c.req.valid('json')
-      const session = await queries.createSession(sql, body)
-      return c.json(session, 201)
-    })
-    .delete('/:id', zValidator('param', idParamSchema), authMiddleware, async (c) => {
-      const { id } = c.req.valid('param')
-      await queries.deleteSession(sql, id)
-      return c.json({ success: true })
-    })
+import type { Sql } from 'postgres'
+import { handler } from '@adi-family/http'
+import {
+  getSessionMessagesConfig,
+  getSessionPipelineExecutionsConfig
+} from '@adi/api-contracts/sessions'
+import * as messageQueries from '@db/messages'
+import * as pipelineExecutionQueries from '@db/pipeline-executions'
+
+export function createSessionHandlers(sql: Sql) {
+  const getSessionMessages = handler(getSessionMessagesConfig, async (ctx) => {
+    const { sessionId } = ctx.params
+    const messages = await messageQueries.findMessagesBySessionId(sql, sessionId)
+    return messages
+  })
+
+  const getSessionPipelineExecutions = handler(getSessionPipelineExecutionsConfig, async (ctx) => {
+    const { sessionId } = ctx.params
+    const executions = await pipelineExecutionQueries.findPipelineExecutionsBySessionId(sql, sessionId)
+    return executions
+  })
+
+  return {
+    getSessionMessages,
+    getSessionPipelineExecutions
+  }
 }

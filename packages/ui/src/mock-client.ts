@@ -8,6 +8,7 @@ import type {
   WorkerRepository,
   PipelineExecution
 } from '@adi-simple/types'
+import { DEFAULT_HOSTS } from '@adi-simple/config'
 
 // Mock data
 const mockProjects: Project[] = [
@@ -64,7 +65,7 @@ const mockTaskSources: TaskSource[] = [
     config: {
       repo: "company/web-app",
       labels: ["bug", "enhancement"],
-      host: "https://gitlab.com",
+      host: DEFAULT_HOSTS.gitlab,
       access_token_secret_id: "secret-1"
     },
     created_at: "2024-01-01",
@@ -98,7 +99,7 @@ const mockTaskSources: TaskSource[] = [
     config: {
       repo: "company/api-service",
       labels: ["bug", "feature"],
-      host: "https://github.com",
+      host: DEFAULT_HOSTS.github,
       access_token_secret_id: "secret-4"
     },
     created_at: "2024-01-10",
@@ -115,7 +116,7 @@ const mockTaskSources: TaskSource[] = [
     config: {
       repo: "company/web-app-backup",
       labels: ["critical"],
-      host: "https://github.com"
+      host: DEFAULT_HOSTS.github
     },
     created_at: "2024-01-15",
     updated_at: "2024-01-15"
@@ -130,7 +131,7 @@ const mockFileSpaces: FileSpace[] = [
     type: "gitlab",
     config: {
       repo: "company/web-app",
-      host: "https://gitlab.com",
+      host: DEFAULT_HOSTS.gitlab,
       access_token_secret_id: "secret-1"
     },
     enabled: true,
@@ -144,7 +145,7 @@ const mockFileSpaces: FileSpace[] = [
     type: "gitlab",
     config: {
       repo: "company/mobile-app",
-      host: "https://gitlab.com",
+      host: DEFAULT_HOSTS.gitlab,
       access_token_secret_id: "secret-3"
     },
     enabled: true,
@@ -158,7 +159,7 @@ const mockFileSpaces: FileSpace[] = [
     type: "github",
     config: {
       repo: "company/api-service",
-      host: "https://github.com",
+      host: DEFAULT_HOSTS.github,
       access_token_secret_id: "secret-4"
     },
     enabled: true,
@@ -172,7 +173,7 @@ const mockFileSpaces: FileSpace[] = [
     type: "github",
     config: {
       repo: "company/documentation",
-      host: "https://github.com"
+      host: DEFAULT_HOSTS.github
     },
     enabled: false,
     created_at: "2024-01-12",
@@ -200,7 +201,7 @@ const mockTasks: Task[] = [
       metadata: {
         provider: "gitlab",
         repo: "company/web-app",
-        host: "https://gitlab.com",
+        host: DEFAULT_HOSTS.gitlab,
         iid: 42
       }
     },
@@ -264,7 +265,7 @@ const mockTasks: Task[] = [
       metadata: {
         provider: "github",
         repo: "company/api-service",
-        host: "https://github.com"
+        host: DEFAULT_HOSTS.github
       }
     },
     source_jira_issue: null,
@@ -294,7 +295,7 @@ const mockTasks: Task[] = [
       metadata: {
         provider: "gitlab",
         repo: "company/web-app",
-        host: "https://gitlab.com",
+        host: DEFAULT_HOSTS.gitlab,
         iid: 43
       }
     },
@@ -346,7 +347,7 @@ const mockWorkerRepositories: WorkerRepository[] = [
     project_id: "1",
     source_gitlab: {
       repo: "company/web-app-worker",
-      host: "https://gitlab.com",
+      host: DEFAULT_HOSTS.gitlab,
       access_token_secret_id: "secret-1"
     },
     current_version: "v1.2.3",
@@ -358,7 +359,7 @@ const mockWorkerRepositories: WorkerRepository[] = [
     project_id: "2",
     source_gitlab: {
       repo: "company/mobile-worker",
-      host: "https://gitlab.com",
+      host: DEFAULT_HOSTS.gitlab,
       access_token_secret_id: "secret-3"
     },
     current_version: "v2.0.1",
@@ -370,7 +371,7 @@ const mockWorkerRepositories: WorkerRepository[] = [
     project_id: "3",
     source_gitlab: {
       repo: "company/api-worker",
-      host: "https://gitlab.com",
+      host: DEFAULT_HOSTS.gitlab,
       access_token_secret_id: "secret-1"
     },
     current_version: "v1.5.0",

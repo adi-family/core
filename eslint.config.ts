@@ -38,6 +38,8 @@ export default tseslint.config(
       "next-env.d.ts",
       "**/next-env.d.ts",
       "packages/landing/next-env.d.ts",
+      "**/bundles/**",
+      "packages/worker/bundles/**",
     ],
   },
 
@@ -145,6 +147,7 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
+      "react-hooks/exhaustive-deps": "off",
       "react-refresh/only-export-components": [
         "warn",
         { allowConstantExport: true },

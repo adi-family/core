@@ -19,6 +19,7 @@ import { GitlabRepositoryMultiSelect } from '@adi-simple/ui/gitlab-repository-mu
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateFileSpaceInput, GitlabFileSpaceConfig as GitlabFileSpaceConfigType, GithubFileSpaceConfig } from "../../../types"
 import { ChevronRight, ChevronLeft, Check } from "lucide-react"
+import { DEFAULT_HOSTS } from '@adi-simple/config'
 
 type FileSpaceType = 'gitlab' | 'github'
 
@@ -56,7 +57,7 @@ export function FileSpaceMultistageForm() {
 
   const [gitlabConfig, setGitlabConfig] = useState<GitlabFileSpaceConfigType>({
     repo: "",
-    host: "https://gitlab.com",
+    host: DEFAULT_HOSTS.gitlab,
     access_token_secret_id: "",
   })
 
@@ -64,7 +65,7 @@ export function FileSpaceMultistageForm() {
 
   const [githubConfig, setGithubConfig] = useState<GithubFileSpaceConfig>({
     repo: "",
-    host: "https://github.com",
+    host: DEFAULT_HOSTS.github,
     access_token_secret_id: "",
   })
 
@@ -434,7 +435,7 @@ export function FileSpaceMultistageForm() {
                         <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide text-gray-300">
                           GITLAB HOST
                         </Label>
-                        {gitlabConfig.host === "https://gitlab.com" && (
+                        {gitlabConfig.host === DEFAULT_HOSTS.gitlab && (
                           <button
                             type="button"
                             onClick={() => handleGitlabConfigChange("host", "")}
@@ -449,9 +450,9 @@ export function FileSpaceMultistageForm() {
                         type="text"
                         value={gitlabConfig.host}
                         onChange={(e) => handleGitlabConfigChange("host", e.target.value)}
-                        disabled={gitlabConfig.host === "https://gitlab.com"}
+                        disabled={gitlabConfig.host === DEFAULT_HOSTS.gitlab}
                         className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-                        placeholder="https://gitlab.com"
+                        placeholder={DEFAULT_HOSTS.gitlab}
                       />
                     </div>
 
@@ -463,7 +464,7 @@ export function FileSpaceMultistageForm() {
                       onChange={(secretId) => {
                         handleGitlabConfigChange("access_token_secret_id", secretId || "")
                       }}
-                      label={gitlabConfig.host === "https://gitlab.com" ? "GITLAB ACCESS TOKEN (OPTIONAL - uses default if not set)" : "GITLAB ACCESS TOKEN (requires: api, write_repository scopes)"}
+                      label={gitlabConfig.host === DEFAULT_HOSTS.gitlab ? "GITLAB ACCESS TOKEN (OPTIONAL - uses default if not set)" : "GITLAB ACCESS TOKEN (requires: api, write_repository scopes)"}
                       requiredScopes={["api", "write_repository"]}
                       required={false}
                       apiBaseUrl={API_URL}

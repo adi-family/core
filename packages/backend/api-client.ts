@@ -1,19 +1,41 @@
 /**
  * Backend API Client
- * Provides typed HTTP client using Hono RPC for all backend operations
+ * Provides a typed client for internal backend-to-backend API calls using @adi-family/http
  */
 
-import { hcWithType } from './client'
-import { BACKEND_URL, API_TOKEN } from './config'
+import { BaseClient } from '@adi-family/http'
+import { API_BASE_URL, API_TOKEN } from './config'
 
-export const createBackendClient = (baseUrl: string, apiToken?: string) => {
-  return hcWithType(baseUrl, {
-    headers: apiToken ? { Authorization: `Bearer ${apiToken}` } : {}
-  })
-}
+/**
+ * Backend API client type - uses BaseClient with .run() method
+ */
+export type BackendClient = BaseClient
 
-export type BackendClient = ReturnType<typeof createBackendClient>
-
+/**
+ * Create a backend API client with authentication
+ * Uses API_BASE_URL and API_TOKEN from environment configuration
+ *
+ * @example
+ * ```typescript
+ * const client = createBackendApiClient()
+ * const project = await client.run(getProjectConfig, { params: { id: '123' } })
+ * ```
+ */
 export function createBackendApiClient(): BackendClient {
-  return createBackendClient(BACKEND_URL, API_TOKEN)
+  return new BaseClient({
+    baseUrl: API_BASE_URL,
+    fetch: (input, init) => {
+      const headers = new Headers(init?.headers || {})
+
+      if (API_TOKEN) {
+        headers.set('Authorization', `Bearer ${API_TOKEN}`)
+      }
+
+      return fetch(input, {
+        ...init,
+        headers,
+        credentials: 'include'
+      })
+    }
+  })
 }

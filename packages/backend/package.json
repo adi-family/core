@@ -4,17 +4,14 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --env-file=../../.env --watch index.ts",
-    "build": "bun build index.ts --outdir dist --target bun",
-    "start": "bun --env-file=../../.env index.ts",
+    "dev": "bun --env-file=../../.env --watch server-native.ts",
+    "start": "bun --env-file=../../.env server-native.ts",
+    "build": "bun build server-native.ts --outdir dist --target bun",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "eslint ."
   },
   "dependencies": {
-    "@hono/clerk-auth": "^3.0.3",
-    "@hono/zod-validator": "^0.7.4",
     "dotenv": "^17.2.3",
-    "hono": "^4.10.1",
     "postgres": "^3.4.7",
     "zod": "^4.1.12",
     "@adi-simple/db": "workspace:*",
@@ -22,7 +19,11 @@
     "@adi-simple/shared": "workspace:*",
     "@adi-simple/types": "workspace:*",
     "@adi-simple/worker": "workspace:*",
-    "@adi/queue": "workspace:*"
+    "@adi/queue": "workspace:*",
+    "@adi/api-contracts": "workspace:*",
+    "@adi-family/http": "^1.0.0",
+    "@adi-family/http-express": "^1.0.0",
+    "@adi-family/http-native": "^1.0.0"
   },
   "devDependencies": {
     "@types/bun": "latest",

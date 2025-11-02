@@ -12,6 +12,7 @@ import { validateGitLabSource, decryptGitLabToken } from '@backend/worker-orches
 import { syncTaskEvaluationStatus } from '../core/evaluation-sync-service'
 import * as pipelineExecutionQueries from '@db/pipeline-executions'
 import * as workerRepositoryQueries from '@db/worker-repositories'
+import { PIPELINE_TIMEOUTS } from '@adi-simple/config'
 
 const logger = createLogger({ namespace: 'pipeline-monitor' })
 
@@ -21,8 +22,8 @@ export interface PipelineMonitorConfig {
   sql: Sql
 }
 
-const DEFAULT_TIMEOUT_MINUTES = 30
-const DEFAULT_POLL_INTERVAL_MS = 10 * 60 * 1000 // 10 minutes
+const DEFAULT_TIMEOUT_MINUTES = PIPELINE_TIMEOUTS.monitorTimeoutMinutes
+const DEFAULT_POLL_INTERVAL_MS = PIPELINE_TIMEOUTS.monitorPollIntervalMs
 
 /**
  * Map GitLab pipeline status to our status enum

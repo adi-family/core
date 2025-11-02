@@ -1,5 +1,4 @@
-import { hc } from 'hono/client'
-import type { AppType } from '@backend/app.ts'
+import { BaseClient } from '@adi-family/http'
 
 const SERVER_PORT = import.meta.env.VITE_SERVER_PORT
   ? import.meta.env.VITE_SERVER_PORT
@@ -10,10 +9,11 @@ const API_URL = import.meta.env.VITE_API_URL
   : `http://localhost:${SERVER_PORT}`
 
 /**
- * Create authenticated Hono client with Clerk token
+ * Create authenticated API client with Clerk token
  */
 export function createAuthenticatedClient(getToken: () => Promise<string | null>) {
-  return hc<AppType>(API_URL, {
+  return new BaseClient({
+    baseUrl: API_URL,
     async fetch(input: RequestInfo | URL, init?: RequestInit) {
       const token = await getToken()
 
@@ -25,6 +25,7 @@ export function createAuthenticatedClient(getToken: () => Promise<string | null>
       return fetch(input, {
         ...init,
         headers,
+        credentials: 'include'
       })
     },
   })
@@ -34,4 +35,7 @@ export function createAuthenticatedClient(getToken: () => Promise<string | null>
  * Unauthenticated client (for backwards compatibility)
  * Use createAuthenticatedClient() in components with useAuth()
  */
-export const client = hc<AppType>(API_URL)
+export const client = new BaseClient({
+  baseUrl: API_URL,
+  fetch: (input, init) => fetch(input, { ...init, credentials: 'include' })
+})

@@ -5,17 +5,18 @@ import { findSecretById, updateSecret } from '@db/secrets.ts';
 import type { JiraMetadata, TaskSource, TaskSourceIssue, TaskSourceJiraConfig } from "@types";
 import { JIRA_OAUTH_CLIENT_ID, JIRA_OAUTH_CLIENT_SECRET } from '@backend/config';
 
+interface JiraSearchResponseIssue {
+  id: string;
+  key: string;
+  fields?: {
+    summary?: string;
+    description?: unknown;
+    updated?: string;
+  };
+}
 interface JiraSearchResponse {
   total?: number;
-  issues?: Array<{
-    id: string;
-    key: string;
-    fields?: {
-      summary?: string;
-      description?: unknown;
-      updated?: string;
-    };
-  }>;
+  issues?: Array<JiraSearchResponseIssue>;
   nextPageToken?: string;
 }
 
@@ -265,7 +266,7 @@ export class JiraTaskSource extends BaseTaskSource {
   /**
    * Transform Jira issue to TaskSourceIssue
    */
-  private transformIssue(issue: JiraSearchResponse['issues'][0]): TaskSourceIssue | null {
+  private transformIssue(issue: JiraSearchResponseIssue): TaskSourceIssue | null {
     if (!issue?.key) {
       this.logger.warn('Skipping issue without key:', { issueId: issue?.id })
       return null

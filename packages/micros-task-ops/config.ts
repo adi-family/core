@@ -3,6 +3,8 @@
  * All task operation intervals and timeouts in one place
  */
 
+import { TASK_OPS_DEFAULTS, PIPELINE_TIMEOUTS } from '@adi-simple/config'
+
 export interface TaskOpsConfig {
   // Task source sync scheduler
   syncIntervalMinutes: number
@@ -33,20 +35,20 @@ export const DATABASE_URL = process.env.DATABASE_URL || ''
 export function loadConfig(): TaskOpsConfig {
   return {
     // Task source sync - every 15 min, sync if >30 min old, re-queue if stuck >2 hours
-    syncIntervalMinutes: parseInt(process.env.TASK_SYNC_INTERVAL_MINUTES || '15'),
-    syncThresholdMinutes: parseInt(process.env.TASK_SYNC_THRESHOLD_MINUTES || '30'),
-    queuedTimeoutMinutes: parseInt(process.env.TASK_QUEUED_TIMEOUT_MINUTES || '120'),
+    syncIntervalMinutes: parseInt(process.env.TASK_SYNC_INTERVAL_MINUTES || String(TASK_OPS_DEFAULTS.syncIntervalMinutes)),
+    syncThresholdMinutes: parseInt(process.env.TASK_SYNC_THRESHOLD_MINUTES || String(TASK_OPS_DEFAULTS.syncThresholdMinutes)),
+    queuedTimeoutMinutes: parseInt(process.env.TASK_QUEUED_TIMEOUT_MINUTES || String(TASK_OPS_DEFAULTS.queuedTimeoutMinutes)),
 
     // Evaluation scheduling - check every 1 min for pending evaluations
-    evalIntervalMinutes: parseInt(process.env.EVAL_INTERVAL_MINUTES || '1'),
+    evalIntervalMinutes: parseInt(process.env.EVAL_INTERVAL_MINUTES || String(TASK_OPS_DEFAULTS.evalIntervalMinutes)),
 
     // Pipeline monitor - check every 10 min, timeout after 30 min
-    pipelinePollIntervalMs: parseInt(process.env.PIPELINE_POLL_INTERVAL_MS || String(10 * 60 * 1000)),
-    pipelineTimeoutMinutes: parseInt(process.env.PIPELINE_STATUS_TIMEOUT_MINUTES || '30'),
+    pipelinePollIntervalMs: parseInt(process.env.PIPELINE_POLL_INTERVAL_MS || String(PIPELINE_TIMEOUTS.monitorPollIntervalMs)),
+    pipelineTimeoutMinutes: parseInt(process.env.PIPELINE_STATUS_TIMEOUT_MINUTES || String(PIPELINE_TIMEOUTS.monitorTimeoutMinutes)),
 
     // Stuck evaluation recovery - check every 15 min, recover if stuck >60 min
-    stuckEvalCheckIntervalMinutes: parseInt(process.env.STUCK_EVAL_CHECK_INTERVAL_MINUTES || '15'),
-    stuckEvalTimeoutMinutes: parseInt(process.env.STUCK_EVALUATION_TIMEOUT_MINUTES || '60'),
+    stuckEvalCheckIntervalMinutes: parseInt(process.env.STUCK_EVAL_CHECK_INTERVAL_MINUTES || String(TASK_OPS_DEFAULTS.stuckEvalCheckIntervalMinutes)),
+    stuckEvalTimeoutMinutes: parseInt(process.env.STUCK_EVALUATION_TIMEOUT_MINUTES || String(TASK_OPS_DEFAULTS.stuckEvalTimeoutMinutes)),
   }
 }
 

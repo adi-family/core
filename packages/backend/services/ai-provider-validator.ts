@@ -1,5 +1,6 @@
 import type { AnthropicConfig, OpenAIConfig, GoogleConfig, AIProviderValidationResult } from '@types'
 import { createLogger } from '@utils/logger'
+import { AI_MODEL_DEFAULTS } from '@adi-simple/config'
 
 const logger = createLogger({ namespace: 'ai-provider-validator' })
 
@@ -30,7 +31,7 @@ export async function validateAnthropicConfig(
       },
       body: JSON.stringify({
         model: config.model || 'claude-3-haiku-20240307',
-        max_tokens: 10,
+        max_tokens: AI_MODEL_DEFAULTS.maxTokensForValidation,
         messages: [{ role: 'user', content: 'test' }]
       })
     })

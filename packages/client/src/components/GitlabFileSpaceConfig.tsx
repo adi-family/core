@@ -6,6 +6,7 @@ import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocompl
 import { GitlabRepositorySelect } from '@adi-simple/ui/gitlab-repository-select'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { GitlabFileSpaceConfig as GitlabFileSpaceConfigType, Secret } from "../../../types"
+import { DEFAULT_HOSTS } from '@adi-simple/config'
 
 type GitlabFileSpaceConfigProps = {
   projectId: string
@@ -16,8 +17,8 @@ type GitlabFileSpaceConfigProps = {
 export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFileSpaceConfigProps) {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
-  const [gitlabHost, setGitlabHost] = useState(config.host || "https://gitlab.com")
-  const [hostUnlocked, setHostUnlocked] = useState(config.host !== undefined && config.host !== "https://gitlab.com")
+  const [gitlabHost, setGitlabHost] = useState(config.host || DEFAULT_HOSTS.gitlab)
+  const [hostUnlocked, setHostUnlocked] = useState(config.host !== undefined && config.host !== DEFAULT_HOSTS.gitlab)
   const [, setSelectedSecret] = useState<Secret | null>(null)
   const [selectedRepositoryId, setSelectedRepositoryId] = useState<number | null>(null)
 
@@ -50,7 +51,7 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
           }}
           disabled={!hostUnlocked}
           className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
-          placeholder="https://gitlab.com"
+          placeholder={DEFAULT_HOSTS.gitlab}
         />
       </div>
 
@@ -63,7 +64,7 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
           onChange("access_token_secret_id", secretId || "")
           setSelectedSecret(secret || null)
         }}
-        label={gitlabHost === "https://gitlab.com" ? "GITLAB ACCESS TOKEN (OPTIONAL - uses default if not set)" : "GITLAB ACCESS TOKEN (requires: api, write_repository scopes)"}
+        label={gitlabHost === DEFAULT_HOSTS.gitlab ? "GITLAB ACCESS TOKEN (OPTIONAL - uses default if not set)" : "GITLAB ACCESS TOKEN (requires: api, write_repository scopes)"}
         requiredScopes={["api", "write_repository"]}
         required={false}
       />
@@ -84,7 +85,7 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
         />
       )}
 
-      {!config.access_token_secret_id && gitlabHost === "https://gitlab.com" && (
+      {!config.access_token_secret_id && gitlabHost === DEFAULT_HOSTS.gitlab && (
         <div className="space-y-2">
           <Label htmlFor="gitlab_repo" className="text-xs uppercase tracking-wide text-gray-300">
             REPOSITORY (format: owner/repo)
@@ -101,7 +102,7 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
         </div>
       )}
 
-      {!config.access_token_secret_id && gitlabHost !== "https://gitlab.com" && (
+      {!config.access_token_secret_id && gitlabHost !== DEFAULT_HOSTS.gitlab && (
         <div className="space-y-2">
           <Label htmlFor="gitlab_repo" className="text-xs uppercase tracking-wide text-gray-300">
             REPOSITORY (format: owner/repo)

@@ -12,12 +12,13 @@
 
 import { spawn } from 'child_process'
 import type { ChildProcess } from 'child_process'
+import { TUNNEL_CONFIG } from '@adi-simple/config'
 
 const TUNNEL_TOKEN = process.env.CLOUDFLARED_TUNNEL_TOKEN
-const TUNNEL_URL = 'https://adi-local-tunel.the-ihor.com'
-const MAX_RESTART_DELAY = 30000 // 30 seconds max delay
-const INITIAL_RESTART_DELAY = 1000 // 1 second initial delay
-const MAX_CONSECUTIVE_FAILURES = 10
+const TUNNEL_URL = TUNNEL_CONFIG.url
+const MAX_RESTART_DELAY = TUNNEL_CONFIG.maxRestartDelayMs
+const INITIAL_RESTART_DELAY = TUNNEL_CONFIG.initialRestartDelayMs
+const MAX_CONSECUTIVE_FAILURES = TUNNEL_CONFIG.maxConsecutiveFailures
 
 if (!TUNNEL_TOKEN) {
   console.error('❌ CLOUDFLARED_TUNNEL_TOKEN not found in environment')

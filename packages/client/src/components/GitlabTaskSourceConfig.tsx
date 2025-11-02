@@ -6,6 +6,7 @@ import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocompl
 import { GitlabRepositorySelect } from '@adi-simple/ui/gitlab-repository-select'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { Secret } from "../../../types"
+import { DEFAULT_HOSTS } from '@adi-simple/config'
 
 type GitlabIssuesConfig = {
   repo: string
@@ -23,8 +24,8 @@ type GitlabTaskSourceConfigProps = {
 export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTaskSourceConfigProps) {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
-  const [gitlabHost, setGitlabHost] = useState(config.host || "https://gitlab.com")
-  const [hostUnlocked, setHostUnlocked] = useState(config.host !== undefined && config.host !== "https://gitlab.com")
+  const [gitlabHost, setGitlabHost] = useState(config.host || DEFAULT_HOSTS.gitlab)
+  const [hostUnlocked, setHostUnlocked] = useState(config.host !== undefined && config.host !== DEFAULT_HOSTS.gitlab)
   const [selectedSecret, setSelectedSecret] = useState<Secret | null>(null)
   const [selectedRepositoryId, setSelectedRepositoryId] = useState<number | null>(null)
   const API_BASE_URL = import.meta.env.VITE_API_URL || '/api'
@@ -58,7 +59,7 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
           }}
           disabled={!hostUnlocked}
           className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
-          placeholder="https://gitlab.com"
+          placeholder={DEFAULT_HOSTS.gitlab}
         />
       </div>
 

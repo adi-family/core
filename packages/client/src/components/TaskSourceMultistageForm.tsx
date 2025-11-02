@@ -21,6 +21,7 @@ import { JiraIcon } from '@adi-simple/ui/jira-icon'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateTaskSourceInput } from "../../../types"
 import { ChevronRight, ChevronLeft, Check, ArrowRight } from "lucide-react"
+import { DEFAULT_HOSTS } from '@adi-simple/config'
 
 type TaskSourceType = 'gitlab_issues' | 'jira' | 'github_issues'
 
@@ -78,14 +79,14 @@ export function TaskSourceMultistageForm() {
   const [gitlabConfig, setGitlabConfig] = useState<GitlabIssuesConfig>({
     repo: "",
     labels: ["DOIT"],
-    host: "https://gitlab.com",
+    host: DEFAULT_HOSTS.gitlab,
     access_token_secret_id: "",
   })
 
   const [githubConfig, setGithubConfig] = useState<GithubIssuesConfig>({
     repo: "",
     labels: [],
-    host: "https://github.com",
+    host: DEFAULT_HOSTS.github,
     access_token_secret_id: "",
   })
 

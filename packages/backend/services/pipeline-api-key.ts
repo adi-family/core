@@ -5,7 +5,6 @@
 
 import type { Sql } from 'postgres'
 import * as apiKeyQueries from '@db/api-keys'
-import type { ApiKey } from '@types'
 import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'pipeline-api-key' })
