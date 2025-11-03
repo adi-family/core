@@ -13,9 +13,9 @@
     "tailwind:build": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --minify"
   },
   "dependencies": {
-    "@adi-simple/shared": "workspace:*",
-    "@adi-simple/types": "workspace:*",
-    "@adi-simple/ui": "workspace:*",
+    "@adi-simple/shared": "*",
+    "@adi-simple/types": "*",
+    "@adi-simple/ui": "*",
     "@clerk/clerk-react": "^5.53.2",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.14",

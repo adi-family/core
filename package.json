@@ -3,7 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "private": true,
-  "packageManager": "bun@1.2.23",
+  "packageManager": "npm@10.9.4",
   "workspaces": [
     "packages/*"
   ],
@@ -18,9 +18,9 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build",
     "db:reset": "sh scripts/reset-db.sh",
-    "worker:build": "bun --cwd packages/worker run build:bundles",
-    "worker:build:watch": "bun --cwd packages/worker run build:bundles:watch",
-    "worker:clean": "bun --cwd packages/worker run build:bundles:clean"
+    "worker:build": "npm run build:bundles --workspace=packages/worker",
+    "worker:build:watch": "npm run build:bundles:watch --workspace=packages/worker",
+    "worker:clean": "npm run build:bundles:clean --workspace=packages/worker"
   },
   "devDependencies": {
     "@chromatic-com/storybook": "^4.1.1",

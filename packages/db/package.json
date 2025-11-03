@@ -32,7 +32,7 @@
   "dependencies": {
     "postgres": "^3.4.7",
     "dotenv": "^17.2.3",
-    "@adi-simple/types": "workspace:*"
+    "@adi-simple/types": "*"
   },
   "devDependencies": {
     "@types/node": "^24.7.1",

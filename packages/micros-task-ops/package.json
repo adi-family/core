@@ -13,13 +13,13 @@
     "lint": "eslint ."
   },
   "dependencies": {
-    "@adi-simple/db": "workspace:*",
-    "@adi-simple/utils": "workspace:*",
-    "@adi-simple/types": "workspace:*",
-    "@adi/queue": "workspace:*",
-    "@adi/micros-task-sync": "workspace:*",
-    "@adi/micros-task-eval": "workspace:*",
-    "@adi/micros-task-impl": "workspace:*",
+    "@adi-simple/db": "*",
+    "@adi-simple/utils": "*",
+    "@adi-simple/types": "*",
+    "@adi/queue": "*",
+    "@adi/micros-task-sync": "*",
+    "@adi/micros-task-eval": "*",
+    "@adi/micros-task-impl": "*",
     "amqplib": "^0.10.4"
   },
   "devDependencies": {

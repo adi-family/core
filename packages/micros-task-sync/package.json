@@ -11,10 +11,10 @@
     "./service": "./service.ts"
   },
   "dependencies": {
-    "@adi-simple/db": "workspace:*",
-    "@adi-simple/utils": "workspace:*",
-    "@adi-simple/types": "workspace:*",
-    "@adi/queue": "workspace:*"
+    "@adi-simple/db": "*",
+    "@adi-simple/utils": "*",
+    "@adi-simple/types": "*",
+    "@adi/queue": "*"
   },
   "devDependencies": {
     "@types/bun": "latest",

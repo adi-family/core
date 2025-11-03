@@ -11,9 +11,9 @@
     "./*": "./*"
   },
   "dependencies": {
-    "@adi-simple/db": "workspace:*",
-    "@adi-simple/utils": "workspace:*",
-    "@adi-simple/types": "workspace:*",
+    "@adi-simple/db": "*",
+    "@adi-simple/utils": "*",
+    "@adi-simple/types": "*",
     "amqplib": "^0.10.4"
   },
   "devDependencies": {

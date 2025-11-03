@@ -1,35 +1,38 @@
 # Turborepo-optimized multi-stage build for Next.js landing page
 # Stage 1: Pruner - extracts only the required workspace dependencies
-FROM oven/bun:1.2.23-slim AS pruner
+FROM node:22-alpine AS pruner
 WORKDIR /app
+
+# Install turbo globally
+RUN npm install -g turbo@2.6.0
 
 # Copy entire monorepo
 COPY . .
 
-# Prune the monorepo for the landing package using bunx
+# Prune the monorepo for the landing package
 # Creates out/json/ with package.json files and out/full/ with source code
-RUN bunx turbo prune @adi-simple/landing --docker
+RUN turbo prune @adi-simple/landing --docker
 
 # Stage 2: Installer & Builder
-FROM oven/bun:1.2.23 AS installer
+FROM node:22-alpine AS installer
 WORKDIR /app
 
 # Copy lockfile and package.json files from pruner
 COPY --from=pruner /app/out/json/ .
-COPY --from=pruner /app/out/bun.lock ./bun.lock
+COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
-# Install dependencies with lockfile for deterministic builds
-RUN bun install --frozen-lockfile
+# Install dependencies
+RUN npm install --legacy-peer-deps
 
 # Copy source code from pruner
 COPY --from=pruner /app/out/full/ .
 
 # Build the landing page
 WORKDIR /app/packages/landing
-RUN bun run build
+RUN npm run build
 
 # Stage 3: Runner - production image
-FROM oven/bun:1.2.23-slim AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 ENV NODE_ENV=production
@@ -49,4 +52,4 @@ USER nextjs
 ENV HOSTNAME="0.0.0.0"
 
 # Start Next.js server using the standalone output
-CMD ["bun", "run", "packages/landing/server.js"]
+CMD ["node", "packages/landing/server.js"]

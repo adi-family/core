@@ -1,25 +1,28 @@
 # Turborepo-optimized multi-stage build for micros-task-ops service
 # Stage 1: Pruner - extracts only the required workspace dependencies
-FROM oven/bun:1.2.23-slim AS pruner
+FROM node:22-alpine AS pruner
 WORKDIR /app
+
+# Install turbo globally
+RUN npm install -g turbo@2.6.0
 
 # Copy entire monorepo
 COPY . .
 
-# Prune the monorepo for the micros-task-ops package using bunx
+# Prune the monorepo for the micros-task-ops package
 # Creates out/json/ with package.json files and out/full/ with source code
-RUN bunx turbo prune @adi-simple/micros-task-ops --docker
+RUN turbo prune @adi-simple/micros-task-ops --docker
 
 # Stage 2: Installer
-FROM oven/bun:1.2.23 AS installer
+FROM node:22-alpine AS installer
 WORKDIR /app
 
 # Copy lockfile and package.json files from pruner
 COPY --from=pruner /app/out/json/ .
-COPY --from=pruner /app/out/bun.lock ./bun.lock
+COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
-# Install dependencies with lockfile for deterministic builds
-RUN bun install --frozen-lockfile
+# Install dependencies
+RUN npm install --legacy-peer-deps
 
 # Copy source code from pruner
 COPY --from=pruner /app/out/full/ .
@@ -28,7 +31,7 @@ COPY --from=pruner /app/out/full/ .
 COPY --from=pruner /app/tsconfig.json ./tsconfig.json
 
 # Stage 3: Runner - production image
-FROM oven/bun:1.2.23-slim AS runner
+FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Set environment
@@ -37,5 +40,8 @@ ENV NODE_ENV=production
 # Copy installed node_modules and source from installer
 COPY --from=installer /app .
 
+# Install tsx for TypeScript support
+RUN npm install -g tsx
+
 WORKDIR /app/packages/micros-task-ops
-CMD ["bun", "run", "index.ts"]
+CMD ["tsx", "index.ts"]
