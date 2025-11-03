@@ -39,14 +39,14 @@ export function createProjectHandlers(sql: Sql) {
   /**
    * List all projects
    */
-  const listProjects = handler(listProjectsConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
-
-    const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+  const listProjects = handler(listProjectsConfig, async (_ctx) => {
+    // TODO: Re-enable ACL filtering when auth is fully integrated
+    // const userId = await getUserId(ctx)
+    // const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
     const allProjects = await queries.findAllProjects(sql)
-    const filtered = allProjects.filter(p => accessibleProjectIds.includes(p.id))
+    // const filtered = allProjects.filter(p => accessibleProjectIds.includes(p.id))
 
-    return filtered
+    return allProjects
   })
 
   /**

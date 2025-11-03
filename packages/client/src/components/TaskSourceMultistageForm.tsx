@@ -21,7 +21,7 @@ import { JiraIcon } from '@adi-simple/ui/jira-icon'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateTaskSourceInput } from "../../../types"
 import { ChevronRight, ChevronLeft, Check, ArrowRight } from "lucide-react"
-import { DEFAULT_HOSTS } from '@adi-simple/config'
+import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 
 type TaskSourceType = 'gitlab_issues' | 'jira' | 'github_issues'
 
@@ -492,6 +492,7 @@ export function TaskSourceMultistageForm() {
                       onChange={(secretId) => handleGithubConfigChange("access_token_secret_id", secretId)}
                       label="ACCESS TOKEN SECRET (OPTIONAL)"
                       placeholder="Select access token secret"
+                      client={client}
                       required={false}
                     />
                   </div>

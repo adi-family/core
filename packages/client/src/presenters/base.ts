@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import type { BaseClient } from '@adi-family/http'
 
 /**
  * Base presenter abstract class for type-safe model presentation
@@ -6,10 +7,12 @@ import type { ReactNode } from "react";
 export abstract class BasePresenter<T> {
   protected model: T
   protected onRefresh?: () => void | Promise<void>
+  protected client?: BaseClient
 
-  constructor(model: T, onRefresh?: () => void | Promise<void>) {
+  constructor(model: T, onRefresh?: () => void | Promise<void>, client?: BaseClient) {
     this.model = model
     this.onRefresh = onRefresh
+    this.client = client
   }
 
   /**

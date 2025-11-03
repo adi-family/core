@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import { route, type HandlerConfig } from '@adi-family/http'
+import { route } from '@adi-family/http'
 
 // Schemas
 const projectSchema = z.object({
@@ -24,7 +24,7 @@ export const listProjectsConfig = {
   response: {
     schema: z.array(projectSchema)
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Get project by ID
@@ -36,7 +36,7 @@ export const getProjectConfig = {
   response: {
     schema: projectSchema
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Create new project
@@ -54,7 +54,7 @@ export const createProjectConfig = {
   response: {
     schema: projectSchema
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Update project
@@ -72,7 +72,7 @@ export const updateProjectConfig = {
   response: {
     schema: projectSchema
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Delete project
@@ -84,7 +84,7 @@ export const deleteProjectConfig = {
   response: {
     schema: z.object({ success: z.boolean() })
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Get project stats
@@ -100,4 +100,106 @@ export const getProjectStatsConfig = {
       pending_tasks: z.number()
     })
   }
-} as const satisfies HandlerConfig
+} as const
+
+/**
+ * Get AI providers for project
+ * GET /api/projects/:id/ai-providers
+ */
+export const getProjectAIProvidersConfig = {
+  method: 'GET',
+  route: route.dynamic('/api/projects/:id/ai-providers', z.object({ id: z.string() })),
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * Update AI provider configuration
+ * PUT /api/projects/:id/ai-providers/:provider
+ */
+export const updateProjectAIProviderConfig = {
+  method: 'PUT',
+  route: route.dynamic('/api/projects/:id/ai-providers/:provider', z.object({
+    id: z.string(),
+    provider: z.string()
+  })),
+  body: {
+    schema: z.any()
+  },
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * Delete AI provider configuration
+ * DELETE /api/projects/:id/ai-providers/:provider
+ */
+export const deleteProjectAIProviderConfig = {
+  method: 'DELETE',
+  route: route.dynamic('/api/projects/:id/ai-providers/:provider', z.object({
+    id: z.string(),
+    provider: z.string()
+  })),
+  response: {
+    schema: z.object({ success: z.boolean() })
+  }
+} as const
+
+/**
+ * Validate AI provider configuration
+ * POST /api/projects/:id/ai-providers/:provider/validate
+ */
+export const validateProjectAIProviderConfig = {
+  method: 'POST',
+  route: route.dynamic('/api/projects/:id/ai-providers/:provider/validate', z.object({
+    id: z.string(),
+    provider: z.string()
+  })),
+  body: {
+    schema: z.any()
+  },
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * Get GitLab job executor configuration
+ * GET /api/projects/:id/job-executor-gitlab
+ */
+export const getProjectGitLabExecutorConfig = {
+  method: 'GET',
+  route: route.dynamic('/api/projects/:id/job-executor-gitlab', z.object({ id: z.string() })),
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * Create/Update GitLab job executor configuration
+ * POST /api/projects/:id/job-executor-gitlab
+ */
+export const createProjectGitLabExecutorConfig = {
+  method: 'POST',
+  route: route.dynamic('/api/projects/:id/job-executor-gitlab', z.object({ id: z.string() })),
+  body: {
+    schema: z.any()
+  },
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * Delete GitLab job executor configuration
+ * DELETE /api/projects/:id/job-executor-gitlab
+ */
+export const deleteProjectGitLabExecutorConfig = {
+  method: 'DELETE',
+  route: route.dynamic('/api/projects/:id/job-executor-gitlab', z.object({ id: z.string() })),
+  response: {
+    schema: z.object({ success: z.boolean() })
+  }
+} as const

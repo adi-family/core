@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react"
 import { Combobox } from '@adi-simple/ui/combobox'
 import { Label } from '@adi-simple/ui/label'
-import { client } from "@/lib/client"
+import { listSecretsConfig, getSecretsByProjectConfig } from "@adi/api-contracts"
 import type { Secret } from "../../../types"
+import type { BaseClient } from '@adi-family/http'
 
 interface SecretSelectProps {
   projectId?: string
@@ -11,6 +12,7 @@ interface SecretSelectProps {
   required?: boolean
   label?: string
   placeholder?: string
+  client: BaseClient
 }
 
 export function SecretSelect({
@@ -20,6 +22,7 @@ export function SecretSelect({
   required = false,
   label = "SECRET",
   placeholder = "Search secrets...",
+  client,
 }: SecretSelectProps) {
   const [secrets, setSecrets] = useState<Secret[]>([])
   const [loading, setLoading] = useState(true)
@@ -27,27 +30,20 @@ export function SecretSelect({
   useEffect(() => {
     const fetchSecrets = async () => {
       try {
-        let res
+        let data
         if (projectId) {
           // Fetch secrets for specific project
-          res = await client.secrets["by-project"][":projectId"].$get({
-            param: { projectId },
+          data = await client.run(getSecretsByProjectConfig, {
+            params: { projectId },
           })
         } else {
           // Fetch all secrets accessible to user
-          res = await client.secrets.$get()
+          data = await client.run(listSecretsConfig)
         }
-
-        if (!res.ok) {
-          console.error("Error fetching secrets:", await res.text())
-          setLoading(false)
-          return
-        }
-        const data = await res.json()
         setSecrets(data)
-        setLoading(false)
       } catch (error) {
         console.error("Error fetching secrets:", error)
+      } finally {
         setLoading(false)
       }
     }
@@ -56,7 +52,7 @@ export function SecretSelect({
       console.error("Error fetching secrets:", error)
       setLoading(false)
     })
-  }, [projectId])
+  }, [projectId, client])
 
   const options = secrets.map((secret) => ({
     value: secret.id,

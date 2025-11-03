@@ -19,6 +19,14 @@ import { Folder, ListTodo, Database, GitBranch, Plus } from "lucide-react"
 import type { Project, Task, TaskSource, FileSpace } from "@adi-simple/types"
 import { designTokens } from "@/theme/tokens"
 import { useProject } from "@/contexts/ProjectContext"
+import {
+  getUsageMetricsConfig,
+  listProjectsConfig,
+  listTasksConfig,
+  listTaskSourcesConfig,
+  listFileSpacesConfig,
+  getProjectStatsConfig
+} from '@adi/api-contracts'
 
 export function HomePage() {
   const { getToken } = useAuth()
@@ -45,38 +53,19 @@ export function HomePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [usageRes, projectsRes, tasksRes, taskSourcesRes, fileSpacesRes] = await Promise.all([
-          client.admin['usage-metrics'].$get(),
-          client.projects.$get(),
-          client.tasks.$get(),
-          client["task-sources"].$get({ query: {} }),
-          client["file-spaces"].$get({ query: {} })
+        const [usageData, projectsData, tasksData, taskSourcesData, fileSpacesData] = await Promise.all([
+          client.run(getUsageMetricsConfig),
+          client.run(listProjectsConfig),
+          client.run(listTasksConfig),
+          client.run(listTaskSourcesConfig, { query: {} }),
+          client.run(listFileSpacesConfig, { query: {} })
         ])
 
-        if (usageRes.ok) {
-          const data = await usageRes.json()
-          setUsageMetrics(data.recent as ApiUsageMetric[])
-        }
-
-        if (projectsRes.ok) {
-          const data = await projectsRes.json()
-          setProjects(data)
-        }
-
-        if (tasksRes.ok) {
-          const data = await tasksRes.json()
-          setTasks(Array.isArray(data) ? data : [])
-        }
-
-        if (taskSourcesRes.ok) {
-          const data = await taskSourcesRes.json()
-          setTaskSources(data)
-        }
-
-        if (fileSpacesRes.ok) {
-          const data = await fileSpacesRes.json()
-          setFileSpaces(data)
-        }
+        setUsageMetrics(usageData.recent as ApiUsageMetric[])
+        setProjects(projectsData)
+        setTasks(Array.isArray(tasksData) ? tasksData : [])
+        setTaskSources(taskSourcesData)
+        setFileSpaces(fileSpacesData)
       } catch (error) {
         console.error('Failed to load dashboard data:', error)
       } finally {
@@ -96,14 +85,10 @@ export function HomePage() {
     const loadProjectStats = async () => {
       setLoadingStats(true)
       try {
-        const statsRes = await client.projects[':id'].stats.$get({
-          param: { id: selectedProjectId }
+        const data = await client.run(getProjectStatsConfig, {
+          params: { id: selectedProjectId }
         })
-
-        if (statsRes.ok) {
-          const data = await statsRes.json()
-          setProjectStats(data)
-        }
+        setProjectStats(data)
       } catch (error) {
         console.error('Failed to load project stats:', error)
       } finally {

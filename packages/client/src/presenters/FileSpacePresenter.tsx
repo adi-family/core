@@ -3,7 +3,7 @@ import { navigateTo } from '@/utils/navigation'
 import type { FileSpace } from '@types'
 import { Badge } from '@adi-simple/ui/badge'
 import { FolderGit2, CheckCircle2, XCircle } from 'lucide-react'
-import { client } from '@/lib/client'
+import { updateFileSpaceConfig, deleteFileSpaceConfig } from '@adi/api-contracts'
 
 /**
  * Presenter for FileSpace model
@@ -102,30 +102,39 @@ export class FileSpacePresenter extends BasePresenter<FileSpace> {
       {
         label: this.model.enabled ? 'Disable' : 'Enable',
         onClick: async (fileSpace: FileSpace) => {
-          const res = await client["file-spaces"][":id"].$patch({
-            param: { id: fileSpace.id },
-            json: {
-              type: fileSpace.type,
-              enabled: !fileSpace.enabled
-            } as any
-          })
-          if (!res.ok) {
-            console.error('Failed to toggle file space status')
+          if (!this.client) {
+            console.error('Client not initialized')
+            return
           }
-          this.onRefresh?.()
+          try {
+            await this.client.run(updateFileSpaceConfig, {
+              params: { id: fileSpace.id },
+              body: {
+                enabled: !fileSpace.enabled
+              }
+            })
+            this.onRefresh?.()
+          } catch (error) {
+            console.error('Failed to toggle file space status:', error)
+          }
         },
         variant: 'outline' as const,
       },
       this.getDeleteAction(
         (fileSpace) => `Are you sure you want to delete "${fileSpace.name}"?`,
         async (fileSpace) => {
-          const res = await client["file-spaces"][":id"].$delete({
-            param: { id: fileSpace.id }
-          })
-          if (!res.ok) {
-            console.error('Failed to delete file space')
+          if (!this.client) {
+            console.error('Client not initialized')
+            return
           }
-          this.onRefresh?.()
+          try {
+            await this.client.run(deleteFileSpaceConfig, {
+              params: { id: fileSpace.id }
+            })
+            this.onRefresh?.()
+          } catch (error) {
+            console.error('Failed to delete file space:', error)
+          }
         }
       ),
     ]

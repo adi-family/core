@@ -41,7 +41,7 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.BACKEND_URL,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
+          // Don't rewrite - backend expects /api prefix
         },
       },
     },
@@ -51,7 +51,7 @@ export default defineConfig(({ mode }) => {
         '/api': {
           target: env.BACKEND_URL,
           changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ''),
+          // Don't rewrite - backend expects /api prefix
         },
       },
     },

@@ -9,7 +9,8 @@ import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocompl
 import { createAuthenticatedClient } from "@/lib/client"
 import { useExpertMode } from "@/contexts/ExpertModeContext"
 import type { CreateProjectInput, Secret } from "../../../types"
-import { DEFAULT_HOSTS } from '@adi-simple/config'
+import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
+import { createProjectConfig, createProjectGitLabExecutorConfig } from '@adi/api-contracts'
 
 export function SetupProjectPage() {
   const navigate = useNavigate()
@@ -45,34 +46,16 @@ export function SetupProjectPage() {
     setLoading(true)
 
     try {
-      const res = await client.projects.$post({
-        json: formData,
-      })
-
-      if (!res.ok) {
-        const errorText = await res.text()
-        setError(`Failed to create project: ${errorText}`)
-        setLoading(false)
-        return
-      }
-
-      const project = await res.json()
+      const project = await client.run(createProjectConfig, { body: formData })
       setCreatedProjectId(project.id)
 
       // If executor configuration is requested, configure it
       if (configureExecutor && executorHost && executorTokenSecretId) {
         try {
-          const executorRes = await client.projects[":id"]["job-executor-gitlab"].$post({
-            param: { id: project.id },
-            json: { host: executorHost, access_token_secret_id: executorTokenSecretId },
+          await client.run(createProjectGitLabExecutorConfig, {
+            params: { id: project.id },
+            body: { host: executorHost, access_token_secret_id: executorTokenSecretId },
           })
-
-          if (!executorRes.ok) {
-            const errorData = await executorRes.json()
-            setError(`Project created but executor configuration failed: ${(errorData as { error?: string }).error || "Unknown error"}`)
-            setLoading(false)
-            return
-          }
         } catch (execError) {
           setError(`Project created but executor configuration failed: ${execError instanceof Error ? execError.message : "Unknown error"}`)
           setLoading(false)
@@ -83,8 +66,8 @@ export function SetupProjectPage() {
       setSuccess(true)
       setLoading(false)
       navigate(`/create-task-source`)
-    } catch {
-      setError("Error creating project")
+    } catch (err) {
+      setError(`Error creating project: ${err instanceof Error ? err.message : "Unknown error"}`)
       setLoading(false)
     }
   }

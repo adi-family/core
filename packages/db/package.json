@@ -21,6 +21,7 @@
     "./user-access": "./user-access.ts",
     "./user-quotas": "./user-quotas.ts",
     "./task-source-sync-state": "./task-source-sync-state.ts",
+    "./api-usage-metrics": "./api-usage-metrics.ts",
     "./utils": "./utils.ts",
     "./*": "./*"
   },

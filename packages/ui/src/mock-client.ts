@@ -8,7 +8,7 @@ import type {
   WorkerRepository,
   PipelineExecution
 } from '@adi-simple/types'
-import { DEFAULT_HOSTS } from '@adi-simple/config'
+import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 
 // Mock data
 const mockProjects: Project[] = [

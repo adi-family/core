@@ -2,7 +2,7 @@ import { Button } from '@adi-simple/ui/button'
 import { ExternalLink, Folder, Tag } from "lucide-react"
 import { siJira, siGitlab, siGithub } from 'simple-icons'
 import type { TaskSource, Project } from "@types"
-import { DEFAULT_HOSTS } from '@adi-simple/config'
+import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 
 /**
  * SimpleIcon component to render simple-icons SVG icons

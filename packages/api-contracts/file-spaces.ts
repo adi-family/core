@@ -3,13 +3,15 @@
  */
 
 import { z } from 'zod'
-import { route, type HandlerConfig } from '@adi-family/http'
+import { route } from '@adi-family/http'
 
 // File space schema
 const fileSpaceSchema = z.object({
   id: z.string(),
   name: z.string(),
+  type: z.enum(['gitlab', 'github']),
   project_id: z.string(),
+  enabled: z.boolean(),
   config: z.any(), // FileSpaceConfig type
   created_at: z.string(),
   updated_at: z.string()
@@ -30,7 +32,7 @@ export const listFileSpacesConfig = {
   response: {
     schema: z.array(fileSpaceSchema)
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Get file spaces by task ID
@@ -42,4 +44,36 @@ export const getTaskFileSpacesConfig = {
   response: {
     schema: z.array(fileSpaceSchema)
   }
-} as const satisfies HandlerConfig
+} as const
+
+/**
+ * Update file space
+ * PATCH /api/file-spaces/:id
+ */
+export const updateFileSpaceConfig = {
+  method: 'PATCH',
+  route: route.dynamic('/api/file-spaces/:id', z.object({ id: z.string() })),
+  body: {
+    schema: z.object({
+      name: z.string().optional(),
+      type: z.string().optional(),
+      enabled: z.boolean().optional(),
+      config: z.any().optional()
+    })
+  },
+  response: {
+    schema: fileSpaceSchema
+  }
+} as const
+
+/**
+ * Delete file space
+ * DELETE /api/file-spaces/:id
+ */
+export const deleteFileSpaceConfig = {
+  method: 'DELETE',
+  route: route.dynamic('/api/file-spaces/:id', z.object({ id: z.string() })),
+  response: {
+    schema: z.object({ success: z.boolean() })
+  }
+} as const

@@ -10,6 +10,12 @@ import { createProjectHandlers } from './handlers/projects'
 import { createTaskHandlers } from './handlers/tasks'
 import { createSessionHandlers } from './handlers/sessions'
 import { createPipelineExecutionHandlers } from './handlers/pipeline-executions'
+import { createMessageHandlers } from './handlers/messages'
+import { createTaskSourceHandlers } from './handlers/task-sources'
+import { createAlertHandlers } from './handlers/alerts'
+import { createAdminHandlers } from './handlers/admin'
+import { createSecretHandlers } from './handlers/secrets'
+import { createFileSpaceHandlers } from './handlers/file-spaces'
 import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'native-server' })
@@ -19,6 +25,12 @@ const projectHandlers = createProjectHandlers(sql)
 const taskHandlers = createTaskHandlers(sql)
 const sessionHandlers = createSessionHandlers(sql)
 const pipelineExecutionHandlers = createPipelineExecutionHandlers(sql)
+const messageHandlers = createMessageHandlers(sql)
+const taskSourceHandlers = createTaskSourceHandlers(sql)
+const alertHandlers = createAlertHandlers()
+const adminHandlers = createAdminHandlers(sql)
+const secretHandlers = createSecretHandlers(sql)
+const fileSpaceHandlers = createFileSpaceHandlers(sql)
 
 // Collect all handlers
 const allHandlers = [
@@ -32,13 +44,32 @@ const allHandlers = [
   // Tasks
   taskHandlers.getTaskSessions,
   taskHandlers.getTaskArtifacts,
+  taskHandlers.listTasks,
+  taskHandlers.getTask,
+  taskHandlers.implementTask,
+  taskHandlers.evaluateTask,
   // Sessions
   sessionHandlers.getSessionMessages,
   sessionHandlers.getSessionPipelineExecutions,
+  sessionHandlers.listSessions,
   // Pipeline Executions
   pipelineExecutionHandlers.getExecutionArtifacts,
   pipelineExecutionHandlers.createExecutionArtifact,
   pipelineExecutionHandlers.updatePipelineExecution,
+  // Messages
+  messageHandlers.listMessages,
+  // Task Sources
+  taskSourceHandlers.listTaskSources,
+  taskSourceHandlers.syncTaskSource,
+  // Alerts
+  alertHandlers.listAlerts,
+  // Admin
+  adminHandlers.getUsageMetrics,
+  // Secrets
+  secretHandlers.listSecrets,
+  secretHandlers.getSecretsByProject,
+  // File Spaces
+  fileSpaceHandlers.listFileSpaces,
 ]
 
 // Create native request handler

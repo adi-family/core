@@ -13,7 +13,11 @@
     "./pipeline-executions": "./pipeline-executions.ts",
     "./worker-repositories": "./worker-repositories.ts",
     "./secrets": "./secrets.ts",
-    "./file-spaces": "./file-spaces.ts"
+    "./file-spaces": "./file-spaces.ts",
+    "./admin": "./admin.ts",
+    "./task-sources": "./task-sources.ts",
+    "./messages": "./messages.ts",
+    "./alerts": "./alerts.ts"
   },
   "dependencies": {
     "@adi-family/http": "^1.0.0",

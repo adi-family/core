@@ -19,7 +19,7 @@ import { GitlabRepositoryMultiSelect } from '@adi-simple/ui/gitlab-repository-mu
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateFileSpaceInput, GitlabFileSpaceConfig as GitlabFileSpaceConfigType, GithubFileSpaceConfig } from "../../../types"
 import { ChevronRight, ChevronLeft, Check } from "lucide-react"
-import { DEFAULT_HOSTS } from '@adi-simple/config'
+import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 
 type FileSpaceType = 'gitlab' | 'github'
 

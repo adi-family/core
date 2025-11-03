@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import { route, type HandlerConfig } from '@adi-family/http'
+import { route } from '@adi-family/http'
 
 // Session schema - matches database type
 const sessionSchema = z.any()  // Temporarily use any for rapid conversion
@@ -21,7 +21,7 @@ export const getTaskSessionsConfig = {
   response: {
     schema: z.array(sessionSchema)
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Get artifacts by task ID
@@ -33,7 +33,7 @@ export const getTaskArtifactsConfig = {
   response: {
     schema: z.array(artifactSchema)
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Get task by ID
@@ -45,4 +45,53 @@ export const getTaskConfig = {
   response: {
     schema: z.any()  // Temporarily use any for rapid conversion
   }
-} as const satisfies HandlerConfig
+} as const
+
+/**
+ * List all tasks
+ * GET /api/tasks
+ */
+export const listTasksConfig = {
+  method: 'GET',
+  route: route.static('/api/tasks'),
+  query: {
+    schema: z.object({
+      project_id: z.string().optional(),
+      status: z.string().optional(),
+      limit: z.number().optional(),
+    }).optional()
+  },
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * Implement task
+ * POST /api/tasks/:id/implement
+ */
+export const implementTaskConfig = {
+  method: 'POST',
+  route: route.dynamic('/api/tasks/:id/implement', z.object({ id: z.string() })),
+  body: {
+    schema: z.any()
+  },
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * Evaluate task
+ * POST /api/tasks/:id/evaluate
+ */
+export const evaluateTaskConfig = {
+  method: 'POST',
+  route: route.dynamic('/api/tasks/:id/evaluate', z.object({ id: z.string() })),
+  body: {
+    schema: z.any()
+  },
+  response: {
+    schema: z.any()
+  }
+} as const

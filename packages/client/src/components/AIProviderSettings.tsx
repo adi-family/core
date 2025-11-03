@@ -9,8 +9,8 @@ import type { AIProviderConfig, AIProviderValidationResult } from "@types"
 import { CheckCircle2, XCircle, Loader2, AlertCircle, Trash2 } from "lucide-react"
 import { siAnthropic, siOpenai, siGoogle } from "simple-icons"
 import { toast } from "sonner"
-import type { Provider, ProviderType } from "@adi-simple/config"
-import { supportedProviders } from "@adi-simple/config"
+import type { Provider, ProviderType } from "@adi-simple/config/shared"
+import { supportedProviders } from "@adi-simple/config/shared"
 
 type AIProviderSettingsProps = {
   projectId: string

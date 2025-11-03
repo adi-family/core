@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import { route, type HandlerConfig } from '@adi-family/http'
+import { route } from '@adi-family/http'
 
 // Artifact schema - matches database type
 const artifactSchema = z.any()  // Temporarily use any for rapid conversion
@@ -18,7 +18,7 @@ export const getExecutionArtifactsConfig = {
   response: {
     schema: z.array(artifactSchema)
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Create artifact for execution
@@ -33,7 +33,7 @@ export const createExecutionArtifactConfig = {
   response: {
     schema: artifactSchema
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Create pipeline execution
@@ -52,7 +52,7 @@ export const createPipelineExecutionConfig = {
   response: {
     schema: z.any()  // Temporarily use any for rapid conversion
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Update pipeline execution
@@ -67,4 +67,4 @@ export const updatePipelineExecutionConfig = {
   response: {
     schema: z.any()  // Temporarily use any for rapid conversion
   }
-} as const satisfies HandlerConfig
+} as const

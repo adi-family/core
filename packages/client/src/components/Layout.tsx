@@ -6,6 +6,7 @@ import { createAuthenticatedClient } from "@/lib/client"
 import { useExpertMode } from "@/contexts/ExpertModeContext"
 import { useProject } from "@/contexts/ProjectContext"
 import { Select } from "@adi-simple/ui/select"
+import { listAlertsConfig, getUsageMetricsConfig, listProjectsConfig } from "@adi/api-contracts"
 import { calculateCostBreakdown, formatCost, type ApiUsageMetric } from "@/config/pricing"
 import type { Project } from "@adi-simple/types"
 
@@ -30,29 +31,19 @@ export function Layout() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch alerts
-        const alertsRes = await client.alerts.$get()
-        if (alertsRes.ok) {
-          const alertsData = await alertsRes.json()
-          setAlerts(alertsData.alerts)
-        }
+        // Fetch all data in parallel
+        const [alertsData, projectsData, usageData] = await Promise.all([
+          client.run(listAlertsConfig).catch(() => ({ alerts: [] })),
+          client.run(listProjectsConfig).catch(() => []),
+          client.run(getUsageMetricsConfig).catch(() => ({ recent: [] })),
+        ])
 
-        // Fetch projects
-        const projectsRes = await client.projects.$get()
-        if (projectsRes.ok) {
-          const projectsData = await projectsRes.json()
-          setProjects(projectsData)
+        setAlerts(alertsData.alerts)
+        setProjects(projectsData)
+        setUsageMetrics(usageData.recent as ApiUsageMetric[])
 
-          // Don't auto-select project - allow viewing all projects
-          // User can manually select a project to filter
-        }
-
-        // Fetch usage metrics
-        const usageRes = await client.admin['usage-metrics'].$get()
-        if (usageRes.ok) {
-          const usageData = await usageRes.json()
-          setUsageMetrics(usageData.recent as ApiUsageMetric[])
-        }
+        // Don't auto-select project - allow viewing all projects
+        // User can manually select a project to filter
       } catch {
         // Failed to fetch data
       } finally {

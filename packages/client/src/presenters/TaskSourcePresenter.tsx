@@ -4,8 +4,8 @@ import { Badge } from '@adi-simple/ui/badge'
 import { GitBranch, CheckCircle2, XCircle, Clock, Loader2, CheckCheck, AlertCircle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { GithubIcon } from '@/components/icons/GithubIcon'
-import { client } from '@/lib/client'
 import { toast } from 'sonner'
+import { syncTaskSourceConfig, deleteTaskSourceConfig } from '@adi/api-contracts'
 
 /**
  * Presenter for TaskSource model
@@ -116,15 +116,15 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
       {
         label: 'Sync',
         onClick: async (taskSource: TaskSource) => {
+          if (!this.client) {
+            toast.error('Client not initialized')
+            return
+          }
           try {
-            const res = await client['task-sources'][':id']['sync'].$post({
-              param: { id: taskSource.id }
+            await this.client.run(syncTaskSourceConfig, {
+              params: { id: taskSource.id }
             })
-            if (res.ok) {
-              toast.success('Sync triggered successfully')
-            } else {
-              toast.error('Failed to trigger sync')
-            }
+            toast.success('Sync triggered successfully')
           } catch (error) {
             console.error('Error syncing task source:', error)
             toast.error('Error syncing task source')
@@ -135,18 +135,18 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
       {
         label: 'Delete',
         onClick: async (taskSource: TaskSource) => {
+          if (!this.client) {
+            toast.error('Client not initialized')
+            return
+          }
           if (confirm(`Are you sure you want to delete "${taskSource.name}"?`)) {
             try {
-              const res = await client['task-sources'][':id'].$delete({
-                param: { id: taskSource.id }
+              await this.client.run(deleteTaskSourceConfig, {
+                params: { id: taskSource.id }
               })
-              if (res.ok) {
-                toast.success('Task source deleted successfully')
-                if (this.onRefresh) {
-                  await this.onRefresh()
-                }
-              } else {
-                toast.error('Failed to delete task source')
+              toast.success('Task source deleted successfully')
+              if (this.onRefresh) {
+                await this.onRefresh()
               }
             } catch (error) {
               console.error('Error deleting task source:', error)

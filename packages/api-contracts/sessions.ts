@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import { route, type HandlerConfig } from '@adi-family/http'
+import { route } from '@adi-family/http'
 
 // Message schema - matches database type
 const messageSchema = z.any()  // Temporarily use any for rapid conversion
@@ -21,7 +21,7 @@ export const getSessionMessagesConfig = {
   response: {
     schema: z.array(messageSchema)
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Get pipeline executions by session ID
@@ -33,7 +33,7 @@ export const getSessionPipelineExecutionsConfig = {
   response: {
     schema: z.array(pipelineExecutionSchema)
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Get session by ID
@@ -45,4 +45,16 @@ export const getSessionConfig = {
   response: {
     schema: z.any()  // Temporarily use any for rapid conversion
   }
-} as const satisfies HandlerConfig
+} as const
+
+/**
+ * List all sessions
+ * GET /api/sessions
+ */
+export const listSessionsConfig = {
+  method: 'GET',
+  route: route.static('/api/sessions'),
+  response: {
+    schema: z.any()
+  }
+} as const

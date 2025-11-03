@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import { route, type HandlerConfig } from '@adi-family/http'
+import { route } from '@adi-family/http'
 
 /**
  * Healthcheck endpoint
@@ -18,4 +18,4 @@ export const healthcheckConfig = {
       timestamp: z.string()
     })
   }
-} as const satisfies HandlerConfig
+} as const

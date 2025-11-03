@@ -1,7 +1,7 @@
 import { ExternalLink, Folder, GitBranch } from "lucide-react"
 import { siGitlab, siGithub } from 'simple-icons'
 import type { FileSpace, Project } from "@types"
-import { DEFAULT_HOSTS } from '@adi-simple/config'
+import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 
 /**
  * SimpleIcon component to render simple-icons SVG icons

@@ -6,7 +6,8 @@
   "main": "./index.ts",
   "exports": {
     ".": "./index.ts",
-    "./*": "./*"
+    "./shared": "./shared.ts",
+    "./server": "./server.ts"
   },
   "scripts": {
     "build": "echo 'No build needed for config package'",

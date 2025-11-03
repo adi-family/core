@@ -3,7 +3,7 @@
  */
 
 import { z } from 'zod'
-import { route, type HandlerConfig } from '@adi-family/http'
+import { route } from '@adi-family/http'
 
 // Worker repository schema
 const workerRepositorySchema = z.object({
@@ -25,7 +25,7 @@ export const getWorkerRepositoryByProjectConfig = {
   response: {
     schema: workerRepositorySchema
   }
-} as const satisfies HandlerConfig
+} as const
 
 /**
  * Create worker repository
@@ -44,4 +44,4 @@ export const createWorkerRepositoryConfig = {
   response: {
     schema: workerRepositorySchema
   }
-} as const satisfies HandlerConfig
+} as const
