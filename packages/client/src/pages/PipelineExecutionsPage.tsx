@@ -1,9 +1,14 @@
+import { useMemo } from "react"
+import { useAuth } from "@clerk/clerk-react"
 import { ListPage } from "@/components/ListPage"
 import { PipelineExecutionPresenter } from "@/presenters"
-import { client } from "@/lib/client"
+import { createAuthenticatedClient } from "@/lib/client"
 import type { PipelineExecution } from "../../../types"
 
 export function PipelineExecutionsPage() {
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
+
   return (
     <ListPage<PipelineExecution>
       title="Pipeline Executions"

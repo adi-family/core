@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
+import { useAuth } from "@clerk/clerk-react"
 import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import {
   Card,
@@ -10,7 +11,8 @@ import {
 } from '@adi-simple/ui/card'
 import { Button } from '@adi-simple/ui/button'
 import { TaskSourceRow } from "@/components/TaskSourceRow"
-import { client } from "@/lib/client"
+import { createAuthenticatedClient } from "@/lib/client"
+import { listTaskSourcesConfig, listProjectsConfig } from "@adi/api-contracts"
 import { designTokens } from "@/theme/tokens"
 import { useProject } from "@/contexts/ProjectContext"
 import { toast } from "sonner"
@@ -18,6 +20,8 @@ import type { TaskSource, Project } from "../../../types"
 
 export function TaskSourcesPage() {
   const navigate = useNavigate()
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const { selectedProjectId } = useProject()
   const [taskSources, setTaskSources] = useState<TaskSource[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -25,29 +29,19 @@ export function TaskSourcesPage() {
 
   const fetchData = async () => {
     setLoading(true)
-    const [taskSourcesRes, projectsRes] = await Promise.all([
-      client["task-sources"].$get({ query: {} }),
-      client.projects.$get()
-    ])
+    try {
+      const [taskSourcesData, projectsData] = await Promise.all([
+        client.run(listTaskSourcesConfig, { query: {} }),
+        client.run(listProjectsConfig)
+      ])
 
-    if (!taskSourcesRes.ok) {
-      console.error("Error fetching task sources:", await taskSourcesRes.text())
+      setTaskSources(taskSourcesData)
+      setProjects(projectsData)
+    } catch (error) {
+      console.error("Error fetching data:", error)
+    } finally {
       setLoading(false)
-      return
     }
-
-    if (!projectsRes.ok) {
-      console.error("Error fetching projects:", await projectsRes.text())
-      setLoading(false)
-      return
-    }
-
-    const taskSourcesData = await taskSourcesRes.json()
-    const projectsData = await projectsRes.json()
-
-    setTaskSources(taskSourcesData)
-    setProjects(projectsData)
-    setLoading(false)
   }
 
   useEffect(() => {
@@ -58,24 +52,20 @@ export function TaskSourcesPage() {
   }, [])
 
   const handleSync = async (taskSource: TaskSource) => {
-    try {
-      const res = await client["task-sources"][":id"].sync.$post({
-        param: { id: taskSource.id }
-      })
+    // TODO: Sync endpoint not yet migrated to @adi-family/http contracts
+    // Need to add syncTaskSourceConfig to @adi/api-contracts/task-sources.ts
+    toast.error("Sync endpoint not yet implemented")
+    console.warn("Sync endpoint needs migration to @adi-family/http", taskSource)
 
-      if (!res.ok) {
-        const error = await res.text()
-        toast.error(`Failed to sync: ${error}`)
-        return
-      }
-
-      toast.success(`Sync started for ${taskSource.name}`)
-      // Refresh data after sync
-      await fetchData()
-    } catch (error) {
-      console.error("Error syncing task source:", error)
-      toast.error("Failed to start sync")
-    }
+    // Original implementation (commented out until contract is added):
+    // try {
+    //   await client.run(syncTaskSourceConfig, { params: { id: taskSource.id } })
+    //   toast.success(`Sync started for ${taskSource.name}`)
+    //   await fetchData()
+    // } catch (error) {
+    //   console.error("Error syncing task source:", error)
+    //   toast.error("Failed to start sync")
+    // }
   }
 
   // Filter task sources by selected project

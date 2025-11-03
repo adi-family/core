@@ -1,4 +1,5 @@
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useRef, useCallback, useMemo } from "react"
+import { useAuth } from "@clerk/clerk-react"
 import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import {
   Card,
@@ -10,16 +11,19 @@ import {
 import { Select } from '@adi-simple/ui/select'
 import { Label } from '@adi-simple/ui/label'
 import { TaskRow } from "@/components/TaskRow"
-import { client } from "@/lib/client"
+import { createAuthenticatedClient } from "@/lib/client"
 import { designTokens } from "@/theme/tokens"
 import { navigateTo } from "@/utils/navigation"
 import { useProject } from "@/contexts/ProjectContext"
 import { toast } from "sonner"
 import type { Task, TaskSource, Project } from "../../../types"
+import { listTasksConfig, implementTaskConfig, evaluateTaskConfig, listTaskSourcesConfig, listProjectsConfig } from '@adi/api-contracts'
 
 type SortOption = 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc'
 
 export function TasksPage() {
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const { selectedProjectId } = useProject()
   const [tasks, setTasks] = useState<Task[]>([])
   const [taskSources, setTaskSources] = useState<TaskSource[]>([])
@@ -41,92 +45,74 @@ export function TasksPage() {
       setLoading(true)
     }
 
-    // Build query parameters for server-side filtering and sorting
-    const queryParams: Record<string, string> = {
-      page: String(pageNum),
-      per_page: '20'
-    }
-    if (selectedProjectId) {
-      queryParams.project_id = selectedProjectId
-    }
-    if (selectedTaskSourceId) {
-      queryParams.task_source_id = selectedTaskSourceId
-    }
-    if (filterEvaluated) {
-      queryParams.evaluated_only = 'true'
-    }
-    if (sortBy) {
-      queryParams.sort_by = sortBy
-    }
+    try {
+      // Build query parameters for server-side filtering and sorting
+      const queryParams: Record<string, string> = {
+        page: String(pageNum),
+        per_page: '20'
+      }
+      if (selectedProjectId) {
+        queryParams.project_id = selectedProjectId
+      }
+      if (selectedTaskSourceId) {
+        queryParams.task_source_id = selectedTaskSourceId
+      }
+      if (filterEvaluated) {
+        queryParams.evaluated_only = 'true'
+      }
+      if (sortBy) {
+        queryParams.sort_by = sortBy
+      }
 
-    const fetchPromises = [
-      client.tasks.$get({ query: queryParams })
-    ]
+      const fetchPromises = [
+        client.run(listTasksConfig, { query: queryParams })
+      ]
 
-    // Only fetch task sources and projects on initial load
-    if (!append) {
-      fetchPromises.push(
-        client["task-sources"].$get({ query: {} }),
-        client.projects.$get()
-      )
-    }
+      // Only fetch task sources and projects on initial load
+      if (!append) {
+        fetchPromises.push(
+          client.run(listTaskSourcesConfig, { query: {} }),
+          client.run(listProjectsConfig, {})
+        )
+      }
 
-    const responses = await Promise.all(fetchPromises)
-    const [tasksRes, taskSourcesRes, projectsRes] = responses
+      const [tasksData, taskSourcesData, projectsData] = await Promise.all(fetchPromises)
 
-    if (!tasksRes.ok) {
-      console.error("Error fetching tasks:", await tasksRes.text())
+      // Handle both old array format and new paginated format for backwards compatibility
+      const newTasks = Array.isArray(tasksData) ? tasksData : tasksData.data
+      const pagination = Array.isArray(tasksData) ? null : tasksData.pagination
+
+      if (!Array.isArray(newTasks)) {
+        console.error("Invalid API response: expected array of tasks or paginated response")
+        setLoading(false)
+        setLoadingMore(false)
+        return
+      }
+
+      if (append) {
+        setTasks(prev => [...prev, ...newTasks])
+      } else {
+        setTasks(newTasks)
+        if (taskSourcesData) setTaskSources(taskSourcesData)
+        if (projectsData) setProjects(projectsData)
+      }
+
+      // Update pagination state
+      if (pagination) {
+        setTotalCount(pagination.total)
+        setHasMore(pagination.page < pagination.total_pages)
+      } else {
+        // Fallback if no pagination data
+        setHasMore(newTasks.length === 20)
+      }
+
       setLoading(false)
       setLoadingMore(false)
-      return
-    }
-
-    if (!append && taskSourcesRes && !taskSourcesRes.ok) {
-      console.error("Error fetching task sources:", await taskSourcesRes.text())
-      setLoading(false)
-      return
-    }
-
-    if (!append && projectsRes && !projectsRes.ok) {
-      console.error("Error fetching projects:", await projectsRes.text())
-      setLoading(false)
-      return
-    }
-
-    const tasksData = await tasksRes.json()
-    const taskSourcesData = !append && taskSourcesRes ? await taskSourcesRes.json() : null
-    const projectsData = !append && projectsRes ? await projectsRes.json() : null
-
-    // Handle both old array format and new paginated format for backwards compatibility
-    const newTasks = Array.isArray(tasksData) ? tasksData : tasksData.data
-    const pagination = Array.isArray(tasksData) ? null : tasksData.pagination
-
-    if (!Array.isArray(newTasks)) {
-      console.error("Invalid API response: expected array of tasks or paginated response")
+    } catch (error) {
+      console.error("Error fetching data:", error)
       setLoading(false)
       setLoadingMore(false)
-      return
     }
-
-    if (append) {
-      setTasks(prev => [...prev, ...newTasks])
-    } else {
-      setTasks(newTasks)
-      if (taskSourcesData) setTaskSources(taskSourcesData)
-      if (projectsData) setProjects(projectsData)
-    }
-
-    // Update pagination state
-    if (pagination) {
-      setTotalCount(pagination.total)
-      setHasMore(pagination.page < pagination.total_pages)
-    } else {
-      // Fallback if no pagination data
-      setHasMore(newTasks.length === 20)
-    }
-
-    setLoading(false)
-    setLoadingMore(false)
   }, [selectedProjectId, selectedTaskSourceId, filterEvaluated, sortBy])
 
   const loadMore = useCallback(() => {
@@ -172,43 +158,31 @@ export function TasksPage() {
 
   const handleStartImplementation = async (task: Task) => {
     try {
-      const response = await client.tasks[':id'].implement.$post({
-        param: { id: task.id }
+      await client.run(implementTaskConfig, {
+        params: { id: task.id }
       })
-
-      if (!response.ok) {
-        const error = await response.text()
-        toast.error(`Failed to start implementation: ${error}`)
-        return
-      }
 
       toast.success('Implementation started successfully')
       // Refresh the task list to show updated status
       await fetchData(1, false)
     } catch (error) {
       console.error("Error starting implementation:", error)
-      toast.error('Failed to start implementation')
+      toast.error(`Failed to start implementation: ${error instanceof Error ? error.message : "Unknown error"}`)
     }
   }
 
   const handleEvaluate = async (task: Task) => {
     try {
-      const response = await client.tasks[':id'].evaluate.$post({
-        param: { id: task.id }
+      await client.run(evaluateTaskConfig, {
+        params: { id: task.id }
       })
-
-      if (!response.ok) {
-        const error = await response.text()
-        toast.error(`Failed to start evaluation: ${error}`)
-        return
-      }
 
       toast.success('Evaluation started successfully')
       // Refresh the task list to show updated status
       await fetchData(1, false)
     } catch (error) {
       console.error("Error starting evaluation:", error)
-      toast.error('Failed to start evaluation')
+      toast.error(`Failed to start evaluation: ${error instanceof Error ? error.message : "Unknown error"}`)
     }
   }
 

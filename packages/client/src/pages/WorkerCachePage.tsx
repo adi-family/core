@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
+import { useAuth } from "@clerk/clerk-react"
 import {
   Card,
   CardContent,
@@ -15,7 +16,7 @@ import {
   TableRow,
 } from '@adi-simple/ui/table'
 import { Badge } from '@adi-simple/ui/badge'
-import { client } from "@/lib/client"
+import { createAuthenticatedClient } from "@/lib/client"
 import { Loader2, CheckCircle2, Circle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -33,6 +34,8 @@ type WorkerCache = {
 }
 
 export function WorkerCachePage() {
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const [cache, setCache] = useState<WorkerCache[]>([])
   const [loading, setLoading] = useState(true)
 

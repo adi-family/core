@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom"
 import { useMemo, useEffect, useState } from "react"
+import { useAuth } from "@clerk/clerk-react"
 import { Button } from '@adi-simple/ui/button'
 import {
   Card,
@@ -11,12 +12,15 @@ import {
 import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import { FileSpaceRow } from "@/components/FileSpaceRow"
 import { useProject } from "@/contexts/ProjectContext"
-import { client } from "@/lib/client"
+import { createAuthenticatedClient } from "@/lib/client"
+import { listFileSpacesConfig, listProjectsConfig } from "@adi/api-contracts"
 import { designTokens } from "@/theme/tokens"
 import type { FileSpace, Project } from "@types"
 
 export function FileSpacesPage() {
   const navigate = useNavigate()
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const { selectedProjectId } = useProject()
   const [fileSpaces, setFileSpaces] = useState<FileSpace[]>([])
   const [projects, setProjects] = useState<Project[]>([])
@@ -24,29 +28,19 @@ export function FileSpacesPage() {
 
   const fetchData = async () => {
     setLoading(true)
-    const [fileSpacesRes, projectsRes] = await Promise.all([
-      client["file-spaces"].$get({ query: {} }),
-      client.projects.$get()
-    ])
+    try {
+      const [fileSpacesData, projectsData] = await Promise.all([
+        client.run(listFileSpacesConfig, { query: {} }),
+        client.run(listProjectsConfig)
+      ])
 
-    if (!fileSpacesRes.ok) {
-      console.error("Error fetching file spaces:", await fileSpacesRes.text())
+      setFileSpaces(fileSpacesData)
+      setProjects(projectsData)
+    } catch (error) {
+      console.error("Error fetching data:", error)
+    } finally {
       setLoading(false)
-      return
     }
-
-    if (!projectsRes.ok) {
-      console.error("Error fetching projects:", await projectsRes.text())
-      setLoading(false)
-      return
-    }
-
-    const fileSpacesData = await fileSpacesRes.json()
-    const projectsData = await projectsRes.json()
-
-    setFileSpaces(fileSpacesData)
-    setProjects(projectsData)
-    setLoading(false)
   }
 
   useEffect(() => {

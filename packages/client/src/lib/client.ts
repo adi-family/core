@@ -30,12 +30,3 @@ export function createAuthenticatedClient(getToken: () => Promise<string | null>
     },
   })
 }
-
-/**
- * Unauthenticated client (for backwards compatibility)
- * Use createAuthenticatedClient() in components with useAuth()
- */
-export const client = new BaseClient({
-  baseUrl: API_URL,
-  fetch: (input, init) => fetch(input, { ...init, credentials: 'include' })
-})

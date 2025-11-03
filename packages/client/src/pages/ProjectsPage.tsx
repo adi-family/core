@@ -1,27 +1,30 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
+import { useAuth } from "@clerk/clerk-react"
 import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import { PageCard } from "@/components/PageCard"
 import { PresenterTable } from "@/components/PresenterTable"
 import { ProjectPresenter } from "@/presenters"
-import { client } from "@/lib/client"
+import { createAuthenticatedClient } from "@/lib/client"
+import { listProjectsConfig, updateProjectConfig } from "@adi/api-contracts"
 import type { Project } from "../../../types"
 
 export function ProjectsPage() {
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [togglingProjectId, setTogglingProjectId] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchProjects = async () => {
-      const res = await client.projects.$get()
-      if (!res.ok) {
-        console.error("Error fetching projects:", await res.text())
+      try {
+        const data = await client.run(listProjectsConfig)
+        setProjects(data)
+      } catch (error) {
+        console.error("Error fetching projects:", error)
+      } finally {
         setLoading(false)
-        return
       }
-      const data = await res.json()
-      setProjects(data)
-      setLoading(false)
     }
 
     fetchProjects().catch((error) => {
@@ -41,20 +44,10 @@ export function ProjectsPage() {
     )
 
     try {
-      const res = await client.projects[":id"].$patch({
-        param: { id: project.id },
-        json: { enabled: !project.enabled },
+      await client.run(updateProjectConfig, {
+        params: { id: project.id },
+        body: { enabled: !project.enabled },
       })
-
-      if (!res.ok) {
-        // Revert on error
-        setProjects((prev) =>
-          prev.map((p) =>
-            p.id === project.id ? { ...p, enabled: project.enabled } : p
-          )
-        )
-        console.error("Error toggling project:", await res.text())
-      }
     } catch (error) {
       // Revert on error
       setProjects((prev) =>

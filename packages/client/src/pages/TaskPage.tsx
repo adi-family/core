@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useState, useMemo } from "react"
 import { useParams } from "react-router-dom"
 import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import {
@@ -11,7 +11,7 @@ import {
 import { Badge } from '@adi-simple/ui/badge'
 import { Button } from '@adi-simple/ui/button'
 import { Calendar, ExternalLink, ArrowLeft, Circle, CheckCircle2, Loader2, XCircle, Clock, RefreshCw, GitMerge, Star, AlertTriangle, Shield, Eye, TrendingUp, Zap } from "lucide-react"
-import { client } from "@/lib/client"
+import { createAuthenticatedClient } from "@/lib/client"
 import { navigateTo } from "@/utils/navigation"
 import { apiCall } from "@/utils/apiCall"
 import { useAuth } from "@clerk/clerk-react"
@@ -21,13 +21,14 @@ import type { Task, TaskSource, PipelineArtifact } from "../../../types"
 
 export function TaskPage() {
   const { id } = useParams<{ id: string }>()
+  const { getToken } = useAuth()
+  const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const [task, setTask] = useState<Task | null>(null)
   const [taskSource, setTaskSource] = useState<TaskSource | null>(null)
   const [evaluationReport, setEvaluationReport] = useState<string | null>(null)
   const [mergeRequestArtifacts, setMergeRequestArtifacts] = useState<PipelineArtifact[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const { getToken } = useAuth()
   const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
   useEffect(() => {
