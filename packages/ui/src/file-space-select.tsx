@@ -2,7 +2,9 @@ import { useState, useEffect } from "react"
 import { Combobox } from './combobox'
 import { Label } from './label'
 import type { FileSpace } from '@adi-simple/types'
-import type { FileSpaceApiClient } from './mock-client'
+import type { BaseClient } from '@adi-family/http'
+
+export type FileSpaceApiClient = BaseClient
 
 interface FileSpaceSelectProps {
   client: FileSpaceApiClient
@@ -31,21 +33,10 @@ export function FileSpaceSelect({
   useEffect(() => {
     const fetchFileSpaces = async () => {
       try {
-        let res: Response
-        if (projectId) {
-          res = await client["file-spaces"]["by-project"][":projectId"].$get({
-            param: { projectId }
-          })
-        } else {
-          res = await client["file-spaces"].$get()
-        }
-
-        if (!res.ok) {
-          console.error("Error fetching file spaces:", await res.text())
-          setLoading(false)
-          return
-        }
-        const data = await res.json()
+        const { listFileSpacesConfig } = await import('@adi/api-contracts/file-spaces')
+        const data = await client.run(listFileSpacesConfig, {
+          query: projectId ? { project_id: projectId } : undefined
+        })
         setFileSpaces(data)
         setLoading(false)
       } catch (error) {

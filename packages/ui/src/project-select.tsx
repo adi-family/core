@@ -2,6 +2,7 @@ import { useState, useEffect } from "react"
 import { Combobox } from './combobox'
 import { Label } from './label'
 import { Check, Folder } from 'lucide-react'
+import type { BaseClient } from '@adi-family/http'
 
 export type Project = {
   id: string
@@ -10,11 +11,7 @@ export type Project = {
   updated_at: string
 }
 
-export type ProjectApiClient = {
-  projects: {
-    $get: () => Promise<Response>
-  }
-}
+export type ProjectApiClient = BaseClient
 
 interface ProjectSelectProps {
   client: ProjectApiClient
@@ -39,13 +36,9 @@ export function ProjectSelect({
   useEffect(() => {
     const fetchProjects = async () => {
       try{
-        const res = await client.projects.$get()
-        if (!res.ok) {
-          console.error("Error fetching projects:", await res.text())
-          setLoading(false)
-          return
-        }
-        const data = await res.json()
+        // Import the config dynamically to avoid circular dependencies
+        const { listProjectsConfig } = await import('@adi/api-contracts/projects')
+        const data = await client.run(listProjectsConfig, {})
         setProjects(data)
         setLoading(false)
       } catch (error) {

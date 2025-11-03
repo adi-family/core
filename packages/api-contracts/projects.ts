@@ -10,8 +10,11 @@ const projectSchema = z.object({
   id: z.string(),
   name: z.string(),
   enabled: z.boolean(),
+  job_executor_gitlab: z.any().nullable(),
+  ai_provider_configs: z.any().nullable(),
   created_at: z.string(),
-  updated_at: z.string()
+  updated_at: z.string(),
+  last_synced_at: z.string().nullable()
 })
 
 /**

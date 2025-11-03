@@ -15,6 +15,12 @@ export default tseslint.config({
     'client/dist/**',
     '*.config.js',
     'client/src/vite-env.d.ts',
+    'packages/landing/.next/**',
+    'packages/landing/next-env.d.ts',
+    'packages/worker/bundles/**',
+    '**/bundles/**',
+    '**/.next/**',
+    '**/next-env.d.ts',
   ],
 }, js.configs.recommended, ...tseslint.configs.recommended, {
   files: ['**/*.{ts,tsx}'],

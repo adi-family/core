@@ -28,5 +28,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src/**/*"],
+  "exclude": ["demo.tsx", "src/EntitySelectDemo.tsx", "src/mock-client.ts"]
 }

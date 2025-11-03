@@ -93,20 +93,13 @@ export function FileSpaceMultistageForm() {
               enabled: formData.enabled,
             }
 
-            return client["file-spaces"].$post({
-              json: payload,
+            const { createFileSpaceConfig } = await import('@adi/api-contracts/file-spaces')
+            return client.run(createFileSpaceConfig, {
+              body: payload,
             })
           })
 
-          const results = await Promise.all(promises)
-          const failedResults = results.filter((res) => !res.ok)
-
-          if (failedResults.length > 0) {
-            const errorText = await failedResults[0].text()
-            setError(`Failed to create ${failedResults.length} file space(s): ${errorText}`)
-            setLoading(false)
-            return
-          }
+          await Promise.all(promises)
         } else {
           // GitHub single repository creation
           const fileSpaceName = formData.name || `GitHub: ${githubConfig.repo}`
@@ -118,16 +111,10 @@ export function FileSpaceMultistageForm() {
             enabled: formData.enabled,
           }
 
-          const res = await client["file-spaces"].$post({
-            json: payload,
+          const { createFileSpaceConfig } = await import('@adi/api-contracts/file-spaces')
+          await client.run(createFileSpaceConfig, {
+            body: payload,
           })
-
-          if (!res.ok) {
-            const errorText = await res.text()
-            setError(`Failed to create file space: ${errorText}`)
-            setLoading(false)
-            return
-          }
         }
 
         setSuccess(true)

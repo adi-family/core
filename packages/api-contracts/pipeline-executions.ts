@@ -9,6 +9,41 @@ import { route } from '@adi-family/http'
 const artifactSchema = z.any()  // Temporarily use any for rapid conversion
 
 /**
+ * List pipeline executions
+ * GET /api/pipeline-executions
+ */
+export const listPipelineExecutionsConfig = {
+  method: 'GET',
+  route: route.static('/api/pipeline-executions'),
+  query: {
+    schema: z.object({
+      session_id: z.string().optional(),
+      worker_repository_id: z.string().optional()
+    }).optional()
+  },
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * List all pipeline artifacts
+ * GET /api/pipeline-artifacts
+ */
+export const listPipelineArtifactsConfig = {
+  method: 'GET',
+  route: route.static('/api/pipeline-artifacts'),
+  query: {
+    schema: z.object({
+      execution_id: z.string().optional()
+    }).optional()
+  },
+  response: {
+    schema: z.array(artifactSchema)
+  }
+} as const
+
+/**
  * Get artifacts by execution ID
  * GET /pipeline-executions/:executionId/artifacts
  */

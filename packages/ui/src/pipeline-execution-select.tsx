@@ -3,7 +3,9 @@ import { Combobox } from './combobox'
 import { Label } from './label'
 import { Clock, RefreshCw, CheckCircle, XCircle, Ban } from 'lucide-react'
 import type { PipelineExecution } from '@adi-simple/types'
-import type { PipelineExecutionApiClient } from './mock-client'
+import type { BaseClient } from '@adi-family/http'
+
+export type PipelineExecutionApiClient = BaseClient
 
 interface PipelineExecutionSelectProps {
   client: PipelineExecutionApiClient
@@ -34,25 +36,15 @@ export function PipelineExecutionSelect({
   useEffect(() => {
     const fetchPipelineExecutions = async () => {
       try {
-        let res: Response
+        const { listPipelineExecutionsConfig } = await import('@adi/api-contracts/pipeline-executions')
+        const query: { session_id?: string; worker_repository_id?: string } = {}
         if (sessionId) {
-          res = await client["pipeline-executions"]["by-session"][":sessionId"].$get({
-            param: { sessionId }
-          })
-        } else if (workerRepositoryId) {
-          res = await client["pipeline-executions"]["by-worker-repository"][":workerRepositoryId"].$get({
-            param: { workerRepositoryId }
-          })
-        } else {
-          res = await client["pipeline-executions"].$get()
+          query.session_id = sessionId
         }
-
-        if (!res.ok) {
-          console.error("Error fetching pipeline executions:", await res.text())
-          setLoading(false)
-          return
+        if (workerRepositoryId) {
+          query.worker_repository_id = workerRepositoryId
         }
-        const data = await res.json()
+        const data = await client.run(listPipelineExecutionsConfig, { query })
         setPipelineExecutions(data)
         setLoading(false)
       } catch (error) {

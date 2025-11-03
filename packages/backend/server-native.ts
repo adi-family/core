@@ -73,7 +73,7 @@ const allHandlers = [
 ]
 
 // Create native request handler
-const requestHandler = createHandler(allHandlers)
+const requestHandler = createHandler(allHandlers as any)
 
 // CORS and middleware wrapper
 const wrappedHandler = async (req: any, res: any) => {

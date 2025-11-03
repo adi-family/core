@@ -478,7 +478,7 @@ export const mockApiClient: ApiClient = {
 }
 
 // Mock API client for projects
-export const mockProjectClient: ProjectApiClient = {
+export const mockProjectClient = {
   projects: {
     $get: async () => {
       return new Response(JSON.stringify(mockProjects), {
@@ -487,7 +487,7 @@ export const mockProjectClient: ProjectApiClient = {
       })
     }
   }
-}
+} as any as ProjectApiClient
 
 // API client types for new entities
 export type TaskSourceApiClient = {

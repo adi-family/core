@@ -2,13 +2,15 @@ import { useState, useEffect } from "react"
 import { Combobox } from './combobox'
 import { Label } from './label'
 import type { WorkerRepository } from '@adi-simple/types'
-import type { WorkerRepositoryApiClient } from './mock-client'
+import type { BaseClient } from '@adi-family/http'
+
+export type WorkerRepositoryApiClient = BaseClient
 
 interface WorkerRepositorySelectProps {
   client: WorkerRepositoryApiClient
   value: string
   onChange: (workerRepositoryId: string) => void
-  projectId?: string
+  projectId: string // Made required since API needs it
   required?: boolean
   label?: string
   placeholder?: string
@@ -31,22 +33,12 @@ export function WorkerRepositorySelect({
   useEffect(() => {
     const fetchWorkerRepositories = async () => {
       try {
-        let res: Response
-        if (projectId) {
-          res = await client["worker-repositories"]["by-project"][":projectId"].$get({
-            param: { projectId }
-          })
-        } else {
-          res = await client["worker-repositories"].$get()
-        }
-
-        if (!res.ok) {
-          console.error("Error fetching worker repositories:", await res.text())
-          setLoading(false)
-          return
-        }
-        const data = await res.json()
-        setWorkerRepositories(data)
+        const { getWorkerRepositoryByProjectConfig } = await import('@adi/api-contracts/worker-repositories')
+        const data = await client.run(getWorkerRepositoryByProjectConfig, {
+          params: { projectId }
+        })
+        // API returns single repository, wrap in array for consistency
+        setWorkerRepositories([data])
         setLoading(false)
       } catch (error) {
         console.error("Error fetching worker repositories:", error)
@@ -54,10 +46,12 @@ export function WorkerRepositorySelect({
       }
     }
 
-    fetchWorkerRepositories().catch((error) => {
-      console.error("Error fetching worker repositories:", error)
-      setLoading(false)
-    })
+    if (projectId) {
+      fetchWorkerRepositories().catch((error) => {
+        console.error("Error fetching worker repositories:", error)
+        setLoading(false)
+      })
+    }
   }, [projectId, client])
 
   const formatWorkerRepositoryLabel = (workerRepository: WorkerRepository) => {

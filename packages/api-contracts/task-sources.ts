@@ -23,6 +23,48 @@ export const listTaskSourcesConfig = {
 } as const
 
 /**
+ * Get task source by ID
+ * GET /api/task-sources/:id
+ */
+export const getTaskSourceConfig = {
+  method: 'GET',
+  route: route.dynamic('/api/task-sources/:id', z.object({ id: z.string() })),
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * Create task source
+ * POST /api/task-sources
+ */
+export const createTaskSourceConfig = {
+  method: 'POST',
+  route: route.static('/api/task-sources'),
+  body: {
+    schema: z.any()
+  },
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * Update task source
+ * PATCH /api/task-sources/:id
+ */
+export const updateTaskSourceConfig = {
+  method: 'PATCH',
+  route: route.dynamic('/api/task-sources/:id', z.object({ id: z.string() })),
+  body: {
+    schema: z.any()
+  },
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
  * Sync task source
  * POST /api/task-sources/:id/sync
  */

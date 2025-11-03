@@ -2,7 +2,9 @@ import { useState, useEffect } from "react"
 import { Combobox } from './combobox'
 import { Label } from './label'
 import type { TaskSource } from '@adi-simple/types'
-import type { TaskSourceApiClient } from './mock-client'
+import type { BaseClient } from '@adi-family/http'
+
+export type TaskSourceApiClient = BaseClient
 
 interface TaskSourceSelectProps {
   client: TaskSourceApiClient
@@ -31,21 +33,10 @@ export function TaskSourceSelect({
   useEffect(() => {
     const fetchTaskSources = async () => {
       try {
-        let res: Response
-        if (projectId) {
-          res = await client["task-sources"]["by-project"][":projectId"].$get({
-            param: { projectId }
-          })
-        } else {
-          res = await client["task-sources"].$get()
-        }
-
-        if (!res.ok) {
-          console.error("Error fetching task sources:", await res.text())
-          setLoading(false)
-          return
-        }
-        const data = await res.json()
+        const { listTaskSourcesConfig } = await import('@adi/api-contracts/task-sources')
+        const data = await client.run(listTaskSourcesConfig, {
+          query: projectId ? { project_id: projectId } : undefined
+        })
         setTaskSources(data)
         setLoading(false)
       } catch (error) {

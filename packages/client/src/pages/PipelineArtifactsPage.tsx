@@ -9,11 +9,16 @@ export function PipelineArtifactsPage() {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
 
+  const fetchFn = async () => {
+    const { listPipelineArtifactsConfig } = await import('@adi/api-contracts/pipeline-executions')
+    return client.run(listPipelineArtifactsConfig, {})
+  }
+
   return (
     <ListPage<PipelineArtifact>
       title="Pipeline Artifacts"
       description="View merge requests and execution results from pipelines"
-      fetchFn={() => client['pipeline-artifacts'].$get()}
+      fetchFn={fetchFn}
       presenter={PipelineArtifactPresenter}
       emptyMessage="No pipeline artifacts found"
     />

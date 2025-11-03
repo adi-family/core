@@ -56,35 +56,34 @@ export function TaskPage() {
 
         // Fetch task source
         if (taskData.task_source_id) {
-          const taskSourceRes = await client["task-sources"][":id"].$get({
-            param: { id: taskData.task_source_id },
-          })
-
-          if (taskSourceRes.ok) {
-            const taskSourceData = await taskSourceRes.json()
+          try {
+            const { getTaskSourceConfig } = await import('@adi/api-contracts/task-sources')
+            const taskSourceData = await client.run(getTaskSourceConfig, {
+              params: { id: taskData.task_source_id },
+            })
             setTaskSource(taskSourceData)
+          } catch (error) {
+            console.error('Error fetching task source:', error)
           }
         }
 
         // Fetch evaluation report from pipeline artifacts
         if (taskData.ai_evaluation_status === 'completed') {
           try {
-            const artifactsRes = await client["pipeline-artifacts"].$get()
-            if (artifactsRes.ok) {
-              const artifacts = await artifactsRes.json() as PipelineArtifact[]
-              const evaluationArtifact = artifacts.find(
-                (a) => a.artifact_type === 'text' &&
-                       (a.metadata as any)?.task_id === taskData.id
-              )
-              if (evaluationArtifact) {
-                const content = (evaluationArtifact.metadata as any)?.evaluation_content
-                if (content) {
-                  setEvaluationReport(content)
-                }
+            const { listPipelineArtifactsConfig } = await import('@adi/api-contracts/pipeline-executions')
+            const artifacts = await client.run(listPipelineArtifactsConfig, {}) as PipelineArtifact[]
+            const evaluationArtifact = artifacts.find(
+              (a) => a.artifact_type === 'text' &&
+                     (a.metadata as any)?.task_id === taskData.id
+            )
+            if (evaluationArtifact) {
+              const content = (evaluationArtifact.metadata as any)?.evaluation_content
+              if (content) {
+                setEvaluationReport(content)
               }
             }
-          } catch (err) {
-            console.error('Failed to fetch evaluation report:', err)
+          } catch (error) {
+            console.error('Failed to fetch evaluation report:', error)
           }
         }
 
@@ -171,12 +170,14 @@ export function TaskPage() {
             const taskData = await res.json()
             setTask(taskData)
             if (taskData.task_source_id) {
-              const taskSourceRes = await client["task-sources"][":id"].$get({
-                param: { id: taskData.task_source_id },
-              })
-              if (taskSourceRes.ok) {
-                const taskSourceData = await taskSourceRes.json()
+              try {
+                const { getTaskSourceConfig } = await import('@adi/api-contracts/task-sources')
+                const taskSourceData = await client.run(getTaskSourceConfig, {
+                  params: { id: taskData.task_source_id },
+                })
                 setTaskSource(taskSourceData)
+              } catch (error) {
+                console.error('Error fetching task source:', error)
               }
             }
           }

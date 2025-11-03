@@ -80,7 +80,10 @@ export function createProjectHandlers(sql: Sql) {
     const userId = await getUserId(ctx)
     const { name, enabled } = ctx.body
 
-    const project = await queries.createProject(sql, { name, enabled })
+    const project = await queries.createProject(sql, {
+      name,
+      ...(enabled !== undefined && { enabled })
+    })
 
     await userAccessQueries.grantAccess(sql, {
       user_id: userId,

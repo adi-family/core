@@ -142,16 +142,10 @@ export function TaskSourceMultistageForm() {
         }
       }
 
-      const res = await client["task-sources"].$post({
-        json: payload,
+      const { createTaskSourceConfig } = await import('@adi/api-contracts/task-sources')
+      await client.run(createTaskSourceConfig, {
+        body: payload,
       })
-
-      if (!res.ok) {
-        const errorText = await res.text()
-        setError(`Failed to create task source: ${errorText}`)
-        setLoading(false)
-        return
-      }
 
       setSuccess(true)
       setLoading(false)
@@ -159,8 +153,9 @@ export function TaskSourceMultistageForm() {
       setTimeout(() => {
         navigate("/file-spaces")
       }, 1500)
-    } catch {
-      setError("Error creating task source")
+    } catch (error) {
+      console.error("Error creating task source:", error)
+      setError(`Error creating task source: ${error instanceof Error ? error.message : 'Unknown error'}`)
       setLoading(false)
     }
   }

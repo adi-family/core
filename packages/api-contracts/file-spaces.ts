@@ -35,6 +35,39 @@ export const listFileSpacesConfig = {
 } as const
 
 /**
+ * Get file space by ID
+ * GET /api/file-spaces/:id
+ */
+export const getFileSpaceConfig = {
+  method: 'GET',
+  route: route.dynamic('/api/file-spaces/:id', z.object({ id: z.string() })),
+  response: {
+    schema: fileSpaceSchema
+  }
+} as const
+
+/**
+ * Create file space
+ * POST /api/file-spaces
+ */
+export const createFileSpaceConfig = {
+  method: 'POST',
+  route: route.static('/api/file-spaces'),
+  body: {
+    schema: z.object({
+      name: z.string(),
+      type: z.enum(['gitlab', 'github']),
+      project_id: z.string(),
+      enabled: z.boolean().optional(),
+      config: z.any()
+    })
+  },
+  response: {
+    schema: fileSpaceSchema
+  }
+} as const
+
+/**
  * Get file spaces by task ID
  * GET /api/tasks/:id/file-spaces
  */

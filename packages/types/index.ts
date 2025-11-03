@@ -342,7 +342,7 @@ export type WorkerRepository = {
   id: string
   project_id: string
   source_gitlab: unknown
-  current_version: string
+  current_version: string | null
   created_at: string
   updated_at: string
 }
