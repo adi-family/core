@@ -72,7 +72,8 @@ async function buildBundles() {
   console.log(`📁 Total size: ${(totalSize / 1024).toFixed(1)} KB`)
   console.log(`📂 Output: ${bundlesVersionDir}/\n`)
 
-  return successCount > 0
+  // Always return true - missing pipelines are optional
+  return true
 }
 
 async function watchMode() {

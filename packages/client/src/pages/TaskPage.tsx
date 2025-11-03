@@ -437,7 +437,7 @@ export function TaskPage() {
                   Evaluation Result
                 </h3>
                 <Badge
-                  variant={task.ai_evaluation_result === 'ready' ? 'green' : 'yellow'}
+                  variant={task.ai_evaluation_result === 'ready' ? 'green' : 'warning'}
                   className="text-sm"
                 >
                   {task.ai_evaluation_result === 'ready' ? 'Ready for Implementation' : 'Needs Clarification'}
@@ -568,7 +568,7 @@ export function TaskPage() {
                       {metadata?.completed !== undefined && (
                         <div className="flex items-center justify-between">
                           <span className="text-sm text-gray-300">Status:</span>
-                          <Badge variant={metadata.completed ? 'green' : 'yellow'} className="text-xs">
+                          <Badge variant={metadata.completed ? 'green' : 'warning'} className="text-xs">
                             {metadata.completed ? 'Completed' : 'Needs Clarification'}
                           </Badge>
                         </div>
@@ -628,7 +628,7 @@ export function TaskPage() {
                         variant={
                           metrics.priority_quadrant === 'quick_win' ? 'green' :
                           metrics.priority_quadrant === 'major_project' ? 'blue' :
-                          metrics.priority_quadrant === 'fill_in' ? 'yellow' : 'gray'
+                          metrics.priority_quadrant === 'fill_in' ? 'warning' : 'gray'
                         }
                         className="text-sm"
                       >
@@ -653,7 +653,7 @@ export function TaskPage() {
                 {/* Status Badges */}
                 <div className="flex flex-wrap gap-2">
                   {metrics.is_ai_blocked && (
-                    <Badge variant="red" className="flex items-center gap-1">
+                    <Badge variant="danger" className="flex items-center gap-1">
                       <AlertTriangle className="h-3 w-3" />
                       AI Blocked
                     </Badge>
@@ -691,7 +691,7 @@ export function TaskPage() {
                     </div>
                     <div>
                       <span className="text-xs text-gray-400">Risk Level</span>
-                      <Badge variant={result.risk_level === 'high' ? 'red' : result.risk_level === 'medium' ? 'yellow' : 'green'} className="text-xs">
+                      <Badge variant={result.risk_level === 'high' ? 'danger' : result.risk_level === 'medium' ? 'warning' : 'green'} className="text-xs">
                         {result.risk_level}
                       </Badge>
                     </div>
@@ -700,7 +700,7 @@ export function TaskPage() {
                       <Badge
                         variant={
                           metrics.implementation_status.confidence === 'high' ? 'green' :
-                          metrics.implementation_status.confidence === 'medium' ? 'yellow' : 'orange'
+                          metrics.implementation_status.confidence === 'medium' ? 'warning' : 'orange'
                         }
                         className="text-xs"
                       >

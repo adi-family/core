@@ -120,7 +120,7 @@ export function TaskSourceMultistageForm() {
         payload = {
           project_id: formData.project_id,
           name: taskSourceName,
-          type: formData.type,
+          type: 'gitlab_issues',
           config: gitlabConfig,
           enabled: formData.enabled,
         }
@@ -128,7 +128,7 @@ export function TaskSourceMultistageForm() {
         payload = {
           project_id: formData.project_id,
           name: taskSourceName,
-          type: formData.type,
+          type: 'github_issues',
           config: githubConfig,
           enabled: formData.enabled,
         }
@@ -136,7 +136,7 @@ export function TaskSourceMultistageForm() {
         payload = {
           project_id: formData.project_id,
           name: taskSourceName,
-          type: formData.type,
+          type: 'jira',
           config: jiraConfig,
           enabled: formData.enabled,
         }

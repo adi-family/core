@@ -48,10 +48,15 @@ export function FileSpaceMultistageForm() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    project_id: string
+    name: string
+    type: FileSpaceType | ""
+    enabled: boolean
+  }>({
     project_id: "",
     name: "",
-    type: "" as FileSpaceType | "",
+    type: "",
     enabled: true,
   })
 
@@ -85,7 +90,7 @@ export function FileSpaceMultistageForm() {
             const payload: CreateFileSpaceInput = {
               project_id: formData.project_id,
               name: fileSpaceName,
-              type: formData.type,
+              type: 'gitlab',
               config: {
                 ...gitlabConfig,
                 repo,
@@ -100,13 +105,13 @@ export function FileSpaceMultistageForm() {
           })
 
           await Promise.all(promises)
-        } else {
+        } else if (formData.type === "github") {
           // GitHub single repository creation
           const fileSpaceName = formData.name || `GitHub: ${githubConfig.repo}`
           const payload: CreateFileSpaceInput = {
             project_id: formData.project_id,
             name: fileSpaceName,
-            type: formData.type,
+            type: 'github',
             config: githubConfig,
             enabled: formData.enabled,
           }

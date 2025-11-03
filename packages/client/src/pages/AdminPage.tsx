@@ -15,6 +15,12 @@ import {
   formatDuration,
   type ApiUsageMetric
 } from '@/config/pricing'
+import {
+  getWorkerReposConfig,
+  refreshWorkerReposConfig,
+  getUsageMetricsConfig,
+  executeAdminOperationConfig
+} from '@adi/api-contracts/admin'
 
 interface WorkerRepository {
   id: string
@@ -70,13 +76,8 @@ export function AdminPage() {
     setLoading(true)
     setError(null)
     try {
-      const response = await client.admin['worker-repos'].$get()
-      if (response.ok) {
-        const data = await response.json()
-        setRepositories(data.repositories as WorkerRepository[])
-      } else {
-        setError('Failed to load worker repositories')
-      }
+      const data = await client.run(getWorkerReposConfig)
+      setRepositories(data.repositories as WorkerRepository[])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
@@ -91,15 +92,9 @@ export function AdminPage() {
     setRefreshResults(null)
 
     try {
-      const response = await client.admin['refresh-worker-repos'].$post({})
-      if (response.ok) {
-        const data = await response.json() as RefreshResponse
-        setRefreshResults(data)
-        await loadRepositories()
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || 'Failed to refresh worker repositories')
-      }
+      const data = await client.run(refreshWorkerReposConfig, {}) as RefreshResponse
+      setRefreshResults(data)
+      await loadRepositories()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
@@ -112,13 +107,8 @@ export function AdminPage() {
     setUsageLoading(true)
     setError(null)
     try {
-      const response = await client.admin['usage-metrics'].$get()
-      if (response.ok) {
-        const data = await response.json()
-        setUsageMetrics(data.recent as ApiUsageMetric[])
-      } else {
-        setError('Failed to load usage metrics')
-      }
+      const data = await client.run(getUsageMetricsConfig)
+      setUsageMetrics(data.recent as ApiUsageMetric[])
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')
     } finally {
@@ -147,24 +137,20 @@ export function AdminPage() {
     setError(null)
 
     try {
-      const response = await client.admin.operations[operation as 'check-stale-pipelines' | 'recover-stuck-tasks' | 'create-missing-worker-repos'].$post({})
-      if (response.ok) {
-        const data = await response.json()
-        setOpsResult({
-          type: operation,
-          message: data.message || 'Operation completed successfully',
-          success: true
-        })
-        if (operation === 'create-missing-worker-repos') {
-          setTimeout(() => {
-            if (activeTab === 'repositories') {
-              loadRepositories()
-            }
-          }, 5000)
-        }
-      } else {
-        const errorData = await response.json()
-        setError(errorData.error || `Failed to execute ${operation}`)
+      const data = await client.run(executeAdminOperationConfig, {
+        params: { operation }
+      })
+      setOpsResult({
+        type: operation,
+        message: data.message || 'Operation completed successfully',
+        success: true
+      })
+      if (operation === 'create-missing-worker-repos') {
+        setTimeout(() => {
+          if (activeTab === 'repositories') {
+            loadRepositories()
+          }
+        }, 5000)
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error')

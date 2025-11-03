@@ -5,7 +5,7 @@
  * Selected project is persisted to localStorage and used to filter
  * tasks, sources, and other project-specific data.
  */
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { createContext, useContext, useState, type ReactNode } from 'react';
 
 interface ProjectContextType {
   selectedProjectId: string | null;

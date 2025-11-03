@@ -219,6 +219,14 @@ export type Task = {
     can_implement?: boolean
     blockers?: string[]
     requirements?: string[]
+    confidence?: number
+    missing_information?: string[]
+    risks?: string[]
+    agent_instructions?: {
+      required_context_files?: string[]
+      suggested_steps?: string[]
+      follow_patterns_from?: string[]
+    }
     [key: string]: unknown
   } | null
   ai_evaluation_session_id: string | null

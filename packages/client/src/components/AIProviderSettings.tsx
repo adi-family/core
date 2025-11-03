@@ -11,6 +11,12 @@ import { siAnthropic, siOpenai, siGoogle } from "simple-icons"
 import { toast } from "sonner"
 import type { Provider, ProviderType } from "@adi-simple/config/shared"
 import { supportedProviders } from "@adi-simple/config/shared"
+import {
+  getProjectAIProvidersConfig,
+  updateProjectAIProviderConfig,
+  deleteProjectAIProviderConfig,
+  validateProjectAIProviderConfig
+} from "@adi/api-contracts/projects"
 
 type AIProviderSettingsProps = {
   projectId: string
@@ -28,10 +34,6 @@ type FormData = {
   model?: string
   max_tokens?: number
   temperature?: number
-}
-
-type ErrorResponse = {
-  error?: string
 }
 
 type StoreState = {
@@ -77,14 +79,10 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
   useEffect(() => {
     const fetchConfigs = async () => {
       try {
-        const res = await client.projects[":id"]["ai-providers"].$get({
-          param: { id: projectId },
+        const data = await client.run(getProjectAIProvidersConfig, {
+          params: { id: projectId },
         })
-
-        if (res.ok) {
-          const data = await res.json()
-          store.currentConfigs = data
-        }
+        store.currentConfigs = data
         store.ui.loading = false
       } catch (err) {
         console.error("Failed to load AI provider configs:", err)
@@ -115,8 +113,8 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         project_id: 'project_id' in existingConfig ? existingConfig.project_id : undefined,
         location: 'location' in existingConfig ? existingConfig.location : undefined,
         model: existingConfig.model,
-        max_tokens: existingConfig.max_tokens,
-        temperature: existingConfig.temperature,
+        max_tokens: 'max_tokens' in existingConfig ? existingConfig.max_tokens : undefined,
+        temperature: 'temperature' in existingConfig ? existingConfig.temperature : undefined,
       }
     } else {
       store.formData = {
@@ -144,18 +142,11 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     store.ui.error = null
 
     try {
-      const res = await client.projects[":id"]["ai-providers"][":provider"].validate.$post({
-        param: { id: projectId, provider: snap.selectedProvider },
-        json: snap.formData,
+      const result = await client.run(validateProjectAIProviderConfig, {
+        params: { id: projectId, provider: snap.selectedProvider },
+        body: snap.formData,
       })
-
-      if (res.ok) {
-        const result = await res.json()
-        store.validationResult = result
-      } else {
-        const errorData: ErrorResponse = await res.json()
-        store.ui.error = errorData.error || "Validation failed"
-      }
+      store.validationResult = result
     } catch (err) {
       store.ui.error = `Validation error: ${err instanceof Error ? err.message : "Unknown error"}`
     } finally {
@@ -170,32 +161,23 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     store.ui.error = null
 
     try {
-      const res = await client.projects[":id"]["ai-providers"][":provider"].$put({
-        param: { id: projectId, provider: snap.selectedProvider },
-        json: snap.formData,
+      const updatedConfig = await client.run(updateProjectAIProviderConfig, {
+        params: { id: projectId, provider: snap.selectedProvider },
+        body: snap.formData,
       })
 
-      if (res.ok) {
-        const updatedConfig = await res.json()
-        store.currentConfigs = {
-          ...store.currentConfigs,
-          [snap.selectedProvider]: updatedConfig,
-        }
-        store.selectedProvider = null
-        store.validationResult = null
-
-        // Reload configs to get the full updated state
-        const reloadRes = await client.projects[":id"]["ai-providers"].$get({
-          param: { id: projectId },
-        })
-        if (reloadRes.ok) {
-          const data = await reloadRes.json()
-          store.currentConfigs = data
-        }
-      } else {
-        const errorData: ErrorResponse = await res.json()
-        store.ui.error = errorData.error || "Failed to save configuration"
+      store.currentConfigs = {
+        ...store.currentConfigs,
+        [snap.selectedProvider]: updatedConfig,
       }
+      store.selectedProvider = null
+      store.validationResult = null
+
+      // Reload configs to get the full updated state
+      const data = await client.run(getProjectAIProvidersConfig, {
+        params: { id: projectId },
+      })
+      store.currentConfigs = data
     } catch (err) {
       store.ui.error = `Save error: ${err instanceof Error ? err.message : "Unknown error"}`
     } finally {
@@ -209,21 +191,17 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     }
 
     try {
-      const res = await client.projects[":id"]["ai-providers"][":provider"].$delete({
-        param: { id: projectId, provider },
+      await client.run(deleteProjectAIProviderConfig, {
+        params: { id: projectId, provider },
       })
 
-      if (res.ok) {
-        if (store.currentConfigs) {
-          const updated = { ...store.currentConfigs }
-          delete updated[provider]
-          store.currentConfigs = updated
-        }
-        if (snap.selectedProvider === provider) {
-          store.selectedProvider = null
-        }
-      } else {
-        toast.error("Failed to delete configuration")
+      if (store.currentConfigs) {
+        const updated = { ...store.currentConfigs }
+        delete updated[provider]
+        store.currentConfigs = updated
+      }
+      if (snap.selectedProvider === provider) {
+        store.selectedProvider = null
       }
     } catch (err) {
       toast.error(`Delete error: ${err instanceof Error ? err.message : "Unknown error"}`)

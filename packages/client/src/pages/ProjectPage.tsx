@@ -16,6 +16,7 @@ import type { Project } from "../../../types"
 import { GitlabExecutorConfig } from "@/components/GitlabExecutorConfig"
 import { AIProviderSettings } from "@/components/AIProviderSettings"
 import { designTokens } from "@/theme/tokens"
+import { getProjectConfig } from "@adi/api-contracts/projects"
 
 type TabType = "overview" | "configuration" | "ai-providers"
 
@@ -42,18 +43,9 @@ export function ProjectPage() {
       }
 
       try {
-        const res = await client.projects[":id"].$get({
-          param: { id },
+        const data = await client.run(getProjectConfig, {
+          params: { id },
         })
-
-        if (!res.ok) {
-          const errorText = await res.text()
-          setError(errorText || "Failed to fetch project")
-          setLoading(false)
-          return
-        }
-
-        const data = await res.json()
         setProject(data)
         setLoading(false)
       } catch {

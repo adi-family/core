@@ -40,11 +40,7 @@ export function HomePage() {
   const [projectStats, setProjectStats] = useState<{
     total_tasks: number
     completed_tasks: number
-    in_progress_tasks: number
-    failed_tasks: number
     pending_tasks: number
-    task_sources: number
-    file_spaces: number
   } | null>(null)
   const [loading, setLoading] = useState(true)
   const [loadingStats, setLoadingStats] = useState(false)
@@ -380,7 +376,7 @@ export function HomePage() {
                     <div key={space.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 border border-slate-600/30">
                       <div>
                         <div className="text-white font-medium text-sm">{space.name}</div>
-                        <div className="text-gray-400 text-xs">{space.git_url}</div>
+                        <div className="text-gray-400 text-xs">{space.config.repo}</div>
                       </div>
                     </div>
                   ))}
