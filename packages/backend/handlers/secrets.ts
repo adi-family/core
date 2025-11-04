@@ -85,7 +85,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateGitLabRawToken = handler(validateGitLabRawTokenConfig, async (ctx) => {
-    const { token, hostname, scopes } = ctx.body
+    const { token, hostname, scopes: _scopes } = ctx.body
 
     try {
       const headers: Record<string, string> = {
@@ -120,7 +120,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateGitLabToken = handler(validateGitLabTokenConfig, async (ctx) => {
-    const { secretId, hostname, scopes } = ctx.body
+    const { secretId, hostname, scopes: _scopes } = ctx.body
 
     try {
       const secret = await secretQueries.findSecretById(sql, secretId)
