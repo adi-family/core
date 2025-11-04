@@ -95,3 +95,27 @@ export const evaluateTaskConfig = {
     schema: z.any()
   }
 } as const
+
+/**
+ * Get tasks by task source ID
+ * GET /api/tasks/by-task-source/:taskSourceId
+ */
+export const getTasksByTaskSourceConfig = {
+  method: 'GET',
+  route: route.dynamic('/api/tasks/by-task-source/:taskSourceId', z.object({ taskSourceId: z.string() })),
+  response: {
+    schema: z.any()
+  }
+} as const
+
+/**
+ * Get tasks by project ID
+ * GET /api/tasks/by-project/:projectId
+ */
+export const getTasksByProjectConfig = {
+  method: 'GET',
+  route: route.dynamic('/api/tasks/by-project/:projectId', z.object({ projectId: z.string() })),
+  response: {
+    schema: z.any()
+  }
+} as const

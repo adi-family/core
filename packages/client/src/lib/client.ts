@@ -11,7 +11,7 @@ const API_URL = import.meta.env.VITE_API_URL
 /**
  * Create authenticated API client with Clerk token
  */
-export function createAuthenticatedClient(getToken: () => Promise<string | null>) {
+export function createAuthenticatedClient(getToken: () => Promise<string | null>): BaseClient {
   return new BaseClient({
     baseUrl: API_URL,
     async fetch(input: RequestInfo | URL, init?: RequestInit) {

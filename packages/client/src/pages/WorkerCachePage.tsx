@@ -17,6 +17,7 @@ import {
 } from '@adi-simple/ui/table'
 import { Badge } from '@adi-simple/ui/badge'
 import { createAuthenticatedClient } from "@/lib/client"
+import { getWorkerCacheConfig } from '@adi/api-contracts/worker-cache'
 import { Loader2, CheckCircle2, Circle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -61,21 +62,17 @@ export function WorkerCachePage() {
 
   useEffect(() => {
     const fetchCache = async () => {
-      const res = await (client as any)["worker-cache"].$get()
-      if (!res.ok) {
-        console.error("Error fetching worker cache:", await res.text())
+      try {
+        const data = await client.run(getWorkerCacheConfig)
+        setCache(data)
+      } catch (error) {
+        console.error("Error fetching worker cache:", error)
+      } finally {
         setLoading(false)
-        return
       }
-      const data = await res.json()
-      setCache(data)
-      setLoading(false)
     }
 
-    fetchCache().catch((error) => {
-      console.error("Error fetching worker cache:", error)
-      setLoading(false)
-    })
+    fetchCache()
 
     const interval = setInterval(() => {
       fetchCache().catch(console.error)

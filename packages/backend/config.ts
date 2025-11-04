@@ -18,6 +18,7 @@ export const BACKEND_URL = process.env.BACKEND_URL || `http://localhost:${SERVER
 
 export const API_TOKEN = process.env.API_TOKEN || process.env.BACKEND_API_TOKEN || ''
 export const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || ''
+export const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || ''
 
 // ============================================================================
 // CORS Configuration

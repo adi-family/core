@@ -16,6 +16,7 @@ import { createAlertHandlers } from './handlers/alerts'
 import { createAdminHandlers } from './handlers/admin'
 import { createSecretHandlers } from './handlers/secrets'
 import { createFileSpaceHandlers } from './handlers/file-spaces'
+import { createOAuthHandlers } from './handlers/oauth'
 import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'native-server' })
@@ -31,6 +32,7 @@ const alertHandlers = createAlertHandlers()
 const adminHandlers = createAdminHandlers(sql)
 const secretHandlers = createSecretHandlers(sql)
 const fileSpaceHandlers = createFileSpaceHandlers(sql)
+const oauthHandlers = createOAuthHandlers(sql)
 
 // Collect all handlers
 const allHandlers = [
@@ -68,8 +70,22 @@ const allHandlers = [
   // Secrets
   secretHandlers.listSecrets,
   secretHandlers.getSecretsByProject,
+  secretHandlers.getSecret,
+  secretHandlers.createSecret,
+  secretHandlers.validateGitLabRawToken,
+  secretHandlers.validateGitLabToken,
+  secretHandlers.getGitLabRepositories,
+  secretHandlers.validateJiraRawToken,
+  secretHandlers.validateJiraToken,
   // File Spaces
   fileSpaceHandlers.listFileSpaces,
+  // OAuth
+  oauthHandlers.gitlabAuthorize,
+  oauthHandlers.gitlabExchange,
+  oauthHandlers.gitlabRefresh,
+  oauthHandlers.jiraAuthorize,
+  oauthHandlers.jiraExchange,
+  oauthHandlers.jiraRefresh,
 ]
 
 // Create native request handler

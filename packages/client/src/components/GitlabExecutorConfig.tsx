@@ -4,6 +4,7 @@ import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
 import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocomplete'
 import { createAuthenticatedClient } from "@/lib/client"
+import { getProjectGitLabExecutorConfig, createProjectGitLabExecutorConfig, deleteProjectGitLabExecutorConfig } from '@adi/api-contracts/projects'
 import { CheckCircle2, XCircle, Loader2, Trash2 } from "lucide-react"
 
 type GitlabExecutorConfigProps = {
@@ -37,17 +38,13 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        const res = await client.projects[":id"]["job-executor-gitlab"].$get({
-          param: { id: projectId },
+        const data = await client.run(getProjectGitLabExecutorConfig, {
+          params: { id: projectId },
         })
-
-        if (res.ok) {
-          const data = await res.json()
-          if (data && typeof data === 'object' && 'host' in data) {
-            setExistingConfig(data as ExecutorConfig)
-            setHost(data.host)
-            setHostUnlocked(data.host !== "https://gitlab.com")
-          }
+        if (data && typeof data === 'object' && 'host' in data) {
+          setExistingConfig(data as ExecutorConfig)
+          setHost(data.host)
+          setHostUnlocked(data.host !== "https://gitlab.com")
         }
       } catch (err) {
         console.error("Failed to load executor config:", err)
@@ -71,17 +68,10 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
     setSuccess(null)
 
     try {
-      const res = await client.projects[":id"]["job-executor-gitlab"].$post({
-        param: { id: projectId },
-        json: { host, access_token_secret_id: accessTokenSecretId },
-      })
-
-      if (!res.ok) {
-        const errorData = await res.json()
-        throw new Error((errorData as { error?: string; details?: string }).error || "Failed to save executor config")
-      }
-
-      const data = await res.json() as ExecutorConfig
+      const data = await client.run(createProjectGitLabExecutorConfig, {
+        params: { id: projectId },
+        body: { host, access_token_secret_id: accessTokenSecretId },
+      }) as ExecutorConfig
       setExistingConfig(data)
       setAccessTokenSecretId(null) // Clear selection after successful save
       setSuccess("GitLab executor configured successfully!")
@@ -102,14 +92,9 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
     setSuccess(null)
 
     try {
-      const res = await client.projects[":id"]["job-executor-gitlab"].$delete({
-        param: { id: projectId },
+      await client.run(deleteProjectGitLabExecutorConfig, {
+        params: { id: projectId },
       })
-
-      if (!res.ok) {
-        throw new Error("Failed to delete executor config")
-      }
-
       setExistingConfig(null)
       setAccessTokenSecretId(null)
       setSuccess("GitLab executor configuration removed")

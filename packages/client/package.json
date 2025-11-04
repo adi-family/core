@@ -13,6 +13,7 @@
     "tailwind:build": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --minify"
   },
   "dependencies": {
+    "@adi/api-contracts": "*",
     "@adi-simple/shared": "*",
     "@adi-simple/types": "*",
     "@adi-simple/ui": "*",

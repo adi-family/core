@@ -17,6 +17,9 @@ import { apiCall } from "@/utils/apiCall"
 import { useAuth } from "@clerk/clerk-react"
 import { toast } from "sonner"
 import { getComputedMetrics } from '@adi-simple/shared/task-scoring'
+import { getTaskConfig, getTaskArtifactsConfig } from '@adi/api-contracts/tasks'
+import { getTaskSourceConfig } from '@adi/api-contracts/task-sources'
+import { listPipelineArtifactsConfig } from '@adi/api-contracts/pipeline-executions'
 import type { Task, TaskSource, PipelineArtifact } from "../../../types"
 
 export function TaskPage() {
@@ -40,24 +43,14 @@ export function TaskPage() {
       }
 
       try {
-        const res = await client.tasks[":id"].$get({
-          param: { id },
+        const taskData = await client.run(getTaskConfig, {
+          params: { id },
         })
-
-        if (!res.ok) {
-          const errorText = await res.text()
-          setError(errorText || "Failed to fetch task")
-          setLoading(false)
-          return
-        }
-
-        const taskData = await res.json()
         setTask(taskData)
 
         // Fetch task source
         if (taskData.task_source_id) {
           try {
-            const { getTaskSourceConfig } = await import('@adi/api-contracts/task-sources')
             const taskSourceData = await client.run(getTaskSourceConfig, {
               params: { id: taskData.task_source_id },
             })
@@ -70,7 +63,6 @@ export function TaskPage() {
         // Fetch evaluation report from pipeline artifacts
         if (taskData.ai_evaluation_status === 'completed') {
           try {
-            const { listPipelineArtifactsConfig } = await import('@adi/api-contracts/pipeline-executions')
             const artifacts = await client.run(listPipelineArtifactsConfig, {}) as PipelineArtifact[]
             const evaluationArtifact = artifacts.find(
               (a) => a.artifact_type === 'text' &&
@@ -89,16 +81,12 @@ export function TaskPage() {
 
         // Fetch all artifacts for this task
         try {
-          const artifactsRes = await client.tasks[":taskId"].artifacts.$get({
-            param: { taskId: taskData.id }
-          })
-
-          if (artifactsRes.ok) {
-            const artifacts = await artifactsRes.json() as PipelineArtifact[]
-            // Filter for merge request artifacts
-            const mrArtifacts = artifacts.filter(a => a.artifact_type === 'merge_request')
-            setMergeRequestArtifacts(mrArtifacts)
-          }
+          const artifacts = await client.run(getTaskArtifactsConfig, {
+            params: { taskId: taskData.id }
+          }) as PipelineArtifact[]
+          // Filter for merge request artifacts
+          const mrArtifacts = artifacts.filter(a => a.artifact_type === 'merge_request')
+          setMergeRequestArtifacts(mrArtifacts)
         } catch (err) {
           console.error('Failed to fetch artifacts:', err)
         }
@@ -165,13 +153,13 @@ export function TaskPage() {
         onSuccess: async () => {
           toast.success('Sync restarted successfully!')
           // Refetch task data
-          const res = await client.tasks[":id"].$get({ param: { id: id! } })
-          if (res.ok) {
-            const taskData = await res.json()
+          try {
+            const taskData = await client.run(getTaskConfig, {
+              params: { id: id! },
+            })
             setTask(taskData)
             if (taskData.task_source_id) {
               try {
-                const { getTaskSourceConfig } = await import('@adi/api-contracts/task-sources')
                 const taskSourceData = await client.run(getTaskSourceConfig, {
                   params: { id: taskData.task_source_id },
                 })
@@ -180,6 +168,8 @@ export function TaskPage() {
                 console.error('Error fetching task source:', error)
               }
             }
+          } catch (error) {
+            console.error('Error refetching task:', error)
           }
         },
         onError: (error) => toast.error(`Failed to restart sync: ${error}`)
@@ -204,10 +194,13 @@ export function TaskPage() {
         onSuccess: async () => {
           toast.success('Evaluation restarted successfully!')
           // Refetch task data
-          const res = await client.tasks[":id"].$get({ param: { id: id! } })
-          if (res.ok) {
-            const taskData = await res.json()
+          try {
+            const taskData = await client.run(getTaskConfig, {
+              params: { id: id! },
+            })
             setTask(taskData)
+          } catch (error) {
+            console.error('Error refetching task:', error)
           }
         },
         onError: (error) => toast.error(`Failed to restart evaluation: ${error}`)
@@ -232,10 +225,13 @@ export function TaskPage() {
         onSuccess: async () => {
           toast.success('Implementation started successfully!')
           // Refetch task data
-          const res = await client.tasks[":id"].$get({ param: { id: id! } })
-          if (res.ok) {
-            const taskData = await res.json()
+          try {
+            const taskData = await client.run(getTaskConfig, {
+              params: { id: id! },
+            })
             setTask(taskData)
+          } catch (error) {
+            console.error('Error refetching task:', error)
           }
         },
         onError: (error) => toast.error(`Failed to start implementation: ${error}`)

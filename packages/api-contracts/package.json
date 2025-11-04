@@ -17,7 +17,9 @@
     "./admin": "./admin.ts",
     "./task-sources": "./task-sources.ts",
     "./messages": "./messages.ts",
-    "./alerts": "./alerts.ts"
+    "./alerts": "./alerts.ts",
+    "./oauth": "./oauth.ts",
+    "./worker-cache": "./worker-cache.ts"
   },
   "dependencies": {
     "@adi-family/http": "^1.0.0",

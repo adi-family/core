@@ -4,7 +4,7 @@
  */
 
 import type { Sql } from 'postgres'
-import { handler } from '@adi-family/http'
+import { handler, type HandlerContext } from '@adi-family/http'
 import {
   listProjectsConfig,
   getProjectConfig,
@@ -17,8 +17,9 @@ import * as queries from '../../db/projects'
 import * as userAccessQueries from '../../db/user-access'
 import * as workerRepoQueries from '../../db/worker-repositories'
 import { createLogger } from '@utils/logger'
-import { GITLAB_HOST, GITLAB_TOKEN, GITLAB_USER, ENCRYPTION_KEY } from '../config'
+import { GITLAB_HOST, GITLAB_TOKEN, GITLAB_USER, ENCRYPTION_KEY, CLERK_SECRET_KEY } from '../config'
 import { CIRepositoryManager } from '@worker/ci-repository-manager'
+import { verifyToken } from '@clerk/backend'
 
 const logger = createLogger({ namespace: 'projects-handler' })
 
@@ -26,27 +27,44 @@ const logger = createLogger({ namespace: 'projects-handler' })
  * Create project handlers with dependencies injected
  */
 export function createProjectHandlers(sql: Sql) {
-  // Helper to get user ID from request
-  // TODO: Integrate with actual auth system
-  async function getUserId(ctx: any): Promise<string> {
+  // Helper to get user ID from Clerk JWT token
+  async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
     const authHeader = ctx.headers.get('Authorization')
     if (!authHeader) {
-      throw new Error('Unauthorized')
+      throw new Error('Unauthorized: No Authorization header')
     }
-    return 'user-id-placeholder'
+
+    const token = authHeader.replace('Bearer ', '')
+    if (!token) {
+      throw new Error('Unauthorized: Invalid token format')
+    }
+
+    if (!CLERK_SECRET_KEY) {
+      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
+    }
+
+    try {
+      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
+      if (!payload.sub) {
+        throw new Error('Unauthorized: Invalid token payload')
+      }
+      return payload.sub
+    } catch (error) {
+      logger.error('Token verification failed:', error)
+      throw new Error('Unauthorized: Token verification failed')
+    }
   }
 
   /**
    * List all projects
    */
-  const listProjects = handler(listProjectsConfig, async (_ctx) => {
-    // TODO: Re-enable ACL filtering when auth is fully integrated
-    // const userId = await getUserId(ctx)
-    // const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+  const listProjects = handler(listProjectsConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+    const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
     const allProjects = await queries.findAllProjects(sql)
-    // const filtered = allProjects.filter(p => accessibleProjectIds.includes(p.id))
+    const filtered = allProjects.filter(p => accessibleProjectIds.includes(p.id))
 
-    return allProjects
+    return filtered
   })
 
   /**
@@ -54,8 +72,13 @@ export function createProjectHandlers(sql: Sql) {
    */
   const getProject = handler(getProjectConfig, async (ctx) => {
     const { id } = ctx.params
+    const userId = await getUserId(ctx)
 
-    // TODO: Add ACL check
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id)
+    if (!hasAccess) {
+      throw new Error('Forbidden: You do not have access to this project')
+    }
+
     const project = await queries.findProjectById(sql, id)
 
     return project
@@ -66,8 +89,13 @@ export function createProjectHandlers(sql: Sql) {
    */
   const getProjectStats = handler(getProjectStatsConfig, async (ctx) => {
     const { id } = ctx.params
+    const userId = await getUserId(ctx)
 
-    // TODO: Add ACL check
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id)
+    if (!hasAccess) {
+      throw new Error('Forbidden: You do not have access to this project')
+    }
+
     const stats = await queries.getProjectStats(sql, id)
 
     return stats
@@ -147,8 +175,13 @@ export function createProjectHandlers(sql: Sql) {
   const updateProject = handler(updateProjectConfig, async (ctx) => {
     const { id } = ctx.params
     const updates = ctx.body
+    const userId = await getUserId(ctx)
 
-    // TODO: Add ACL check
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You need admin role to update this project')
+    }
+
     const project = await queries.updateProject(sql, id, updates)
 
     return project
@@ -159,8 +192,13 @@ export function createProjectHandlers(sql: Sql) {
    */
   const deleteProject = handler(deleteProjectConfig, async (ctx) => {
     const { id } = ctx.params
+    const userId = await getUserId(ctx)
 
-    // TODO: Add ACL check
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id, 'owner')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You need owner role to delete this project')
+    }
+
     await queries.deleteProject(sql, id)
 
     return { success: true }
