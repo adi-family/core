@@ -6,7 +6,14 @@ import { z } from 'zod'
 import { route } from '@adi-family/http'
 
 // Artifact schema - matches database type
-const artifactSchema = z.any()  // Temporarily use any for rapid conversion
+const artifactSchema = z.object({
+  id: z.string(),
+  pipeline_execution_id: z.string(),
+  artifact_type: z.enum(['merge_request', 'issue', 'branch', 'commit', 'execution_result', 'text', 'task_evaluation', 'task_implementation']),
+  reference_url: z.string(),
+  metadata: z.any().nullable(),
+  created_at: z.string().or(z.date())
+})
 
 /**
  * List pipeline executions
@@ -22,7 +29,16 @@ export const listPipelineExecutionsConfig = {
     }).optional()
   },
   response: {
-    schema: z.any()
+    schema: z.array(z.object({
+      id: z.string(),
+      session_id: z.string(),
+      worker_repository_id: z.string(),
+      pipeline_id: z.string(),
+      status: z.enum(['pending', 'running', 'success', 'failed', 'canceled']),
+      last_status_update: z.string().nullable(),
+      created_at: z.string().or(z.date()),
+      updated_at: z.string().or(z.date())
+    }))
   }
 } as const
 
@@ -63,7 +79,11 @@ export const createExecutionArtifactConfig = {
   method: 'POST',
   route: route.dynamic('/pipeline-executions/:executionId/artifacts', z.object({ executionId: z.string() })),
   body: {
-    schema: z.any()  // Temporarily use any for rapid conversion
+    schema: z.object({
+      artifact_type: z.enum(['merge_request', 'issue', 'branch', 'commit', 'execution_result', 'text', 'task_evaluation', 'task_implementation']),
+      reference_url: z.string(),
+      metadata: z.any().optional()
+    })
   },
   response: {
     schema: artifactSchema
@@ -81,11 +101,21 @@ export const createPipelineExecutionConfig = {
     schema: z.object({
       session_id: z.string(),
       worker_repository_id: z.string(),
-      status: z.enum(['pending', 'running', 'success', 'failed', 'cancelled'])
+      pipeline_id: z.string().optional(),
+      status: z.enum(['pending', 'running', 'success', 'failed', 'canceled'])
     })
   },
   response: {
-    schema: z.any()  // Temporarily use any for rapid conversion
+    schema: z.object({
+      id: z.string(),
+      session_id: z.string(),
+      worker_repository_id: z.string(),
+      pipeline_id: z.string(),
+      status: z.enum(['pending', 'running', 'success', 'failed', 'canceled']),
+      last_status_update: z.string().nullable(),
+      created_at: z.string().or(z.date()),
+      updated_at: z.string().or(z.date())
+    })
   }
 } as const
 
@@ -97,9 +127,22 @@ export const updatePipelineExecutionConfig = {
   method: 'PATCH',
   route: route.dynamic('/api/pipeline-executions/:id', z.object({ id: z.string() })),
   body: {
-    schema: z.any()  // Temporarily use any for rapid conversion
+    schema: z.object({
+      pipeline_id: z.string().optional(),
+      status: z.enum(['pending', 'running', 'success', 'failed', 'canceled']).optional(),
+      last_status_update: z.string().optional()
+    })
   },
   response: {
-    schema: z.any()  // Temporarily use any for rapid conversion
+    schema: z.object({
+      id: z.string(),
+      session_id: z.string(),
+      worker_repository_id: z.string(),
+      pipeline_id: z.string(),
+      status: z.enum(['pending', 'running', 'success', 'failed', 'canceled']),
+      last_status_update: z.string().nullable(),
+      created_at: z.string().or(z.date()),
+      updated_at: z.string().or(z.date())
+    })
   }
 } as const
