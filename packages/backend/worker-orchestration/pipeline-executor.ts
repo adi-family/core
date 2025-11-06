@@ -18,7 +18,7 @@ import { findTaskById } from '@db/tasks'
 import { findProjectById } from '@db/projects'
 import { findWorkerRepositoryByProjectId, createWorkerRepository } from '@db/worker-repositories'
 import { findSecretById } from '@db/secrets'
-import { findFileSpacesByTaskId, findFileSpacesByProjectId } from '@db/file-spaces'
+import { findFileSpacesByTaskId } from '@db/file-spaces'
 import { createPipelineExecution, updatePipelineExecution } from '@db/pipeline-executions'
 import { getPlatformAnthropicConfig } from '@backend/config'
 import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'
@@ -142,103 +142,6 @@ async function ensureWorkerRepository(
   logger.info(`✓ Worker repository auto-created: ${workerRepo.id}`)
 
   return workerRepo
-}
-
-/**
- * Check if workspace needs sync before pipeline execution
- * Returns error if file spaces were created after last sync
- */
-async function checkWorkspaceSyncStatus(
-  projectId: string,
-  sql: Sql
-): Promise<{ needsSync: boolean; reason?: string }> {
-  try {
-    // Fetch project directly from database to get last_synced_at
-    const project = await findProjectById(sql, projectId)
-
-    // If never synced, workspace needs sync
-    if (!project.last_synced_at) {
-      return {
-        needsSync: true,
-        reason: 'Workspace has never been synced. Please add file spaces and wait for sync to complete.'
-      }
-    }
-
-    // Fetch all file spaces for project directly from database
-    try {
-      const fileSpaces = await findFileSpacesByProjectId(sql, projectId)
-
-      // Check if any file space was created after last sync
-      const lastSyncTime = new Date(project.last_synced_at).getTime()
-      const newFileSpaces = fileSpaces.filter((fs) => {
-        const createdTime = new Date(fs.created_at).getTime()
-        return createdTime > lastSyncTime
-      })
-
-      if (newFileSpaces.length > 0) {
-        const fsNames = newFileSpaces.map((fs) => fs.name).join(', ')
-        return {
-          needsSync: true,
-          reason: `Workspace is outdated. ${newFileSpaces.length} file space(s) created after last sync: ${fsNames}. Please wait for workspace sync to complete.`
-        }
-      }
-    } catch {
-      // No file spaces configured
-      return { needsSync: false }
-    }
-
-    return { needsSync: false }
-  } catch (error) {
-    logger.warn(`⚠️  Failed to check workspace sync status: ${error}`)
-    return { needsSync: false } // Don't block pipeline on check failure
-  }
-}
-
-/**
- * Wait for workspace sync to complete by polling the project's last_synced_at field
- * @param projectId Project ID to check
- * @param sql Database connection
- * @param timeoutMs Maximum time to wait in milliseconds (default: 10 minutes)
- * @param pollIntervalMs How often to check for sync completion (default: 5 seconds)
- */
-async function waitForWorkspaceSync(
-  projectId: string,
-  sql: Sql,
-  timeoutMs: number = 10 * 60 * 1000, // 10 minutes
-  pollIntervalMs: number = 5000 // 5 seconds
-): Promise<void> {
-  const startTime = Date.now()
-  let iteration = 0
-
-  logger.info(`⏳ Waiting for workspace sync to complete (timeout: ${timeoutMs / 1000}s)...`)
-
-  while (Date.now() - startTime < timeoutMs) {
-    iteration++
-
-    // Check sync status
-    const syncCheck = await checkWorkspaceSyncStatus(projectId, sql)
-
-    if (!syncCheck.needsSync) {
-      const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1)
-      logger.info(`✅ Workspace sync completed after ${elapsedSeconds}s`)
-      return
-    }
-
-    // Log progress every 10 iterations (50 seconds)
-    if (iteration % 10 === 0) {
-      const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(0)
-      logger.info(`⏳ Still waiting for workspace sync... (${elapsedSeconds}s elapsed)`)
-    }
-
-    // Wait before next check
-    await new Promise(resolve => setTimeout(resolve, pollIntervalMs))
-  }
-
-  // Timeout reached
-  throw new Error(
-    `Workspace sync did not complete within ${timeoutMs / 1000} seconds. ` +
-    `Please check the workspace sync status and try again.`
-  )
 }
 
 /**
