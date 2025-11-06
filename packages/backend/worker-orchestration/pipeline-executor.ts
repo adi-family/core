@@ -16,6 +16,8 @@ import { checkQuotaAvailable, incrementQuotaUsage } from '@db/user-quotas'
 import { findSessionById } from '@db/sessions'
 import { findTaskById } from '@db/tasks'
 import { findProjectById } from '@db/projects'
+import { findWorkerRepositoryByProjectId, createWorkerRepository } from '@db/worker-repositories'
+import { findSecretById } from '@db/secrets'
 import { getPlatformAnthropicConfig } from '@backend/config'
 import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'
 import { getCachedPipelineApiKey } from '@backend/services/pipeline-api-key'
@@ -55,12 +57,12 @@ interface PipelineContext {
  */
 async function ensureWorkerRepository(
   project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null },
-  apiClient: BackendClient
+  apiClient: BackendClient,
+  sql: Sql
 ): Promise<{ id: string; current_version: string | null; source_gitlab: unknown }> {
   try {
-    const workerRepo = await apiClient.run(getWorkerRepositoryByProjectConfig, {
-      params: { projectId: project.id }
-    })
+    // Fetch worker repository directly from database (bypass authentication)
+    const workerRepo = await findWorkerRepositoryByProjectId(sql, project.id)
 
     try {
       const source = workerRepo.source_gitlab as unknown as GitLabSource
@@ -90,9 +92,8 @@ async function ensureWorkerRepository(
     const executor = project.job_executor_gitlab
     gitlabHost = executor.host
 
-    const secret = await apiClient.run(getSecretValueConfig, {
-      params: { id: executor.access_token_secret_id }
-    })
+    // Fetch secret directly from database (bypass authentication)
+    const secret = await findSecretById(sql, executor.access_token_secret_id)
 
     gitlabToken = secret.value
 
@@ -137,13 +138,11 @@ async function ensureWorkerRepository(
   await manager.uploadCIFiles({ source, version })
   logger.info(`✓ Uploaded CI files (version: ${version})`)
 
-  // Save to database
-  const workerRepo = await apiClient.run(createWorkerRepositoryConfig, {
-    body: {
-      project_id: project.id,
-      source_gitlab: source as unknown,
-      current_version: version,
-    }
+  // Save to database directly (bypass authentication)
+  const workerRepo = await createWorkerRepository(sql, {
+    project_id: project.id,
+    source_gitlab: source as unknown,
+    current_version: version,
   })
 
   logger.info(`✓ Worker repository auto-created: ${workerRepo.id}`)
@@ -278,7 +277,7 @@ async function validateAndFetchPipelineContext(apiClient: BackendClient, session
   const userId = await getProjectOwnerId(sql, task.project_id)
 
   // Fetch or auto-create worker repository
-  const workerRepo = await ensureWorkerRepository(project, apiClient)
+  const workerRepo = await ensureWorkerRepository(project, apiClient, sql)
   const source = workerRepo.source_gitlab as unknown as GitLabSource
 
   // Validate source configuration
