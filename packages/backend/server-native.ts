@@ -61,6 +61,7 @@ const allHandlers = [
   pipelineExecutionHandlers.listPipelineArtifacts,
   pipelineExecutionHandlers.getExecutionArtifacts,
   pipelineExecutionHandlers.createExecutionArtifact,
+  pipelineExecutionHandlers.createPipelineExecution,
   pipelineExecutionHandlers.updatePipelineExecution,
   // Messages
   messageHandlers.listMessages,

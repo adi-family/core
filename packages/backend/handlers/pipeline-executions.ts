@@ -5,14 +5,26 @@
 import type { Sql } from 'postgres'
 import { handler } from '@adi-family/http'
 import {
+  listPipelineArtifactsConfig,
   getExecutionArtifactsConfig,
   createExecutionArtifactConfig,
+  createPipelineExecutionConfig,
   updatePipelineExecutionConfig
 } from '@adi/api-contracts/pipeline-executions'
 import * as pipelineArtifactQueries from '@db/pipeline-artifacts'
 import * as pipelineExecutionQueries from '@db/pipeline-executions'
 
 export function createPipelineExecutionHandlers(sql: Sql) {
+  const listPipelineArtifacts = handler(listPipelineArtifactsConfig, async (ctx) => {
+    const { execution_id } = ctx.query || {}
+
+    if (execution_id) {
+      return pipelineArtifactQueries.findPipelineArtifactsByExecutionId(sql, execution_id)
+    }
+
+    return pipelineArtifactQueries.findAllPipelineArtifacts(sql)
+  })
+
   const getExecutionArtifacts = handler(getExecutionArtifactsConfig, async (ctx) => {
     const { executionId } = ctx.params
     const artifacts = await pipelineArtifactQueries.findPipelineArtifactsByExecutionId(sql, executionId)
@@ -30,6 +42,12 @@ export function createPipelineExecutionHandlers(sql: Sql) {
     return artifact
   })
 
+  const createPipelineExecution = handler(createPipelineExecutionConfig, async (ctx) => {
+    const body = ctx.body
+    const execution = await pipelineExecutionQueries.createPipelineExecution(sql, body)
+    return execution
+  })
+
   const updatePipelineExecution = handler(updatePipelineExecutionConfig, async (ctx) => {
     const { id } = ctx.params
     const body = ctx.body
@@ -38,8 +56,10 @@ export function createPipelineExecutionHandlers(sql: Sql) {
   })
 
   return {
+    listPipelineArtifacts,
     getExecutionArtifacts,
     createExecutionArtifact,
+    createPipelineExecution,
     updatePipelineExecution
   }
 }
