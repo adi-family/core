@@ -17,7 +17,7 @@ import {
 import * as sessionQueries from '@db/sessions'
 import * as pipelineArtifactQueries from '@db/pipeline-artifacts'
 import * as taskQueries from '@db/tasks'
-import { publishTaskEval } from '@adi/queue/publisher'
+import { publishTaskEval, publishTaskImpl } from '@adi/queue/publisher'
 import { evaluateTaskAdvanced } from '@adi/micros-task-eval/service'
 
 export function createTaskHandlers(sql: Sql) {
@@ -57,8 +57,9 @@ export function createTaskHandlers(sql: Sql) {
     // Update task status to queued for implementation
     const task = await taskQueries.updateTaskImplementationStatus(sql, id, 'queued')
 
-    // TODO: Queue task for implementation via message queue/RabbitMQ
-    // For now, just return the updated task
+    // Publish task to implementation queue
+    await publishTaskImpl({ taskId: id })
+
     return {
       success: true,
       message: 'Task queued for implementation',
