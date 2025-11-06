@@ -13,6 +13,9 @@ import { CIRepositoryManager } from '@worker/ci-repository-manager.ts'
 import { validateGitLabSource, decryptGitLabToken, type GitLabSource } from './gitlab-utils'
 import { getProjectOwnerId } from '@db/user-access'
 import { checkQuotaAvailable, incrementQuotaUsage } from '@db/user-quotas'
+import { findSessionById } from '@db/sessions'
+import { findTaskById } from '@db/tasks'
+import { findProjectById } from '@db/projects'
 import { getPlatformAnthropicConfig } from '@backend/config'
 import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'
 import { getCachedPipelineApiKey } from '@backend/services/pipeline-api-key'
@@ -254,28 +257,22 @@ async function waitForWorkspaceSync(
  * Validate and fetch all required context for pipeline execution
  */
 async function validateAndFetchPipelineContext(apiClient: BackendClient, sessionId: string, sql: Sql): Promise<PipelineContext> {
-  // Fetch session
-  const session = await apiClient.run(getSessionConfig, {
-    params: { id: sessionId }
-  })
+  // Fetch session directly from database (bypass authentication)
+  const session = await findSessionById(sql, sessionId)
 
   if (!session.task_id) {
     throw new Error(`Session ${sessionId} has no associated task. Please ensure the session is properly configured.`)
   }
 
-  // Fetch task
-  const task = await apiClient.run(getTaskConfig, {
-    params: { id: session.task_id }
-  })
+  // Fetch task directly from database (bypass authentication)
+  const task = await findTaskById(sql, session.task_id)
 
   if (!task.project_id) {
     throw new Error(`Task ${task.id} has no associated project. Please ensure the task is properly configured.`)
   }
 
-  // Fetch project
-  const project = await apiClient.run(getProjectConfig, {
-    params: { id: task.project_id }
-  })
+  // Fetch project directly from database (bypass authentication)
+  const project = await findProjectById(sql, task.project_id)
 
   // Get project owner for AI provider selection
   const userId = await getProjectOwnerId(sql, task.project_id)
