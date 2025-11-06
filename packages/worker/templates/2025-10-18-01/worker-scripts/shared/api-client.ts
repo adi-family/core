@@ -63,27 +63,27 @@ export class ApiClient {
   }
 
   async getSession(sessionId: string): Promise<Session> {
-    return this.fetch<Session>(`/sessions/${sessionId}`)
+    return this.fetch<Session>(`/api/sessions/${sessionId}`)
   }
 
   async getTask(taskId: string): Promise<Task> {
-    return this.fetch<Task>(`/tasks/${taskId}`)
+    return this.fetch<Task>(`/api/tasks/${taskId}`)
   }
 
   async getFileSpace(fileSpaceId: string): Promise<FileSpace> {
-    return this.fetch<FileSpace>(`/file-spaces/${fileSpaceId}`)
+    return this.fetch<FileSpace>(`/api/file-spaces/${fileSpaceId}`)
   }
 
   async getFileSpacesByProject(projectId: string): Promise<FileSpace[]> {
-    return this.fetch<FileSpace[]>(`/file-spaces?project_id=${projectId}`)
+    return this.fetch<FileSpace[]>(`/api/file-spaces?project_id=${projectId}`)
   }
 
   async getFileSpacesByTask(taskId: string): Promise<FileSpace[]> {
-    return this.fetch<FileSpace[]>(`/tasks/${taskId}/file-spaces`)
+    return this.fetch<FileSpace[]>(`/api/tasks/${taskId}/file-spaces`)
   }
 
   async getSecretValue(secretId: string): Promise<string> {
-    const result = await this.fetch<{ value: string }>(`/secrets/${secretId}/value`)
+    const result = await this.fetch<{ value: string }>(`/api/secrets/${secretId}/value`)
     return result.value
   }
 
@@ -105,42 +105,42 @@ export class ApiClient {
   }
 
   async updateTaskStatus(taskId: string, status: string): Promise<void> {
-    await this.fetch<Task>(`/tasks/${taskId}`, {
+    await this.fetch<Task>(`/api/tasks/${taskId}`, {
       method: 'PATCH',
       body: JSON.stringify({ status })
     })
   }
 
   async updateTaskEvaluationStatus(taskId: string, evaluationStatus: string): Promise<void> {
-    await this.fetch<void>(`/tasks/${taskId}/evaluation-status`, {
+    await this.fetch<void>(`/api/tasks/${taskId}/evaluation-status`, {
       method: 'POST',
       body: JSON.stringify({ status: evaluationStatus })
     })
   }
 
   async updateTaskEvaluationResult(taskId: string, result: 'ready' | 'needs_clarification'): Promise<void> {
-    await this.fetch<void>(`/tasks/${taskId}/evaluation-result`, {
+    await this.fetch<void>(`/api/tasks/${taskId}/evaluation-result`, {
       method: 'PATCH',
       body: JSON.stringify({ result })
     })
   }
 
   async updateTaskEvaluationSimple(taskId: string, simpleResult: unknown): Promise<void> {
-    await this.fetch<void>(`/tasks/${taskId}/evaluation-simple`, {
+    await this.fetch<void>(`/api/tasks/${taskId}/evaluation-simple`, {
       method: 'PATCH',
       body: JSON.stringify({ simpleResult })
     })
   }
 
   async updateTaskEvaluationAgentic(taskId: string, agenticResult: unknown): Promise<void> {
-    await this.fetch<void>(`/tasks/${taskId}/evaluation-agentic`, {
+    await this.fetch<void>(`/api/tasks/${taskId}/evaluation-agentic`, {
       method: 'PATCH',
       body: JSON.stringify({ agenticResult })
     })
   }
 
   async updateTaskImplementationStatus(taskId: string, status: 'pending' | 'queued' | 'implementing' | 'completed' | 'failed'): Promise<void> {
-    await this.fetch<void>(`/tasks/${taskId}/implementation-status`, {
+    await this.fetch<void>(`/api/tasks/${taskId}/implementation-status`, {
       method: 'POST',
       body: JSON.stringify({ status })
     })
