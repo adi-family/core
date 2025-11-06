@@ -13,10 +13,10 @@
     "tailwind:build": "tailwindcss -i ./src/assets/input.css -o ./src/assets/output.css --minify"
   },
   "dependencies": {
-    "@adi/api-contracts": "*",
     "@adi-simple/shared": "*",
     "@adi-simple/types": "*",
     "@adi-simple/ui": "*",
+    "@adi/api-contracts": "*",
     "@clerk/clerk-react": "^5.53.2",
     "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.14",
@@ -26,6 +26,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-router-dom": "^7.9.4",
+    "recharts": "^3.3.0",
     "simple-icons": "^15.17.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.3.1",

@@ -38,7 +38,7 @@ export function WorkerRepositorySelect({
           params: { projectId }
         })
         // API returns single repository, wrap in array for consistency
-        setWorkerRepositories([data])
+        setWorkerRepositories([data as any])
         setLoading(false)
       } catch (error) {
         console.error("Error fetching worker repositories:", error)

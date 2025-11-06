@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { useAuth } from "@clerk/clerk-react"
+import { useSnapshot } from "valtio"
 import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import {
   Card,
@@ -11,13 +12,16 @@ import {
 import { Select } from '@adi-simple/ui/select'
 import { Label } from '@adi-simple/ui/label'
 import { TaskRow } from "@/components/TaskRow"
+import { TaskStats } from "@/components/TaskStats"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/Tabs"
 import { createAuthenticatedClient } from "@/lib/client"
 import { designTokens } from "@/theme/tokens"
 import { navigateTo } from "@/utils/navigation"
 import { useProject } from "@/contexts/ProjectContext"
 import { toast } from "sonner"
-import type { Task, TaskSource, Project } from "../../../types"
-import { listTasksConfig, implementTaskConfig, evaluateTaskConfig, listTaskSourcesConfig, listProjectsConfig } from '@adi/api-contracts'
+import type { Task } from "../../../types"
+import { listTasksConfig, implementTaskConfig, evaluateTaskConfig } from '@adi/api-contracts'
+import { projectsStore, fetchProjects, taskSourcesStore, fetchTaskSources } from "@/stores"
 
 type SortOption = 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc'
 
@@ -25,9 +29,9 @@ export function TasksPage() {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const { selectedProjectId } = useProject()
+  const { taskSources } = useSnapshot(taskSourcesStore)
+  const { projects } = useSnapshot(projectsStore)
   const [tasks, setTasks] = useState<Task[]>([])
-  const [taskSources, setTaskSources] = useState<TaskSource[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [selectedTaskSourceId, setSelectedTaskSourceId] = useState<string>("")
@@ -71,12 +75,12 @@ export function TasksPage() {
       // Only fetch task sources and projects on initial load
       if (!append) {
         fetchPromises.push(
-          client.run(listTaskSourcesConfig, { query: {} }),
-          client.run(listProjectsConfig, {})
+          fetchTaskSources(client),
+          fetchProjects(client)
         )
       }
 
-      const [tasksData, taskSourcesData, projectsData] = await Promise.all(fetchPromises)
+      const [tasksData] = await Promise.all(fetchPromises)
 
       // Handle both old array format and new paginated format for backwards compatibility
       const newTasks = Array.isArray(tasksData) ? tasksData : tasksData.data
@@ -93,8 +97,6 @@ export function TasksPage() {
         setTasks(prev => [...prev, ...newTasks])
       } else {
         setTasks(newTasks)
-        if (taskSourcesData) setTaskSources(taskSourcesData)
-        if (projectsData) setProjects(projectsData)
       }
 
       // Update pagination state
@@ -276,6 +278,7 @@ export function TasksPage() {
               </Select>
             </div>
           </div>
+
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className="text-gray-500">Loading tasks...</div>
@@ -285,41 +288,59 @@ export function TasksPage() {
               <div className="text-gray-500">No tasks found</div>
             </div>
           ) : (
-            <>
-              <div className="space-y-3">
-                {filteredTasks.map((task) => {
-                  const taskSource = taskSources.find((ts) => ts.id === task.task_source_id)
-                  const project = projects.find((p) => p.id === task.project_id)
-                  return (
-                    <TaskRow
-                      key={task.id}
-                      task={task}
-                      taskSource={taskSource}
-                      project={project}
-                      onViewDetails={() => navigateTo(`/tasks/${task.id}`)}
-                      onStartImplementation={handleStartImplementation}
-                      onEvaluate={handleEvaluate}
-                    />
-                  )
-                })}
-              </div>
+            <Tabs defaultValue="backlog" className="w-full">
+              <TabsList className="mb-6">
+                <TabsTrigger value="backlog">Backlog</TabsTrigger>
+                <TabsTrigger value="analysis">Analysis</TabsTrigger>
+              </TabsList>
 
-              {/* Infinite scroll loading indicator and observer target */}
-              {loadingMore && (
-                <div className="flex justify-center items-center py-8">
-                  <div className="text-gray-400">Loading more tasks...</div>
+              <TabsContent value="backlog">
+                <div className="space-y-3">
+                  {filteredTasks.map((task) => {
+                    const taskSource = taskSources.find((ts) => ts.id === task.task_source_id)
+                    const project = projects.find((p) => p.id === task.project_id)
+                    return (
+                      <TaskRow
+                        key={task.id}
+                        task={task}
+                        taskSource={taskSource}
+                        project={project}
+                        onViewDetails={() => navigateTo(`/tasks/${task.id}`)}
+                        onStartImplementation={handleStartImplementation}
+                        onEvaluate={handleEvaluate}
+                      />
+                    )
+                  })}
                 </div>
-              )}
 
-              {/* Observer target for infinite scroll */}
-              <div ref={observerTarget} className="h-4" />
+                {/* Infinite scroll loading indicator and observer target */}
+                {loadingMore && (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-gray-400">Loading more tasks...</div>
+                  </div>
+                )}
 
-              {!hasMore && filteredTasks.length > 0 && (
-                <div className="flex justify-center items-center py-8">
-                  <div className="text-gray-500 text-sm">No more tasks to load</div>
-                </div>
-              )}
-            </>
+                {/* Observer target for infinite scroll */}
+                <div ref={observerTarget} className="h-4" />
+
+                {!hasMore && filteredTasks.length > 0 && (
+                  <div className="flex justify-center items-center py-8">
+                    <div className="text-gray-500 text-sm">No more tasks to load</div>
+                  </div>
+                )}
+              </TabsContent>
+
+              <TabsContent value="analysis">
+                <TaskStats
+                  filters={{
+                    project_id: selectedProjectId || undefined,
+                    task_source_id: selectedTaskSourceId || undefined,
+                    evaluated_only: filterEvaluated ? 'true' : undefined,
+                    sort_by: sortBy
+                  }}
+                />
+              </TabsContent>
+            </Tabs>
           )}
         </CardContent>
       </Card>

@@ -6,6 +6,60 @@ import { z } from 'zod'
 import { route } from '@adi-family/http'
 
 /**
+ * Secret schema (without encrypted value)
+ */
+const secretSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  oauth_provider: z.string().nullable(),
+  token_type: z.enum(['api', 'oauth']).nullable(),
+  expires_at: z.string().nullable(),
+  scopes: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+})
+
+/**
+ * Secret schema with project_id
+ */
+const secretWithProjectSchema = secretSchema.extend({
+  project_id: z.string()
+})
+
+/**
+ * Secret response types (inferred from schemas)
+ */
+export type SecretResponse = z.infer<typeof secretSchema>
+export type SecretWithProjectResponse = z.infer<typeof secretWithProjectSchema>
+
+/**
+ * Secret validation response types
+ */
+export type GitLabTokenValidationResponse = {
+  validated: boolean
+  username?: string
+  scopeValidation?: {
+    validated: boolean
+    message: string
+  }
+  error?: string
+}
+
+export type JiraTokenValidationResponse = {
+  valid: boolean
+  username?: string
+  accountId?: string
+  email?: string | null
+  error?: string
+}
+
+/**
+ * GitLab repository item (from GitLab API)
+ */
+export type GitLabRepositoryResponse = Record<string, unknown>
+
+/**
  * Get decrypted secret value by ID
  * GET /api/secrets/:id/value
  */
@@ -27,7 +81,7 @@ export const listSecretsConfig = {
   method: 'GET',
   route: route.static('/api/secrets'),
   response: {
-    schema: z.any()
+    schema: z.array(secretWithProjectSchema)
   }
 } as const
 
@@ -39,7 +93,7 @@ export const getSecretsByProjectConfig = {
   method: 'GET',
   route: route.dynamic('/api/secrets/by-project/:projectId', z.object({ projectId: z.string() })),
   response: {
-    schema: z.any()
+    schema: z.array(secretSchema)
   }
 } as const
 
@@ -51,7 +105,7 @@ export const getSecretConfig = {
   method: 'GET',
   route: route.dynamic('/api/secrets/:id', z.object({ id: z.string() })),
   response: {
-    schema: z.any()
+    schema: secretSchema
   }
 } as const
 
@@ -71,7 +125,12 @@ export const createSecretConfig = {
     })
   },
   response: {
-    schema: z.any()
+    schema: z.object({
+      id: z.string(),
+      name: z.string(),
+      description: z.string().nullable(),
+      created_at: z.string()
+    })
   }
 } as const
 
@@ -90,7 +149,15 @@ export const validateGitLabRawTokenConfig = {
     })
   },
   response: {
-    schema: z.any()
+    schema: z.object({
+      validated: z.boolean(),
+      username: z.string().optional(),
+      scopeValidation: z.object({
+        validated: z.boolean(),
+        message: z.string()
+      }).optional(),
+      error: z.string().optional()
+    })
   }
 } as const
 
@@ -109,7 +176,15 @@ export const validateGitLabTokenConfig = {
     })
   },
   response: {
-    schema: z.any()
+    schema: z.object({
+      validated: z.boolean(),
+      username: z.string().optional(),
+      scopeValidation: z.object({
+        validated: z.boolean(),
+        message: z.string()
+      }).optional(),
+      error: z.string().optional()
+    })
   }
 } as const
 
@@ -129,7 +204,7 @@ export const getGitLabRepositoriesConfig = {
     })
   },
   response: {
-    schema: z.any()
+    schema: z.array(z.record(z.string(), z.unknown()))
   }
 } as const
 
@@ -148,8 +223,14 @@ export const validateJiraRawTokenConfig = {
     })
   },
   response: {
-    schema: z.any()
-  }
+    schema: z.object({
+      valid: z.boolean(),
+      username: z.string().optional(),
+      accountId: z.string().optional(),
+      email: z.string().nullable().optional(),
+      error: z.string().optional()
+    }),
+  },
 } as const
 
 /**
@@ -166,6 +247,12 @@ export const validateJiraTokenConfig = {
     })
   },
   response: {
-    schema: z.any()
-  }
+    schema: z.object({
+      valid: z.boolean(),
+      username: z.string().optional(),
+      accountId: z.string().optional(),
+      email: z.string().nullable().optional(),
+      error: z.string().optional()
+    }),
+  },
 } as const

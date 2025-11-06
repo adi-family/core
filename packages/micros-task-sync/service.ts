@@ -60,7 +60,7 @@ async function validateProject(sql: Sql, projectId: string) {
  * Queue evaluation for task if quota available
  */
 async function queueEvaluationIfQuotaAvailable(sql: Sql, task: Task, projectId: string): Promise<void> {
-  if (task.ai_evaluation_status !== 'pending') return
+  if (task.ai_evaluation_simple_status !== 'not_started') return
 
   try {
     const userId = await getProjectOwnerId(sql, projectId)
@@ -111,6 +111,8 @@ async function processIssue(
   })
 
   logger.debug(`${isNew ? 'Created new' : 'Updated'} task for issue ${issue.id}`)
+
+  // Automatically queue simple evaluation (advanced evaluation remains manual)
   await queueEvaluationIfQuotaAvailable(sql, task, projectId)
 
   return { isNew, isUpdated, task }
@@ -139,6 +141,7 @@ async function processIssues(
 
       if (isNew) result.tasksCreated++
       if (isUpdated) result.tasksUpdated++
+      // Note: Automatic evaluation disabled - users must manually trigger evaluation via button
 
       result.syncStateUpdates.push({
         task_source_id: taskSource.id,

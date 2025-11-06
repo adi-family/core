@@ -2,46 +2,154 @@
  * Task Sources API handlers
  */
 
-import { handler } from '@adi-family/http'
-import { listTaskSourcesConfig, syncTaskSourceConfig } from '@adi/api-contracts/task-sources'
+import { handler, type HandlerContext } from '@adi-family/http'
+import {
+  listTaskSourcesConfig,
+  createTaskSourceConfig,
+  updateTaskSourceConfig,
+  deleteTaskSourceConfig,
+  syncTaskSourceConfig
+} from '@adi/api-contracts/task-sources'
+import * as taskSourceQueries from '@db/task-sources'
+import * as userAccessQueries from '@db/user-access'
 import type { Sql } from 'postgres'
+import { verifyToken } from '@clerk/backend'
+import { CLERK_SECRET_KEY } from '../config'
+import { createLogger } from '@utils/logger'
+import { publishTaskSync } from '@adi/queue/publisher'
+
+const logger = createLogger({ namespace: 'task-sources-handler' })
 
 /**
  * Create task source handlers
  */
 export function createTaskSourceHandlers(sql: Sql) {
+  async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
+    const authHeader = ctx.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Unauthorized: No Authorization header')
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    if (!token) {
+      throw new Error('Unauthorized: Invalid token format')
+    }
+
+    if (!CLERK_SECRET_KEY) {
+      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
+    }
+
+    try {
+      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
+      if (!payload.sub) {
+        throw new Error('Unauthorized: Invalid token payload')
+      }
+      return payload.sub
+    } catch (error) {
+      logger.error('Token verification failed:', error)
+      throw new Error('Unauthorized: Token verification failed')
+    }
+  }
   /**
    * GET /api/task-sources
    * List all task sources
    */
-  const listTaskSources = handler(listTaskSourcesConfig, async ({ query }) => {
-    const projectId = query?.project_id
+  const listTaskSources = handler(listTaskSourcesConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+    const projectId = ctx.query?.project_id
 
     if (projectId) {
-      const taskSources = await sql`
-        SELECT * FROM task_sources
-        WHERE project_id = ${projectId}
-        ORDER BY created_at DESC
-      `
-      return taskSources
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, projectId)
+      if (!hasAccess) {
+        throw new Error('Forbidden: You do not have access to this project')
+      }
+
+      return taskSourceQueries.findTaskSourcesByProjectId(sql, projectId)
     }
 
-    const taskSources = await sql`
-      SELECT * FROM task_sources
-      ORDER BY created_at DESC
-    `
-    return taskSources
+    // List all task sources from accessible projects
+    const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+    const allTaskSources = await taskSourceQueries.findAllTaskSources(sql)
+    return allTaskSources.filter(ts => accessibleProjectIds.includes(ts.project_id))
+  })
+
+  /**
+   * POST /api/task-sources
+   * Create a new task source
+   */
+  const createTaskSource = handler(createTaskSourceConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+    const { project_id } = ctx.body as any
+
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, project_id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You need admin role to create task sources for this project')
+    }
+
+    const taskSource = await taskSourceQueries.createTaskSource(sql, ctx.body as any)
+
+    // Immediately trigger sync for the new task source
+    const provider = taskSource.type === 'gitlab_issues' ? 'gitlab' : taskSource.type === 'github_issues' ? 'github' : 'jira'
+    await publishTaskSync({ taskSourceId: taskSource.id, provider })
+    logger.info(`Triggered immediate sync for newly created task source ${taskSource.id}`)
+
+    return taskSource
+  })
+
+  /**
+   * PATCH /api/task-sources/:id
+   * Update a task source
+   */
+  const updateTaskSource = handler(updateTaskSourceConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+    const { id } = ctx.params
+
+    const taskSource = await taskSourceQueries.findTaskSourceById(sql, id)
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, taskSource.project_id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You need admin role to update this task source')
+    }
+
+    return taskSourceQueries.updateTaskSource(sql, id, ctx.body as any)
+  })
+
+  /**
+   * DELETE /api/task-sources/:id
+   * Delete a task source
+   */
+  const deleteTaskSource = handler(deleteTaskSourceConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+    const { id } = ctx.params
+
+    const taskSource = await taskSourceQueries.findTaskSourceById(sql, id)
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, taskSource.project_id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You need admin role to delete this task source')
+    }
+
+    await taskSourceQueries.deleteTaskSource(sql, id)
+    return { success: true }
   })
 
   /**
    * POST /api/task-sources/:id/sync
    * Trigger sync for a task source
    */
-  const syncTaskSource = handler(syncTaskSourceConfig, async ({ params }) => {
-    const { id } = params
+  const syncTaskSource = handler(syncTaskSourceConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+    const { id } = ctx.params
 
-    // TODO: Queue sync job via message queue/RabbitMQ
-    // For now, just return success message
+    const taskSource = await taskSourceQueries.findTaskSourceById(sql, id)
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, taskSource.project_id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You need admin role to sync this task source')
+    }
+
+    // Queue sync job via RabbitMQ
+    const provider = taskSource.type === 'gitlab_issues' ? 'gitlab' : taskSource.type === 'github_issues' ? 'github' : 'jira'
+    await publishTaskSync({ taskSourceId: id, provider })
+    logger.info(`Manually triggered sync for task source ${id}`)
+
     return {
       success: true,
       message: `Task source ${id} sync queued successfully`
@@ -50,6 +158,9 @@ export function createTaskSourceHandlers(sql: Sql) {
 
   return {
     listTaskSources,
+    createTaskSource,
+    updateTaskSource,
+    deleteTaskSource,
     syncTaskSource,
   }
 }

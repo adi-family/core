@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Label } from './label'
 import { Input } from './input'
 import { Portal } from './portal'
 import { Loader2, Search, GitBranch } from "lucide-react"
+import { getGitLabRepositoriesConfig } from '@adi/api-contracts/secrets'
 
 type Repository = {
   id: number
@@ -39,54 +40,75 @@ export function GitlabRepositorySelect({
   const [showDropdown, setShowDropdown] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 })
   const inputContainerRef = useRef<HTMLDivElement>(null)
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Load repositories from backend API
-  useEffect(() => {
+  // Load repositories from backend API with search support
+  const loadRepositories = useCallback(async (searchQuery?: string) => {
     if (!secretId || !host) {
       setRepositories([])
       return
     }
 
-    const loadRepositories = async () => {
-      setLoading(true)
-      setError(null)
+    setLoading(true)
+    setError(null)
 
-      try {
-        const response = await client.secrets['gitlab-repositories'].$post({
-          json: {
-            secretId,
-            hostname: host
-          }
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          setError(errorData.error || `Failed to load repositories: ${response.statusText}`)
-          setRepositories([])
-          return
+    try {
+      const data = await client.run(getGitLabRepositoriesConfig, {
+        body: {
+          secretId,
+          host,
+          search: searchQuery,
+          perPage: 50
         }
+      }) as Repository[]
 
-        const data: Repository[] = await response.json()
-        setRepositories(data)
+      setRepositories(data)
 
-        // If value is provided, find and select that repository
-        if (value) {
-          const repo = data.find((r) => r.id === value)
-          if (repo) {
-            setSelectedRepository(repo)
-            setSearch(repo.path_with_namespace)
-          }
+      // If value is provided and no search, find and select that repository
+      if (value && !searchQuery) {
+        const repo = data.find((r) => r.id === value)
+        if (repo) {
+          setSelectedRepository(repo)
+          setSearch(repo.path_with_namespace)
         }
-      } catch (err) {
-        setError(`Error loading repositories: ${err instanceof Error ? err.message : "Unknown error"}`)
-        setRepositories([])
-      } finally {
-        setLoading(false)
       }
+    } catch (err) {
+      setError(`Error loading repositories: ${err instanceof Error ? err.message : "Unknown error"}`)
+      setRepositories([])
+    } finally {
+      setLoading(false)
+    }
+  }, [secretId, host, value, client])
+
+  // Debounced search
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
     }
 
-    loadRepositories()
-  }, [secretId, host, value, client])
+    // Don't search if the search matches the selected repository
+    if (selectedRepository && search === selectedRepository.path_with_namespace) {
+      return
+    }
+
+    // Don't search on empty string or less than 3 characters
+    if (!search.trim() || search.trim().length < 3) {
+      setRepositories([])
+      return
+    }
+
+    // Set new timeout for search
+    searchTimeoutRef.current = setTimeout(() => {
+      loadRepositories(search)
+    }, 500) // 500ms debounce
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [search, selectedRepository, loadRepositories])
 
   const handleSelectRepository = (repository: Repository) => {
     setSelectedRepository(repository)
@@ -120,12 +142,9 @@ export function GitlabRepositorySelect({
     setShowDropdown(true)
   }
 
-  // Filter repositories based on search
-  const filteredRepositories = repositories.filter((repo) =>
-    repo.path_with_namespace.toLowerCase().includes(search.toLowerCase()) ||
-    repo.name.toLowerCase().includes(search.toLowerCase()) ||
-    repo.description?.toLowerCase().includes(search.toLowerCase())
-  )
+  // Note: Server-side filtering is now handled by the API
+  // This is just for display purposes
+  const filteredRepositories = repositories
 
   return (
     <div className="space-y-2">
@@ -145,6 +164,10 @@ export function GitlabRepositorySelect({
           Please provide GitLab host and select a valid access token first
         </div>
       ) : (
+        <>
+          <div className="text-xs text-gray-400 mb-2">
+            Type at least 3 characters to search GitLab repositories by name or path
+          </div>
         <div ref={inputContainerRef} className="relative">
           <Input
             type="text"
@@ -160,8 +183,7 @@ export function GitlabRepositorySelect({
             onFocus={handleFocus}
             onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
             className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
-            placeholder={loading ? "Loading repositories..." : "Search repositories..."}
-            disabled={loading}
+            placeholder="Type at least 3 characters to search repositories..."
           />
           <div className="absolute right-3 top-1/2 -translate-y-1/2">
             {loading ? (
@@ -183,7 +205,20 @@ export function GitlabRepositorySelect({
                   zIndex: 9999
                 }}
               >
-              {filteredRepositories.length > 0 ? (
+              {!search.trim() ? (
+                <div className="px-4 py-3 text-sm text-gray-400">
+                  Start typing to search repositories...
+                </div>
+              ) : search.trim().length < 3 ? (
+                <div className="px-4 py-3 text-sm text-yellow-400">
+                  Type at least 3 characters to search
+                </div>
+              ) : loading ? (
+                <div className="px-4 py-3 text-sm text-gray-400 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Searching...
+                </div>
+              ) : filteredRepositories.length > 0 ? (
                 filteredRepositories.map((repo) => (
                   <button
                     key={repo.id}
@@ -211,6 +246,7 @@ export function GitlabRepositorySelect({
             </Portal>
           )}
         </div>
+        </>
       )}
 
       {/* Selected Repository Display */}

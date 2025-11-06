@@ -222,7 +222,7 @@ export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task
   return task
 }
 
-const updateTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'ai_evaluation_status', 'ai_evaluation_session_id', 'ai_evaluation_result', 'ai_evaluation_simple_result', 'ai_evaluation_agentic_result', 'ai_implementation_status', 'ai_implementation_session_id'] as const
+const updateTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'ai_evaluation_simple_status', 'ai_evaluation_advanced_status', 'ai_evaluation_session_id', 'ai_evaluation_simple_verdict', 'ai_evaluation_advanced_verdict', 'ai_evaluation_simple_result', 'ai_evaluation_agentic_result', 'ai_implementation_status', 'ai_implementation_session_id'] as const
 
 export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): Promise<Task> => {
   const presentCols = filterPresentColumns(input, updateTaskCols)
@@ -337,7 +337,7 @@ export const upsertTaskFromJira = async (sql: Sql, input: CreateTaskInput): Prom
 }
 
 /**
- * Update task evaluation status
+ * Update task evaluation status (simple evaluation by default)
  */
 export const updateTaskEvaluationStatus = async (
   sql: Sql,
@@ -348,7 +348,7 @@ export const updateTaskEvaluationStatus = async (
   const tasks = await get(sql<Task[]>`
     UPDATE tasks
     SET
-      ai_evaluation_status = ${status},
+      ai_evaluation_simple_status = ${status},
       ai_evaluation_session_id = ${sessionId || null},
       updated_at = NOW()
     WHERE id = ${taskId}
@@ -362,8 +362,32 @@ export const updateTaskEvaluationStatus = async (
 }
 
 /**
- * Update task evaluation result
- * Sets the outcome of evaluation (ready or needs_clarification)
+ * Update task advanced evaluation status
+ */
+export const updateTaskEvaluationAdvancedStatus = async (
+  sql: Sql,
+  taskId: string,
+  status: 'pending' | 'queued' | 'evaluating' | 'completed' | 'failed',
+  sessionId?: string
+): Promise<Task> => {
+  const tasks = await get(sql<Task[]>`
+    UPDATE tasks
+    SET
+      ai_evaluation_advanced_status = ${status},
+      ai_evaluation_session_id = ${sessionId || null},
+      updated_at = NOW()
+    WHERE id = ${taskId}
+    RETURNING *
+  `)
+  const [task] = tasks
+  if (!task) {
+    throw new NotFoundException('Task not found')
+  }
+  return task
+}
+
+/**
+ * Update task evaluation verdict (simple evaluation by default)
  */
 export const updateTaskEvaluationResult = async (
   sql: Sql,
@@ -373,7 +397,30 @@ export const updateTaskEvaluationResult = async (
   const tasks = await get(sql<Task[]>`
     UPDATE tasks
     SET
-      ai_evaluation_result = ${result},
+      ai_evaluation_simple_verdict = ${result},
+      updated_at = NOW()
+    WHERE id = ${taskId}
+    RETURNING *
+  `)
+  const [task] = tasks
+  if (!task) {
+    throw new NotFoundException('Task not found')
+  }
+  return task
+}
+
+/**
+ * Update task advanced evaluation verdict
+ */
+export const updateTaskEvaluationAdvancedVerdict = async (
+  sql: Sql,
+  taskId: string,
+  result: 'ready' | 'needs_clarification'
+): Promise<Task> => {
+  const tasks = await get(sql<Task[]>`
+    UPDATE tasks
+    SET
+      ai_evaluation_advanced_verdict = ${result},
       updated_at = NOW()
     WHERE id = ${taskId}
     RETURNING *
@@ -439,7 +486,7 @@ export const updateTaskEvaluationAgenticResult = async (
 export const findTasksNeedingEvaluation = async (sql: Sql): Promise<Task[]> => {
   return get(sql<Task[]>`
     SELECT * FROM tasks
-    WHERE ai_evaluation_status IS NULL OR ai_evaluation_status = 'pending'
+    WHERE ai_evaluation_simple_status IS NULL OR ai_evaluation_simple_status = 'not_started'
     ORDER BY created_at DESC
   `)
 }

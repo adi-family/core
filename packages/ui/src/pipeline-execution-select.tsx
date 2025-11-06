@@ -45,7 +45,7 @@ export function PipelineExecutionSelect({
           query.worker_repository_id = workerRepositoryId
         }
         const data = await client.run(listPipelineExecutionsConfig, { query })
-        setPipelineExecutions(data)
+        setPipelineExecutions(data as any)
         setLoading(false)
       } catch (error) {
         console.error("Error fetching pipeline executions:", error)

@@ -128,9 +128,15 @@ export function TaskRow({
       {/* Status Bar at Top */}
       <div className="flex flex-wrap gap-4 bg-slate-900/40 px-4 py-2.5 border-b border-slate-700/30">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Eval:</span>
-          <span className={`text-xs font-medium ${getStatusColor(task.ai_evaluation_status)}`}>
-            {task.ai_evaluation_status || 'pending'}
+          <span className="text-xs text-gray-500">Simple Eval:</span>
+          <span className={`text-xs font-medium ${getStatusColor(task.ai_evaluation_simple_status)}`}>
+            {task.ai_evaluation_simple_status || 'not_started'}
+          </span>
+        </div>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-gray-500">Advanced Eval:</span>
+          <span className={`text-xs font-medium ${getStatusColor(task.ai_evaluation_advanced_status)}`}>
+            {task.ai_evaluation_advanced_status || (task.ai_evaluation_simple_status === 'completed' && task.ai_evaluation_simple_verdict === 'ready' ? 'not_started' : 'not_started')}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
@@ -258,8 +264,8 @@ export function TaskRow({
         <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-700/30">
           {/* Primary Action - Contextual based on state */}
           {(() => {
-            const isEvaluated = task.ai_evaluation_status === 'completed' || task.ai_evaluation_status === 'success'
-            const isEvaluating = task.ai_evaluation_status?.toLowerCase().includes('ing') || task.ai_evaluation_status === 'running' || task.ai_evaluation_status === 'queued'
+            const isEvaluated = task.ai_evaluation_simple_status === 'completed' || task.ai_evaluation_simple_status === 'success'
+            const isEvaluating = task.ai_evaluation_simple_status?.toLowerCase().includes('ing') || task.ai_evaluation_simple_status === 'running' || task.ai_evaluation_simple_status === 'queued'
             const isImplementing = task.ai_implementation_status?.toLowerCase().includes('ing') || task.ai_implementation_status === 'running' || task.ai_implementation_status === 'queued'
             const isImplemented = task.ai_implementation_status === 'completed' || task.ai_implementation_status === 'success'
 

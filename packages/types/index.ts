@@ -210,8 +210,10 @@ export type Task = {
   source_gitlab_issue: GitlabIssue | null
   source_github_issue: GithubIssue | null
   source_jira_issue: JiraIssue | null
-  ai_evaluation_status: 'pending' | 'queued' | 'evaluating' | 'completed' | 'failed' | null
-  ai_evaluation_result: 'ready' | 'needs_clarification' | null
+  ai_evaluation_simple_status: 'not_started' | 'queued' | 'evaluating' | 'completed' | 'failed' | null
+  ai_evaluation_advanced_status: 'not_started' | 'queued' | 'evaluating' | 'completed' | 'failed' | null
+  ai_evaluation_simple_verdict: 'ready' | 'needs_clarification' | null
+  ai_evaluation_advanced_verdict: 'ready' | 'needs_clarification' | null
   ai_evaluation_simple_result: SimpleEvaluationResult | null
   ai_evaluation_agentic_result: {
     report?: string

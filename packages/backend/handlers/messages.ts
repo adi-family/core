@@ -20,7 +20,7 @@ export function createMessageHandlers(sql: Sql) {
       ORDER BY created_at DESC
       LIMIT 100
     `
-    return messages
+    return messages as any
   })
 
   return {

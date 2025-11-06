@@ -6,6 +6,15 @@ import { Portal } from './portal'
 import { CheckCircle2, XCircle, Loader2, Plus, AlertCircle, Search } from "lucide-react"
 import { JiraOAuthButton, type OAuthResult } from './jira-oauth-button'
 import { JiraSiteSelector } from './jira-site-selector'
+import { BaseClient } from '@adi-family/http'
+import {
+  listSecretsConfig,
+  getSecretsByProjectConfig,
+  getSecretConfig,
+  createSecretConfig,
+  validateJiraRawTokenConfig,
+  validateJiraTokenConfig
+} from '@adi/api-contracts/secrets'
 
 export type Secret = {
   id: string
@@ -16,23 +25,8 @@ export type Secret = {
   updated_at: string
 }
 
-export type ApiClient = {
-  secrets: {
-    $get: () => Promise<Response>
-    "by-project": {
-      [key: string]: {
-        $get: (params: any) => Promise<Response>
-      }
-    }
-    $post: (data: any) => Promise<Response>
-    ":id": {
-      $get: (params: any) => Promise<Response>
-    }
-  }
-}
-
 type JiraSecretAutocompleteProps = {
-  client: ApiClient
+  client: BaseClient
   projectId?: string
   host: string
   value?: string | null
@@ -94,33 +88,30 @@ export function JiraSecretAutocomplete({
   useEffect(() => {
     const loadSecrets = async () => {
       try {
-        let res
+        let secrets
         if (projectId) {
           // Load secrets for specific project
-          res = await client.secrets["by-project"][":projectId"].$get({
-            param: { projectId },
-          })
+          secrets = await client.run(getSecretsByProjectConfig, {
+            params: { projectId }
+          }) as any
         } else {
           // Load all user secrets
-          res = await client.secrets.$get()
+          secrets = await client.run(listSecretsConfig) as any
         }
 
-        if (res.ok) {
-          const secrets = await res.json()
-          setExistingSecrets(secrets)
+        setExistingSecrets(secrets)
 
-          // If value is provided, find and select that secret
-          if (value) {
-            const secret = secrets.find((s: Secret) => s.id === value)
-            if (secret) {
-              setSelectedSecret(secret)
-            }
+        // If value is provided, find and select that secret
+        if (value) {
+          const secret = secrets.find((s: Secret) => s.id === value)
+          if (secret) {
+            setSelectedSecret(secret)
           }
+        }
 
-          // If no secrets exist, go to create mode
-          if (secrets.length === 0) {
-            setMode("create")
-          }
+        // If no secrets exist, go to create mode
+        if (secrets.length === 0) {
+          setMode("create")
         }
       } catch (err) {
         console.error("Failed to load secrets:", err)
@@ -144,32 +135,25 @@ export function JiraSecretAutocomplete({
 
     try {
       // Validate token using backend endpoint
-      const response = await (client.secrets as any)['validate-jira-raw-token'].$post({
-        json: {
+      const result = await client.run(validateJiraRawTokenConfig, {
+        body: {
           token,
           email: userEmail || undefined,
           hostname: host,
         }
+      }) as any
+
+      setTokenValid(true)
+
+      // Store token info
+      setTokenInfo({
+        username: result.username || 'Unknown User',
+        email: result.email || null,
       })
 
-      if (response.ok) {
-        const result = await response.json()
-        setTokenValid(true)
-
-        // Store token info
-        setTokenInfo({
-          username: result.username || 'Unknown User',
-          email: result.email || null,
-        })
-
-        // Auto-generate secret name if not set
-        if (!secretName) {
-          setSecretName(`Jira Token [${result.username}]`)
-        }
-      } else {
-        const errorData = await response.json()
-        setTokenValid(false)
-        setError(errorData.error || 'Token validation failed')
+      // Auto-generate secret name if not set
+      if (!secretName) {
+        setSecretName(`Jira Token [${result.username}]`)
       }
     } catch (err) {
       setTokenValid(false)
@@ -186,27 +170,20 @@ export function JiraSecretAutocomplete({
 
     try {
       // Validate secret using backend endpoint
-      const response = await (client.secrets as any)['validate-jira-token'].$post({
-        json: {
+      const result = await client.run(validateJiraTokenConfig, {
+        body: {
           secretId: secret.id,
           hostname: host,
         }
+      }) as any
+
+      setSelectedSecretValid(true)
+
+      // Store token info
+      setSelectedSecretInfo({
+        username: result.username || 'Unknown User',
+        email: result.email || null,
       })
-
-      if (response.ok) {
-        const result = await response.json()
-        setSelectedSecretValid(true)
-
-        // Store token info
-        setSelectedSecretInfo({
-          username: result.username || 'Unknown User',
-          email: result.email || null,
-        })
-      } else {
-        const errorData = await response.json()
-        setSelectedSecretValid(false)
-        setError(errorData.error || 'Token validation failed. The token may be invalid or expired.')
-      }
     } catch (err) {
       setSelectedSecretValid(false)
       setError(`Failed to validate secret: ${err instanceof Error ? err.message : "Unknown error"}`)
@@ -294,23 +271,15 @@ export function JiraSecretAutocomplete({
       // Store token in email:token format if email is provided
       const tokenValue = email ? `${email}:${newToken}` : newToken
 
-      const res = await client.secrets.$post({
-        json: {
+      const secret = await client.run(createSecretConfig, {
+        body: {
           project_id: projectId,
           name: secretName,
           value: tokenValue,
           description: `Jira API token for ${host}`,
-        },
-      })
+        }
+      }) as any
 
-      if (!res.ok) {
-        const errorText = await res.text()
-        setError(`Failed to create secret: ${errorText}`)
-        setLoading(false)
-        return
-      }
-
-      const secret = await res.json()
       setSelectedSecret(secret)
       setExistingSecrets((prev) => [...prev, secret])
       onChange(secret.id, secret)
@@ -321,7 +290,7 @@ export function JiraSecretAutocomplete({
       setTokenValid(null)
       setMode("select")
     } catch (err) {
-      setError("Error creating secret")
+      setError(`Failed to create secret: ${err instanceof Error ? err.message : "Unknown error"}`)
       console.error(err)
     } finally {
       setLoading(false)
@@ -524,25 +493,17 @@ export function JiraSecretAutocomplete({
                             onSiteSelected?.(result.sites[0].url, result.sites[0].id)
 
                             // Auto-finish if only one site
-                            client.secrets[":id"].$get({
-                              param: { id: result.secretId }
-                            }).then(secretRes => {
-                              if (secretRes.ok) {
-                                secretRes.json().then(secret => {
-                                  setSelectedSecret(secret)
-                                  setExistingSecrets((prev) => {
-                                    const exists = prev.find(s => s.id === secret.id)
-                                    return exists ? prev : [...prev, secret]
-                                  })
-                                  onChange(secret.id, secret)
-                                  setOAuthResult(null)
-                                  setSelectedCloudId(null)
-                                })
-                              } else {
-                                onChange(result.secretId, null)
-                                setOAuthResult(null)
-                                setSelectedCloudId(null)
-                              }
+                            client.run(getSecretConfig, {
+                              params: { id: result.secretId }
+                            }).then((secret: any) => {
+                              setSelectedSecret(secret as any)
+                              setExistingSecrets((prev) => {
+                                const exists = prev.find(s => s.id === secret.id)
+                                return exists ? prev : [...prev, secret as any]
+                              })
+                              onChange(secret.id, secret as any)
+                              setOAuthResult(null)
+                              setSelectedCloudId(null)
                             }).catch(() => {
                               onChange(result.secretId, null)
                               setOAuthResult(null)
@@ -602,21 +563,16 @@ export function JiraSecretAutocomplete({
                                 }
 
                                 try {
-                                  const secretRes = await client.secrets[":id"].$get({
-                                    param: { id: oauthResult.secretId }
-                                  })
+                                  const secret = await client.run(getSecretConfig, {
+                                    params: { id: oauthResult.secretId }
+                                  }) as any
 
-                                  if (secretRes.ok) {
-                                    const secret = await secretRes.json()
-                                    setSelectedSecret(secret)
-                                    setExistingSecrets((prev) => {
-                                      const exists = prev.find(s => s.id === secret.id)
-                                      return exists ? prev : [...prev, secret]
-                                    })
-                                    onChange(secret.id, secret)
-                                  } else {
-                                    onChange(oauthResult.secretId, null)
-                                  }
+                                  setSelectedSecret(secret)
+                                  setExistingSecrets((prev) => {
+                                    const exists = prev.find(s => s.id === secret.id)
+                                    return exists ? prev : [...prev, secret]
+                                  })
+                                  onChange(secret.id, secret)
                                 } catch (err) {
                                   console.error('Failed to fetch secret:', err)
                                   onChange(oauthResult.secretId, null)
@@ -690,31 +646,22 @@ export function JiraSecretAutocomplete({
                         onSiteSelected?.(result.sites[0].url, result.sites[0].id)
 
                         // Auto-finish if only one site
-                        client.secrets[":id"].$get({
-                          param: { id: result.secretId }
-                        }).then(secretRes => {
-                          if (secretRes.ok) {
-                            secretRes.json().then(secret => {
-                              setSelectedSecret(secret)
-                              setExistingSecrets((prev) => {
-                                const exists = prev.find(s => s.id === secret.id)
-                                return exists ? prev : [...prev, secret]
-                              })
-                              onChange(secret.id, secret)
-                              setNewToken("")
-                              setEmail("")
-                              setSecretName("")
-                              setTokenValid(null)
-                              setMode("select")
-                              setOAuthResult(null)
-                              setSelectedCloudId(null)
-                            })
-                          } else {
-                            onChange(result.secretId, null)
-                            setMode("select")
-                            setOAuthResult(null)
-                            setSelectedCloudId(null)
-                          }
+                        client.run(getSecretConfig, {
+                          params: { id: result.secretId }
+                        }).then((secret: any) => {
+                          setSelectedSecret(secret as any)
+                          setExistingSecrets((prev) => {
+                            const exists = prev.find(s => s.id === secret.id)
+                            return exists ? prev : [...prev, secret as any]
+                          })
+                          onChange(secret.id, secret as any)
+                          setNewToken("")
+                          setEmail("")
+                          setSecretName("")
+                          setTokenValid(null)
+                          setMode("select")
+                          setOAuthResult(null)
+                          setSelectedCloudId(null)
                         }).catch(() => {
                           onChange(result.secretId, null)
                           setMode("select")
@@ -775,21 +722,16 @@ export function JiraSecretAutocomplete({
                             }
 
                             try {
-                              const secretRes = await client.secrets[":id"].$get({
-                                param: { id: oauthResult.secretId }
-                              })
+                              const secret = await client.run(getSecretConfig, {
+                                params: { id: oauthResult.secretId }
+                              }) as any
 
-                              if (secretRes.ok) {
-                                const secret = await secretRes.json()
-                                setSelectedSecret(secret)
-                                setExistingSecrets((prev) => {
-                                  const exists = prev.find(s => s.id === secret.id)
-                                  return exists ? prev : [...prev, secret]
-                                })
-                                onChange(secret.id, secret)
-                              } else {
-                                onChange(oauthResult.secretId, null)
-                              }
+                              setSelectedSecret(secret)
+                              setExistingSecrets((prev) => {
+                                const exists = prev.find(s => s.id === secret.id)
+                                return exists ? prev : [...prev, secret]
+                              })
+                              onChange(secret.id, secret)
                             } catch (err) {
                               console.error('Failed to fetch secret:', err)
                               onChange(oauthResult.secretId, null)

@@ -5,13 +5,122 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
+// AI Provider Config Schemas
+const anthropicCloudConfigSchema = z.object({
+  type: z.literal('cloud'),
+  api_key_secret_id: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional()
+})
+
+const anthropicSelfHostedConfigSchema = z.object({
+  type: z.literal('self-hosted'),
+  api_key_secret_id: z.string(),
+  endpoint_url: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional(),
+  additional_headers: z.record(z.string(), z.string()).optional()
+})
+
+const anthropicConfigSchema = z.union([anthropicCloudConfigSchema, anthropicSelfHostedConfigSchema])
+
+const openAICloudConfigSchema = z.object({
+  type: z.literal('cloud'),
+  api_key_secret_id: z.string(),
+  organization_id: z.string().optional(),
+  model: z.string().optional()
+})
+
+const openAIAzureConfigSchema = z.object({
+  type: z.literal('azure'),
+  api_key_secret_id: z.string(),
+  endpoint_url: z.string(),
+  deployment_name: z.string(),
+  api_version: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional()
+})
+
+const openAISelfHostedConfigSchema = z.object({
+  type: z.literal('self-hosted'),
+  api_key_secret_id: z.string(),
+  endpoint_url: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional(),
+  additional_headers: z.record(z.string(), z.string()).optional()
+})
+
+const openAIConfigSchema = z.union([openAICloudConfigSchema, openAIAzureConfigSchema, openAISelfHostedConfigSchema])
+
+const googleCloudConfigSchema = z.object({
+  type: z.literal('cloud'),
+  api_key_secret_id: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional()
+})
+
+const googleVertexConfigSchema = z.object({
+  type: z.literal('vertex'),
+  api_key_secret_id: z.string(),
+  project_id: z.string(),
+  location: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional()
+})
+
+const googleSelfHostedConfigSchema = z.object({
+  type: z.literal('self-hosted'),
+  api_key_secret_id: z.string(),
+  endpoint_url: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional(),
+  additional_headers: z.record(z.string(), z.string()).optional()
+})
+
+const googleConfigSchema = z.union([googleCloudConfigSchema, googleVertexConfigSchema, googleSelfHostedConfigSchema])
+
+const aiProviderConfigSchema = z.object({
+  anthropic: anthropicConfigSchema.optional(),
+  openai: openAIConfigSchema.optional(),
+  google: googleConfigSchema.optional()
+})
+
+const gitlabExecutorConfigSchema = z.object({
+  host: z.string(),
+  access_token_secret_id: z.string(),
+  verified_at: z.string().optional(),
+  user: z.string().optional()
+})
+
+/**
+ * Exported response types (inferred from schemas)
+ */
+export type ProjectResponse = z.infer<typeof projectSchema>
+export type AIProviderConfigResponse = z.infer<typeof aiProviderConfigSchema>
+export type GitLabExecutorConfigResponse = z.infer<typeof gitlabExecutorConfigSchema>
+export type AIProviderValidationResponse = {
+  valid: boolean
+  endpoint_reachable: boolean
+  authentication_valid: boolean
+  error?: string
+  details?: Record<string, unknown>
+  tested_at: string
+}
+
 // Schemas
 const projectSchema = z.object({
   id: z.string(),
   name: z.string(),
   enabled: z.boolean(),
-  job_executor_gitlab: z.any().nullable(),
-  ai_provider_configs: z.any().nullable(),
+  job_executor_gitlab: gitlabExecutorConfigSchema.nullable(),
+  ai_provider_configs: aiProviderConfigSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string(),
   last_synced_at: z.string().nullable()
@@ -113,7 +222,7 @@ export const getProjectAIProvidersConfig = {
   method: 'GET',
   route: route.dynamic('/api/projects/:id/ai-providers', z.object({ id: z.string() })),
   response: {
-    schema: z.any()
+    schema: aiProviderConfigSchema.nullable()
   }
 } as const
 
@@ -128,10 +237,10 @@ export const updateProjectAIProviderConfig = {
     provider: z.string()
   })),
   body: {
-    schema: z.any()
+    schema: z.union([anthropicConfigSchema, openAIConfigSchema, googleConfigSchema])
   },
   response: {
-    schema: z.any()
+    schema: aiProviderConfigSchema
   }
 } as const
 
@@ -161,10 +270,17 @@ export const validateProjectAIProviderConfig = {
     provider: z.string()
   })),
   body: {
-    schema: z.any()
+    schema: z.union([anthropicConfigSchema, openAIConfigSchema, googleConfigSchema])
   },
   response: {
-    schema: z.any()
+    schema: z.object({
+      valid: z.boolean(),
+      endpoint_reachable: z.boolean(),
+      authentication_valid: z.boolean(),
+      error: z.string().optional(),
+      details: z.record(z.string(), z.unknown()).optional(),
+      tested_at: z.string()
+    })
   }
 } as const
 
@@ -176,7 +292,7 @@ export const getProjectGitLabExecutorConfig = {
   method: 'GET',
   route: route.dynamic('/api/projects/:id/job-executor-gitlab', z.object({ id: z.string() })),
   response: {
-    schema: z.any()
+    schema: gitlabExecutorConfigSchema.nullable()
   }
 } as const
 
@@ -188,10 +304,10 @@ export const createProjectGitLabExecutorConfig = {
   method: 'POST',
   route: route.dynamic('/api/projects/:id/job-executor-gitlab', z.object({ id: z.string() })),
   body: {
-    schema: z.any()
+    schema: gitlabExecutorConfigSchema
   },
   response: {
-    schema: z.any()
+    schema: gitlabExecutorConfigSchema
   }
 } as const
 

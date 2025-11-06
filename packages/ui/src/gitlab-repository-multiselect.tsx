@@ -1,6 +1,8 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Label } from './label'
-import { Loader2, GitBranch, Check } from "lucide-react"
+import { Input } from './input'
+import { Loader2, GitBranch, Check, Search } from "lucide-react"
+import { getGitLabRepositoriesConfig } from '@adi/api-contracts/secrets'
 
 type Repository = {
   id: number
@@ -32,45 +34,62 @@ export function GitlabRepositoryMultiSelect({
   const [repositories, setRepositories] = useState<Repository[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [search, setSearch] = useState("")
+  const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
-  // Load repositories from backend API
-  useEffect(() => {
+  // Load repositories from backend API with search support
+  const loadRepositories = useCallback(async (searchQuery?: string) => {
     if (!secretId || !host) {
       setRepositories([])
       return
     }
 
-    const loadRepositories = async () => {
-      setLoading(true)
-      setError(null)
+    setLoading(true)
+    setError(null)
 
-      try {
-        const response = await client.secrets['gitlab-repositories'].$post({
-          json: {
-            secretId,
-            hostname: host
-          }
-        })
-
-        if (!response.ok) {
-          const errorData = await response.json()
-          setError(errorData.error || `Failed to load repositories: ${response.statusText}`)
-          setRepositories([])
-          return
+    try {
+      const data = await client.run(getGitLabRepositoriesConfig, {
+        body: {
+          secretId,
+          host,
+          search: searchQuery,
+          perPage: 100
         }
+      }) as Repository[]
 
-        const data: Repository[] = await response.json()
-        setRepositories(data)
-      } catch (err) {
-        setError(`Error loading repositories: ${err instanceof Error ? err.message : "Unknown error"}`)
-        setRepositories([])
-      } finally {
-        setLoading(false)
-      }
+      setRepositories(data)
+    } catch (err) {
+      setError(`Error loading repositories: ${err instanceof Error ? err.message : "Unknown error"}`)
+      setRepositories([])
+    } finally {
+      setLoading(false)
+    }
+  }, [secretId, host, client])
+
+  // Debounced search
+  useEffect(() => {
+    // Clear previous timeout
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
     }
 
-    loadRepositories()
-  }, [secretId, host, client])
+    // Don't search on empty string or less than 3 characters
+    if (!search.trim() || search.trim().length < 3) {
+      setRepositories([])
+      return
+    }
+
+    // Set new timeout for search
+    searchTimeoutRef.current = setTimeout(() => {
+      loadRepositories(search)
+    }, 500) // 500ms debounce
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [search, loadRepositories])
 
   const handleToggleRepository = (pathWithNamespace: string) => {
     if (value.includes(pathWithNamespace)) {
@@ -105,16 +124,50 @@ export function GitlabRepositoryMultiSelect({
         <div className="bg-yellow-900/20 text-yellow-400 px-4 py-3 rounded-lg border border-yellow-700/50 backdrop-blur-sm text-sm">
           Please provide GitLab host and select a valid access token first
         </div>
-      ) : loading ? (
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
-          <span className="ml-2 text-sm text-gray-400">Loading repositories...</span>
-        </div>
-      ) : repositories.length === 0 ? (
-        <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700/50 text-center">
-          <div className="text-sm text-gray-400">No repositories found</div>
-        </div>
       ) : (
+        <>
+          {/* Search Input */}
+          <div className="relative">
+            <Input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
+              placeholder="Type at least 3 characters to search repositories..."
+            />
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
+              ) : (
+                <Search className="w-4 h-4 text-gray-400" />
+              )}
+            </div>
+          </div>
+
+          {/* Search hint */}
+          <div className="text-xs text-gray-400">
+            Type at least 3 characters to search GitLab repositories by name or path
+          </div>
+
+          {/* Repository Grid or Empty States */}
+          {!search.trim() ? (
+            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700/50 text-center">
+              <div className="text-sm text-gray-400">Start typing to search repositories...</div>
+            </div>
+          ) : search.trim().length < 3 ? (
+            <div className="bg-yellow-900/20 text-yellow-400 px-4 py-3 rounded-lg border border-yellow-700/50 backdrop-blur-sm text-sm text-center">
+              Type at least 3 characters to search
+            </div>
+          ) : loading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+              <span className="ml-2 text-sm text-gray-400">Searching repositories...</span>
+            </div>
+          ) : repositories.length === 0 ? (
+            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700/50 text-center">
+              <div className="text-sm text-gray-400">No repositories found for "{search}"</div>
+            </div>
+          ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-96 overflow-y-auto pr-2">
           {repositories.map((repo) => {
             const isSelected = value.includes(repo.path_with_namespace)
@@ -169,6 +222,8 @@ export function GitlabRepositoryMultiSelect({
             )
           })}
         </div>
+          )}
+        </>
       )}
     </div>
   )

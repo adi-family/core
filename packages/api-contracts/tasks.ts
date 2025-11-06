@@ -36,8 +36,10 @@ const taskSchema = z.object({
   source_gitlab_issue: z.any().nullable(),
   source_github_issue: z.any().nullable(),
   source_jira_issue: z.any().nullable(),
-  ai_evaluation_status: z.enum(['pending', 'queued', 'evaluating', 'completed', 'failed']).nullable(),
-  ai_evaluation_result: z.enum(['ready', 'needs_clarification']).nullable(),
+  ai_evaluation_simple_status: z.enum(['not_started', 'queued', 'evaluating', 'completed', 'failed']).nullable(),
+  ai_evaluation_advanced_status: z.enum(['not_started', 'queued', 'evaluating', 'completed', 'failed']).nullable(),
+  ai_evaluation_simple_verdict: z.enum(['ready', 'needs_clarification']).nullable(),
+  ai_evaluation_advanced_verdict: z.enum(['ready', 'needs_clarification']).nullable(),
   ai_evaluation_simple_result: z.any().nullable(),
   ai_evaluation_agentic_result: z.object({
     report: z.string().optional(),
@@ -125,12 +127,31 @@ export const implementTaskConfig = {
 } as const
 
 /**
- * Evaluate task
+ * Evaluate task (simple evaluation)
  * POST /api/tasks/:id/evaluate
  */
 export const evaluateTaskConfig = {
   method: 'POST',
   route: route.dynamic('/api/tasks/:id/evaluate', z.object({ id: z.string() })),
+  body: {
+    schema: z.object({}).optional()
+  },
+  response: {
+    schema: z.object({
+      success: z.boolean(),
+      message: z.string().optional(),
+      evaluation: z.any().optional()
+    })
+  }
+} as const
+
+/**
+ * Evaluate task advanced (advanced agentic evaluation)
+ * POST /api/tasks/:id/evaluate-advanced
+ */
+export const evaluateTaskAdvancedConfig = {
+  method: 'POST',
+  route: route.dynamic('/api/tasks/:id/evaluate-advanced', z.object({ id: z.string() })),
   body: {
     schema: z.object({}).optional()
   },
@@ -164,5 +185,51 @@ export const getTasksByProjectConfig = {
   route: route.dynamic('/api/tasks/by-project/:projectId', z.object({ projectId: z.string() })),
   response: {
     schema: z.array(taskSchema)
+  }
+} as const
+
+/**
+ * Get task statistics
+ * GET /api/tasks/stats
+ */
+export const getTaskStatsConfig = {
+  method: 'GET',
+  route: route.static('/api/tasks/stats'),
+  query: {
+    schema: z.object({
+      project_id: z.string().optional(),
+      task_source_id: z.string().optional(),
+      evaluated_only: z.string().optional(),
+      sort_by: z.string().optional()
+    }).optional()
+  },
+  response: {
+    schema: z.object({
+      total: z.number(),
+      evaluated: z.number(),
+      implemented: z.number(),
+      inProgress: z.number(),
+      avgComplexity: z.string(),
+      quadrantData: z.array(z.object({
+        x: z.number(),
+        y: z.number(),
+        title: z.string(),
+        id: z.string(),
+        impactLabel: z.string(),
+        effortLabel: z.string()
+      })),
+      taskTypeData: z.array(z.object({
+        name: z.string(),
+        value: z.number()
+      })),
+      effortData: z.array(z.object({
+        name: z.string(),
+        value: z.number()
+      })),
+      riskData: z.array(z.object({
+        name: z.string(),
+        value: z.number()
+      }))
+    })
   }
 } as const

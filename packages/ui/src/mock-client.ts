@@ -1,4 +1,4 @@
-import type { Secret, ApiClient } from './gitlab-secret-autocomplete'
+import type { Secret } from './gitlab-secret-autocomplete'
 import type { Project, ProjectApiClient } from './project-select'
 import type {
   TaskSource,
@@ -190,7 +190,8 @@ const mockTasks: Task[] = [
     remote_status: "opened",
     project_id: "1",
     task_source_id: "ts-1",
-    ai_evaluation_result: null,
+    ai_evaluation_simple_verdict: null,
+    ai_evaluation_advanced_verdict: null,
     ai_evaluation_simple_result: null,
     ai_evaluation_agentic_result: null,
     source_gitlab_issue: {
@@ -207,7 +208,8 @@ const mockTasks: Task[] = [
     },
     source_github_issue: null,
     source_jira_issue: null,
-    ai_evaluation_status: "completed",
+    ai_evaluation_simple_status: "completed",
+    ai_evaluation_advanced_status: "not_started",
     ai_evaluation_session_id: "session-1",
     ai_implementation_status: "pending",
     ai_implementation_session_id: null,
@@ -222,7 +224,8 @@ const mockTasks: Task[] = [
     remote_status: "opened",
     project_id: "2",
     task_source_id: "ts-2",
-    ai_evaluation_result: null,
+    ai_evaluation_simple_verdict: null,
+    ai_evaluation_advanced_verdict: null,
     ai_evaluation_simple_result: null,
     ai_evaluation_agentic_result: null,
     source_gitlab_issue: null,
@@ -238,7 +241,8 @@ const mockTasks: Task[] = [
         project_key: "MOB"
       }
     },
-    ai_evaluation_status: "evaluating",
+    ai_evaluation_simple_status: "evaluating",
+    ai_evaluation_advanced_status: "not_started",
     ai_evaluation_session_id: "session-2",
     ai_implementation_status: "pending",
     ai_implementation_session_id: null,
@@ -253,7 +257,8 @@ const mockTasks: Task[] = [
     remote_status: "opened",
     project_id: "3",
     task_source_id: "ts-3",
-    ai_evaluation_result: null,
+    ai_evaluation_simple_verdict: null,
+    ai_evaluation_advanced_verdict: null,
     ai_evaluation_simple_result: null,
     ai_evaluation_agentic_result: null,
     source_gitlab_issue: null,
@@ -269,7 +274,8 @@ const mockTasks: Task[] = [
       }
     },
     source_jira_issue: null,
-    ai_evaluation_status: "pending",
+    ai_evaluation_simple_status: "not_started",
+    ai_evaluation_advanced_status: "not_started",
     ai_evaluation_session_id: null,
     ai_implementation_status: "pending",
     ai_implementation_session_id: null,
@@ -284,7 +290,8 @@ const mockTasks: Task[] = [
     remote_status: "closed",
     project_id: "4",
     task_source_id: "ts-1",
-    ai_evaluation_result: null,
+    ai_evaluation_simple_verdict: null,
+    ai_evaluation_advanced_verdict: null,
     ai_evaluation_simple_result: null,
     ai_evaluation_agentic_result: null,
     source_gitlab_issue: {
@@ -301,7 +308,8 @@ const mockTasks: Task[] = [
     },
     source_github_issue: null,
     source_jira_issue: null,
-    ai_evaluation_status: "completed",
+    ai_evaluation_simple_status: "completed",
+    ai_evaluation_advanced_status: "not_started",
     ai_evaluation_session_id: "session-3",
     ai_implementation_status: "pending",
     ai_implementation_session_id: null,
@@ -423,8 +431,10 @@ const mockPipelineExecutions: PipelineExecution[] = [
   },
 ]
 
-// Mock API client for secrets
-export const mockApiClient: ApiClient = {
+// @deprecated - Mock API client needs to be updated to work with BaseClient architecture
+// This mock client uses the old Hono-style API that has been removed
+// TODO: Update to mock BaseClient.run() method instead
+export const mockApiClient: any = {
   secrets: {
     $get: async () => {
       return new Response(JSON.stringify(mockSecrets), {

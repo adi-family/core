@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom"
-import { useMemo, useEffect, useState } from "react"
+import { useMemo, useEffect } from "react"
 import { useAuth } from "@clerk/clerk-react"
+import { useSnapshot } from "valtio"
 import { Button } from '@adi-simple/ui/button'
 import {
   Card,
@@ -13,50 +14,34 @@ import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import { FileSpaceRow } from "@/components/FileSpaceRow"
 import { useProject } from "@/contexts/ProjectContext"
 import { createAuthenticatedClient } from "@/lib/client"
-import { listFileSpacesConfig, listProjectsConfig } from "@adi/api-contracts"
 import { designTokens } from "@/theme/tokens"
-import type { FileSpace, Project } from "@types"
+import {
+  projectsStore,
+  fetchProjects,
+  fileSpacesStore,
+  fetchFileSpaces,
+  getFileSpacesByProject
+} from "@/stores"
 
 export function FileSpacesPage() {
   const navigate = useNavigate()
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const { selectedProjectId } = useProject()
-  const [fileSpaces, setFileSpaces] = useState<FileSpace[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const fetchData = async () => {
-    setLoading(true)
-    try {
-      const [fileSpacesData, projectsData] = await Promise.all([
-        client.run(listFileSpacesConfig, { query: {} }),
-        client.run(listProjectsConfig)
-      ])
-
-      setFileSpaces(fileSpacesData)
-      setProjects(projectsData)
-    } catch (error) {
-      console.error("Error fetching data:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { fileSpaces, loading } = useSnapshot(fileSpacesStore)
+  const { projects } = useSnapshot(projectsStore)
 
   useEffect(() => {
-    fetchData().catch((error) => {
-      console.error("Error fetching data:", error)
-      setLoading(false)
-    })
-  }, [])
+    Promise.all([
+      fetchFileSpaces(client),
+      fetchProjects(client)
+    ])
+  }, [client])
 
   // Filter file spaces by selected project
-  const filteredFileSpaces = useMemo(() => {
-    if (!selectedProjectId) {
-      return fileSpaces
-    }
-    return fileSpaces.filter(fs => fs.project_id === selectedProjectId)
-  }, [fileSpaces, selectedProjectId])
+  const filteredFileSpaces = useMemo(() =>
+    getFileSpacesByProject(selectedProjectId), [selectedProjectId, fileSpaces]
+  )
 
   return (
     <AnimatedPageContainer>

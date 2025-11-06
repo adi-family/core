@@ -11,19 +11,19 @@ async function retryFailedEvaluations() {
     // Get all failed tasks
     const failedTasks = await sql<Task[]>`
       SELECT id, title FROM tasks
-      WHERE ai_evaluation_status = 'failed'
+      WHERE ai_evaluation_simple_status = 'failed'
     `
 
     logger.info(`Found ${failedTasks.length} failed tasks to retry`)
 
-    // Reset status to pending
+    // Reset status to not_started
     await sql`
       UPDATE tasks
-      SET ai_evaluation_status = 'pending', updated_at = NOW()
-      WHERE ai_evaluation_status = 'failed'
+      SET ai_evaluation_simple_status = 'not_started', updated_at = NOW()
+      WHERE ai_evaluation_simple_status = 'failed'
     `
 
-    logger.info(`Reset ${failedTasks.length} tasks to pending status`)
+    logger.info(`Reset ${failedTasks.length} tasks to not_started status`)
 
     // Publish to queue
     for (const task of failedTasks) {

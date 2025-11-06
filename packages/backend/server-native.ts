@@ -48,8 +48,10 @@ const allHandlers = [
   taskHandlers.getTaskArtifacts,
   taskHandlers.listTasks,
   taskHandlers.getTask,
+  taskHandlers.getTaskStats,
   taskHandlers.implementTask,
   taskHandlers.evaluateTask,
+  taskHandlers.evaluateTaskAdvanced,
   // Sessions
   sessionHandlers.getSessionMessages,
   sessionHandlers.getSessionPipelineExecutions,
@@ -62,6 +64,9 @@ const allHandlers = [
   messageHandlers.listMessages,
   // Task Sources
   taskSourceHandlers.listTaskSources,
+  taskSourceHandlers.createTaskSource,
+  taskSourceHandlers.updateTaskSource,
+  taskSourceHandlers.deleteTaskSource,
   taskSourceHandlers.syncTaskSource,
   // Alerts
   alertHandlers.listAlerts,
@@ -79,6 +84,11 @@ const allHandlers = [
   secretHandlers.validateJiraToken,
   // File Spaces
   fileSpaceHandlers.listFileSpaces,
+  fileSpaceHandlers.getFileSpace,
+  fileSpaceHandlers.createFileSpace,
+  fileSpaceHandlers.updateFileSpace,
+  fileSpaceHandlers.deleteFileSpace,
+  fileSpaceHandlers.getTaskFileSpaces,
   // OAuth
   oauthHandlers.gitlabAuthorize,
   oauthHandlers.gitlabExchange,

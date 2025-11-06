@@ -68,9 +68,18 @@ export class TaskPresenter extends BasePresenter<Task> {
         sortable: false,
       },
       {
-        key: 'evaluation_status',
-        label: 'Evaluation',
-        render: (task: Task) => this.renderStatusBadge(task.ai_evaluation_status),
+        key: 'simple_evaluation_status',
+        label: 'Simple Eval',
+        render: (task: Task) => this.renderStatusBadge(task.ai_evaluation_simple_status),
+        sortable: false,
+      },
+      {
+        key: 'advanced_evaluation_status',
+        label: 'Advanced Eval',
+        render: (task: Task) => this.renderStatusBadge(
+          task.ai_evaluation_advanced_status ||
+          (task.ai_evaluation_simple_status === 'completed' && task.ai_evaluation_simple_verdict === 'ready' ? 'not_started' : 'not_started')
+        ),
         sortable: false,
       },
       {

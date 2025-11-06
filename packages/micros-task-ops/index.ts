@@ -49,6 +49,7 @@ const runners: LabeledRunner[] = [
     config.syncThresholdMinutes,
     config.queuedTimeoutMinutes
   ) },
+  // Backup evaluation scheduler - catches any tasks not immediately queued after sync
   { label: 'EvalScheduler', ...createEvalScheduler(
     sql,
     config.evalIntervalMinutes

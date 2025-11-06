@@ -29,7 +29,8 @@ export interface PipelineExecution {
 
 export interface Task {
   id: string
-  ai_evaluation_status: string | null
+  ai_evaluation_simple_status: string | null
+  ai_evaluation_advanced_status: string | null
   ai_implementation_status?: string | null
   [key: string]: unknown
 }
@@ -64,9 +65,9 @@ export async function syncTaskEvaluationStatus(
     const isImplementationPipeline = session.runner === 'claude' || session.runner === 'implementation'
 
     if (isEvaluationPipeline) {
-      // Only update if task is still in 'evaluating' state
-      if (task.ai_evaluation_status !== 'evaluating') {
-        logger.info(`  Task ${task.id} already in status '${task.ai_evaluation_status}', skipping evaluation sync`)
+      // Only update if task is still in 'evaluating' state (check simple status)
+      if (task.ai_evaluation_simple_status !== 'evaluating') {
+        logger.info(`  Task ${task.id} already in status '${task.ai_evaluation_simple_status}', skipping evaluation sync`)
         return
       }
 
@@ -199,7 +200,7 @@ export async function recoverStuckEvaluationsFromDatabase(
       FROM tasks t
       LEFT JOIN sessions s ON t.ai_evaluation_session_id = s.id
       LEFT JOIN pipeline_executions pe ON s.id = pe.session_id
-      WHERE t.ai_evaluation_status = 'evaluating'
+      WHERE t.ai_evaluation_simple_status = 'evaluating'
         AND t.updated_at < NOW() - INTERVAL '1 minute' * ${timeoutMinutes}
       ORDER BY t.updated_at ASC
     `)

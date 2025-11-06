@@ -1,6 +1,7 @@
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@clerk/clerk-react"
+import { useSnapshot } from "valtio"
 import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import {
   Card,
@@ -12,69 +13,56 @@ import {
 import { Button } from '@adi-simple/ui/button'
 import { TaskSourceRow } from "@/components/TaskSourceRow"
 import { createAuthenticatedClient } from "@/lib/client"
-import { listTaskSourcesConfig, listProjectsConfig } from "@adi/api-contracts"
 import { designTokens } from "@/theme/tokens"
 import { useProject } from "@/contexts/ProjectContext"
 import { toast } from "sonner"
-import type { TaskSource, Project } from "../../../types"
+import type { TaskSource } from "../../../types"
+import {
+  projectsStore,
+  fetchProjects,
+  taskSourcesStore,
+  fetchTaskSources,
+  getTaskSourcesByProject,
+  syncTaskSource
+} from "@/stores"
 
 export function TaskSourcesPage() {
   const navigate = useNavigate()
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const { selectedProjectId } = useProject()
-  const [taskSources, setTaskSources] = useState<TaskSource[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-
-  const fetchData = async () => {
-    setLoading(true)
-    try {
-      const [taskSourcesData, projectsData] = await Promise.all([
-        client.run(listTaskSourcesConfig, { query: {} }),
-        client.run(listProjectsConfig)
-      ])
-
-      setTaskSources(taskSourcesData)
-      setProjects(projectsData)
-    } catch (error) {
-      console.error("Error fetching data:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
+  const { taskSources, loading } = useSnapshot(taskSourcesStore)
+  const { projects } = useSnapshot(projectsStore)
 
   useEffect(() => {
-    fetchData().catch((error) => {
-      console.error("Error fetching data:", error)
-      setLoading(false)
-    })
-  }, [])
+    const fetchData = async () => {
+      try {
+        await Promise.all([
+          fetchTaskSources(client, { force: true }),
+          fetchProjects(client)
+        ])
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        toast.error('Failed to load data')
+      }
+    }
+    fetchData()
+  }, [client])
 
   const handleSync = async (taskSource: TaskSource) => {
-    // TODO: Sync endpoint not yet migrated to @adi-family/http contracts
-    // Need to add syncTaskSourceConfig to @adi/api-contracts/task-sources.ts
-    toast.error("Sync endpoint not yet implemented")
-    console.warn("Sync endpoint needs migration to @adi-family/http", taskSource)
-
-    // Original implementation (commented out until contract is added):
-    // try {
-    //   await client.run(syncTaskSourceConfig, { params: { id: taskSource.id } })
-    //   toast.success(`Sync started for ${taskSource.name}`)
-    //   await fetchData()
-    // } catch (error) {
-    //   console.error("Error syncing task source:", error)
-    //   toast.error("Failed to start sync")
-    // }
+    try {
+      await syncTaskSource(client, taskSource.id)
+      toast.success(`Sync started for ${taskSource.name}`)
+    } catch (error) {
+      console.error("Error syncing task source:", error)
+      toast.error("Failed to start sync")
+    }
   }
 
   // Filter task sources by selected project
-  const filteredTaskSources = useMemo(() => {
-    if (!selectedProjectId) {
-      return taskSources
-    }
-    return taskSources.filter(ts => ts.project_id === selectedProjectId)
-  }, [taskSources, selectedProjectId])
+  const filteredTaskSources = useMemo(() =>
+    getTaskSourcesByProject(selectedProjectId), [selectedProjectId, taskSources]
+  )
 
   return (
     <AnimatedPageContainer>
@@ -103,8 +91,18 @@ export function TaskSourcesPage() {
               <div className="text-gray-500">Loading task sources...</div>
             </div>
           ) : filteredTaskSources.length === 0 ? (
-            <div className="flex justify-center items-center py-12">
+            <div className="flex flex-col justify-center items-center py-12 gap-4">
               <div className="text-gray-500">No task sources found</div>
+              {selectedProjectId && taskSources.length > 0 && (
+                <div className="text-sm text-gray-400">
+                  {taskSources.length} task source(s) available in other projects
+                </div>
+              )}
+              {taskSources.length === 0 && (
+                <div className="text-sm text-gray-400">
+                  Click "Create Task Source" to add your first integration
+                </div>
+              )}
             </div>
           ) : (
             <div className="space-y-3">

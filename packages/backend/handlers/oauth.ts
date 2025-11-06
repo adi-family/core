@@ -18,12 +18,8 @@ import { createLogger } from '@utils/logger'
 const logger = createLogger({ namespace: 'oauth-handler' })
 
 export function createOAuthHandlers(sql: Sql) {
-  // ============================================================================
-  // GITLAB OAUTH
-  // ============================================================================
-
   const gitlabAuthorize = handler(gitlabOAuthAuthorizeConfig, async (_ctx) => {
-    const gitlabHost = process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
+    const gitlabHost = process.env.GITLAB_ROOT_OAUTH_HOST || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
     const clientId = process.env.GITLAB_OAUTH_CLIENT_ID
     const redirectUri = process.env.GITLAB_OAUTH_REDIRECT_URI
 
@@ -50,9 +46,10 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const gitlabExchange = handler(gitlabOAuthExchangeConfig, async (ctx) => {
-    const { projectId, code, secretName, gitlabHost } = ctx.body
+    const { projectId, code, secretName } = ctx.body
 
-    const host = gitlabHost || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
+    // Always use GITLAB_ROOT_OAUTH_HOST for OAuth operations
+    const host = process.env.GITLAB_ROOT_OAUTH_HOST || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
     const clientId = process.env.GITLAB_OAUTH_CLIENT_ID
     const clientSecret = process.env.GITLAB_OAUTH_CLIENT_SECRET
     const redirectUri = process.env.GITLAB_OAUTH_REDIRECT_URI
@@ -105,7 +102,7 @@ export function createOAuthHandlers(sql: Sql) {
     logger.info('GitLab OAuth successful', { username: userData.username, host })
 
     // Store OAuth token as secret
-    const secret = await secretQueries.createSecret(sql, {
+    const secret = await secretQueries.upsertSecret(sql, {
       project_id: projectId,
       name: secretName,
       value: access_token,
@@ -136,7 +133,7 @@ export function createOAuthHandlers(sql: Sql) {
 
     const clientId = process.env.GITLAB_OAUTH_CLIENT_ID
     const clientSecret = process.env.GITLAB_OAUTH_CLIENT_SECRET
-    const gitlabHost = process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
+    const gitlabHost = process.env.GITLAB_ROOT_OAUTH_HOST || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
 
     if (!clientId || !clientSecret) {
       throw new Error('GitLab OAuth is not configured')
@@ -280,7 +277,7 @@ export function createOAuthHandlers(sql: Sql) {
     logger.info('Fetched accessible Jira sites', { count: resources.length })
 
     // Store OAuth token as secret
-    const secret = await secretQueries.createSecret(sql, {
+    const secret = await secretQueries.upsertSecret(sql, {
       project_id: projectId,
       name: secretName,
       value: access_token,

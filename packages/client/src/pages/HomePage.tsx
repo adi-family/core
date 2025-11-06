@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom"
 import { useState, useEffect, useMemo } from "react"
 import { useAuth } from "@clerk/clerk-react"
+import { useSnapshot } from "valtio"
 import { createAuthenticatedClient } from "@/lib/client"
 import {
   Card,
@@ -13,30 +14,38 @@ import {
   calculateCostBreakdown,
   formatCost,
   formatTokens,
-  type ApiUsageMetric
 } from '@/config/pricing'
 import { Folder, ListTodo, Database, GitBranch, Plus } from "lucide-react"
-import type { Project, Task, TaskSource, FileSpace } from "@adi-simple/types"
 import { designTokens } from "@/theme/tokens"
 import { useProject } from "@/contexts/ProjectContext"
 import {
-  getUsageMetricsConfig,
-  listProjectsConfig,
-  listTasksConfig,
-  listTaskSourcesConfig,
-  listFileSpacesConfig,
   getProjectStatsConfig
 } from '@adi/api-contracts'
+import {
+  projectsStore,
+  fetchProjects,
+  tasksStore,
+  fetchTasks,
+  getTasksByProject,
+  taskSourcesStore,
+  fetchTaskSources,
+  getTaskSourcesByProject,
+  fileSpacesStore,
+  fetchFileSpaces,
+  getFileSpacesByProject,
+  usageMetricsStore,
+  fetchUsageMetrics
+} from "@/stores"
 
 export function HomePage() {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const { selectedProjectId } = useProject()
-  const [usageMetrics, setUsageMetrics] = useState<ApiUsageMetric[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [taskSources, setTaskSources] = useState<TaskSource[]>([])
-  const [fileSpaces, setFileSpaces] = useState<FileSpace[]>([])
+  const { projects } = useSnapshot(projectsStore)
+  const { tasks } = useSnapshot(tasksStore)
+  const { taskSources } = useSnapshot(taskSourcesStore)
+  const { fileSpaces } = useSnapshot(fileSpacesStore)
+  const { metrics: usageMetrics } = useSnapshot(usageMetricsStore)
   const [projectStats, setProjectStats] = useState<{
     total_tasks: number
     completed_tasks: number
@@ -49,19 +58,13 @@ export function HomePage() {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const [usageData, projectsData, tasksData, taskSourcesData, fileSpacesData] = await Promise.all([
-          client.run(getUsageMetricsConfig),
-          client.run(listProjectsConfig),
-          client.run(listTasksConfig),
-          client.run(listTaskSourcesConfig, { query: {} }),
-          client.run(listFileSpacesConfig, { query: {} })
+        await Promise.all([
+          fetchProjects(client),
+          fetchTasks(client),
+          fetchTaskSources(client),
+          fetchFileSpaces(client),
+          fetchUsageMetrics(client)
         ])
-
-        setUsageMetrics(usageData.recent as ApiUsageMetric[])
-        setProjects(projectsData)
-        setTasks(Array.isArray(tasksData) ? tasksData : [])
-        setTaskSources(taskSourcesData)
-        setFileSpaces(fileSpacesData)
       } catch (error) {
         console.error('Failed to load dashboard data:', error)
       } finally {
@@ -121,20 +124,17 @@ export function HomePage() {
   }, [projects, selectedProjectId])
 
   // Filter data by selected project
-  const filteredTasks = useMemo(() => {
-    if (!selectedProjectId) return tasks
-    return tasks.filter(t => t.project_id === selectedProjectId)
-  }, [tasks, selectedProjectId])
+  const filteredTasks = useMemo(() =>
+    getTasksByProject(selectedProjectId), [selectedProjectId, tasks]
+  )
 
-  const filteredTaskSources = useMemo(() => {
-    if (!selectedProjectId) return taskSources
-    return taskSources.filter(ts => ts.project_id === selectedProjectId)
-  }, [taskSources, selectedProjectId])
+  const filteredTaskSources = useMemo(() =>
+    getTaskSourcesByProject(selectedProjectId), [selectedProjectId, taskSources]
+  )
 
-  const filteredFileSpaces = useMemo(() => {
-    if (!selectedProjectId) return fileSpaces
-    return fileSpaces.filter(fs => fs.project_id === selectedProjectId)
-  }, [fileSpaces, selectedProjectId])
+  const filteredFileSpaces = useMemo(() =>
+    getFileSpacesByProject(selectedProjectId), [selectedProjectId, fileSpaces]
+  )
 
   // Get latest tasks (last 5)
   const latestTasks = useMemo(() => {

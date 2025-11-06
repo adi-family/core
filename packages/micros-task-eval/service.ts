@@ -151,18 +151,75 @@ export async function evaluateTask(
     // Note: Usage metrics for simple evaluation are tracked when running in CI (fallback mode)
     // For microservice-only evaluations, usage can be inferred from simple_result presence
 
-    // Check if we should proceed to advanced evaluation
+    // Check simple evaluation result
     if (!simpleEvalResult.should_evaluate) {
-      // Task rejected by simple filter - complete evaluation without triggering CI
+      // Task rejected by simple filter - complete simple evaluation
       logger.info('⚠️  Task rejected by simple filter (no advanced evaluation needed)')
       await taskQueries.updateTaskEvaluationResult(sql, taskId, 'needs_clarification')
       await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'completed', session.id)
-      logger.info('✓ Evaluation completed (simple only)')
+      logger.info('✓ Simple evaluation completed (rejected)')
       return result
     }
 
-    // Phase 2: Trigger CI for advanced agentic evaluation
-    logger.info('🔬 Phase 2: Checking quota for advanced evaluation...')
+    // Simple evaluation passed - mark as ready for advanced evaluation
+    logger.info('✓ Simple evaluation passed - task ready for advanced evaluation')
+    await taskQueries.updateTaskEvaluationResult(sql, taskId, 'ready')
+    await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'completed', session.id)
+    logger.info('✓ Simple evaluation completed successfully - waiting for manual advanced evaluation trigger')
+
+    // Note: Advanced evaluation must be triggered manually by the user
+    // The user will click "Run Advanced Evaluation" button in the UI
+  } catch (error) {
+    const errorMsg = `Failed to evaluate task ${taskId}: ${error instanceof Error ? error.message : String(error)}`
+    logger.error(errorMsg)
+    result.errors.push(errorMsg)
+    await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'failed')
+  }
+
+  return result
+}
+
+/**
+ * Evaluate task advanced - triggers only the advanced agentic evaluation
+ * This is called manually by the user after simple evaluation is complete
+ */
+export async function evaluateTaskAdvanced(
+  sql: Sql,
+  input: EvaluateTaskInput
+): Promise<EvaluateTaskResult> {
+  const { taskId } = input
+
+  const result: EvaluateTaskResult = {
+    sessionId: '',
+    errors: []
+  }
+
+  try {
+    logger.info(`Starting advanced evaluation for task ${taskId}`)
+
+    // Fetch task
+    const task = await taskQueries.findTaskById(sql, taskId)
+
+    // Validate that simple evaluation is completed
+    if (task.ai_evaluation_simple_status !== 'completed') {
+      throw new Error('Simple evaluation must be completed before running advanced evaluation')
+    }
+
+    // Validate that simple evaluation passed
+    if (task.ai_evaluation_simple_verdict !== 'ready') {
+      throw new Error('Simple evaluation must have verdict "ready" before running advanced evaluation')
+    }
+
+    // Validate task has project
+    if (!task.project_id) {
+      throw new Error('Task must have a project_id to run advanced evaluation')
+    }
+
+    // Get user for quota checking
+    const userId = await getProjectOwnerId(sql, task.project_id)
+    if (!userId) {
+      throw new Error(`No project owner found for project ${task.project_id}`)
+    }
 
     // Check quota and select AI provider for advanced evaluation
     let advancedAIProviderSelection
@@ -175,23 +232,29 @@ export async function evaluateTask(
       }
 
       // Increment quota immediately if using platform token
-      // This prevents race conditions where multiple evaluations could exceed quota
       if (advancedAIProviderSelection.use_platform_token) {
         await quotaQueries.incrementQuotaUsage(sql, userId, 'advanced')
         logger.info(`Incremented advanced evaluation quota for user ${userId}`)
       }
     } catch (error) {
       if (error instanceof QuotaExceededError) {
-        const errorMsg = error.message
-        logger.error(errorMsg)
-        result.errors.push(errorMsg)
-        await taskQueries.updateTaskEvaluationResult(sql, taskId, 'needs_clarification')
-        await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'completed', session.id)
-        return result
+        throw new Error(`Quota exceeded for advanced evaluation: ${error.message}`)
       }
       throw error
     }
 
+    // Create evaluation session for advanced eval
+    const session = await sessionQueries.createSession(sql, {
+      task_id: taskId,
+      runner: 'evaluation'
+    })
+    result.sessionId = session.id
+    logger.info(`Created advanced evaluation session: ${session.id}`)
+
+    // Update task to evaluating status for advanced eval
+    await taskQueries.updateTaskEvaluationAdvancedStatus(sql, taskId, 'evaluating', session.id)
+
+    // Trigger CI for advanced agentic evaluation
     logger.info('🔬 Triggering CI for advanced evaluation...')
     const apiClient = createBackendApiClient()
 
@@ -206,16 +269,18 @@ export async function evaluateTask(
       const errorMsg = `Failed to trigger advanced evaluation pipeline: ${pipelineError instanceof Error ? pipelineError.message : String(pipelineError)}`
       logger.error(errorMsg)
       result.errors.push(errorMsg)
-      await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'failed', session.id)
+      await taskQueries.updateTaskEvaluationAdvancedStatus(sql, taskId, 'failed', session.id)
       return result
     }
 
-    logger.info(`Task ${taskId} evaluation started successfully`)
+    logger.info(`Task ${taskId} advanced evaluation started successfully`)
   } catch (error) {
-    const errorMsg = `Failed to evaluate task ${taskId}: ${error instanceof Error ? error.message : String(error)}`
+    const errorMsg = `Failed to start advanced evaluation for task ${taskId}: ${error instanceof Error ? error.message : String(error)}`
     logger.error(errorMsg)
     result.errors.push(errorMsg)
-    await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'failed')
+    if (result.sessionId) {
+      await taskQueries.updateTaskEvaluationAdvancedStatus(sql, taskId, 'failed')
+    }
   }
 
   return result

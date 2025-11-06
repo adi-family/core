@@ -81,14 +81,20 @@ export function TaskCard({
       onRetry: onRetrySync,
     },
     {
-      id: "evaluation",
-      label: "Evaluation",
-      status: task.ai_evaluation_status,
+      id: "simple_eval",
+      label: "Simple Eval",
+      status: task.ai_evaluation_simple_status,
       onRetry: onRetryEvaluation,
     },
     {
+      id: "advanced_eval",
+      label: "Advanced Eval",
+      status: task.ai_evaluation_advanced_status || (task.ai_evaluation_simple_status === 'completed' && task.ai_evaluation_simple_verdict === 'ready' ? "not_started" : "not_started"),
+      onRetry: undefined,
+    },
+    {
       id: "implementation",
-      label: "Implementation",
+      label: "Impl",
       status: task.ai_implementation_status,
       onRetry: undefined, // No retry action for implementation (use button instead)
     },

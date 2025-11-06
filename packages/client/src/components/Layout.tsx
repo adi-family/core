@@ -1,59 +1,42 @@
 import { Link, Outlet } from "react-router-dom"
 import { UserButton, useAuth } from '@clerk/clerk-react'
-import { useEffect, useState, useMemo } from "react"
+import { useEffect, useMemo } from "react"
+import { useSnapshot } from "valtio"
 import { AlertCircle, DollarSign } from "lucide-react"
 import { createAuthenticatedClient } from "@/lib/client"
 import { useExpertMode } from "@/contexts/ExpertModeContext"
 import { useProject } from "@/contexts/ProjectContext"
 import { Select } from "@adi-simple/ui/select"
-import { listAlertsConfig, getUsageMetricsConfig, listProjectsConfig } from "@adi/api-contracts"
-import { calculateCostBreakdown, formatCost, type ApiUsageMetric } from "@/config/pricing"
-import type { Project } from "@adi-simple/types"
-
-type Alert = {
-  type: 'missing_api_keys'
-  severity: 'warning'
-  message: string
-  providers: string[]
-  projects: Array<{ id: string; name: string; missingProviders: string[] }>
-}
+import { calculateCostBreakdown, formatCost } from "@/config/pricing"
+import {
+  projectsStore,
+  fetchProjects,
+  alertsStore,
+  fetchAlerts,
+  usageMetricsStore,
+  fetchUsageMetrics
+} from "@/stores"
 
 export function Layout() {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const { expertMode } = useExpertMode()
   const { selectedProjectId, setSelectedProjectId } = useProject()
-  const [alerts, setAlerts] = useState<Alert[]>([])
-  const [projects, setProjects] = useState<Project[]>([])
-  const [usageMetrics, setUsageMetrics] = useState<ApiUsageMetric[]>([])
-  const [loadingUsage, setLoadingUsage] = useState(true)
+  const { projects } = useSnapshot(projectsStore)
+  const { alerts } = useSnapshot(alertsStore)
+  const { metrics: usageMetrics, loading: loadingUsage } = useSnapshot(usageMetricsStore)
 
   useEffect(() => {
     const fetchData = async () => {
-      try {
-        // Fetch all data in parallel
-        const [alertsData, projectsData, usageData] = await Promise.all([
-          client.run(listAlertsConfig).catch(() => ({ alerts: [] })),
-          client.run(listProjectsConfig).catch(() => []),
-          client.run(getUsageMetricsConfig).catch(() => ({ recent: [] })),
-        ])
-
-        setAlerts(alertsData.alerts)
-        setProjects(projectsData)
-        setUsageMetrics(usageData.recent as ApiUsageMetric[])
-
-        // Don't auto-select project - allow viewing all projects
-        // User can manually select a project to filter
-      } catch {
-        // Failed to fetch data
-      } finally {
-        setLoadingUsage(false)
-      }
+      await Promise.all([
+        fetchProjects(client),
+        fetchAlerts(client),
+        fetchUsageMetrics(client),
+      ])
     }
 
     fetchData()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [client])
 
   // Calculate total cost and balance
   const totalCost = useMemo(() => {

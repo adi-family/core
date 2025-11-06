@@ -61,7 +61,7 @@ export function TaskPage() {
         }
 
         // Fetch evaluation report from pipeline artifacts
-        if (taskData.ai_evaluation_status === 'completed') {
+        if (taskData.ai_evaluation_simple_status === 'completed') {
           try {
             const artifacts = await client.run(listPipelineArtifactsConfig, {}) as PipelineArtifact[]
             const evaluationArtifact = artifacts.find(
@@ -239,6 +239,37 @@ export function TaskPage() {
     )
   }
 
+  const handleStartAdvancedEvaluation = async () => {
+    if (!task) return
+
+    const token = await getToken()
+
+    await apiCall(
+      () => fetch(`${API_BASE}/tasks/${task.id}/evaluate-advanced`, {
+        method: 'POST',
+        headers: {
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        credentials: 'include',
+      }),
+      {
+        onSuccess: async () => {
+          toast.success('Advanced evaluation started successfully!')
+          // Refetch task data
+          try {
+            const taskData = await client.run(getTaskConfig, {
+              params: { id: id! },
+            })
+            setTask(taskData)
+          } catch (error) {
+            console.error('Error refetching task:', error)
+          }
+        },
+        onError: (error) => toast.error(`Failed to start advanced evaluation: ${error}`)
+      }
+    )
+  }
+
   const steps = [
     {
       id: "sync",
@@ -247,10 +278,16 @@ export function TaskPage() {
       onRetry: handleRetrySync,
     },
     {
-      id: "evaluation",
-      label: "Evaluation",
-      status: task?.ai_evaluation_status || "not_started",
+      id: "simple_evaluation",
+      label: "Simple Evaluation",
+      status: task?.ai_evaluation_simple_status || "not_started",
       onRetry: handleRetryEvaluation,
+    },
+    {
+      id: "advanced_evaluation",
+      label: "Advanced Evaluation",
+      status: task?.ai_evaluation_advanced_status || (task?.ai_evaluation_simple_status === 'completed' && task?.ai_evaluation_simple_verdict === 'ready' ? "not_started" : "not_started"),
+      onRetry: undefined,
     },
     {
       id: "implementation",
@@ -313,8 +350,24 @@ export function TaskPage() {
               size="sm"
             >
               <RefreshCw className="h-4 w-4 mr-2" />
-              Re-evaluate
+              Re-evaluate (Simple)
             </Button>
+
+            {/* Advanced evaluation button - only show when simple eval is complete and passed */}
+            {task.ai_evaluation_simple_status === 'completed' &&
+             task.ai_evaluation_simple_verdict === 'ready' &&
+             (!task.ai_evaluation_advanced_status || task.ai_evaluation_advanced_status === 'not_started') && (
+              <Button
+                onClick={handleStartAdvancedEvaluation}
+                variant="outline"
+                size="sm"
+                className="bg-blue-600/10 border-blue-500/50 hover:bg-blue-600/20"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Run Advanced Evaluation
+              </Button>
+            )}
+
             {/* Start/Re-implement button - shows different text based on status */}
             <Button
               onClick={handleStartImplementation}
@@ -411,10 +464,19 @@ export function TaskPage() {
 
             <div>
               <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
-                AI Evaluation Status
+                Simple Evaluation Status
               </h3>
               <Badge variant="gray" className="text-sm">
-                {task.ai_evaluation_status}
+                {task.ai_evaluation_simple_status}
+              </Badge>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+                Advanced Evaluation Status
+              </h3>
+              <Badge variant="gray" className="text-sm">
+                {task.ai_evaluation_advanced_status || (task.ai_evaluation_simple_status === 'completed' && task.ai_evaluation_simple_verdict === 'ready' ? 'not_started' : 'not_started')}
               </Badge>
             </div>
 
@@ -427,16 +489,30 @@ export function TaskPage() {
               </Badge>
             </div>
 
-            {task.ai_evaluation_result && (
+            {task.ai_evaluation_simple_verdict && (
               <div>
                 <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
-                  Evaluation Result
+                  Simple Evaluation Result
                 </h3>
                 <Badge
-                  variant={task.ai_evaluation_result === 'ready' ? 'green' : 'warning'}
+                  variant={task.ai_evaluation_simple_verdict === 'ready' ? 'green' : 'warning'}
                   className="text-sm"
                 >
-                  {task.ai_evaluation_result === 'ready' ? 'Ready for Implementation' : 'Needs Clarification'}
+                  {task.ai_evaluation_simple_verdict === 'ready' ? 'Ready' : 'Needs Clarification'}
+                </Badge>
+              </div>
+            )}
+
+            {task.ai_evaluation_advanced_verdict && (
+              <div>
+                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+                  Advanced Evaluation Result
+                </h3>
+                <Badge
+                  variant={task.ai_evaluation_advanced_verdict === 'ready' ? 'green' : 'warning'}
+                  className="text-sm"
+                >
+                  {task.ai_evaluation_advanced_verdict === 'ready' ? 'Ready for Implementation' : 'Needs Clarification'}
                 </Badge>
               </div>
             )}
