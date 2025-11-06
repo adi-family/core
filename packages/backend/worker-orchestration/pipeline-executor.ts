@@ -23,6 +23,7 @@ import { createPipelineExecution, updatePipelineExecution } from '@db/pipeline-e
 import { getPlatformAnthropicConfig } from '@backend/config'
 import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'
 import { getCachedPipelineApiKey } from '@backend/services/pipeline-api-key'
+import { getValidOAuthToken } from '@backend/services/oauth-token-refresh'
 import { sql as defaultSql } from '@db/client'
 
 const logger = createLogger({ namespace: 'pipeline-executor' })
@@ -505,7 +506,7 @@ function validateRequiredApiKeys(
 }
 
 /**
- * Fetch access token for a file space
+ * Fetch access token for a file space with automatic OAuth refresh
  */
 async function fetchFileSpaceToken(
   sql: Sql,
@@ -513,11 +514,13 @@ async function fetchFileSpaceToken(
   fileSpaceName: string
 ): Promise<string | undefined> {
   try {
-    const secret = await findSecretById(sql, secretId)
+    // Use getValidOAuthToken which automatically refreshes if expired
+    const token = await getValidOAuthToken(sql, secretId)
     logger.info(`✓ Access token loaded for ${fileSpaceName}`)
-    return secret.value
+    return token
   } catch (error) {
     logger.warn(`⚠️  Failed to load token for ${fileSpaceName}: ${error}`)
+    logger.warn(`   If this is an OAuth token, check that refresh_token is available and OAuth credentials are configured`)
   }
   return undefined
 }

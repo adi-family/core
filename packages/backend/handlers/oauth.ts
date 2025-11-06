@@ -14,6 +14,7 @@ import {
 } from '@adi/api-contracts'
 import * as secretQueries from '@db/secrets'
 import { createLogger } from '@utils/logger'
+import { refreshGitLabToken, refreshJiraToken } from '@backend/services/oauth-token-refresh'
 
 const logger = createLogger({ namespace: 'oauth-handler' })
 
@@ -131,63 +132,21 @@ export function createOAuthHandlers(sql: Sql) {
   const gitlabRefresh = handler(gitlabOAuthRefreshConfig, async (ctx) => {
     const { secretId } = ctx.params
 
-    const clientId = process.env.GITLAB_OAUTH_CLIENT_ID
-    const clientSecret = process.env.GITLAB_OAUTH_CLIENT_SECRET
-    const gitlabHost = process.env.GITLAB_ROOT_OAUTH_HOST || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
-
-    if (!clientId || !clientSecret) {
-      throw new Error('GitLab OAuth is not configured')
-    }
-
     const secret = await secretQueries.findSecretById(sql, secretId)
 
     if (secret.token_type !== 'oauth' || secret.oauth_provider !== 'gitlab') {
       throw new Error('Secret is not a GitLab OAuth token')
     }
 
-    if (!secret.refresh_token) {
-      throw new Error('No refresh token available')
-    }
+    // Use shared refresh utility
+    await refreshGitLabToken(sql, secret)
 
-    // Refresh the token
-    const tokenUrl = `${gitlabHost}/oauth/token`
-    const tokenResponse = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: secret.refresh_token,
-        grant_type: 'refresh_token'
-      })
-    })
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text()
-      logger.error('Failed to refresh GitLab token', { status: tokenResponse.status, error: errorText })
-      throw new Error(`Failed to refresh token: ${errorText}`)
-    }
-
-    const tokenData = await tokenResponse.json() as any
-    const { access_token, refresh_token, expires_in, scope } = tokenData
-
-    const expiresAt = new Date(Date.now() + expires_in * 1000)
-
-    // Update secret
-    await secretQueries.updateSecret(sql, secretId, {
-      value: access_token,
-      refresh_token: refresh_token || secret.refresh_token,
-      expires_at: expiresAt.toISOString(),
-      scopes: scope || secret.scopes
-    })
-
-    logger.info('Successfully refreshed GitLab OAuth token', { secretId })
+    // Fetch updated secret to get new expiration
+    const updatedSecret = await secretQueries.findSecretById(sql, secretId)
 
     return {
       success: true,
-      expiresAt: expiresAt.toISOString()
+      expiresAt: updatedSecret.expires_at || null
     }
   })
 
@@ -307,66 +266,21 @@ export function createOAuthHandlers(sql: Sql) {
   const jiraRefresh = handler(jiraOAuthRefreshConfig, async (ctx) => {
     const { secretId } = ctx.params
 
-    // Get OAuth config from environment
-    const clientId = process.env.JIRA_OAUTH_CLIENT_ID
-    const clientSecret = process.env.JIRA_OAUTH_CLIENT_SECRET
-
-    if (!clientId || !clientSecret) {
-      throw new Error('Jira OAuth is not configured on the server')
-    }
-
-    // Fetch existing secret
     const secret = await secretQueries.findSecretById(sql, secretId)
 
-    // Verify it's an OAuth token
     if (secret.token_type !== 'oauth' || secret.oauth_provider !== 'jira') {
       throw new Error('Secret is not a Jira OAuth token')
     }
 
-    if (!secret.refresh_token) {
-      throw new Error('No refresh token available')
-    }
+    // Use shared refresh utility
+    await refreshJiraToken(sql, secret)
 
-    // Refresh the token
-    const tokenUrl = 'https://auth.atlassian.com/oauth/token'
-    const tokenResponse = await fetch(tokenUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        grant_type: 'refresh_token',
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: secret.refresh_token
-      })
-    })
-
-    if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text()
-      logger.error('Failed to refresh token', { status: tokenResponse.status, error: errorText })
-      throw new Error(`Failed to refresh token: ${errorText}`)
-    }
-
-    const tokenData = await tokenResponse.json() as any
-    const { access_token, refresh_token, expires_in, scope } = tokenData
-
-    // Calculate new expiration
-    const expiresAt = new Date(Date.now() + expires_in * 1000)
-
-    // Update secret with new token
-    await secretQueries.updateSecret(sql, secretId, {
-      value: access_token,
-      refresh_token: refresh_token || secret.refresh_token, // Keep old refresh token if new one not provided
-      expires_at: expiresAt.toISOString(),
-      scopes: scope || secret.scopes
-    })
-
-    logger.info('Successfully refreshed Jira OAuth token', { secretId })
+    // Fetch updated secret to get new expiration
+    const updatedSecret = await secretQueries.findSecretById(sql, secretId)
 
     return {
       success: true,
-      expiresAt: expiresAt.toISOString()
+      expiresAt: updatedSecret.expires_at || null
     }
   })
 
