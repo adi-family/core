@@ -46,11 +46,12 @@ export const findFileSpacesByProjectIds = async (sql: Sql, projectIds: string[])
 }
 
 export const findFileSpacesByTaskId = async (sql: Sql, taskId: string): Promise<FileSpace[]> => {
+  // Get all file spaces for the task's project (project-level file spaces)
   return get(sql<FileSpace[]>`
     SELECT fs.*
     FROM file_spaces fs
-    INNER JOIN task_file_spaces tfs ON tfs.file_space_id = fs.id
-    WHERE tfs.task_id = ${taskId}
+    INNER JOIN tasks t ON t.project_id = fs.project_id
+    WHERE t.id = ${taskId}
     ORDER BY fs.created_at DESC
   `)
 }

@@ -45,7 +45,8 @@ sync-only:
       fi
 
     # Run sync-workspaces (bundled version)
-    - bun 2025-10-18-01/bundles/sync-workspaces.js
+    - cd 2025-10-18-01/worker-scripts
+    - bun ../bundles/sync-workspaces.js
     - echo "✓ Submodules synced successfully"
   rules:
     - if: '$SYNC_ONLY == "true"'
@@ -111,6 +112,8 @@ execute:
     - rm -rf 2025-10-18-01/results
     - echo "✓ Cleaned up old results directory"
 
+    - cd 2025-10-18-01/worker-scripts
+
     # Debug: Check if required variables are set
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
@@ -143,7 +146,7 @@ execute:
       fi
 
     # Run evaluation pipeline (bundled version) and capture exit code
-    - bun 2025-10-18-01/bundles/evaluation-pipeline.js || EXIT_CODE=$?
+    - bun ../bundles/evaluation-pipeline.js || EXIT_CODE=$?
     - EXIT_CODE=${EXIT_CODE:-0}
 
     # Update status based on exit code
@@ -178,7 +181,8 @@ report:
     - ls -la 2025-10-18-01/results/ || echo "Results directory not found"
 
     # Upload evaluation artifacts via our API (bundled version)
-    - bun 2025-10-18-01/bundles/upload-evaluation-results.js
+    - cd 2025-10-18-01/worker-scripts
+    - bun ../bundles/upload-evaluation-results.js
   dependencies:
     - execute
   rules:

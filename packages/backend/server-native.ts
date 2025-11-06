@@ -52,6 +52,7 @@ const allHandlers = [
   taskHandlers.implementTask,
   taskHandlers.evaluateTask,
   taskHandlers.evaluateTaskAdvanced,
+  taskHandlers.updateTaskImplementationStatus,
   // Sessions
   sessionHandlers.getSessionMessages,
   sessionHandlers.getSessionPipelineExecutions,

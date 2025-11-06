@@ -233,3 +233,23 @@ export const getTaskStatsConfig = {
     })
   }
 } as const
+
+/**
+ * Update task implementation status
+ * POST /api/tasks/:id/implementation-status
+ */
+export const updateTaskImplementationStatusConfig = {
+  method: 'POST',
+  route: route.dynamic('/api/tasks/:id/implementation-status', z.object({ id: z.string() })),
+  body: {
+    schema: z.object({
+      status: z.enum(['pending', 'queued', 'implementing', 'completed', 'failed'])
+    })
+  },
+  response: {
+    schema: z.object({
+      success: z.boolean(),
+      message: z.string().optional()
+    })
+  }
+} as const

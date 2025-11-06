@@ -139,6 +139,13 @@ export class ApiClient {
     })
   }
 
+  async updateTaskImplementationStatus(taskId: string, status: 'pending' | 'queued' | 'implementing' | 'completed' | 'failed'): Promise<void> {
+    await this.fetch<void>(`/tasks/${taskId}/implementation-status`, {
+      method: 'POST',
+      body: JSON.stringify({ status })
+    })
+  }
+
   async saveApiUsage(
     executionId: string,
     sessionId: string,

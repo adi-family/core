@@ -5,6 +5,7 @@
 import { handler, type HandlerContext } from '@adi-family/http'
 import {
   listTaskSourcesConfig,
+  getTaskSourceConfig,
   createTaskSourceConfig,
   updateTaskSourceConfig,
   deleteTaskSourceConfig,
@@ -71,6 +72,23 @@ export function createTaskSourceHandlers(sql: Sql) {
     const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
     const allTaskSources = await taskSourceQueries.findAllTaskSources(sql)
     return allTaskSources.filter(ts => accessibleProjectIds.includes(ts.project_id))
+  })
+
+  /**
+   * GET /api/task-sources/:id
+   * Get a single task source by ID
+   */
+  const getTaskSource = handler(getTaskSourceConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+    const { id } = ctx.params
+
+    const taskSource = await taskSourceQueries.findTaskSourceById(sql, id)
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, taskSource.project_id)
+    if (!hasAccess) {
+      throw new Error('Forbidden: You do not have access to this task source')
+    }
+
+    return taskSource
   })
 
   /**
@@ -158,6 +176,7 @@ export function createTaskSourceHandlers(sql: Sql) {
 
   return {
     listTaskSources,
+    getTaskSource,
     createTaskSource,
     updateTaskSource,
     deleteTaskSource,

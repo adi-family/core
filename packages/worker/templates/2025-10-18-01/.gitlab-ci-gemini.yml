@@ -97,7 +97,7 @@ execute:
         -d '{"status":"running"}'
 
     # Run Gemini pipeline (TypeScript with Bun)
-    - bun 2025-10-18-01/bundles/gemini-pipeline.js
+    - bun ../bundles/gemini-pipeline.js
 
     # Capture exit code
     - EXIT_CODE=$?

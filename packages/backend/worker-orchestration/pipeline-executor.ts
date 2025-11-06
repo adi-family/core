@@ -18,18 +18,12 @@ import { findTaskById } from '@db/tasks'
 import { findProjectById } from '@db/projects'
 import { findWorkerRepositoryByProjectId, createWorkerRepository } from '@db/worker-repositories'
 import { findSecretById } from '@db/secrets'
-import { findFileSpacesByTaskId } from '@db/file-spaces'
+import { findFileSpacesByTaskId, findFileSpacesByProjectId } from '@db/file-spaces'
+import { createPipelineExecution, updatePipelineExecution } from '@db/pipeline-executions'
 import { getPlatformAnthropicConfig } from '@backend/config'
 import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'
 import { getCachedPipelineApiKey } from '@backend/services/pipeline-api-key'
 import { sql as defaultSql } from '@db/client'
-import { getSessionConfig } from '@adi/api-contracts/sessions'
-import { getTaskConfig } from '@adi/api-contracts/tasks'
-import { getProjectConfig } from '@adi/api-contracts/projects'
-import { getWorkerRepositoryByProjectConfig, createWorkerRepositoryConfig } from '@adi/api-contracts/worker-repositories'
-import { getSecretValueConfig } from '@adi/api-contracts/secrets'
-import { listFileSpacesConfig, getTaskFileSpacesConfig } from '@adi/api-contracts/file-spaces'
-import { createPipelineExecutionConfig, updatePipelineExecutionConfig } from '@adi/api-contracts/pipeline-executions'
 
 const logger = createLogger({ namespace: 'pipeline-executor' })
 
@@ -58,7 +52,6 @@ interface PipelineContext {
  */
 async function ensureWorkerRepository(
   project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null },
-  apiClient: BackendClient,
   sql: Sql
 ): Promise<{ id: string; current_version: string | null; source_gitlab: unknown }> {
   try {
@@ -157,13 +150,11 @@ async function ensureWorkerRepository(
  */
 async function checkWorkspaceSyncStatus(
   projectId: string,
-  apiClient: BackendClient
+  sql: Sql
 ): Promise<{ needsSync: boolean; reason?: string }> {
   try {
-    // Fetch project to get last_synced_at
-    const project = await apiClient.run(getProjectConfig, {
-      params: { id: projectId }
-    })
+    // Fetch project directly from database to get last_synced_at
+    const project = await findProjectById(sql, projectId)
 
     // If never synced, workspace needs sync
     if (!project.last_synced_at) {
@@ -173,22 +164,19 @@ async function checkWorkspaceSyncStatus(
       }
     }
 
-    // Fetch all file spaces for project
+    // Fetch all file spaces for project directly from database
     try {
-      const fileSpacesData = await apiClient.run(listFileSpacesConfig, {
-        query: { project_id: projectId }
-      })
-      const fileSpaces = Array.isArray(fileSpacesData) ? fileSpacesData : (fileSpacesData as any).data || []
+      const fileSpaces = await findFileSpacesByProjectId(sql, projectId)
 
       // Check if any file space was created after last sync
       const lastSyncTime = new Date(project.last_synced_at).getTime()
-      const newFileSpaces = fileSpaces.filter((fs: any) => {
+      const newFileSpaces = fileSpaces.filter((fs) => {
         const createdTime = new Date(fs.created_at).getTime()
         return createdTime > lastSyncTime
       })
 
       if (newFileSpaces.length > 0) {
-        const fsNames = newFileSpaces.map((fs: any) => fs.name).join(', ')
+        const fsNames = newFileSpaces.map((fs) => fs.name).join(', ')
         return {
           needsSync: true,
           reason: `Workspace is outdated. ${newFileSpaces.length} file space(s) created after last sync: ${fsNames}. Please wait for workspace sync to complete.`
@@ -209,13 +197,13 @@ async function checkWorkspaceSyncStatus(
 /**
  * Wait for workspace sync to complete by polling the project's last_synced_at field
  * @param projectId Project ID to check
- * @param apiClient API client for backend calls
+ * @param sql Database connection
  * @param timeoutMs Maximum time to wait in milliseconds (default: 10 minutes)
  * @param pollIntervalMs How often to check for sync completion (default: 5 seconds)
  */
 async function waitForWorkspaceSync(
   projectId: string,
-  apiClient: BackendClient,
+  sql: Sql,
   timeoutMs: number = 10 * 60 * 1000, // 10 minutes
   pollIntervalMs: number = 5000 // 5 seconds
 ): Promise<void> {
@@ -228,7 +216,7 @@ async function waitForWorkspaceSync(
     iteration++
 
     // Check sync status
-    const syncCheck = await checkWorkspaceSyncStatus(projectId, apiClient)
+    const syncCheck = await checkWorkspaceSyncStatus(projectId, sql)
 
     if (!syncCheck.needsSync) {
       const elapsedSeconds = ((Date.now() - startTime) / 1000).toFixed(1)
@@ -256,7 +244,7 @@ async function waitForWorkspaceSync(
 /**
  * Validate and fetch all required context for pipeline execution
  */
-async function validateAndFetchPipelineContext(apiClient: BackendClient, sessionId: string, sql: Sql): Promise<PipelineContext> {
+async function validateAndFetchPipelineContext(sessionId: string, sql: Sql): Promise<PipelineContext> {
   // Fetch session directly from database (bypass authentication)
   const session = await findSessionById(sql, sessionId)
 
@@ -278,7 +266,7 @@ async function validateAndFetchPipelineContext(apiClient: BackendClient, session
   const userId = await getProjectOwnerId(sql, task.project_id)
 
   // Fetch or auto-create worker repository
-  const workerRepo = await ensureWorkerRepository(project, apiClient, sql)
+  const workerRepo = await ensureWorkerRepository(project, sql)
   const source = workerRepo.source_gitlab as unknown as GitLabSource
 
   // Validate source configuration
@@ -304,17 +292,15 @@ async function validateAndFetchPipelineContext(apiClient: BackendClient, session
  */
 async function getExecutorConfig(
   context: PipelineContext,
-  apiClient: BackendClient
+  sql: Sql
 ): Promise<{ host: string; accessToken: string; projectPath: string }> {
   // Check if project has custom executor configured
   if (context.project.job_executor_gitlab) {
     const executor = context.project.job_executor_gitlab
     logger.info(`Using project-specific GitLab executor: ${executor.host}`)
 
-    // Fetch secret for access token with decrypted value
-    const secret = await apiClient.run(getSecretValueConfig, {
-      params: { id: executor.access_token_secret_id }
-    })
+    // Fetch secret directly from database
+    const secret = await findSecretById(sql, executor.access_token_secret_id)
 
     return {
       host: executor.host,
@@ -345,18 +331,15 @@ interface AIProviderContext {
   projectId: string
   userId: string | null
   aiProviderConfigs: AIProviderConfig | null
-  apiClient: BackendClient
   sql: Sql
 }
 
 /**
- * Fetch secret value from backend
+ * Fetch secret value from database
  */
-async function fetchSecretValue(secretId: string, apiClient: BackendClient): Promise<string | null> {
+async function fetchSecretValue(secretId: string, sql: Sql): Promise<string | null> {
   try {
-    const secret = await apiClient.run(getSecretValueConfig, {
-      params: { id: secretId }
-    })
+    const secret = await findSecretById(sql, secretId)
 
     const value = secret.value
 
@@ -432,13 +415,13 @@ async function tryUsePlatformAnthropicKey(
  */
 async function loadAnthropicEnvVars(
   config: AIProviderConfig['anthropic'],
-  apiClient: BackendClient
+  sql: Sql
 ): Promise<Record<string, string>> {
   const envVars: Record<string, string> = {}
 
   if (!config) return envVars
 
-  const apiKey = await fetchSecretValue(config.api_key_secret_id, apiClient)
+  const apiKey = await fetchSecretValue(config.api_key_secret_id, sql)
   if (!apiKey) return envVars
 
   envVars.ANTHROPIC_API_KEY = apiKey
@@ -468,13 +451,13 @@ async function loadAnthropicEnvVars(
  */
 async function loadOpenAIEnvVars(
   config: AIProviderConfig['openai'],
-  apiClient: BackendClient
+  sql: Sql
 ): Promise<Record<string, string>> {
   const envVars: Record<string, string> = {}
 
   if (!config) return envVars
 
-  const apiKey = await fetchSecretValue(config.api_key_secret_id, apiClient)
+  const apiKey = await fetchSecretValue(config.api_key_secret_id, sql)
   if (!apiKey) return envVars
 
   envVars.OPENAI_API_KEY = apiKey
@@ -511,13 +494,13 @@ async function loadOpenAIEnvVars(
  */
 async function loadGoogleEnvVars(
   config: AIProviderConfig['google'],
-  apiClient: BackendClient
+  sql: Sql
 ): Promise<Record<string, string>> {
   const envVars: Record<string, string> = {}
 
   if (!config) return envVars
 
-  const apiKey = await fetchSecretValue(config.api_key_secret_id, apiClient)
+  const apiKey = await fetchSecretValue(config.api_key_secret_id, sql)
   if (!apiKey) return envVars
 
   envVars.GOOGLE_API_KEY = apiKey
@@ -555,7 +538,7 @@ async function loadGoogleEnvVars(
  * Get AI provider environment variables with quota checking
  */
 async function getAIProviderEnvVars(context: AIProviderContext): Promise<Record<string, string>> {
-  const { projectId, userId, aiProviderConfigs, apiClient, sql } = context
+  const { projectId, userId, aiProviderConfigs, sql } = context
 
   // Try platform Anthropic key if user has quota and no project config
   if (userId && !aiProviderConfigs?.anthropic) {
@@ -571,9 +554,9 @@ async function getAIProviderEnvVars(context: AIProviderContext): Promise<Record<
 
   try {
     const [anthropicVars, openaiVars, googleVars] = await Promise.all([
-      loadAnthropicEnvVars(aiProviderConfigs.anthropic, apiClient),
-      loadOpenAIEnvVars(aiProviderConfigs.openai, apiClient),
-      loadGoogleEnvVars(aiProviderConfigs.google, apiClient)
+      loadAnthropicEnvVars(aiProviderConfigs.anthropic, sql),
+      loadOpenAIEnvVars(aiProviderConfigs.openai, sql),
+      loadGoogleEnvVars(aiProviderConfigs.google, sql)
     ])
 
     return { ...anthropicVars, ...openaiVars, ...googleVars }
@@ -622,14 +605,12 @@ function validateRequiredApiKeys(
  * Fetch access token for a file space
  */
 async function fetchFileSpaceToken(
-  apiClient: BackendClient,
+  sql: Sql,
   secretId: string,
   fileSpaceName: string
 ): Promise<string | undefined> {
   try {
-    const secret = await apiClient.run(getSecretValueConfig, {
-      params: { id: secretId }
-    })
+    const secret = await findSecretById(sql, secretId)
     logger.info(`✓ Access token loaded for ${fileSpaceName}`)
     return secret.value
   } catch (error) {
@@ -639,9 +620,9 @@ async function fetchFileSpaceToken(
 }
 
 /**
- * Build file space configuration from API response
+ * Build file space configuration from database record
  */
-async function buildFileSpaceConfig(fileSpace: any, apiClient: BackendClient): Promise<any | null> {
+async function buildFileSpaceConfig(fileSpace: any, sql: Sql): Promise<any | null> {
   if (!fileSpace) {
     logger.warn('⚠️  File space is undefined, skipping')
     return null
@@ -653,21 +634,40 @@ async function buildFileSpaceConfig(fileSpace: any, apiClient: BackendClient): P
     return null
   }
 
+  // Construct full Git URL from host and repo path
+  let repoUrl = config.repo
+  if (!repoUrl.startsWith('http://') && !repoUrl.startsWith('https://')) {
+    // If repo is just a path (e.g., "nakit-yok/frontend"), construct full URL
+    if (!config.host) {
+      logger.warn(`⚠️  File space ${fileSpace.name} has relative repo path but no host, skipping`)
+      return null
+    }
+    // Ensure host doesn't have trailing slash and repo doesn't have leading slash
+    const host = config.host.replace(/\/$/, '')
+    const repoPath = config.repo.replace(/^\//, '')
+    repoUrl = `${host}/${repoPath}`
+
+    // Add .git extension if not present
+    if (!repoUrl.endsWith('.git')) {
+      repoUrl = `${repoUrl}.git`
+    }
+  }
+
   const spaceConfig: any = {
     name: fileSpace.name,
     id: fileSpace.id,
-    repo: config.repo,
+    repo: repoUrl,
     host: config.host
   }
 
   if (config.access_token_secret_id) {
-    const token = await fetchFileSpaceToken(apiClient, config.access_token_secret_id, fileSpace.name)
+    const token = await fetchFileSpaceToken(sql, config.access_token_secret_id, fileSpace.name)
     if (token) {
       spaceConfig.token = token
     }
   }
 
-  logger.info(`✓ Configured file space: ${fileSpace.name} (${config.repo})`)
+  logger.info(`✓ Configured file space: ${fileSpace.name} (${repoUrl})`)
   return spaceConfig
 }
 
@@ -675,7 +675,6 @@ async function buildFileSpaceConfig(fileSpace: any, apiClient: BackendClient): P
  * Load and configure file spaces for pipeline
  */
 async function loadFileSpaces(
-  apiClient: BackendClient,
   taskId: string,
   runnerType: string,
   sql: Sql
@@ -700,7 +699,7 @@ async function loadFileSpaces(
   const fileSpaceConfigs = []
 
   for (const fileSpace of fileSpaces) {
-    const config = await buildFileSpaceConfig(fileSpace, apiClient)
+    const config = await buildFileSpaceConfig(fileSpace, sql)
     if (config) {
       fileSpaceConfigs.push(config)
     }
@@ -775,7 +774,6 @@ function logPipelineVariables(variables: Record<string, string>): void {
 async function preparePipelineConfig(
   context: PipelineContext,
   executionId: string,
-  apiClient: BackendClient,
   sql: Sql
 ): Promise<{ variables: Record<string, string> }> {
   logger.info(`✓ Using CI runner: ${context.session.runner}`)
@@ -791,7 +789,6 @@ async function preparePipelineConfig(
     projectId: context.project.id,
     userId: context.userId,
     aiProviderConfigs: context.project.ai_provider_configs,
-    apiClient,
     sql
   })
 
@@ -799,7 +796,7 @@ async function preparePipelineConfig(
   logger.info(`✓ Required API keys validated for runner type: ${context.session.runner}`)
 
   // Load file spaces - this MUST succeed for pipeline to run
-  const repoVars = await loadFileSpaces(apiClient, context.task.id, context.session.runner!, sql)
+  const repoVars = await loadFileSpaces(context.task.id, context.session.runner!, sql)
 
   const variables: Record<string, string> = {
     SESSION_ID: context.session.id,
@@ -826,7 +823,7 @@ async function executePipelineTrigger(
   executionId: string,
   config: { variables: Record<string, string> },
   executorConfig: { host: string; accessToken: string; projectPath: string },
-  apiClient: BackendClient
+  sql: Sql
 ): Promise<{ execution: PipelineExecution; pipelineUrl: string }> {
   const gitlabClient = new GitLabApiClient(executorConfig.host, executorConfig.accessToken)
 
@@ -855,15 +852,12 @@ async function executePipelineTrigger(
 
   logger.info(`✓ GitLab pipeline triggered: ${pipeline.id}`)
 
-  // Update execution record
-  const execution = await apiClient.run(updatePipelineExecutionConfig, {
-    params: { id: executionId },
-    body: {
-      pipeline_id: pipeline.id.toString(),
-      status: 'pending' as const,
-      last_status_update: new Date().toISOString(),
-    }
-  }) as unknown as PipelineExecution
+  // Update execution record directly in database
+  const execution = await updatePipelineExecution(sql, executionId, {
+    pipeline_id: pipeline.id.toString(),
+    status: 'pending' as const,
+    last_status_update: new Date().toISOString(),
+  })
 
   const pipelineUrl = `${executorConfig.host}/${executorConfig.projectPath}/-/pipelines/${pipeline.id}`
 
@@ -890,7 +884,7 @@ export async function triggerPipeline(
 
   try {
     // Validate and fetch all required context
-    const context = await validateAndFetchPipelineContext(input.apiClient, input.sessionId, sqlInstance)
+    const context = await validateAndFetchPipelineContext(input.sessionId, sqlInstance)
 
     // 🔍 DEBUG: Log session details
     logger.info(`🔍 DEBUG - Session details:`)
@@ -900,35 +894,27 @@ export async function triggerPipeline(
     logger.info(`  Task title: ${context.task.id}`)
     logger.info(`  Will set RUNNER_TYPE to: ${context.session.runner}`)
 
-    // Check if workspace needs sync before running evaluation/implementation
-    const syncCheck = await checkWorkspaceSyncStatus(context.project.id, input.apiClient)
-    if (syncCheck.needsSync) {
-      logger.info(`⚠️  Workspace sync required: ${syncCheck.reason}`)
-      // Wait for sync to complete instead of failing
-      await waitForWorkspaceSync(context.project.id, input.apiClient)
-    }
-    logger.info(`✓ Workspace is up-to-date, proceeding with pipeline execution`)
+    // Workspace sync removed - repositories will be pulled directly in the pipeline
+    logger.info(`✓ Skipping workspace sync check - repositories will be pulled directly`)
 
-    // Create pipeline execution record
-    const execution = await input.apiClient.run(createPipelineExecutionConfig, {
-      body: {
-        session_id: context.session.id,
-        worker_repository_id: context.workerRepo.id,
-        status: 'pending' as const,
-      }
+    // Create pipeline execution record directly in database
+    const execution = await createPipelineExecution(sqlInstance, {
+      session_id: context.session.id,
+      worker_repository_id: context.workerRepo.id,
+      status: 'pending' as const,
     })
     executionId = execution.id
     logger.info(`✓ Created pipeline execution record: ${execution.id}`)
 
     // Prepare pipeline configuration
-    const config = await preparePipelineConfig(context, execution.id, input.apiClient, sqlInstance)
+    const config = await preparePipelineConfig(context, execution.id, sqlInstance)
     logger.info(`✓ Pipeline variables prepared`)
 
     // Get executor configuration (project-level or worker repository)
-    const executorConfig = await getExecutorConfig(context, input.apiClient)
+    const executorConfig = await getExecutorConfig(context, sqlInstance)
 
     // Trigger pipeline and update execution
-    const result = await executePipelineTrigger(context, execution.id, config, executorConfig, input.apiClient)
+    const result = await executePipelineTrigger(context, execution.id, config, executorConfig, sqlInstance)
 
     logger.info(`✅ Pipeline triggered successfully: ${result.pipelineUrl}`)
 
@@ -954,12 +940,9 @@ export async function triggerPipeline(
     logger.error(`❌ Pipeline execution failed for session ${input.sessionId}: ${errorMessage}`)
 
     if (executionId) {
-      await input.apiClient.run(updatePipelineExecutionConfig, {
-        params: { id: executionId },
-        body: {
-          status: 'failed' as const,
-          last_status_update: new Date().toISOString(),
-        }
+      await updatePipelineExecution(sqlInstance, executionId, {
+        status: 'failed' as const,
+        last_status_update: new Date().toISOString(),
       })
     }
 

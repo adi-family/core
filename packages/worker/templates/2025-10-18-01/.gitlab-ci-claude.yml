@@ -45,7 +45,8 @@ sync-only:
       fi
 
     # Run sync-workspaces (bundled version)
-    - bun 2025-10-18-01/bundles/sync-workspaces.js
+    - cd 2025-10-18-01/worker-scripts
+    - bun ../bundles/sync-workspaces.js
     - echo "✓ Submodules synced successfully"
   rules:
     - if: '$SYNC_ONLY == "true"'
@@ -145,7 +146,7 @@ execute:
       fi
 
     # Run Claude implementation pipeline (bundled version) and capture exit code
-    - bun 2025-10-18-01/bundles/claude-pipeline.js || EXIT_CODE=$?
+    - bun ../bundles/claude-pipeline.js || EXIT_CODE=$?
     - EXIT_CODE=${EXIT_CODE:-0}
 
     # Update status based on exit code
@@ -186,7 +187,8 @@ report:
     - git config --global user.name "${GITLAB_USER_NAME:-ADI Pipeline}"
 
     # Upload implementation artifacts via our API (includes pushing to file spaces and creating MRs, bundled version)
-    - bun 2025-10-18-01/bundles/upload-results.js
+    - cd 2025-10-18-01/worker-scripts
+    - bun ../bundles/upload-results.js
   dependencies:
     - execute
   rules:

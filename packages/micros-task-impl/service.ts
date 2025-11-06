@@ -57,9 +57,6 @@ export async function implementTask(
     logger.info(`  Task ID: ${session.task_id}`)
     logger.info(`  Expected RUNNER_TYPE in pipeline: ${session.runner}`)
 
-    // Update task with session ID and mark as implementing
-    await taskQueries.updateTaskImplementationStatus(sql, taskId, 'implementing', session.id)
-
     // Create API client for pipeline executor
     const apiClient = createBackendApiClient()
 
@@ -71,6 +68,7 @@ export async function implementTask(
       }, sql)
       result.pipelineUrl = pipelineResult.pipelineUrl
       logger.info(`Implementation pipeline triggered: ${pipelineResult.pipelineUrl}`)
+      logger.info(`Task ${taskId} will remain in 'queued' status until worker starts implementation`)
     } catch (pipelineError) {
       const errorMsg = `Failed to trigger implementation pipeline: ${pipelineError instanceof Error ? pipelineError.message : String(pipelineError)}`
       logger.error(`❌ ${errorMsg}`)

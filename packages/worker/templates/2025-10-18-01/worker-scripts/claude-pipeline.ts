@@ -314,6 +314,11 @@ async function main() {
       throw new Error('Task has no ID - cannot create implementation branch')
     }
 
+    // Update task status to 'implementing' now that worker is actually starting
+    logger.info('📝 Updating task status to implementing...')
+    await apiClient.updateTaskImplementationStatus(task.id, 'implementing')
+    logger.info('✓ Task status updated to implementing')
+
     // Read available workspaces from disk (already synced as git submodules)
     const workspacesPath = '../workspaces'
     const workspaces = await processWorkspaces(workspacesPath)

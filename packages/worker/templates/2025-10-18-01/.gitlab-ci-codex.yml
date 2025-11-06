@@ -97,7 +97,7 @@ execute:
         -d '{"status":"running"}'
 
     # Run Codex pipeline (TypeScript with Bun)
-    - bun 2025-10-18-01/bundles/codex-pipeline.js
+    - bun ../bundles/codex-pipeline.js
 
     # Capture exit code
     - EXIT_CODE=$?
