@@ -119,30 +119,61 @@ for i in $(seq 0 $((FILE_SPACE_COUNT - 1))); do
         # Smart branch detection: try dev/develop/development → main/master
         log_info "Detecting available branches..."
 
-        # List remote branches
-        AVAILABLE_BRANCHES=$(git ls-remote --heads "$CLONE_URL" 2>/dev/null | sed 's|.*refs/heads/||' || echo "")
+        # List remote branches - capture both stdout and stderr
+        LS_REMOTE_OUTPUT=$(git ls-remote --heads "$CLONE_URL" 2>&1)
+        LS_REMOTE_EXIT_CODE=$?
+
+        # Check if git ls-remote failed
+        if [ $LS_REMOTE_EXIT_CODE -ne 0 ]; then
+            log_error "Failed to list remote branches from repository"
+            log_error "Exit code: $LS_REMOTE_EXIT_CODE"
+
+            # Check for common error patterns
+            if echo "$LS_REMOTE_OUTPUT" | grep -qi "authentication failed\|access denied\|authentication required"; then
+                log_error "Authentication failure detected"
+                log_error "Please verify:"
+                log_error "  - Repository URL is correct"
+                log_error "  - Access token is valid and not expired"
+                log_error "  - Token has appropriate permissions (read access)"
+            elif echo "$LS_REMOTE_OUTPUT" | grep -qi "could not resolve host\|network\|timeout"; then
+                log_error "Network/connectivity issue detected"
+                log_error "Please check network connectivity and repository host"
+            elif echo "$LS_REMOTE_OUTPUT" | grep -qi "repository not found\|not found"; then
+                log_error "Repository not found"
+                log_error "Please verify the repository URL is correct"
+            else
+                log_error "Error output: $LS_REMOTE_OUTPUT"
+            fi
+
+            log_error "Workspace $WORKSPACE_NAME will not be cloned"
+            continue
+        fi
+
+        # Extract branch names from successful ls-remote output
+        AVAILABLE_BRANCHES=$(echo "$LS_REMOTE_OUTPUT" | sed 's|.*refs/heads/||')
 
         if [ -z "$AVAILABLE_BRANCHES" ]; then
-            log_warning "Could not list remote branches"
-            log_info "Defaulting to 'main' branch"
-            TARGET_BRANCH="main"
-        else
-            # Priority order: dev, develop, development, main, master
-            TARGET_BRANCH=""
-            for BRANCH in dev develop development main master; do
-                if echo "$AVAILABLE_BRANCHES" | grep -q "^${BRANCH}$"; then
-                    TARGET_BRANCH="$BRANCH"
-                    break
-                fi
-            done
+            log_error "Repository returned no branches (empty repository or access issue)"
+            log_error "Cannot determine target branch for cloning"
+            log_error "Workspace $WORKSPACE_NAME will not be cloned"
+            continue
+        fi
 
-            if [ -z "$TARGET_BRANCH" ]; then
-                # Fallback: use the first available branch
-                TARGET_BRANCH=$(echo "$AVAILABLE_BRANCHES" | head -n 1)
-                log_warning "None of the preferred branches found, using: $TARGET_BRANCH"
-            else
-                log_success "Selected branch: $TARGET_BRANCH"
+        # Priority order: dev, develop, development, main, master
+        TARGET_BRANCH=""
+        for BRANCH in dev develop development main master; do
+            if echo "$AVAILABLE_BRANCHES" | grep -q "^${BRANCH}$"; then
+                TARGET_BRANCH="$BRANCH"
+                break
             fi
+        done
+
+        if [ -z "$TARGET_BRANCH" ]; then
+            # Fallback: use the first available branch
+            TARGET_BRANCH=$(echo "$AVAILABLE_BRANCHES" | head -n 1)
+            log_warning "None of the preferred branches found, using: $TARGET_BRANCH"
+        else
+            log_success "Selected branch: $TARGET_BRANCH"
         fi
     fi
 
