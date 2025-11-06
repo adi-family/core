@@ -18,6 +18,7 @@ import { findTaskById } from '@db/tasks'
 import { findProjectById } from '@db/projects'
 import { findWorkerRepositoryByProjectId, createWorkerRepository } from '@db/worker-repositories'
 import { findSecretById } from '@db/secrets'
+import { findFileSpacesByTaskId } from '@db/file-spaces'
 import { getPlatformAnthropicConfig } from '@backend/config'
 import { checkProjectHasAnthropicProvider } from '@backend/services/ai-provider-selector'
 import { getCachedPipelineApiKey } from '@backend/services/pipeline-api-key'
@@ -676,54 +677,49 @@ async function buildFileSpaceConfig(fileSpace: any, apiClient: BackendClient): P
 async function loadFileSpaces(
   apiClient: BackendClient,
   taskId: string,
-  runnerType: string
+  runnerType: string,
+  sql: Sql
 ): Promise<Record<string, string>> {
   logger.info(`🔍 Loading file spaces for task ${taskId}...`)
 
-  try {
-    const fileSpaces = await apiClient.run(getTaskFileSpacesConfig, {
-      params: { id: taskId }
-    })
-    logger.info(`📦 API returned ${fileSpaces.length} file space(s) for task`)
+  // Fetch file spaces directly from database (bypass authentication)
+  const fileSpaces = await findFileSpacesByTaskId(sql, taskId)
+  logger.info(`📦 Database returned ${fileSpaces.length} file space(s) for task`)
 
-    if (fileSpaces.length === 0) {
-      logger.error(`❌ Task has no file spaces configured`)
-      logger.error(`   ${runnerType} pipelines require at least one file space with code to analyze`)
-      logger.error(`   Please configure file spaces for this task before running evaluation or implementation`)
-      throw new Error(
-        `Cannot run ${runnerType} pipeline: Task has no file spaces configured. ` +
-        `Please add at least one file space with a repository URL to this task.`
-      )
-    }
-
-    logger.info(`📦 Processing ${fileSpaces.length} file space(s)...`)
-    const fileSpaceConfigs = []
-
-    for (const fileSpace of fileSpaces) {
-      const config = await buildFileSpaceConfig(fileSpace, apiClient)
-      if (config) {
-        fileSpaceConfigs.push(config)
-      }
-    }
-
-    if (fileSpaceConfigs.length === 0) {
-      logger.error(`❌ No valid file spaces after filtering`)
-      logger.error(`   All file spaces are missing repository URLs`)
-      logger.error(`   Each file space must have a 'repo' field in its config with a valid git repository URL`)
-      throw new Error(
-        `Cannot run ${runnerType} pipeline: All file spaces are missing repository URLs. ` +
-        `Please ensure each file space has a 'repo' field configured with a valid git repository URL.`
-      )
-    }
-
-    logger.info(`✓ ${fileSpaceConfigs.length} file space(s) will be cloned`)
-    logger.info(`   FILE_SPACES variable will be passed to pipeline`)
-
-    return { FILE_SPACES: JSON.stringify(fileSpaceConfigs) }
-  } catch (error) {
-    logger.warn(`⚠️  Failed to fetch file spaces: ${error}`)
-    return {}
+  if (fileSpaces.length === 0) {
+    logger.error(`❌ Task has no file spaces configured`)
+    logger.error(`   ${runnerType} pipelines require at least one file space with code to analyze`)
+    logger.error(`   Please configure file spaces for this task before running evaluation or implementation`)
+    throw new Error(
+      `Cannot run ${runnerType} pipeline: Task has no file spaces configured. ` +
+      `Please add at least one file space with a repository URL to this task.`
+    )
   }
+
+  logger.info(`📦 Processing ${fileSpaces.length} file space(s)...`)
+  const fileSpaceConfigs = []
+
+  for (const fileSpace of fileSpaces) {
+    const config = await buildFileSpaceConfig(fileSpace, apiClient)
+    if (config) {
+      fileSpaceConfigs.push(config)
+    }
+  }
+
+  if (fileSpaceConfigs.length === 0) {
+    logger.error(`❌ No valid file spaces after filtering`)
+    logger.error(`   All file spaces are missing repository URLs`)
+    logger.error(`   Each file space must have a 'repo' field in its config with a valid git repository URL`)
+    throw new Error(
+      `Cannot run ${runnerType} pipeline: All file spaces are missing repository URLs. ` +
+      `Please ensure each file space has a 'repo' field configured with a valid git repository URL.`
+    )
+  }
+
+  logger.info(`✓ ${fileSpaceConfigs.length} file space(s) will be cloned`)
+  logger.info(`   FILE_SPACES variable will be passed to pipeline`)
+
+  return { FILE_SPACES: JSON.stringify(fileSpaceConfigs) }
 }
 
 /**
@@ -802,18 +798,8 @@ async function preparePipelineConfig(
   validateRequiredApiKeys(context.session.runner, aiEnvVars)
   logger.info(`✓ Required API keys validated for runner type: ${context.session.runner}`)
 
-  let repoVars: Record<string, string> = {}
-  try {
-    repoVars = await loadFileSpaces(apiClient, context.task.id, context.session.runner!)
-  } catch (error) {
-    if (error instanceof Error && error.message.includes('Cannot run')) {
-      throw error
-    }
-    logger.error(`❌ Failed to load file space configuration: ${error}`)
-    if (error instanceof Error) {
-      logger.error(`   Error stack: ${error.stack}`)
-    }
-  }
+  // Load file spaces - this MUST succeed for pipeline to run
+  const repoVars = await loadFileSpaces(apiClient, context.task.id, context.session.runner!, sql)
 
   const variables: Record<string, string> = {
     SESSION_ID: context.session.id,
