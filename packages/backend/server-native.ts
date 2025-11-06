@@ -47,16 +47,18 @@ const allHandlers = [
   taskHandlers.getTaskSessions,
   taskHandlers.getTaskArtifacts,
   taskHandlers.listTasks,
+  taskHandlers.getTaskStats,  // Register static route before dynamic route
   taskHandlers.getTask,
-  taskHandlers.getTaskStats,
   taskHandlers.implementTask,
   taskHandlers.evaluateTask,
   taskHandlers.evaluateTaskAdvanced,
   // Sessions
   sessionHandlers.getSessionMessages,
   sessionHandlers.getSessionPipelineExecutions,
+  sessionHandlers.getSession,
   sessionHandlers.listSessions,
   // Pipeline Executions
+  pipelineExecutionHandlers.listPipelineArtifacts,
   pipelineExecutionHandlers.getExecutionArtifacts,
   pipelineExecutionHandlers.createExecutionArtifact,
   pipelineExecutionHandlers.updatePipelineExecution,
@@ -64,6 +66,7 @@ const allHandlers = [
   messageHandlers.listMessages,
   // Task Sources
   taskSourceHandlers.listTaskSources,
+  taskSourceHandlers.getTaskSource,
   taskSourceHandlers.createTaskSource,
   taskSourceHandlers.updateTaskSource,
   taskSourceHandlers.deleteTaskSource,

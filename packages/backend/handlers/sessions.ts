@@ -7,6 +7,7 @@ import { handler } from '@adi-family/http'
 import {
   getSessionMessagesConfig,
   getSessionPipelineExecutionsConfig,
+  getSessionConfig,
   listSessionsConfig
 } from '@adi/api-contracts/sessions'
 import * as messageQueries from '@db/messages'
@@ -26,6 +27,12 @@ export function createSessionHandlers(sql: Sql) {
     return executions
   })
 
+  const getSession = handler(getSessionConfig, async (ctx) => {
+    const { id } = ctx.params
+    const session = await sessionQueries.findSessionById(sql, id)
+    return session
+  })
+
   const listSessions = handler(listSessionsConfig, async (_ctx) => {
     const sessions = await sessionQueries.findAllSessions(sql)
     return sessions
@@ -34,6 +41,7 @@ export function createSessionHandlers(sql: Sql) {
   return {
     getSessionMessages,
     getSessionPipelineExecutions,
+    getSession,
     listSessions
   }
 }
