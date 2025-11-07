@@ -17,28 +17,31 @@ const secretWithProjectSchema = secretSchema.extend({
   project_id: z.string()
 })
 
+const gitLabTokenValidationResponseSchema = z.object({
+  validated: z.boolean(),
+  username: z.string().optional(),
+  scopeValidation: z.object({
+    validated: z.boolean(),
+    message: z.string()
+  }).optional(),
+  error: z.string().optional()
+})
+
+const jiraTokenValidationResponseSchema = z.object({
+  valid: z.boolean(),
+  username: z.string().optional(),
+  accountId: z.string().optional(),
+  email: z.string().nullable().optional(),
+  error: z.string().optional()
+})
+
+const gitLabRepositoryResponseSchema = z.record(z.string(), z.unknown())
+
 export type SecretResponse = z.infer<typeof secretSchema>
 export type SecretWithProjectResponse = z.infer<typeof secretWithProjectSchema>
-
-export interface GitLabTokenValidationResponse {
-  validated: boolean
-  username?: string
-  scopeValidation?: {
-    validated: boolean
-    message: string
-  }
-  error?: string
-}
-
-export interface JiraTokenValidationResponse {
-  valid: boolean
-  username?: string
-  accountId?: string
-  email?: string | null
-  error?: string
-}
-
-export type GitLabRepositoryResponse = Record<string, unknown>
+export type GitLabTokenValidationResponse = z.infer<typeof gitLabTokenValidationResponseSchema>
+export type JiraTokenValidationResponse = z.infer<typeof jiraTokenValidationResponseSchema>
+export type GitLabRepositoryResponse = z.infer<typeof gitLabRepositoryResponseSchema>
 
 export const getSecretValueConfig = {
   method: 'GET',
@@ -106,15 +109,7 @@ export const validateGitLabRawTokenConfig = {
     })
   },
   response: {
-    schema: z.object({
-      validated: z.boolean(),
-      username: z.string().optional(),
-      scopeValidation: z.object({
-        validated: z.boolean(),
-        message: z.string()
-      }).optional(),
-      error: z.string().optional()
-    })
+    schema: gitLabTokenValidationResponseSchema
   }
 } as const
 
@@ -129,15 +124,7 @@ export const validateGitLabTokenConfig = {
     })
   },
   response: {
-    schema: z.object({
-      validated: z.boolean(),
-      username: z.string().optional(),
-      scopeValidation: z.object({
-        validated: z.boolean(),
-        message: z.string()
-      }).optional(),
-      error: z.string().optional()
-    })
+    schema: gitLabTokenValidationResponseSchema
   }
 } as const
 
@@ -153,7 +140,7 @@ export const getGitLabRepositoriesConfig = {
     })
   },
   response: {
-    schema: z.array(z.record(z.string(), z.unknown()))
+    schema: z.array(gitLabRepositoryResponseSchema)
   }
 } as const
 
@@ -168,13 +155,7 @@ export const validateJiraRawTokenConfig = {
     })
   },
   response: {
-    schema: z.object({
-      valid: z.boolean(),
-      username: z.string().optional(),
-      accountId: z.string().optional(),
-      email: z.string().nullable().optional(),
-      error: z.string().optional()
-    }),
+    schema: jiraTokenValidationResponseSchema
   },
 } as const
 
@@ -188,12 +169,6 @@ export const validateJiraTokenConfig = {
     })
   },
   response: {
-    schema: z.object({
-      valid: z.boolean(),
-      username: z.string().optional(),
-      accountId: z.string().optional(),
-      email: z.string().nullable().optional(),
-      error: z.string().optional()
-    }),
+    schema: jiraTokenValidationResponseSchema
   },
 } as const

@@ -1,4 +1,5 @@
 import type { Sql } from 'postgres'
+import { z } from 'zod'
 import { handler } from '@adi-family/http'
 import { getUsageMetricsConfig, getWorkerReposConfig, refreshWorkerReposConfig } from '@adi/api-contracts/admin'
 import { findRecentUsageMetrics, findAggregatedUsageMetrics } from '@adi-simple/db/api-usage-metrics'
@@ -7,6 +8,29 @@ import { CIRepositoryManager } from '@adi-simple/worker/ci-repository-manager'
 import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'admin-handler' })
+
+const _workerRepositoryRowSchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  project_name: z.string(),
+  current_version: z.string(),
+  source_gitlab: z.any()
+})
+
+type WorkerRepositoryRow = z.infer<typeof _workerRepositoryRowSchema>
+
+const _refreshResultSchema = z.object({
+  project: z.string(),
+  success: z.boolean(),
+  error: z.string().optional(),
+  filesUpdated: z.number().optional(),
+  fileErrors: z.array(z.object({
+    file: z.string(),
+    error: z.string()
+  })).optional()
+})
+
+type RefreshResult = z.infer<typeof _refreshResultSchema>
 
 export function createAdminHandlers(sql: Sql) {
   const getUsageMetrics = handler(getUsageMetricsConfig, async ({ query }) => {
@@ -38,13 +62,7 @@ export function createAdminHandlers(sql: Sql) {
   const refreshWorkerRepos = handler(refreshWorkerReposConfig, async () => {
     logger.info('Starting worker repository refresh...')
 
-    const repositories = await sql<{
-      id: string;
-      project_id: string;
-      project_name: string;
-      current_version: string;
-      source_gitlab: any;
-    }[]>`
+    const repositories = await sql<WorkerRepositoryRow[]>`
       SELECT
         wr.id,
         wr.project_id,
@@ -69,16 +87,8 @@ export function createAdminHandlers(sql: Sql) {
       }
     }
 
-    logger.info(`📦 Found ${repositories.length} worker repository(ies)`)
-
     const manager = new CIRepositoryManager()
-    const results: {
-      project: string
-      success: boolean
-      error?: string
-      filesUpdated?: number
-      fileErrors?: { file: string; error: string }[]
-    }[] = []
+    const results: RefreshResult[] = []
 
     let successCount = 0
     let failedCount = 0

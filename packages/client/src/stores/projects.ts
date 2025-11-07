@@ -1,20 +1,18 @@
-/**
- * Global Projects Store - Valtio state management
- *
- * Provides centralized state for projects across the application.
- * Eliminates duplicate API calls and ensures consistent state.
- */
+import type { BaseClient } from '@adi-family/http'
+import { z } from 'zod'
 import { proxy } from 'valtio'
 import type { Project } from '@adi-simple/types'
+import { projectSchema } from '@adi-simple/types'
 import { listProjectsConfig, updateProjectConfig } from '@adi/api-contracts'
-import type { AuthenticatedClient } from '@/lib/client'
 
-interface ProjectsStore {
-  projects: Project[]
-  loading: boolean
-  error: string | null
-  lastFetch: number | null
-}
+const projectsStoreSchema = z.object({
+  projects: z.array(projectSchema),
+  loading: z.boolean(),
+  error: z.string().nullable(),
+  lastFetch: z.number().nullable()
+})
+
+type ProjectsStore = z.infer<typeof projectsStoreSchema>
 
 export const projectsStore = proxy<ProjectsStore>({
   projects: [],
@@ -27,7 +25,7 @@ export const projectsStore = proxy<ProjectsStore>({
  * Fetch projects from the API
  * Caches results to avoid duplicate calls within 30 seconds
  */
-export async function fetchProjects(client: AuthenticatedClient, force = false) {
+export async function fetchProjects(client: BaseClient, force = false) {
   const now = Date.now()
   const CACHE_DURATION = 30_000 // 30 seconds
 
@@ -56,7 +54,7 @@ export async function fetchProjects(client: AuthenticatedClient, force = false) 
  * Optimistically updates local state
  */
 export async function toggleProjectEnabled(
-  client: AuthenticatedClient,
+  client: BaseClient,
   projectId: string
 ) {
   const project = projectsStore.projects.find((p) => p.id === projectId)
@@ -83,6 +81,6 @@ export async function toggleProjectEnabled(
 /**
  * Force refresh projects from API
  */
-export async function refreshProjects(client: AuthenticatedClient) {
+export async function refreshProjects(client: BaseClient) {
   return fetchProjects(client, true)
 }

@@ -94,17 +94,16 @@ const gitlabExecutorConfigSchema = z.object({
   user: z.string().optional()
 })
 
-export type ProjectResponse = z.infer<typeof projectSchema>
-export type AIProviderConfigResponse = z.infer<typeof aiProviderConfigSchema>
-export type GitLabExecutorConfigResponse = z.infer<typeof gitlabExecutorConfigSchema>
-export interface AIProviderValidationResponse {
-  valid: boolean
-  endpoint_reachable: boolean
-  authentication_valid: boolean
-  error?: string
-  details?: Record<string, unknown>
-  tested_at: string
-}
+const aiProviderValidationResponseSchema = z.object({
+  valid: z.boolean(),
+  endpoint_reachable: z.boolean(),
+  authentication_valid: z.boolean(),
+  error: z.string().optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
+  tested_at: z.string()
+})
+
+export type AIProviderValidationResponse = z.infer<typeof aiProviderValidationResponseSchema>
 
 const projectSchema = z.object({
   id: z.string(),
@@ -116,6 +115,10 @@ const projectSchema = z.object({
   updated_at: z.string(),
   last_synced_at: z.string().nullable()
 })
+
+export type ProjectResponse = z.infer<typeof projectSchema>
+export type AIProviderConfigResponse = z.infer<typeof aiProviderConfigSchema>
+export type GitLabExecutorConfigResponse = z.infer<typeof gitlabExecutorConfigSchema>
 
 export const listProjectsConfig = {
   method: 'GET',
@@ -224,14 +227,7 @@ export const validateProjectAIProviderConfig = {
     schema: z.union([anthropicConfigSchema, openAIConfigSchema, googleConfigSchema])
   },
   response: {
-    schema: z.object({
-      valid: z.boolean(),
-      endpoint_reachable: z.boolean(),
-      authentication_valid: z.boolean(),
-      error: z.string().optional(),
-      details: z.record(z.string(), z.unknown()).optional(),
-      tested_at: z.string()
-    })
+    schema: aiProviderValidationResponseSchema
   }
 } as const
 

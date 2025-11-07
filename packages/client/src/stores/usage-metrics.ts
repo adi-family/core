@@ -1,37 +1,37 @@
-/**
- * Global Usage Metrics Store - Valtio state management
- *
- * Provides centralized state for API usage metrics across the application.
- */
+import { z } from 'zod'
 import { proxy } from 'valtio'
 import { getUsageMetricsConfig } from '@adi/api-contracts'
-import type { AuthenticatedClient } from '@/lib/client'
+import type { BaseClient } from '@adi-family/http'
 
-export interface ApiUsageMetric {
-  id: string
-  pipeline_execution_id: string | null
-  session_id: string | null
-  task_id: string | null
-  provider: string
-  model: string
-  goal: string
-  operation_phase: string
-  input_tokens: number
-  output_tokens: number
-  cache_creation_input_tokens: number
-  cache_read_input_tokens: number
-  ci_duration_seconds: number | null
-  iteration_number: number | null
-  metadata: any | null
-  created_at: Date | string
-}
+const apiUsageMetricSchema = z.object({
+  id: z.string(),
+  pipeline_execution_id: z.string().nullable(),
+  session_id: z.string().nullable(),
+  task_id: z.string().nullable(),
+  provider: z.string(),
+  model: z.string(),
+  goal: z.string(),
+  operation_phase: z.string(),
+  input_tokens: z.number(),
+  output_tokens: z.number(),
+  cache_creation_input_tokens: z.number(),
+  cache_read_input_tokens: z.number(),
+  ci_duration_seconds: z.number().nullable(),
+  iteration_number: z.number().nullable(),
+  metadata: z.any().nullable(),
+  created_at: z.union([z.date(), z.string()])
+})
 
-interface UsageMetricsStore {
-  metrics: ApiUsageMetric[]
-  loading: boolean
-  error: string | null
-  lastFetch: number | null
-}
+export type ApiUsageMetric = z.infer<typeof apiUsageMetricSchema>
+
+const usageMetricsStoreSchema = z.object({
+  metrics: z.array(apiUsageMetricSchema),
+  loading: z.boolean(),
+  error: z.string().nullable(),
+  lastFetch: z.number().nullable()
+})
+
+type UsageMetricsStore = z.infer<typeof usageMetricsStoreSchema>
 
 export const usageMetricsStore = proxy<UsageMetricsStore>({
   metrics: [],
@@ -46,7 +46,7 @@ export const usageMetricsStore = proxy<UsageMetricsStore>({
  * Caches results to avoid duplicate calls within 30 seconds
  */
 export async function fetchUsageMetrics(
-  client: AuthenticatedClient,
+  client: BaseClient,
   options?: {
     start_date?: string
     end_date?: string
@@ -91,7 +91,7 @@ export async function fetchUsageMetrics(
  * Force refresh usage metrics from API
  */
 export async function refreshUsageMetrics(
-  client: AuthenticatedClient,
+  client: BaseClient,
   options?: {
     start_date?: string
     end_date?: string

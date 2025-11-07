@@ -1,19 +1,18 @@
-/**
- * Global Tasks Store - Valtio state management
- *
- * Provides centralized state for tasks across the application.
- */
+import { z } from 'zod'
 import { proxy } from 'valtio'
 import type { Task } from '@adi-simple/types'
+import { taskSchema } from '@adi-simple/types'
 import { listTasksConfig } from '@adi/api-contracts'
-import type { AuthenticatedClient } from '@/lib/client'
+import type { BaseClient } from '@adi-family/http'
 
-interface TasksStore {
-  tasks: Task[]
-  loading: boolean
-  error: string | null
-  lastFetch: number | null
-}
+const tasksStoreSchema = z.object({
+  tasks: z.array(taskSchema),
+  loading: z.boolean(),
+  error: z.string().nullable(),
+  lastFetch: z.number().nullable()
+})
+
+type TasksStore = z.infer<typeof tasksStoreSchema>
 
 export const tasksStore = proxy<TasksStore>({
   tasks: [],
@@ -22,13 +21,8 @@ export const tasksStore = proxy<TasksStore>({
   lastFetch: null,
 })
 
-/**
- * Fetch tasks from the API
- * Supports optional filtering by project_id, status, limit
- * Caches results to avoid duplicate calls within 30 seconds
- */
 export async function fetchTasks(
-  client: AuthenticatedClient,
+  client: BaseClient,
   options?: {
     project_id?: string
     status?: string
@@ -69,7 +63,7 @@ export async function fetchTasks(
  * Force refresh tasks from API
  */
 export async function refreshTasks(
-  client: AuthenticatedClient,
+  client: BaseClient,
   options?: {
     project_id?: string
     status?: string

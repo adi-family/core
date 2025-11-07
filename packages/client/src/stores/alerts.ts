@@ -3,24 +3,33 @@
  *
  * Provides centralized state for system alerts across the application.
  */
+import { z } from 'zod'
 import { proxy } from 'valtio'
 import { listAlertsConfig } from '@adi/api-contracts'
-import type { AuthenticatedClient } from '@/lib/client'
+import type { BaseClient } from '@adi-family/http'
 
-export interface Alert {
-  type: 'missing_api_keys'
-  severity: 'warning'
-  message: string
-  providers: string[]
-  projects: { id: string; name: string; missingProviders: string[] }[]
-}
+const alertSchema = z.object({
+  type: z.literal('missing_api_keys'),
+  severity: z.literal('warning'),
+  message: z.string(),
+  providers: z.array(z.string()),
+  projects: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    missingProviders: z.array(z.string())
+  }))
+})
 
-interface AlertsStore {
-  alerts: Alert[]
-  loading: boolean
-  error: string | null
-  lastFetch: number | null
-}
+export type Alert = z.infer<typeof alertSchema>
+
+const alertsStoreSchema = z.object({
+  alerts: z.array(alertSchema),
+  loading: z.boolean(),
+  error: z.string().nullable(),
+  lastFetch: z.number().nullable()
+})
+
+type AlertsStore = z.infer<typeof alertsStoreSchema>
 
 export const alertsStore = proxy<AlertsStore>({
   alerts: [],
@@ -34,7 +43,7 @@ export const alertsStore = proxy<AlertsStore>({
  * Caches results to avoid duplicate calls within 30 seconds
  */
 export async function fetchAlerts(
-  client: AuthenticatedClient,
+  client: BaseClient,
   force = false
 ) {
   const now = Date.now()
@@ -65,6 +74,6 @@ export async function fetchAlerts(
 /**
  * Force refresh alerts from API
  */
-export async function refreshAlerts(client: AuthenticatedClient) {
+export async function refreshAlerts(client: BaseClient) {
   return fetchAlerts(client, true)
 }

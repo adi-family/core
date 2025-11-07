@@ -1,631 +1,882 @@
+import { z } from 'zod'
 
-export interface GitlabMetadata {
-  provider: 'gitlab'
-  repo: string
-  host?: string
-  iid?: number
-}
+export const gitlabMetadataSchema = z.object({
+  provider: z.literal('gitlab'),
+  repo: z.string(),
+  host: z.string().optional(),
+  iid: z.number().optional()
+})
 
-export interface GithubMetadata {
-  provider: 'github'
-  repo: string
-  host?: string
-}
+export type GitlabMetadata = z.infer<typeof gitlabMetadataSchema>
 
-export interface JiraMetadata {
-  provider: 'jira'
-  host: string
-  key: string
-  project_key: string
-}
+export const githubMetadataSchema = z.object({
+  provider: z.literal('github'),
+  repo: z.string(),
+  host: z.string().optional()
+})
 
-export interface GitlabIssue {
-  id: string
-  iid?: number | null
-  title: string
-  updated_at: string
-  metadata: GitlabMetadata
-}
+export type GithubMetadata = z.infer<typeof githubMetadataSchema>
 
-export interface GithubIssue {
-  id: string
-  iid?: number | null
-  title: string
-  updated_at: string
-  metadata: GithubMetadata
-}
+export const jiraMetadataSchema = z.object({
+  provider: z.literal('jira'),
+  host: z.string(),
+  key: z.string(),
+  project_key: z.string()
+})
 
-export interface JiraIssue {
-  id: string
-  title: string
-  updated_at: string
-  metadata: JiraMetadata
-}
+export type JiraMetadata = z.infer<typeof jiraMetadataSchema>
 
-export interface GitlabExecutorConfig {
-  host: string
-  access_token_secret_id: string
-  verified_at?: string
-  user?: string
-}
+export const gitlabIssueSchema = z.object({
+  id: z.string(),
+  iid: z.number().nullable().optional(),
+  title: z.string(),
+  updated_at: z.string(),
+  metadata: gitlabMetadataSchema
+})
 
-export interface AnthropicCloudConfig {
-  type: 'cloud'
-  api_key_secret_id: string
-  model?: string
-  max_tokens?: number
-  temperature?: number
-}
+export type GitlabIssue = z.infer<typeof gitlabIssueSchema>
 
-export interface AnthropicSelfHostedConfig {
-  type: 'self-hosted'
-  api_key_secret_id: string
-  endpoint_url: string
-  model?: string
-  max_tokens?: number
-  temperature?: number
-  additional_headers?: Record<string, string>
-}
+export const githubIssueSchema = z.object({
+  id: z.string(),
+  iid: z.number().nullable().optional(),
+  title: z.string(),
+  updated_at: z.string(),
+  metadata: githubMetadataSchema
+})
 
-export type AnthropicConfig = AnthropicCloudConfig | AnthropicSelfHostedConfig
+export type GithubIssue = z.infer<typeof githubIssueSchema>
 
-export interface OpenAICloudConfig {
-  type: 'cloud'
-  api_key_secret_id: string
-  organization_id?: string
-  model?: string
-}
+export const jiraIssueSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  updated_at: z.string(),
+  metadata: jiraMetadataSchema
+})
 
-export interface OpenAIAzureConfig {
-  type: 'azure'
-  api_key_secret_id: string
-  endpoint_url: string
-  deployment_name: string
-  api_version: string
-  model?: string
-  max_tokens?: number
-  temperature?: number
-}
+export type JiraIssue = z.infer<typeof jiraIssueSchema>
 
-export interface OpenAISelfHostedConfig {
-  type: 'self-hosted'
-  api_key_secret_id: string
-  endpoint_url: string
-  model?: string
-  max_tokens?: number
-  temperature?: number
-  additional_headers?: Record<string, string>
-}
+export const gitlabExecutorConfigSchema = z.object({
+  host: z.string(),
+  access_token_secret_id: z.string(),
+  verified_at: z.string().optional(),
+  user: z.string().optional()
+})
 
-export type OpenAIConfig = OpenAICloudConfig | OpenAIAzureConfig | OpenAISelfHostedConfig
+export type GitlabExecutorConfig = z.infer<typeof gitlabExecutorConfigSchema>
 
-export interface GoogleCloudConfig {
-  type: 'cloud'
-  api_key_secret_id: string
-  model?: string
-  max_tokens?: number
-  temperature?: number
-}
+export const anthropicCloudConfigSchema = z.object({
+  type: z.literal('cloud'),
+  api_key_secret_id: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional()
+})
 
-export interface GoogleVertexConfig {
-  type: 'vertex'
-  api_key_secret_id: string
-  project_id: string
-  location: string
-  model?: string
-  max_tokens?: number
-  temperature?: number
-}
+export type AnthropicCloudConfig = z.infer<typeof anthropicCloudConfigSchema>
 
-export interface GoogleSelfHostedConfig {
-  type: 'self-hosted'
-  api_key_secret_id: string
-  endpoint_url: string
-  model?: string
-  max_tokens?: number
-  temperature?: number
-  additional_headers?: Record<string, string>
-}
+export const anthropicSelfHostedConfigSchema = z.object({
+  type: z.literal('self-hosted'),
+  api_key_secret_id: z.string(),
+  endpoint_url: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional(),
+  additional_headers: z.record(z.string(), z.string()).optional()
+})
 
-export type GoogleConfig = GoogleCloudConfig | GoogleVertexConfig | GoogleSelfHostedConfig
+export type AnthropicSelfHostedConfig = z.infer<typeof anthropicSelfHostedConfigSchema>
 
-export interface AIProviderConfig {
-  anthropic?: AnthropicConfig
-  openai?: OpenAIConfig
-  google?: GoogleConfig
-}
+export const anthropicConfigSchema = z.discriminatedUnion('type', [
+  anthropicCloudConfigSchema,
+  anthropicSelfHostedConfigSchema
+])
 
-export interface AIProviderValidationResult {
-  valid: boolean
-  endpoint_reachable: boolean
-  authentication_valid: boolean
-  error?: string
-  details?: Record<string, any>
-  tested_at: string
-}
+export type AnthropicConfig = z.infer<typeof anthropicConfigSchema>
 
-export interface Project {
-  id: string
-  name: string
-  enabled: boolean
-  job_executor_gitlab: GitlabExecutorConfig | null
-  ai_provider_configs: AIProviderConfig | null
-  created_at: string
-  updated_at: string
-  last_synced_at: string | null
-}
+export const openAICloudConfigSchema = z.object({
+  type: z.literal('cloud'),
+  api_key_secret_id: z.string(),
+  organization_id: z.string().optional(),
+  model: z.string().optional()
+})
 
-export interface AICapabilityCriteria {
-  // HARD BLOCKERS
-  cannot_determine_what_to_implement: boolean
-  has_contradictory_requirements: boolean
-  requires_undefined_integration: boolean
-  requires_human_subjective_choice: boolean
-  requires_missing_information: boolean
-  // UNCERTAINTY
-  integration_has_no_documentation: boolean
-  requires_proprietary_knowledge: boolean
-  requires_advanced_domain_expertise: boolean
-  // VERIFICATION LIMITATIONS
-  cannot_test_without_credentials: boolean
-  cannot_test_without_paid_account: boolean
-  cannot_test_without_hardware: boolean
-  requires_production_access_to_test: boolean
-  // POST-IMPLEMENTATION VERIFICATION
-  should_verify_visually: boolean
-  should_verify_ux_flow: boolean
-  should_verify_performance: boolean
-  should_verify_security: boolean
-  should_verify_accessibility: boolean
-  // RISK FLAGS
-  high_risk_breaking_change: boolean
-  requires_manual_testing: boolean
-}
+export type OpenAICloudConfig = z.infer<typeof openAICloudConfigSchema>
 
-export interface SimpleEvaluationResult {
-  should_evaluate: boolean
-  clarity_score: number
-  has_acceptance_criteria: boolean
-  auto_reject_reason: string | null
-  ai_capability: AICapabilityCriteria
-  blockers_summary: string[]
-  verification_summary: string[]
-  risk_summary: string[]
-  complexity_score: number
-  effort_estimate: 'xs' | 's' | 'm' | 'l' | 'xl'
-  risk_level: 'low' | 'medium' | 'high'
-  task_type: 'bug_fix' | 'feature' | 'refactor' | 'docs' | 'test' | 'config' | 'other'
-  estimated_impact: 'low' | 'medium' | 'high'
-  estimated_effort: 'low' | 'medium' | 'high'
-}
+export const openAIAzureConfigSchema = z.object({
+  type: z.literal('azure'),
+  api_key_secret_id: z.string(),
+  endpoint_url: z.string(),
+  deployment_name: z.string(),
+  api_version: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional()
+})
 
-export interface Task {
-  id: string
-  title: string
-  description: string | null
-  status: string
-  remote_status: 'opened' | 'closed'
-  project_id: string | null
-  task_source_id: string
-  source_gitlab_issue: GitlabIssue | null
-  source_github_issue: GithubIssue | null
-  source_jira_issue: JiraIssue | null
-  ai_evaluation_simple_status: 'not_started' | 'queued' | 'evaluating' | 'completed' | 'failed' | null
-  ai_evaluation_advanced_status: 'not_started' | 'queued' | 'evaluating' | 'completed' | 'failed' | null
-  ai_evaluation_simple_verdict: 'ready' | 'needs_clarification' | null
-  ai_evaluation_advanced_verdict: 'ready' | 'needs_clarification' | null
-  ai_evaluation_simple_result: SimpleEvaluationResult | null
-  ai_evaluation_agentic_result: {
-    report?: string
-    verdict?: string
-    can_implement?: boolean
-    blockers?: string[]
-    requirements?: string[]
-    confidence?: number
-    missing_information?: string[]
-    risks?: string[]
-    agent_instructions?: {
-      required_context_files?: string[]
-      suggested_steps?: string[]
-      follow_patterns_from?: string[]
-    }
-    [key: string]: unknown
-  } | null
-  ai_evaluation_session_id: string | null
-  ai_implementation_status: 'pending' | 'queued' | 'implementing' | 'completed' | 'failed' | null
-  ai_implementation_session_id: string | null
-  created_at: string
-  updated_at: string
-}
+export type OpenAIAzureConfig = z.infer<typeof openAIAzureConfigSchema>
 
-export interface Session {
-  id: string
-  task_id: string | null
-  runner: string
-  created_at: string
-  updated_at: string
-}
+export const openAISelfHostedConfigSchema = z.object({
+  type: z.literal('self-hosted'),
+  api_key_secret_id: z.string(),
+  endpoint_url: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional(),
+  additional_headers: z.record(z.string(), z.string()).optional()
+})
 
-export interface Message {
-  id: string
-  session_id: string
-  data: unknown
-  created_at: string
-}
+export type OpenAISelfHostedConfig = z.infer<typeof openAISelfHostedConfigSchema>
 
-export interface CreateProjectInput {
-  name: string
-  enabled?: boolean
-}
+export const openAIConfigSchema = z.discriminatedUnion('type', [
+  openAICloudConfigSchema,
+  openAIAzureConfigSchema,
+  openAISelfHostedConfigSchema
+])
 
-export type UpdateProjectInput = Partial<CreateProjectInput>
+export type OpenAIConfig = z.infer<typeof openAIConfigSchema>
 
-export interface CreateTaskInput {
-  title: string
-  description?: string
-  status: string
-  remote_status?: 'opened' | 'closed'
-  project_id?: string
-  task_source_id?: string
-  source_gitlab_issue?: GitlabIssue
-  source_github_issue?: GithubIssue
-  source_jira_issue?: JiraIssue
-}
+export const googleCloudConfigSchema = z.object({
+  type: z.literal('cloud'),
+  api_key_secret_id: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional()
+})
 
-export type UpdateTaskInput = Partial<Omit<Task, 'id' | 'created_at' | 'updated_at'>>
+export type GoogleCloudConfig = z.infer<typeof googleCloudConfigSchema>
 
-export interface CreateSessionInput {
-  task_id?: string
-  runner: string
-}
+export const googleVertexConfigSchema = z.object({
+  type: z.literal('vertex'),
+  api_key_secret_id: z.string(),
+  project_id: z.string(),
+  location: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional()
+})
 
-export interface CreateMessageInput {
-  session_id: string
-  data: unknown
-}
+export type GoogleVertexConfig = z.infer<typeof googleVertexConfigSchema>
 
-export interface GitlabFileSpaceConfig {
-  repo: string
-  host?: string
-  access_token_secret_id?: string
-}
+export const googleSelfHostedConfigSchema = z.object({
+  type: z.literal('self-hosted'),
+  api_key_secret_id: z.string(),
+  endpoint_url: z.string(),
+  model: z.string().optional(),
+  max_tokens: z.number().optional(),
+  temperature: z.number().optional(),
+  additional_headers: z.record(z.string(), z.string()).optional()
+})
 
-export interface GithubFileSpaceConfig {
-  repo: string
-  host?: string
-  access_token_secret_id?: string
-}
+export type GoogleSelfHostedConfig = z.infer<typeof googleSelfHostedConfigSchema>
 
-export type FileSpace = {
-  id: string
-  project_id: string
-  name: string
-  enabled: boolean
-  created_at: string
-  updated_at: string
-} & (
-  | { type: 'gitlab'; config: GitlabFileSpaceConfig }
-  | { type: 'github'; config: GithubFileSpaceConfig }
-)
+export const googleConfigSchema = z.discriminatedUnion('type', [
+  googleCloudConfigSchema,
+  googleVertexConfigSchema,
+  googleSelfHostedConfigSchema
+])
 
-export type CreateFileSpaceInput = {
-  project_id: string
-  name: string
-  enabled?: boolean
-} & (
-  | { type: 'gitlab'; config: GitlabFileSpaceConfig }
-  | { type: 'github'; config: GithubFileSpaceConfig }
-)
+export type GoogleConfig = z.infer<typeof googleConfigSchema>
 
-export type UpdateFileSpaceInput =
-  | Partial<{ project_id: string; name: string; enabled: boolean } & { type: 'gitlab'; config: GitlabFileSpaceConfig }>
-  | Partial<{ project_id: string; name: string; enabled: boolean } & { type: 'github'; config: GithubFileSpaceConfig }>
+export const aiProviderConfigSchema = z.object({
+  anthropic: anthropicConfigSchema.optional(),
+  openai: openAIConfigSchema.optional(),
+  google: googleConfigSchema.optional()
+})
 
-export type TaskSource = {
-  id: string;
-  project_id: string;
-  name: string;
-  enabled: boolean;
-  sync_status: 'pending' | 'queued' | 'syncing' | 'completed' | 'failed';
-  last_synced_at: string | null;
-  created_at: string;
-  updated_at: string;
-} & (
-  | { type: 'gitlab_issues'; config: GitlabIssuesConfig }
-  | { type: 'jira'; config: TaskSourceJiraConfig }
-  | { type: 'github_issues'; config: GithubIssuesConfig }
-  );
+export type AIProviderConfig = z.infer<typeof aiProviderConfigSchema>
 
-export type TaskSourceConfig = GitlabIssuesConfig | TaskSourceJiraConfig | GithubIssuesConfig;
+export const aiProviderValidationResultSchema = z.object({
+  valid: z.boolean(),
+  endpoint_reachable: z.boolean(),
+  authentication_valid: z.boolean(),
+  error: z.string().optional(),
+  details: z.record(z.string(), z.any()).optional(),
+  tested_at: z.string()
+})
 
-export type CreateTaskSourceInput = {
-  project_id: string
-  name: string
-  enabled?: boolean
-} & (
-  | { type: 'gitlab_issues'; config: GitlabIssuesConfig }
-  | { type: 'jira'; config: TaskSourceJiraConfig }
-  | { type: 'github_issues'; config: GithubIssuesConfig }
-  )
+export type AIProviderValidationResult = z.infer<typeof aiProviderValidationResultSchema>
 
-export type UpdateTaskSourceInput = Partial<CreateTaskSourceInput>
+export const projectSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  enabled: z.boolean(),
+  job_executor_gitlab: gitlabExecutorConfigSchema.nullable(),
+  ai_provider_configs: aiProviderConfigSchema.nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  last_synced_at: z.string().nullable()
+})
 
-export interface WorkerRepository {
-  id: string
-  project_id: string
-  source_gitlab: unknown
-  current_version: string | null
-  created_at: string
-  updated_at: string
-}
+export type Project = z.infer<typeof projectSchema>
 
-export interface CreateWorkerRepositoryInput {
-  project_id: string
-  source_gitlab: unknown
-  current_version: string
-}
+export const aiCapabilityCriteriaSchema = z.object({
+  cannot_determine_what_to_implement: z.boolean(),
+  has_contradictory_requirements: z.boolean(),
+  requires_undefined_integration: z.boolean(),
+  requires_human_subjective_choice: z.boolean(),
+  requires_missing_information: z.boolean(),
+  integration_has_no_documentation: z.boolean(),
+  requires_proprietary_knowledge: z.boolean(),
+  requires_advanced_domain_expertise: z.boolean(),
+  cannot_test_without_credentials: z.boolean(),
+  cannot_test_without_paid_account: z.boolean(),
+  cannot_test_without_hardware: z.boolean(),
+  requires_production_access_to_test: z.boolean(),
+  should_verify_visually: z.boolean(),
+  should_verify_ux_flow: z.boolean(),
+  should_verify_performance: z.boolean(),
+  should_verify_security: z.boolean(),
+  should_verify_accessibility: z.boolean(),
+  high_risk_breaking_change: z.boolean(),
+  requires_manual_testing: z.boolean()
+})
 
-export type UpdateWorkerRepositoryInput = Partial<Omit<CreateWorkerRepositoryInput, 'project_id'>>
+export type AICapabilityCriteria = z.infer<typeof aiCapabilityCriteriaSchema>
 
-export interface PipelineExecution {
-  id: string
-  session_id: string
-  worker_repository_id: string
-  pipeline_id: string
-  status: 'pending' | 'running' | 'success' | 'failed' | 'canceled'
-  last_status_update: string | null
-  created_at: string
-  updated_at: string
-}
+export const simpleEvaluationResultSchema = z.object({
+  should_evaluate: z.boolean(),
+  clarity_score: z.number(),
+  has_acceptance_criteria: z.boolean(),
+  auto_reject_reason: z.string().nullable(),
+  ai_capability: aiCapabilityCriteriaSchema,
+  blockers_summary: z.array(z.string()),
+  verification_summary: z.array(z.string()),
+  risk_summary: z.array(z.string()),
+  complexity_score: z.number(),
+  effort_estimate: z.enum(['xs', 's', 'm', 'l', 'xl']),
+  risk_level: z.enum(['low', 'medium', 'high']),
+  task_type: z.enum(['bug_fix', 'feature', 'refactor', 'docs', 'test', 'config', 'other']),
+  estimated_impact: z.enum(['low', 'medium', 'high']),
+  estimated_effort: z.enum(['low', 'medium', 'high'])
+})
 
-export interface CreatePipelineExecutionInput {
-  session_id: string
-  worker_repository_id: string
-  pipeline_id?: string
-  status: 'pending' | 'running' | 'success' | 'failed' | 'canceled'
-}
+export type SimpleEvaluationResult = z.infer<typeof simpleEvaluationResultSchema>
 
-export interface UpdatePipelineExecutionInput {
-  pipeline_id?: string
-  status?: 'pending' | 'running' | 'success' | 'failed' | 'canceled'
-  last_status_update?: string
-}
+export const taskSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string().nullable(),
+  status: z.string(),
+  remote_status: z.enum(['opened', 'closed']),
+  project_id: z.string().nullable(),
+  task_source_id: z.string(),
+  source_gitlab_issue: gitlabIssueSchema.nullable(),
+  source_github_issue: githubIssueSchema.nullable(),
+  source_jira_issue: jiraIssueSchema.nullable(),
+  ai_evaluation_simple_status: z.enum(['not_started', 'queued', 'evaluating', 'completed', 'failed']).nullable(),
+  ai_evaluation_advanced_status: z.enum(['not_started', 'queued', 'evaluating', 'completed', 'failed']).nullable(),
+  ai_evaluation_simple_verdict: z.enum(['ready', 'needs_clarification']).nullable(),
+  ai_evaluation_advanced_verdict: z.enum(['ready', 'needs_clarification']).nullable(),
+  ai_evaluation_simple_result: simpleEvaluationResultSchema.nullable(),
+  ai_evaluation_agentic_result: z.object({
+    report: z.string().optional(),
+    verdict: z.string().optional(),
+    can_implement: z.boolean().optional(),
+    blockers: z.array(z.string()).optional(),
+    requirements: z.array(z.string()).optional(),
+    confidence: z.number().optional(),
+    missing_information: z.array(z.string()).optional(),
+    risks: z.array(z.string()).optional(),
+    agent_instructions: z.object({
+      required_context_files: z.array(z.string()).optional(),
+      suggested_steps: z.array(z.string()).optional(),
+      follow_patterns_from: z.array(z.string()).optional()
+    }).optional()
+  }).catchall(z.unknown()).nullable(),
+  ai_evaluation_session_id: z.string().nullable(),
+  ai_implementation_status: z.enum(['pending', 'queued', 'implementing', 'completed', 'failed']).nullable(),
+  ai_implementation_session_id: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+})
 
-export interface PipelineArtifact {
-  id: string
-  pipeline_execution_id: string
-  artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text' | 'task_evaluation' | 'task_implementation'
-  reference_url: string
-  metadata: unknown | null
-  created_at: string
-}
+export type Task = z.infer<typeof taskSchema>
 
-export interface CreatePipelineArtifactInput {
-  pipeline_execution_id: string
-  artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text' | 'task_evaluation' | 'task_implementation'
-  reference_url: string
-  metadata?: unknown
-}
+export const sessionSchema = z.object({
+  id: z.string(),
+  task_id: z.string().nullable(),
+  runner: z.string(),
+  created_at: z.string(),
+  updated_at: z.string()
+})
+
+export type Session = z.infer<typeof sessionSchema>
+
+export const messageSchema = z.object({
+  id: z.string(),
+  session_id: z.string(),
+  data: z.unknown(),
+  created_at: z.string()
+})
+
+export type Message = z.infer<typeof messageSchema>
+
+export const createProjectInputSchema = z.object({
+  name: z.string(),
+  enabled: z.boolean().optional()
+})
+
+export type CreateProjectInput = z.infer<typeof createProjectInputSchema>
+
+export const updateProjectInputSchema = createProjectInputSchema.partial()
+
+export type UpdateProjectInput = z.infer<typeof updateProjectInputSchema>
+
+export const createTaskInputSchema = z.object({
+  title: z.string(),
+  description: z.string().optional(),
+  status: z.string(),
+  remote_status: z.enum(['opened', 'closed']).optional(),
+  project_id: z.string().optional(),
+  task_source_id: z.string().optional(),
+  source_gitlab_issue: gitlabIssueSchema.optional(),
+  source_github_issue: githubIssueSchema.optional(),
+  source_jira_issue: jiraIssueSchema.optional()
+})
+
+export type CreateTaskInput = z.infer<typeof createTaskInputSchema>
+
+export const updateTaskInputSchema = taskSchema.omit({ id: true, created_at: true, updated_at: true }).partial()
+
+export type UpdateTaskInput = z.infer<typeof updateTaskInputSchema>
+
+export const createSessionInputSchema = z.object({
+  task_id: z.string().optional(),
+  runner: z.string()
+})
+
+export type CreateSessionInput = z.infer<typeof createSessionInputSchema>
+
+export const createMessageInputSchema = z.object({
+  session_id: z.string(),
+  data: z.unknown()
+})
+
+export type CreateMessageInput = z.infer<typeof createMessageInputSchema>
+
+export const gitlabFileSpaceConfigSchema = z.object({
+  repo: z.string(),
+  host: z.string().optional(),
+  access_token_secret_id: z.string().optional()
+})
+
+export type GitlabFileSpaceConfig = z.infer<typeof gitlabFileSpaceConfigSchema>
+
+export const githubFileSpaceConfigSchema = z.object({
+  repo: z.string(),
+  host: z.string().optional(),
+  access_token_secret_id: z.string().optional()
+})
+
+export type GithubFileSpaceConfig = z.infer<typeof githubFileSpaceConfigSchema>
+
+export const fileSpaceSchema = z.discriminatedUnion('type', [
+  z.object({
+    id: z.string(),
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    type: z.literal('gitlab'),
+    config: gitlabFileSpaceConfigSchema
+  }),
+  z.object({
+    id: z.string(),
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    type: z.literal('github'),
+    config: githubFileSpaceConfigSchema
+  })
+])
+
+export type FileSpace = z.infer<typeof fileSpaceSchema>
+
+export const createFileSpaceInputSchema = z.discriminatedUnion('type', [
+  z.object({
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean().optional(),
+    type: z.literal('gitlab'),
+    config: gitlabFileSpaceConfigSchema
+  }),
+  z.object({
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean().optional(),
+    type: z.literal('github'),
+    config: githubFileSpaceConfigSchema
+  })
+])
+
+export type CreateFileSpaceInput = z.infer<typeof createFileSpaceInputSchema>
+
+export const updateFileSpaceInputSchema = z.union([
+  z.object({
+    project_id: z.string().optional(),
+    name: z.string().optional(),
+    enabled: z.boolean().optional(),
+    type: z.literal('gitlab').optional(),
+    config: gitlabFileSpaceConfigSchema.optional()
+  }).partial(),
+  z.object({
+    project_id: z.string().optional(),
+    name: z.string().optional(),
+    enabled: z.boolean().optional(),
+    type: z.literal('github').optional(),
+    config: githubFileSpaceConfigSchema.optional()
+  }).partial()
+])
+
+export type UpdateFileSpaceInput = z.infer<typeof updateFileSpaceInputSchema>
+
+export const gitlabIssuesConfigSchema = z.object({
+  repo: z.string(),
+  labels: z.array(z.string()),
+  host: z.string().optional(),
+  access_token_secret_id: z.string().optional()
+})
+
+export type GitlabIssuesConfig = z.infer<typeof gitlabIssuesConfigSchema>
+
+export const githubIssuesConfigSchema = z.object({
+  repo: z.string(),
+  labels: z.array(z.string()).optional(),
+  host: z.string().optional(),
+  access_token_secret_id: z.string().optional()
+})
+
+export type GithubIssuesConfig = z.infer<typeof githubIssuesConfigSchema>
+
+export const taskSourceJiraConfigSchema = z.object({
+  project_key: z.string().optional(),
+  jql_filter: z.string().optional(),
+  host: z.string(),
+  access_token_secret_id: z.string().optional(),
+  cloud_id: z.string().optional()
+})
+
+export type TaskSourceJiraConfig = z.infer<typeof taskSourceJiraConfigSchema>
+
+export const taskSourceSchema = z.discriminatedUnion('type', [
+  z.object({
+    id: z.string(),
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean(),
+    sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
+    last_synced_at: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    type: z.literal('gitlab_issues'),
+    config: gitlabIssuesConfigSchema
+  }),
+  z.object({
+    id: z.string(),
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean(),
+    sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
+    last_synced_at: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    type: z.literal('jira'),
+    config: taskSourceJiraConfigSchema
+  }),
+  z.object({
+    id: z.string(),
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean(),
+    sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
+    last_synced_at: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    type: z.literal('github_issues'),
+    config: githubIssuesConfigSchema
+  })
+])
+
+export type TaskSource = z.infer<typeof taskSourceSchema>
+
+export const taskSourceConfigSchema = z.union([
+  gitlabIssuesConfigSchema,
+  taskSourceJiraConfigSchema,
+  githubIssuesConfigSchema
+])
+
+export type TaskSourceConfig = z.infer<typeof taskSourceConfigSchema>
+
+export const createTaskSourceInputSchema = z.discriminatedUnion('type', [
+  z.object({
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean().optional(),
+    type: z.literal('gitlab_issues'),
+    config: gitlabIssuesConfigSchema
+  }),
+  z.object({
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean().optional(),
+    type: z.literal('jira'),
+    config: taskSourceJiraConfigSchema
+  }),
+  z.object({
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean().optional(),
+    type: z.literal('github_issues'),
+    config: githubIssuesConfigSchema
+  })
+])
+
+export type CreateTaskSourceInput = z.infer<typeof createTaskSourceInputSchema>
+
+export const updateTaskSourceInputSchema = z.union([
+  z.object({
+    project_id: z.string().optional(),
+    name: z.string().optional(),
+    enabled: z.boolean().optional(),
+    type: z.literal('gitlab_issues').optional(),
+    config: gitlabIssuesConfigSchema.optional()
+  }),
+  z.object({
+    project_id: z.string().optional(),
+    name: z.string().optional(),
+    enabled: z.boolean().optional(),
+    type: z.literal('jira').optional(),
+    config: taskSourceJiraConfigSchema.optional()
+  }),
+  z.object({
+    project_id: z.string().optional(),
+    name: z.string().optional(),
+    enabled: z.boolean().optional(),
+    type: z.literal('github_issues').optional(),
+    config: githubIssuesConfigSchema.optional()
+  })
+])
+
+export type UpdateTaskSourceInput = z.infer<typeof updateTaskSourceInputSchema>
+
+export const workerRepositorySchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  source_gitlab: z.unknown(),
+  current_version: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+})
+
+export type WorkerRepository = z.infer<typeof workerRepositorySchema>
+
+export const createWorkerRepositoryInputSchema = z.object({
+  project_id: z.string(),
+  source_gitlab: z.unknown(),
+  current_version: z.string()
+})
+
+export type CreateWorkerRepositoryInput = z.infer<typeof createWorkerRepositoryInputSchema>
+
+export const updateWorkerRepositoryInputSchema = createWorkerRepositoryInputSchema.omit({ project_id: true }).partial()
+
+export type UpdateWorkerRepositoryInput = z.infer<typeof updateWorkerRepositoryInputSchema>
+
+export const pipelineExecutionSchema = z.object({
+  id: z.string(),
+  session_id: z.string(),
+  worker_repository_id: z.string(),
+  pipeline_id: z.string(),
+  status: z.enum(['pending', 'running', 'success', 'failed', 'canceled']),
+  last_status_update: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+})
+
+export type PipelineExecution = z.infer<typeof pipelineExecutionSchema>
+
+export const createPipelineExecutionInputSchema = z.object({
+  session_id: z.string(),
+  worker_repository_id: z.string(),
+  pipeline_id: z.string().optional(),
+  status: z.enum(['pending', 'running', 'success', 'failed', 'canceled'])
+})
+
+export type CreatePipelineExecutionInput = z.infer<typeof createPipelineExecutionInputSchema>
+
+export const updatePipelineExecutionInputSchema = z.object({
+  pipeline_id: z.string().optional(),
+  status: z.enum(['pending', 'running', 'success', 'failed', 'canceled']).optional(),
+  last_status_update: z.string().optional()
+})
+
+export type UpdatePipelineExecutionInput = z.infer<typeof updatePipelineExecutionInputSchema>
+
+export const pipelineArtifactSchema = z.object({
+  id: z.string(),
+  pipeline_execution_id: z.string(),
+  artifact_type: z.enum(['merge_request', 'issue', 'branch', 'commit', 'execution_result', 'text', 'task_evaluation', 'task_implementation']),
+  reference_url: z.string(),
+  metadata: z.unknown().nullable(),
+  created_at: z.string()
+})
+
+export type PipelineArtifact = z.infer<typeof pipelineArtifactSchema>
+
+export const createPipelineArtifactInputSchema = z.object({
+  pipeline_execution_id: z.string(),
+  artifact_type: z.enum(['merge_request', 'issue', 'branch', 'commit', 'execution_result', 'text', 'task_evaluation', 'task_implementation']),
+  reference_url: z.string(),
+  metadata: z.unknown().optional()
+})
+
+export type CreatePipelineArtifactInput = z.infer<typeof createPipelineArtifactInputSchema>
+
+export const resultSchema = <T extends z.ZodTypeAny>(dataSchema: T) =>
+  z.union([
+    z.object({ ok: z.literal(true), data: dataSchema }),
+    z.object({ ok: z.literal(false), error: z.string() })
+  ])
 
 export type Result<T> =
   | { ok: true; data: T }
   | { ok: false; error: string }
 
-// Worker Cache Types
-export interface WorkerCache {
-  id: number
-  issue_id: string
-  project_id: string
-  last_processed_at: string
-  status: string | null
-  task_id: string | null
-  processing_started_at: string | null
-  processing_worker_id: string | null
-  created_at: string
-  updated_at: string
-}
+export const workerCacheSchema = z.object({
+  id: z.number(),
+  issue_id: z.string(),
+  project_id: z.string(),
+  last_processed_at: z.string(),
+  status: z.string().nullable(),
+  task_id: z.string().nullable(),
+  processing_started_at: z.string().nullable(),
+  processing_worker_id: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+})
 
-export interface LockContext {
-  issueId: string
-  workerId: string
-  lockTimeoutSeconds?: number
-}
+export type WorkerCache = z.infer<typeof workerCacheSchema>
 
-export interface SignalInfo {
-  issueId: string
-  date: string
-  taskId: string
-}
+export const lockContextSchema = z.object({
+  issueId: z.string(),
+  workerId: z.string(),
+  lockTimeoutSeconds: z.number().optional()
+})
 
-export interface Secret {
-  id: string
-  project_id: string
-  name: string
-  value: string
-  encrypted_value: string | null
-  encryption_version: string | null
-  is_encrypted: boolean
-  description: string | null
-  oauth_provider: string | null
-  token_type: 'api' | 'oauth' | null
-  refresh_token: string | null
-  expires_at: string | null
-  scopes: string | null
-  created_at: string
-  updated_at: string
-}
+export type LockContext = z.infer<typeof lockContextSchema>
 
-export interface CreateSecretInput {
-  project_id: string
-  name: string
-  value: string
-  description?: string
-  oauth_provider?: string
-  token_type?: 'api' | 'oauth'
-  refresh_token?: string
-  expires_at?: string
-  scopes?: string
-}
+export const signalInfoSchema = z.object({
+  issueId: z.string(),
+  date: z.string(),
+  taskId: z.string()
+})
 
-export interface UpdateSecretInput {
-  value?: string
-  description?: string
-  refresh_token?: string
-  expires_at?: string
-  scopes?: string
-}
+export type SignalInfo = z.infer<typeof signalInfoSchema>
 
-export interface UserAccess {
-  id: string
-  user_id: string
-  entity_type: 'project' | 'task_source' | 'file_space' | 'secret' | 'task'
-  entity_id: string
-  role: 'owner' | 'admin' | 'developer' | 'viewer' | 'read' | 'write' | 'use'
-  granted_by: string | null
-  granted_at: string
-  expires_at: string | null
-  created_at: string
-}
+export const secretSchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  name: z.string(),
+  value: z.string(),
+  encrypted_value: z.string().nullable(),
+  encryption_version: z.string().nullable(),
+  is_encrypted: z.boolean(),
+  description: z.string().nullable(),
+  oauth_provider: z.string().nullable(),
+  token_type: z.enum(['api', 'oauth']).nullable(),
+  refresh_token: z.string().nullable(),
+  expires_at: z.string().nullable(),
+  scopes: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+})
 
-export interface CreateUserAccessInput {
-  user_id: string
-  entity_type: 'project' | 'task_source' | 'file_space' | 'secret' | 'task'
-  entity_id: string
-  role: 'owner' | 'admin' | 'developer' | 'viewer' | 'read' | 'write' | 'use'
-  granted_by?: string
-  granted_at?: string
-  expires_at?: string
-}
+export type Secret = z.infer<typeof secretSchema>
 
-export type IssueMetadata = GitlabMetadata | GithubMetadata | JiraMetadata;
+export const createSecretInputSchema = z.object({
+  project_id: z.string(),
+  name: z.string(),
+  value: z.string(),
+  description: z.string().optional(),
+  oauth_provider: z.string().optional(),
+  token_type: z.enum(['api', 'oauth']).optional(),
+  refresh_token: z.string().optional(),
+  expires_at: z.string().optional(),
+  scopes: z.string().optional()
+})
 
-export interface TaskSourceIssue {
-  id: string;
-  iid?: number | null;
-  title: string;
-  description?: string;
-  updatedAt: string;
-  uniqueId: string;
-  metadata: IssueMetadata;
-  state?: 'opened' | 'closed';
-}
+export type CreateSecretInput = z.infer<typeof createSecretInputSchema>
 
-export interface GitlabIssuesConfig {
-  repo: string;
-  labels: string[];
-  host?: string;
-  access_token_secret_id?: string;
-}
+export const updateSecretInputSchema = z.object({
+  value: z.string().optional(),
+  description: z.string().optional(),
+  refresh_token: z.string().optional(),
+  expires_at: z.string().optional(),
+  scopes: z.string().optional()
+})
 
-export interface GithubIssuesConfig {
-  repo: string;
-  labels?: string[];
-  host?: string;
-  access_token_secret_id?: string;
-}
+export type UpdateSecretInput = z.infer<typeof updateSecretInputSchema>
 
-export interface TaskSourceJiraConfig {
-  project_key?: string; // Optional - can use jql_filter instead
-  jql_filter?: string;
-  host: string;
-  access_token_secret_id?: string;
-  cloud_id?: string; // Atlassian cloud ID for OAuth
-}
+export const userAccessSchema = z.object({
+  id: z.string(),
+  user_id: z.string(),
+  entity_type: z.enum(['project', 'task_source', 'file_space', 'secret', 'task']),
+  entity_id: z.string(),
+  role: z.enum(['owner', 'admin', 'developer', 'viewer', 'read', 'write', 'use']),
+  granted_by: z.string().nullable(),
+  granted_at: z.string(),
+  expires_at: z.string().nullable(),
+  created_at: z.string()
+})
 
-// API Usage Metrics Types
-export interface ApiUsageMetric {
-  id: string
-  pipeline_execution_id: string | null
-  session_id: string | null
-  task_id: string | null
-  provider: string
-  model: string
-  goal: string
-  operation_phase: string
-  input_tokens: number
-  output_tokens: number
-  cache_creation_input_tokens: number
-  cache_read_input_tokens: number
-  ci_duration_seconds: number | null
-  iteration_number: number | null
-  metadata: any | null
-  created_at: Date
-}
+export type UserAccess = z.infer<typeof userAccessSchema>
 
-export interface CreateApiUsageMetricInput {
-  pipeline_execution_id?: string | null
-  session_id?: string | null
-  task_id?: string | null
-  provider: string
-  model: string
-  goal: string
-  phase: string
-  input_tokens: number
-  output_tokens: number
-  cache_creation_input_tokens: number
-  cache_read_input_tokens: number
-  ci_duration_seconds?: number | null
-  iteration_number?: number | null
-  metadata?: any | null
-}
+export const createUserAccessInputSchema = z.object({
+  user_id: z.string(),
+  entity_type: z.enum(['project', 'task_source', 'file_space', 'secret', 'task']),
+  entity_id: z.string(),
+  role: z.enum(['owner', 'admin', 'developer', 'viewer', 'read', 'write', 'use']),
+  granted_by: z.string().optional(),
+  granted_at: z.string().optional(),
+  expires_at: z.string().optional()
+})
 
-export interface AggregatedUsageMetric {
-  provider: string
-  goal: string
-  operation_phase: string
-  date: Date
-  total_tokens: string // bigint returned as string
-  input_tokens: string
-  output_tokens: string
-  cache_creation_tokens: string
-  cache_read_tokens: string
-  total_ci_duration: string
-  api_calls: string
-}
+export type CreateUserAccessInput = z.infer<typeof createUserAccessInputSchema>
 
-export interface UsageMetricsFilters {
-  start_date?: string
-  end_date?: string
-  provider?: string
-  goal?: string
-}
+export const issueMetadataSchema = z.union([
+  gitlabMetadataSchema,
+  githubMetadataSchema,
+  jiraMetadataSchema
+])
 
-// API Keys Types
-export interface ApiKeyPermissions {
-  pipeline_execute?: boolean
-  read_project?: boolean
-  write_project?: boolean
-  read_tasks?: boolean
-  write_tasks?: boolean
-}
+export type IssueMetadata = z.infer<typeof issueMetadataSchema>
 
-export interface ApiKey {
-  id: string
-  project_id: string
-  name: string
-  key_hash: string
-  key_prefix: string
-  permissions: ApiKeyPermissions
-  last_used_at: string | null
-  expires_at: string | null
-  revoked_at: string | null
-  created_by: string
-  created_at: string
-  updated_at: string
-}
+export const taskSourceIssueSchema = z.object({
+  id: z.string(),
+  iid: z.number().nullable().optional(),
+  title: z.string(),
+  description: z.string().optional(),
+  updatedAt: z.string(),
+  uniqueId: z.string(),
+  metadata: issueMetadataSchema,
+  state: z.enum(['opened', 'closed']).optional()
+})
 
-export type ApiKeyWithSecret = ApiKey & {
-  key: string // Only returned on creation
-}
+export type TaskSourceIssue = z.infer<typeof taskSourceIssueSchema>
 
-export interface CreateApiKeyInput {
-  project_id: string
-  name: string
-  permissions?: ApiKeyPermissions
-  expires_at?: string | null
-}
+export const apiUsageMetricSchema = z.object({
+  id: z.string(),
+  pipeline_execution_id: z.string().nullable(),
+  session_id: z.string().nullable(),
+  task_id: z.string().nullable(),
+  provider: z.string(),
+  model: z.string(),
+  goal: z.string(),
+  operation_phase: z.string(),
+  input_tokens: z.number(),
+  output_tokens: z.number(),
+  cache_creation_input_tokens: z.number(),
+  cache_read_input_tokens: z.number(),
+  ci_duration_seconds: z.number().nullable(),
+  iteration_number: z.number().nullable(),
+  metadata: z.any().nullable(),
+  created_at: z.date()
+})
 
-export interface UpdateApiKeyInput {
-  name?: string
-  permissions?: ApiKeyPermissions
-}
+export type ApiUsageMetric = z.infer<typeof apiUsageMetricSchema>
+
+export const createApiUsageMetricInputSchema = z.object({
+  pipeline_execution_id: z.string().nullable().optional(),
+  session_id: z.string().nullable().optional(),
+  task_id: z.string().nullable().optional(),
+  provider: z.string(),
+  model: z.string(),
+  goal: z.string(),
+  phase: z.string(),
+  input_tokens: z.number(),
+  output_tokens: z.number(),
+  cache_creation_input_tokens: z.number(),
+  cache_read_input_tokens: z.number(),
+  ci_duration_seconds: z.number().nullable().optional(),
+  iteration_number: z.number().nullable().optional(),
+  metadata: z.any().nullable().optional()
+})
+
+export type CreateApiUsageMetricInput = z.infer<typeof createApiUsageMetricInputSchema>
+
+export const aggregatedUsageMetricSchema = z.object({
+  provider: z.string(),
+  goal: z.string(),
+  operation_phase: z.string(),
+  date: z.date(),
+  total_tokens: z.string(),
+  input_tokens: z.string(),
+  output_tokens: z.string(),
+  cache_creation_tokens: z.string(),
+  cache_read_tokens: z.string(),
+  total_ci_duration: z.string(),
+  api_calls: z.string()
+})
+
+export type AggregatedUsageMetric = z.infer<typeof aggregatedUsageMetricSchema>
+
+export const usageMetricsFiltersSchema = z.object({
+  start_date: z.string().optional(),
+  end_date: z.string().optional(),
+  provider: z.string().optional(),
+  goal: z.string().optional()
+})
+
+export type UsageMetricsFilters = z.infer<typeof usageMetricsFiltersSchema>
+
+export const apiKeyPermissionsSchema = z.object({
+  pipeline_execute: z.boolean().optional(),
+  read_project: z.boolean().optional(),
+  write_project: z.boolean().optional(),
+  read_tasks: z.boolean().optional(),
+  write_tasks: z.boolean().optional()
+})
+
+export type ApiKeyPermissions = z.infer<typeof apiKeyPermissionsSchema>
+
+export const apiKeySchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  name: z.string(),
+  key_hash: z.string(),
+  key_prefix: z.string(),
+  permissions: apiKeyPermissionsSchema,
+  last_used_at: z.string().nullable(),
+  expires_at: z.string().nullable(),
+  revoked_at: z.string().nullable(),
+  created_by: z.string(),
+  created_at: z.string(),
+  updated_at: z.string()
+})
+
+export type ApiKey = z.infer<typeof apiKeySchema>
+
+export const apiKeyWithSecretSchema = apiKeySchema.extend({
+  key: z.string()
+})
+
+export type ApiKeyWithSecret = z.infer<typeof apiKeyWithSecretSchema>
+
+export const createApiKeyInputSchema = z.object({
+  project_id: z.string(),
+  name: z.string(),
+  permissions: apiKeyPermissionsSchema.optional(),
+  expires_at: z.string().nullable().optional()
+})
+
+export type CreateApiKeyInput = z.infer<typeof createApiKeyInputSchema>
+
+export const updateApiKeyInputSchema = z.object({
+  name: z.string().optional(),
+  permissions: apiKeyPermissionsSchema.optional()
+})
+
+export type UpdateApiKeyInput = z.infer<typeof updateApiKeyInputSchema>

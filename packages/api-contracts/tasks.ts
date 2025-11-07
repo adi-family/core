@@ -1,13 +1,12 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
+import { taskSchema as taskSchemaFromTypes, sessionSchema as sessionSchemaFromTypes } from '@adi-simple/types'
 
-const sessionSchema = z.object({
-  id: z.string(),
-  task_id: z.string().nullable(),
-  runner: z.string(),
-  created_at: z.string().or(z.date()),
-  updated_at: z.string().or(z.date())
-})
+export const taskSchema = taskSchemaFromTypes
+export type Task = z.infer<typeof taskSchema>
+
+export const sessionSchema = sessionSchemaFromTypes
+export type Session = z.infer<typeof sessionSchema>
 
 const artifactSchema = z.object({
   id: z.string(),
@@ -18,34 +17,7 @@ const artifactSchema = z.object({
   created_at: z.string().or(z.date())
 })
 
-const taskSchema = z.object({
-  id: z.string(),
-  title: z.string(),
-  description: z.string().nullable(),
-  status: z.string(),
-  remote_status: z.enum(['opened', 'closed']),
-  project_id: z.string().nullable(),
-  task_source_id: z.string(),
-  source_gitlab_issue: z.any().nullable(),
-  source_github_issue: z.any().nullable(),
-  source_jira_issue: z.any().nullable(),
-  ai_evaluation_simple_status: z.enum(['not_started', 'queued', 'evaluating', 'completed', 'failed']).nullable(),
-  ai_evaluation_advanced_status: z.enum(['not_started', 'queued', 'evaluating', 'completed', 'failed']).nullable(),
-  ai_evaluation_simple_verdict: z.enum(['ready', 'needs_clarification']).nullable(),
-  ai_evaluation_advanced_verdict: z.enum(['ready', 'needs_clarification']).nullable(),
-  ai_evaluation_simple_result: z.any().nullable(),
-  ai_evaluation_agentic_result: z.object({
-    report: z.string().optional(),
-    verdict: z.string().optional(),
-    can_implement: z.boolean().optional(),
-    blockers: z.array(z.string()).optional(),
-    requirements: z.array(z.string()).optional()
-  }).nullable(),
-  ai_implementation_status: z.enum(['pending', 'queued', 'implementing', 'completed', 'failed']).nullable(),
-  ai_implementation_session_id: z.string().nullable(),
-  created_at: z.string().or(z.date()),
-  updated_at: z.string().or(z.date())
-})
+export type Artifact = z.infer<typeof artifactSchema>
 
 export const getTaskSessionsConfig = {
   method: 'GET',

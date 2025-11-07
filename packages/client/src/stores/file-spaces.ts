@@ -3,17 +3,21 @@
  *
  * Provides centralized state for file spaces (repositories) across the application.
  */
+import { z } from 'zod'
 import { proxy } from 'valtio'
 import type { FileSpace } from '@adi-simple/types'
+import { fileSpaceSchema } from '@adi-simple/types'
 import { listFileSpacesConfig } from '@adi/api-contracts'
-import type { AuthenticatedClient } from '@/lib/client'
+import type { BaseClient } from '@adi-family/http'
 
-interface FileSpacesStore {
-  fileSpaces: FileSpace[]
-  loading: boolean
-  error: string | null
-  lastFetch: number | null
-}
+const fileSpacesStoreSchema = z.object({
+  fileSpaces: z.array(fileSpaceSchema),
+  loading: z.boolean(),
+  error: z.string().nullable(),
+  lastFetch: z.number().nullable()
+})
+
+type FileSpacesStore = z.infer<typeof fileSpacesStoreSchema>
 
 export const fileSpacesStore = proxy<FileSpacesStore>({
   fileSpaces: [],
@@ -28,7 +32,7 @@ export const fileSpacesStore = proxy<FileSpacesStore>({
  * Caches results to avoid duplicate calls within 30 seconds
  */
 export async function fetchFileSpaces(
-  client: AuthenticatedClient,
+  client: BaseClient,
   options?: {
     project_id?: string
     force?: boolean
@@ -65,7 +69,7 @@ export async function fetchFileSpaces(
  * Force refresh file spaces from API
  */
 export async function refreshFileSpaces(
-  client: AuthenticatedClient,
+  client: BaseClient,
   options?: {
     project_id?: string
   }

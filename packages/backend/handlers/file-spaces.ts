@@ -3,6 +3,7 @@
  */
 
 import type { Sql } from 'postgres'
+import { z } from 'zod'
 import { handler, type HandlerContext } from '@adi-family/http'
 import {
   listFileSpacesConfig,
@@ -21,11 +22,13 @@ import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'file-spaces-handler' })
 
-interface AuthResult {
-  userId?: string
-  projectId?: string
-  isApiKey: boolean
-}
+const _authResultSchema = z.object({
+  userId: z.string().optional(),
+  projectId: z.string().optional(),
+  isApiKey: z.boolean()
+})
+
+type AuthResult = z.infer<typeof _authResultSchema>
 
 export function createFileSpaceHandlers(sql: Sql) {
   async function authenticate(ctx: HandlerContext<any, any, any>): Promise<AuthResult> {
@@ -203,17 +206,13 @@ export function createFileSpaceHandlers(sql: Sql) {
     // Get task's project and check access
     const fileSpaces = await fileSpaceQueries.findFileSpacesByTaskId(sql, id)
     if (fileSpaces.length > 0 && fileSpaces[0]) {
-      // API key authentication - check project match
       if (auth.isApiKey) {
         if (fileSpaces[0].project_id !== auth.projectId) {
           throw new Error('Forbidden: API key does not have access to this task')
         }
       } else {
-        // Clerk authentication - check user access
         const hasAccess = await userAccessQueries.hasProjectAccess(sql, auth.userId!, fileSpaces[0].project_id)
-        if (!hasAccess) {
-          throw new Error('Forbidden: You do not have access to this task')
-        }
+        if (!hasAccess) throw new Error('Forbidden: You do not have access to this task')
       }
     }
 
