@@ -28,10 +28,9 @@ workspace-sync:
     - cd 2025-10-18-01
 
   script:
-    # Sync workspaces (file spaces) as git submodules (worker binary)
+    # Sync workspaces (file spaces) as git submodules (worker bundle)
     - echo "🔄 Syncing workspace repositories..."
-    - chmod +x binaries/worker
-    - ./binaries/worker sync
+    - bun binaries/worker.js sync
 
     # Show sync results
     - echo "✅ Workspace sync completed"

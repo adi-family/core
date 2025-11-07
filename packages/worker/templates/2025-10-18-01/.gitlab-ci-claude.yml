@@ -44,10 +44,9 @@ sync-only:
         echo "✓ Workspace credentials configured"
       fi
 
-    # Run sync-workspaces (worker binary)
+    # Run sync-workspaces (worker bundle)
     - cd 2025-10-18-01
-    - chmod +x binaries/worker
-    - ./binaries/worker sync
+    - bun binaries/worker.js sync
     - echo "✓ Submodules synced successfully"
   rules:
     - if: '$SYNC_ONLY == "true"'
@@ -130,9 +129,8 @@ execute:
         echo "⚠️  API_BASE_URL not set, skipping status update"
       fi
 
-    # Run Claude implementation pipeline (worker binary) and capture exit code
-    - chmod +x ../binaries/worker
-    - ../binaries/worker claude || EXIT_CODE=$?
+    # Run Claude implementation pipeline (worker bundle) and capture exit code
+    - bun ../binaries/worker.js claude || EXIT_CODE=$?
     - EXIT_CODE=${EXIT_CODE:-0}
 
     # Update status based on exit code
@@ -172,10 +170,9 @@ report:
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@adi-pipeline.dev}"
     - git config --global user.name "${GITLAB_USER_NAME:-ADI Pipeline}"
 
-    # Upload implementation artifacts via our API (includes pushing to file spaces and creating MRs, worker binary)
+    # Upload implementation artifacts via our API (includes pushing to file spaces and creating MRs, worker bundle)
     - cd 2025-10-18-01
-    - chmod +x binaries/worker
-    - ./binaries/worker upload-results
+    - bun binaries/worker.js upload-results
   dependencies:
     - execute
   rules:

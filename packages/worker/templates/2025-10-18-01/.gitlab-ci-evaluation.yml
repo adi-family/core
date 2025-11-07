@@ -44,10 +44,9 @@ sync-only:
         echo "✓ Workspace credentials configured"
       fi
 
-    # Run sync-workspaces (worker binary)
+    # Run sync-workspaces (worker bundle)
     - cd 2025-10-18-01
-    - chmod +x binaries/worker
-    - ./binaries/worker sync
+    - bun binaries/worker.js sync
     - echo "✓ Submodules synced successfully"
   rules:
     - if: '$SYNC_ONLY == "true"'
@@ -130,9 +129,8 @@ execute:
         echo "⚠️  API_BASE_URL not set, skipping status update"
       fi
 
-    # Run evaluation pipeline (worker binary) and capture exit code
-    - chmod +x ../binaries/worker
-    - ../binaries/worker evaluation || EXIT_CODE=$?
+    # Run evaluation pipeline (worker bundle) and capture exit code
+    - bun ../binaries/worker.js evaluation || EXIT_CODE=$?
     - EXIT_CODE=${EXIT_CODE:-0}
 
     # Update status based on exit code
@@ -166,10 +164,9 @@ report:
     - ls -la 2025-10-18-01/ || echo "Directory not found"
     - ls -la 2025-10-18-01/results/ || echo "Results directory not found"
 
-    # Upload evaluation artifacts via our API (worker binary)
+    # Upload evaluation artifacts via our API (worker bundle)
     - cd 2025-10-18-01
-    - chmod +x binaries/worker
-    - ./binaries/worker upload-evaluation
+    - bun binaries/worker.js upload-evaluation
   dependencies:
     - execute
   rules:

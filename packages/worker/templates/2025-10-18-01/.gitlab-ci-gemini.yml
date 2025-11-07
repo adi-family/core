@@ -42,8 +42,7 @@ sync-only:
         echo "✓ Workspace credentials configured"
       fi
     - cd ../
-    - chmod +x binaries/worker
-    - ./binaries/worker sync
+    - bun binaries/worker.js sync
     - echo "✓ Submodules synced successfully"
     - if: '$SYNC_ONLY == "true"'
 
@@ -89,9 +88,8 @@ execute:
         -H "Content-Type: application/json" \
         -d '{"status":"running"}'
 
-    # Run Gemini pipeline (worker binary)
-    - chmod +x binaries/worker
-    - ./binaries/worker gemini
+    # Run Gemini pipeline (worker bundle)
+    - bun binaries/worker.js gemini
 
     # Capture exit code
     - EXIT_CODE=$?
@@ -125,9 +123,8 @@ report:
   tags:
     - implementation
   script:
-    # Upload artifacts via our API (worker binary)
-    - chmod +x binaries/worker
-    - ./binaries/worker upload-results
+    # Upload artifacts via our API (worker bundle)
+    - bun binaries/worker.js upload-results
   dependencies:
     - execute
   rules:

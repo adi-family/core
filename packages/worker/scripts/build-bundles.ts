@@ -82,10 +82,10 @@ async function buildBinaries() {
   // Create binaries directory
   await mkdir(BINARIES_DIR, { recursive: true })
 
-  console.log('🔨 Building single worker binary...\n')
+  console.log('🔨 Building worker bundle...\n')
 
   const input = join(SCRIPTS_DIR, 'worker.ts')
-  const output = join(BINARIES_DIR, 'worker')
+  const output = join(BINARIES_DIR, 'worker.js')
 
   // Check if input file exists
   if (!existsSync(input)) {
@@ -93,28 +93,29 @@ async function buildBinaries() {
     return false
   }
 
-  console.log(`  Compiling worker binary...`)
+  console.log(`  Bundling worker...`)
 
   try {
-    const result = await $`bun build --compile ${input} --outfile=${output}`.quiet()
+    // Bundle as regular JS file (no standalone binary needed - CI has Bun)
+    const result = await $`bun build ${input} --outfile=${output} --target=bun --format=esm`.quiet()
 
     if (result.exitCode === 0) {
       const size = Bun.file(output).size
       const duration = Date.now() - startTime
 
-      console.log(`    ✅ ${(size / 1024 / 1024).toFixed(1)} MB`)
-      console.log(`\n✅ Compiled worker binary in ${duration}ms`)
-      console.log(`📁 Size: ${(size / 1024 / 1024).toFixed(1)} MB`)
+      console.log(`    ✅ ${(size / 1024).toFixed(1)} KB`)
+      console.log(`\n✅ Bundled worker in ${duration}ms`)
+      console.log(`📁 Size: ${(size / 1024).toFixed(1)} KB`)
       console.log(`📂 Output: ${output}\n`)
 
       return true
     } else {
-      console.error(`    ❌ Failed to compile worker binary`)
+      console.error(`    ❌ Failed to bundle worker`)
       console.error(result.stderr.toString())
       return false
     }
   } catch (error) {
-    console.error(`    ❌ Error compiling worker binary:`, error)
+    console.error(`    ❌ Error bundling worker:`, error)
     return false
   }
 }
