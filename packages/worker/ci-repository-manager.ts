@@ -1,8 +1,3 @@
-/**
- * CI Repository Manager
- * Source-agnostic service for creating and managing worker repositories
- */
-
 import { GitLabApiClient } from '../shared/gitlab-api-client'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
