@@ -137,10 +137,10 @@ export class CIRepositoryManager {
     const basePath = config.templateBasePath || this.templateBasePath
     const versionDir = join(basePath, versionPath)
 
-    // Check if bundles exist
-    const bundlesDir = join(__dirname, 'bundles', versionPath)
+    // Check if bundles exist (now inside template directory)
+    const bundlesDir = join(basePath, versionPath, 'bundles')
     if (!existsSync(bundlesDir)) {
-      throw new Error(`❌ Bundles not found at ${bundlesDir}. Run: bun run worker:build`)
+      throw new Error(`❌ Bundles not found at ${bundlesDir}. Run: bun run build:bundles`)
     }
 
     const markerFilePath = `${versionPath}/bundles/evaluation-pipeline.js`
