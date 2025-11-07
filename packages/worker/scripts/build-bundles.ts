@@ -10,9 +10,9 @@ import { join } from 'path'
 import { existsSync } from 'fs'
 import { watch } from 'fs'
 
-const BUNDLES_DIR = 'packages/worker/bundles'
 const VERSION = '2025-10-18-01'
 const SCRIPTS_DIR = `packages/worker/templates/${VERSION}/worker-scripts`
+const BUNDLES_DIR = `packages/worker/templates/${VERSION}/bundles`
 
 const PIPELINES = [
   'evaluation-pipeline',
@@ -29,8 +29,7 @@ async function buildBundles() {
   const startTime = Date.now()
 
   // Create bundles directory
-  const bundlesVersionDir = join(BUNDLES_DIR, VERSION)
-  await mkdir(bundlesVersionDir, { recursive: true })
+  await mkdir(BUNDLES_DIR, { recursive: true })
 
   console.log('📦 Building worker pipeline bundles...\n')
 
@@ -39,7 +38,7 @@ async function buildBundles() {
 
   for (const pipeline of PIPELINES) {
     const input = join(SCRIPTS_DIR, `${pipeline}.ts`)
-    const output = join(bundlesVersionDir, `${pipeline}.js`)
+    const output = join(BUNDLES_DIR, `${pipeline}.js`)
 
     // Check if input file exists
     if (!existsSync(input)) {
@@ -70,7 +69,7 @@ async function buildBundles() {
 
   console.log(`\n✅ Built ${successCount}/${PIPELINES.length} bundles in ${duration}ms`)
   console.log(`📁 Total size: ${(totalSize / 1024).toFixed(1)} KB`)
-  console.log(`📂 Output: ${bundlesVersionDir}/\n`)
+  console.log(`📂 Output: ${BUNDLES_DIR}/\n`)
 
   // Always return true - missing pipelines are optional
   return true
