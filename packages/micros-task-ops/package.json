@@ -1,0 +1,31 @@
+{
+  "name": "@adi-simple/micros-task-ops",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./*": "./*"
+  },
+  "scripts": {
+    "dev": "bun --env-file=../../.env --watch index.ts",
+    "start": "bun --env-file=../../.env index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@adi-simple/db": "*",
+    "@adi-simple/utils": "*",
+    "@adi-simple/types": "*",
+    "@adi/queue": "*",
+    "@adi/micros-task-sync": "*",
+    "@adi/micros-task-eval": "*",
+    "@adi/micros-task-impl": "*",
+    "amqplib": "^0.10.4"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.5",
+    "@types/bun": "latest",
+    "@types/node": "^24.7.1",
+    "typescript": "~5.9.3"
+  }
+}

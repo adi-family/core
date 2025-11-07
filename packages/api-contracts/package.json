@@ -1,0 +1,28 @@
+{
+  "name": "@adi/api-contracts",
+  "version": "1.0.0",
+  "description": "Shared API contracts for adi-simple",
+  "main": "./index.ts",
+  "types": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./healthcheck": "./healthcheck.ts",
+    "./projects": "./projects.ts",
+    "./tasks": "./tasks.ts",
+    "./sessions": "./sessions.ts",
+    "./pipeline-executions": "./pipeline-executions.ts",
+    "./worker-repositories": "./worker-repositories.ts",
+    "./secrets": "./secrets.ts",
+    "./file-spaces": "./file-spaces.ts",
+    "./admin": "./admin.ts",
+    "./task-sources": "./task-sources.ts",
+    "./messages": "./messages.ts",
+    "./alerts": "./alerts.ts",
+    "./oauth": "./oauth.ts",
+    "./worker-cache": "./worker-cache.ts"
+  },
+  "dependencies": {
+    "@adi-family/http": "^1.0.0",
+    "zod": "^4.1.12"
+  }
+}

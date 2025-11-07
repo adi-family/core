@@ -1,0 +1,12 @@
+{
+  "name": "@packages/cf-tunnel",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "bun --env-file=../../.env run start-tunnel.ts"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  }
+}

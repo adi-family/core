@@ -1,0 +1,4 @@
+{
+  "error": "Missing required environment variables: SESSION_ID, PIPELINE_EXECUTION_ID, API_BASE_URL, API_TOKEN",
+  "stack": "Error: Missing required environment variables: SESSION_ID, PIPELINE_EXECUTION_ID, API_BASE_URL, API_TOKEN\n    at validateEnvironment (/$bunfs/root/worker:149:20)\n    at main5 (/$bunfs/root/worker:14047:28)\n    at main5 (/$bunfs/root/worker:14039:22)\n    at /$bunfs/root/worker:14123:10\n    at moduleEvaluation (native:1:11)\n    at moduleEvaluation (native:1:11)\n    at loadAndEvaluateModule (native:2)"
+}

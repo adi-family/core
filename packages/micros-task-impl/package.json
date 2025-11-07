@@ -1,0 +1,24 @@
+{
+  "name": "@adi/micros-task-impl",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "exports": {
+    "./*": "./*",
+    "./service": "./service.ts"
+  },
+  "dependencies": {
+    "@adi-simple/db": "*",
+    "@adi-simple/utils": "*",
+    "@adi-simple/types": "*",
+    "@adi-simple/backend": "*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^24.7.1",
+    "typescript": "~5.9.3"
+  }
+}

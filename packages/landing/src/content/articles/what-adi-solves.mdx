@@ -1,0 +1,238 @@
+export const metadata = {
+  title: "What ADI Actually Solves: Real Tasks, Real Results",
+  description: "Bug fixes, simple features, technical debt cleanup—here's what ADI handles autonomously, backed by real examples from production usage.",
+  date: "2025-10-27",
+  author: "ADI Engineering Team",
+  tags: ["use-cases", "examples", "productivity"],
+  image: "/interview-image.png"
+};
+
+# What ADI Actually Solves: Real Tasks, Real Results
+
+Let's be honest: not every development task requires deep human creativity. A lot of software work is mechanical—fix the TypeScript error, update the API endpoint, clean up that deprecated import. Important work, but not work that requires your unique problem-solving skills.
+
+That's ADI's sweet spot. Here's what it actually handles in production, with real examples.
+
+## Category 1: Bug Fixes
+
+The bread and butter of autonomous AI development. ADI excels at bugs with clear error messages and reproducible conditions.
+
+### Real Example: TypeScript Type Errors
+
+**Task:** "Fix TypeScript errors in admin.ts preventing build"
+
+**What ADI Did:**
+- Analyzed compilation errors from build output
+- Identified missing type annotations in admin handler functions
+- Added proper types following existing patterns in codebase
+- Verified build passes after changes
+
+**Time:** 4 minutes
+**Cost:** $0.23
+**Human Review Time:** 2 minutes to approve MR
+
+**Why It Works:** Error messages are precise, fix patterns are well-documented in TypeScript ecosystem, verification is binary (builds or doesn't).
+
+### Real Example: Pipeline Execution Refactoring
+
+**Task:** "Fix error handling in pipeline executor causing silent failures"
+
+**What ADI Did:**
+- Located error swallowing in try-catch blocks
+- Added structured error logging with context
+- Ensured errors propagate to pipeline status API
+- Added tests for error scenarios
+
+**Result:** Silent failures eliminated, error visibility improved
+
+**Why It Works:** The codebase had examples of proper error handling elsewhere. ADI pattern-matched and applied consistently.
+
+## Category 2: Simple Features
+
+Features with well-defined scope and clear acceptance criteria. Think CRUD operations, API endpoints, configuration additions.
+
+### Real Example: AWS S3 Integration
+
+**Task:** "Implement AWS S3 bucket integration for file uploads"
+
+**What ADI Did:**
+- Added `@aws-sdk/client-s3` to dependencies
+- Created storage service following existing file handling patterns
+- Implemented upload, download, and delete methods
+- Added error handling for network failures and rate limits
+- Wrote integration tests matching project testing conventions
+- Updated environment configuration for AWS credentials
+
+**Time:** 8 minutes
+**Cost:** $0.47
+**Lines Changed:** ~200 (new service + tests)
+
+**Why It Works:** AWS SDK documentation is excellent, pattern already existed for other storage providers, integration tests provided clear success criteria.
+
+### Real Example: API Usage Tracking
+
+**Task:** "Add API usage tracking and cost monitoring system"
+
+**What ADI Did:**
+- Analyzed existing database schema
+- Added new tables for usage tracking
+- Implemented tracking middleware in API layer
+- Created cost calculation utilities
+- Added admin dashboard queries
+- Updated API client to report usage
+
+**Time:** 12 minutes
+**Cost:** $0.68
+**Lines Changed:** ~350
+
+**Why It Works:** Task had clear data model requirements, existing middleware patterns to follow, straightforward business logic.
+
+## Category 3: Technical Debt Cleanup
+
+The "I'll fix this later" pile that never gets fixed. ADI loves these.
+
+### The "Хвостов" (Tail-End Issues)
+
+In Ukrainian/Russian dev culture, "хвостов" refers to those lingering loose ends—unused imports, outdated dependencies, inconsistent naming, missing documentation.
+
+**Real Examples ADI Has Handled:**
+
+**Unused Imports Cleanup:**
+- Scanned entire codebase for unused imports
+- Removed 200+ unused import statements
+- Verified builds and tests still pass
+- **Time saved:** ~2 hours of manual work
+
+**Deprecated API Migration:**
+- Identified deprecated GitLab API endpoints
+- Migrated to current API versions
+- Updated authentication flow
+- Updated tests for new API responses
+
+**Code Comment Verification:**
+- Added missing JSDoc comments to public functions
+- Ensured comment quality meets project standards
+- Verified comments accurately describe behavior
+
+**Dependency Updates:**
+- Updated minor version bumps for dependencies
+- Ran full test suite to verify compatibility
+- Updated lock files and CI cache
+
+**Why Technical Debt Works Well:**
+- Tasks are well-scoped and repetitive
+- Success criteria are clear (builds pass, tests pass)
+- Patterns are usually obvious
+- Low risk of introducing bugs
+
+## Category 4: Configuration and Infrastructure
+
+Infrastructure-as-code changes, CI/CD updates, environment configuration.
+
+### Real Example: GitLab CI Template Updates
+
+**Task:** "Split monolithic CI config into separate implementation and evaluation pipelines"
+
+**What ADI Did:**
+- Created `.gitlab-ci-claude.yml` for implementation pipeline
+- Created `.gitlab-ci-evaluation.yml` for evaluation pipeline
+- Updated worker orchestration to trigger appropriate pipeline
+- Ensured environment variables passed correctly
+- Verified both pipelines work independently
+
+**Why It Works:** CI configuration is declarative, outcomes are testable (pipeline runs or doesn't), documentation is comprehensive.
+
+## What ADI Doesn't Solve (Yet)
+
+Let's be realistic about boundaries:
+
+### ❌ Complex Architecture Decisions
+"Should we use microservices or a monolith?" — Requires business context and long-term vision ADI doesn't have.
+
+### ❌ UI/UX Design
+"Make the dashboard more intuitive" — Requires visual judgment and user empathy. AI can implement designs, but not create them from scratch.
+
+### ❌ Novel Algorithm Development
+"Optimize this recommendation engine" — Requires deep domain expertise and creativity beyond pattern matching.
+
+### ❌ Ambiguous Requirements
+"Add some social features" — What features? For which users? What's the goal? ADI needs specificity.
+
+### ❌ Manual QA Tasks
+"Test the checkout flow and see if it feels right" — Requires human interaction and subjective judgment.
+
+## The 60% Rule
+
+Currently, **60% of tasks evaluated by ADI pass the "can implement" threshold**. The other 40% get rejected because:
+
+- **25%** - Unclear or ambiguous requirements
+- **10%** - Missing dependencies or access
+- **5%** - Require human judgment or design decisions
+
+That 60% success rate might not sound impressive, but consider: those are tasks that **would have consumed developer time**. Now they don't.
+
+## Real Cost Savings
+
+Let's do the math on a typical sprint:
+
+**Before ADI:**
+- 20 tasks in backlog
+- 12 are "AI-solvable" (bug fixes, simple features, tech debt)
+- Average dev time: 45 minutes per task
+- **Total time:** 9 hours
+- **Cost at $80/hr:** $720
+
+**With ADI:**
+- Same 20 tasks in backlog
+- ADI evaluates all 20, implements 12
+- Average ADI time: 6 minutes per task
+- Average AI cost: $0.35 per task
+- **Total time:** 1.2 hours
+- **Total cost:** $4.20
+- **Savings:** $715.80 and 7.8 developer hours
+
+Those 7.8 hours? Now spent on architecture, design, code review—work that actually needs human intelligence.
+
+## Task Writing Best Practices
+
+Want ADI to succeed? Write tasks like you're briefing a competent junior developer:
+
+**✅ Good Task:**
+"Add `/api/tasks/:id/archive` endpoint. Should set `archived_at` timestamp in database and return 200 with updated task object. Include test coverage."
+
+**❌ Bad Task:**
+"The task system needs better organization."
+
+**✅ Good Task:**
+"Fix TypeScript errors in `src/admin.ts` preventing build. Errors are in lines 45-67, missing type annotations on handler functions."
+
+**❌ Bad Task:**
+"Code isn't compiling."
+
+Specificity, context, and clear success criteria are your friends.
+
+## Real Developer Reactions
+
+> "I gave ADI a cleanup task I'd been avoiding for weeks—removing unused imports across 50+ files. Came back 10 minutes later to a perfect MR. Genuinely magical."
+> — *Frontend dev, Series A startup*
+
+> "Bug fix tasks that used to take 30-45 minutes now just... happen. I review the MR, merge, done. It's changed how I prioritize work."
+> — *Tech lead, fintech company*
+
+> "The evaluation phase is underrated. Knowing a task is 'AI-solvable' before wasting time on it is huge for sprint planning."
+> — *Engineering manager, SaaS platform*
+
+## What's Next for ADI Capabilities
+
+We're actively expanding what ADI can handle:
+
+- **Visual regression testing** - Automated screenshot comparison for UI changes
+- **Database migrations** - Schema changes with rollback safety
+- **API contract testing** - Ensure breaking changes are detected
+- **Cross-repository changes** - Features spanning multiple services
+
+The 60% success rate today becomes 75% in six months.
+
+---
+
+*Ready to reclaim those 7.8 hours per sprint? [Try ADI](https://the-ihor.com) with $100 free credit and see what it solves in your codebase.*

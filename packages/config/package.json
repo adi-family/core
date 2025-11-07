@@ -1,0 +1,20 @@
+{
+  "name": "@adi-simple/config",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "main": "./index.ts",
+  "exports": {
+    ".": "./index.ts",
+    "./shared": "./shared.ts",
+    "./server": "./server.ts"
+  },
+  "scripts": {
+    "build": "echo 'No build needed for config package'",
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3"
+  }
+}

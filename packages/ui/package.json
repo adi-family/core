@@ -1,0 +1,68 @@
+{
+  "name": "@adi-simple/ui",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    "./styles.css": "./src/styles.css",
+    "./badge": "./src/badge.tsx",
+    "./button": "./src/button.tsx",
+    "./card": "./src/card.tsx",
+    "./combobox": "./src/combobox.tsx",
+    "./input": "./src/input.tsx",
+    "./label": "./src/label.tsx",
+    "./select": "./src/select.tsx",
+    "./table": "./src/table.tsx",
+    "./tooltip": "./src/tooltip.tsx",
+    "./portal": "./src/portal.tsx",
+    "./gitlab-repository-select": "./src/gitlab-repository-select.tsx",
+    "./gitlab-repository-multiselect": "./src/gitlab-repository-multiselect.tsx",
+    "./gitlab-secret-autocomplete": "./src/gitlab-secret-autocomplete.tsx",
+    "./gitlab-icon": "./src/gitlab-icon.tsx",
+    "./github-icon": "./src/github-icon.tsx",
+    "./jira-icon": "./src/jira-icon.tsx",
+    "./jira-secret-autocomplete": "./src/jira-secret-autocomplete.tsx",
+    "./project-select": "./src/project-select.tsx",
+    "./task-source-select": "./src/task-source-select.tsx",
+    "./file-space-select": "./src/file-space-select.tsx",
+    "./task-select": "./src/task-select.tsx",
+    "./task-card": "./src/task-card.tsx",
+    "./session-select": "./src/session-select.tsx",
+    "./worker-repository-select": "./src/worker-repository-select.tsx",
+    "./pipeline-execution-select": "./src/pipeline-execution-select.tsx",
+    "./mock-client": "./src/mock-client.ts",
+    "./lib/utils": "./src/lib/utils.ts"
+  },
+  "scripts": {
+    "dev": "bunx --bun vite",
+    "build": "bunx --bun vite build",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@adi-simple/types": "*",
+    "@clerk/clerk-react": "^5.53.3",
+    "@radix-ui/react-tooltip": "^1.2.8",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.546.0",
+    "simple-icons": "^15.18.0",
+    "tailwind-merge": "^3.3.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.16",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.4",
+    "autoprefixer": "^10.4.21",
+    "eslint-plugin-react-hooks": "^7.0.0",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^4.1.16",
+    "typescript": "~5.9.3",
+    "vite": "^7.1.7"
+  },
+  "peerDependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  }
+}
