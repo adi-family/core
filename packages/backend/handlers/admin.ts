@@ -1,8 +1,3 @@
-/**
- * Admin API handlers
- * admin-endpoints, usage-metrics
- */
-
 import type { Sql } from 'postgres'
 import { handler } from '@adi-family/http'
 import { getUsageMetricsConfig, getWorkerReposConfig, refreshWorkerReposConfig } from '@adi/api-contracts/admin'
@@ -13,14 +8,7 @@ import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'admin-handler' })
 
-/**
- * Create admin handlers
- */
 export function createAdminHandlers(sql: Sql) {
-  /**
-   * GET /admin/usage-metrics
-   * Get recent API usage metrics with optional aggregation
-   */
   const getUsageMetrics = handler(getUsageMetricsConfig, async ({ query }) => {
     const filters = {
       start_date: query?.start_date,
@@ -29,7 +17,7 @@ export function createAdminHandlers(sql: Sql) {
       goal: query?.goal,
     }
 
-    const limit = query?.limit ?? 100
+    const limit = query?.limit ?? 100;
 
     const [recent, aggregated] = await Promise.all([
       findRecentUsageMetrics(sql, filters, limit),
@@ -42,29 +30,20 @@ export function createAdminHandlers(sql: Sql) {
     }
   })
 
-  /**
-   * GET /admin/worker-repos
-   * Get all worker repositories with their status
-   */
   const getWorkerRepos = handler(getWorkerReposConfig, async () => {
     const repositories = await findWorkerRepositoryStatus(sql)
     return { repositories }
   })
 
-  /**
-   * POST /admin/refresh-worker-repos
-   * Refresh all worker repositories by uploading CI files
-   */
   const refreshWorkerRepos = handler(refreshWorkerReposConfig, async () => {
-    logger.info('🔄 Starting worker repository refresh...')
+    logger.info('Starting worker repository refresh...')
 
-    // Fetch all worker repositories
     const repositories = await sql<{
-      id: string
-      project_id: string
-      project_name: string
-      current_version: string
-      source_gitlab: any
+      id: string;
+      project_id: string;
+      project_name: string;
+      current_version: string;
+      source_gitlab: any;
     }[]>`
       SELECT
         wr.id,
@@ -145,7 +124,7 @@ export function createAdminHandlers(sql: Sql) {
           force: true,
         })
 
-        logger.info(`   ✅ Successfully uploaded ${uploadedFiles} file(s)`)
+        logger.info(`    Successfully uploaded ${uploadedFiles} file(s)`)
         results.push({
           project: repo.project_name,
           success: true,
@@ -154,7 +133,7 @@ export function createAdminHandlers(sql: Sql) {
         successCount++
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)
-        logger.error(`   ❌ Failed to refresh repository:`, error)
+        logger.error(`    Failed to refresh repository:`, error)
         results.push({
           project: repo.project_name,
           success: false,
@@ -165,7 +144,7 @@ export function createAdminHandlers(sql: Sql) {
     }
 
     const message = `Refresh complete: ${successCount} succeeded, ${failedCount} failed`
-    logger.info(`\n✅ ${message}`)
+    logger.info(`\n ${message}`)
 
     return {
       success: successCount > 0 || failedCount === 0,

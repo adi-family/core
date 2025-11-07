@@ -23,11 +23,7 @@ import { verifyToken } from '@clerk/backend'
 
 const logger = createLogger({ namespace: 'projects-handler' })
 
-/**
- * Create project handlers with dependencies injected
- */
 export function createProjectHandlers(sql: Sql) {
-  // Helper to get user ID from Clerk JWT token
   async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
     const authHeader = ctx.headers.get('Authorization')
     if (!authHeader) {

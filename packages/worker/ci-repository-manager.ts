@@ -40,7 +40,7 @@ export interface UploadCIFilesConfigGitlab {
   source: WorkerRepositorySourceGitlab
   version: string
   templateBasePath?: string
-  force?: boolean // Skip marker file check and force upload
+  force?: boolean
 }
 
 export type UploadCIFilesConfig = UploadCIFilesConfigGitlab;
