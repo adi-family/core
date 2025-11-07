@@ -24,14 +24,14 @@ const apiUsageMetricSchema = z.object({
 
 export type ApiUsageMetric = z.infer<typeof apiUsageMetricSchema>
 
-const usageMetricsStoreSchema = z.object({
+const _usageMetricsStoreSchema = z.object({
   metrics: z.array(apiUsageMetricSchema),
   loading: z.boolean(),
   error: z.string().nullable(),
   lastFetch: z.number().nullable()
 })
 
-type UsageMetricsStore = z.infer<typeof usageMetricsStoreSchema>
+type UsageMetricsStore = z.infer<typeof _usageMetricsStoreSchema>
 
 export const usageMetricsStore = proxy<UsageMetricsStore>({
   metrics: [],

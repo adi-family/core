@@ -20,19 +20,7 @@ import { createAuthenticatedClient } from "@/lib/client"
 import { getWorkerCacheConfig } from '@adi/api-contracts/worker-cache'
 import { Loader2, CheckCircle2, Circle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-
-interface WorkerCache {
-  id: number
-  issue_id: string
-  repo: string
-  last_processed_at: string
-  status: string | null
-  task_id: string | null
-  processing_started_at: string | null
-  processing_worker_id: string | null
-  created_at: string
-  updated_at: string
-}
+import type { WorkerCache } from '@adi-simple/types'
 
 export function WorkerCachePage() {
   const { getToken } = useAuth()
@@ -100,7 +88,6 @@ export function WorkerCachePage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Issue ID</TableHead>
-                  <TableHead>Repo</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Worker ID</TableHead>
                   <TableHead>Processing Started</TableHead>
@@ -114,7 +101,6 @@ export function WorkerCachePage() {
                     <TableCell className="font-mono text-xs">
                       {entry.issue_id}
                     </TableCell>
-                    <TableCell className="font-medium">{entry.repo}</TableCell>
                     <TableCell>
                       <Badge
                         variant={getStatusBadgeVariant(entry.status)}

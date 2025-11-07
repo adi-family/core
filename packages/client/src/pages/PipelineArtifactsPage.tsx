@@ -11,7 +11,9 @@ export function PipelineArtifactsPage() {
 
   const fetchFn = async () => {
     const { listPipelineArtifactsConfig } = await import('@adi/api-contracts/pipeline-executions')
-    return client.run(listPipelineArtifactsConfig, {})
+    const data = await client.run(listPipelineArtifactsConfig, {})
+    // Wrap in Response-like object for compatibility with ListPage
+    return new Response(JSON.stringify(data), { status: 200 })
   }
 
   return (

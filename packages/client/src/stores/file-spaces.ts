@@ -10,14 +10,14 @@ import { fileSpaceSchema } from '@adi-simple/types'
 import { listFileSpacesConfig } from '@adi/api-contracts'
 import type { BaseClient } from '@adi-family/http'
 
-const fileSpacesStoreSchema = z.object({
+const _fileSpacesStoreSchema = z.object({
   fileSpaces: z.array(fileSpaceSchema),
   loading: z.boolean(),
   error: z.string().nullable(),
   lastFetch: z.number().nullable()
 })
 
-type FileSpacesStore = z.infer<typeof fileSpacesStoreSchema>
+type FileSpacesStore = z.infer<typeof _fileSpacesStoreSchema>
 
 export const fileSpacesStore = proxy<FileSpacesStore>({
   fileSpaces: [],

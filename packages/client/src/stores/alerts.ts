@@ -22,14 +22,14 @@ const alertSchema = z.object({
 
 export type Alert = z.infer<typeof alertSchema>
 
-const alertsStoreSchema = z.object({
+const _alertsStoreSchema = z.object({
   alerts: z.array(alertSchema),
   loading: z.boolean(),
   error: z.string().nullable(),
   lastFetch: z.number().nullable()
 })
 
-type AlertsStore = z.infer<typeof alertsStoreSchema>
+type AlertsStore = z.infer<typeof _alertsStoreSchema>
 
 export const alertsStore = proxy<AlertsStore>({
   alerts: [],

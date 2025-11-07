@@ -216,24 +216,8 @@ export function HomePage() {
                     <div className="text-xs text-gray-400 uppercase mt-1">Completed</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-blue-400">{projectStats.in_progress_tasks}</div>
-                    <div className="text-xs text-gray-400 uppercase mt-1">In Progress</div>
-                  </div>
-                  <div className="text-center">
                     <div className="text-3xl font-bold text-yellow-400">{projectStats.pending_tasks}</div>
                     <div className="text-xs text-gray-400 uppercase mt-1">Pending</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-red-400">{projectStats.failed_tasks}</div>
-                    <div className="text-xs text-gray-400 uppercase mt-1">Failed</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-purple-400">{projectStats.task_sources}</div>
-                    <div className="text-xs text-gray-400 uppercase mt-1">Task Sources</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="text-3xl font-bold text-orange-400">{projectStats.file_spaces}</div>
-                    <div className="text-xs text-gray-400 uppercase mt-1">Repositories</div>
                   </div>
                 </div>
               ) : (

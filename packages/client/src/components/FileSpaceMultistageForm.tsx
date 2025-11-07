@@ -450,8 +450,8 @@ export function FileSpaceMultistageForm() {
 
                     <GitlabSecretAutocomplete
                       client={client}
-                      projectId={formData.project_id}
-                      host={gitlabConfig.host}
+                      projectId={formData.project_id || undefined}
+                      host={gitlabConfig.host || DEFAULT_HOSTS.gitlab}
                       value={gitlabConfig.access_token_secret_id || null}
                       onChange={(secretId) => {
                         handleGitlabConfigChange("access_token_secret_id", secretId || "")
@@ -465,8 +465,8 @@ export function FileSpaceMultistageForm() {
                     {gitlabConfig.access_token_secret_id && (
                       <GitlabRepositoryMultiSelect
                         client={client}
-                        host={gitlabConfig.host}
-                        secretId={gitlabConfig.access_token_secret_id}
+                        host={gitlabConfig.host || DEFAULT_HOSTS.gitlab}
+                        secretId={gitlabConfig.access_token_secret_id || ""}
                         value={selectedRepositories}
                         onChange={setSelectedRepositories}
                         required={true}

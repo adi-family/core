@@ -1,18 +1,17 @@
 import type { BaseClient } from '@adi-family/http'
 import { z } from 'zod'
 import { proxy } from 'valtio'
-import type { Project } from '@adi-simple/types'
 import { projectSchema } from '@adi-simple/types'
 import { listProjectsConfig, updateProjectConfig } from '@adi/api-contracts'
 
-const projectsStoreSchema = z.object({
+const _projectsStoreSchema = z.object({
   projects: z.array(projectSchema),
   loading: z.boolean(),
   error: z.string().nullable(),
   lastFetch: z.number().nullable()
 })
 
-type ProjectsStore = z.infer<typeof projectsStoreSchema>
+type ProjectsStore = z.infer<typeof _projectsStoreSchema>
 
 export const projectsStore = proxy<ProjectsStore>({
   projects: [],

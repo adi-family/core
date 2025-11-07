@@ -68,23 +68,21 @@ export function TasksPage() {
         queryParams.sort_by = sortBy
       }
 
-      const fetchPromises = [
-        client.run(listTasksConfig, { query: queryParams })
-      ]
+      const tasksDataPromise = client.run(listTasksConfig, { query: queryParams })
 
       // Only fetch task sources and projects on initial load
       if (!append) {
-        fetchPromises.push(
+        await Promise.all([
           fetchTaskSources(client),
           fetchProjects(client)
-        )
+        ])
       }
 
-      const [tasksData] = await Promise.all(fetchPromises)
+      const tasksData = await tasksDataPromise
 
       // Handle both old array format and new paginated format for backwards compatibility
-      const newTasks = Array.isArray(tasksData) ? tasksData : tasksData.data
-      const pagination = Array.isArray(tasksData) ? null : tasksData.pagination
+      const newTasks = Array.isArray(tasksData) ? tasksData : (tasksData as any).data
+      const pagination = Array.isArray(tasksData) ? null : (tasksData as any).pagination
 
       if (!Array.isArray(newTasks)) {
         console.error("Invalid API response: expected array of tasks or paginated response")
@@ -297,8 +295,8 @@ export function TasksPage() {
               <TabsContent value="backlog">
                 <div className="space-y-3">
                   {filteredTasks.map((task) => {
-                    const taskSource = taskSources.find((ts) => ts.id === task.task_source_id)
-                    const project = projects.find((p) => p.id === task.project_id)
+                    const taskSource = taskSources.find((ts) => ts.id === task.task_source_id) as any
+                    const project = projects.find((p) => p.id === task.project_id) as any
                     return (
                       <TaskRow
                         key={task.id}

@@ -1,12 +1,7 @@
-/**
- * Global Task Sources Store - Valtio state management
- *
- * Provides centralized state for task sources across the application.
- */
 import { proxy } from 'valtio'
 import type { TaskSource } from '@adi-simple/types'
 import { listTaskSourcesConfig, syncTaskSourceConfig } from '@adi/api-contracts'
-import type { AuthenticatedClient } from '@/lib/client'
+import type { BaseClient } from '@adi-family/http'
 
 interface TaskSourcesStore {
   taskSources: TaskSource[]
@@ -28,7 +23,7 @@ export const taskSourcesStore = proxy<TaskSourcesStore>({
  * Caches results to avoid duplicate calls within 30 seconds
  */
 export async function fetchTaskSources(
-  client: AuthenticatedClient,
+  client: BaseClient,
   options?: {
     project_id?: string
     force?: boolean
@@ -67,7 +62,7 @@ export async function fetchTaskSources(
  * Sync a task source
  */
 export async function syncTaskSource(
-  client: AuthenticatedClient,
+  client: BaseClient,
   taskSourceId: string
 ) {
   const taskSource = taskSourcesStore.taskSources.find((ts) => ts.id === taskSourceId)
@@ -95,7 +90,7 @@ export async function syncTaskSource(
  * Force refresh task sources from API
  */
 export async function refreshTaskSources(
-  client: AuthenticatedClient,
+  client: BaseClient,
   options?: {
     project_id?: string
   }

@@ -3,9 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./car
 import { Input } from "./input";
 import { Label } from "./label";
 import { ProjectSelect } from "./project-select";
-import { GitlabSecretAutocomplete, type Secret } from "./gitlab-secret-autocomplete";
+import { GitlabSecretAutocomplete } from "./gitlab-secret-autocomplete";
 import { GitlabRepositorySelect } from "./gitlab-repository-select";
 import { mockApiClient, mockProjectClient } from "./mock-client";
+import type { Secret } from "@adi-simple/types";
 
 export function GitlabDemo() {
   const [projectId, setProjectId] = useState("");
@@ -24,7 +25,7 @@ export function GitlabDemo() {
       </div>
 
       <Card>
-        <CardHeader className="bg-gradient-to-r from-orange-600 to-red-500 text-white">
+        <CardHeader className="bg-linear-to-r from-orange-600 to-red-500 text-white">
           <CardTitle>GitLab Integration Demo</CardTitle>
           <CardDescription className="text-orange-100">
             Interactive demo with mock data

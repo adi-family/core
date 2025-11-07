@@ -144,7 +144,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     try {
       const result = await client.run(validateProjectAIProviderConfig, {
         params: { id: projectId, provider: snap.selectedProvider },
-        body: snap.formData,
+        body: snap.formData as any,
       })
       store.validationResult = result
     } catch (err) {
@@ -163,7 +163,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     try {
       const updatedConfig = await client.run(updateProjectAIProviderConfig, {
         params: { id: projectId, provider: snap.selectedProvider },
-        body: snap.formData,
+        body: snap.formData as any,
       })
 
       store.currentConfigs = {

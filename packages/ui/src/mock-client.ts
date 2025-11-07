@@ -1,4 +1,3 @@
-import type { Secret } from './gitlab-secret-autocomplete'
 import type { Project, ProjectApiClient } from './project-select'
 import type {
   TaskSource,
@@ -6,7 +5,8 @@ import type {
   Task,
   Session,
   WorkerRepository,
-  PipelineExecution
+  PipelineExecution,
+  Secret
 } from '@adi-simple/types'
 import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 
@@ -24,6 +24,15 @@ const mockSecrets: Secret[] = [
     project_id: "1",
     name: "gitlab-token-prod",
     value: "glpat-xxxxxxxxxxxxxxxxxxxx",
+    encrypted_value: null,
+    encryption_version: null,
+    is_encrypted: false,
+    description: null,
+    oauth_provider: null,
+    token_type: "api",
+    refresh_token: null,
+    expires_at: null,
+    scopes: null,
     created_at: "2024-01-01",
     updated_at: "2024-01-15"
   },
@@ -32,6 +41,15 @@ const mockSecrets: Secret[] = [
     project_id: "1",
     name: "gitlab-token-staging",
     value: "glpat-yyyyyyyyyyyyyyyyyyyy",
+    encrypted_value: null,
+    encryption_version: null,
+    is_encrypted: false,
+    description: null,
+    oauth_provider: null,
+    token_type: "api",
+    refresh_token: null,
+    expires_at: null,
+    scopes: null,
     created_at: "2024-01-02",
     updated_at: "2024-01-16"
   },
@@ -40,6 +58,15 @@ const mockSecrets: Secret[] = [
     project_id: "2",
     name: "gitlab-api-key",
     value: "glpat-zzzzzzzzzzzzzzzzzzzz",
+    encrypted_value: null,
+    encryption_version: null,
+    is_encrypted: false,
+    description: null,
+    oauth_provider: null,
+    token_type: "api",
+    refresh_token: null,
+    expires_at: null,
+    scopes: null,
     created_at: "2024-01-03",
     updated_at: "2024-01-17"
   },
@@ -48,6 +75,15 @@ const mockSecrets: Secret[] = [
     project_id: "3",
     name: "github-token",
     value: "ghp_xxxxxxxxxxxxxxxxxxxx",
+    encrypted_value: null,
+    encryption_version: null,
+    is_encrypted: false,
+    description: null,
+    oauth_provider: null,
+    token_type: "api",
+    refresh_token: null,
+    expires_at: null,
+    scopes: null,
     created_at: "2024-01-04",
     updated_at: "2024-01-18"
   },
@@ -460,6 +496,15 @@ export const mockApiClient: any = {
         project_id: data.projectId || "1",
         name: data.name,
         value: data.value,
+        encrypted_value: null,
+        encryption_version: null,
+        is_encrypted: false,
+        description: null,
+        oauth_provider: null,
+        token_type: "api",
+        refresh_token: null,
+        expires_at: null,
+        scopes: null,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()
       }

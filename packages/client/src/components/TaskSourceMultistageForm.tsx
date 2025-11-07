@@ -576,7 +576,7 @@ export function TaskSourceMultistageForm() {
               {currentStep < STEPS.length ? (
                 <Button
                   type="button"
-                  onClick={handleNext}
+                  onClick={() => handleNext()}
                   disabled={!canProceedFromStep(currentStep)}
                   className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
                 >

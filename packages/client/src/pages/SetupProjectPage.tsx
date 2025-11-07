@@ -8,9 +8,9 @@ import { Input } from '@adi-simple/ui/input'
 import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocomplete'
 import { createAuthenticatedClient } from "@/lib/client"
 import { useExpertMode } from "@/contexts/ExpertModeContext"
-import type { CreateProjectInput, Secret } from "../../../types"
 import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 import { createProjectConfig, createProjectGitLabExecutorConfig } from '@adi/api-contracts'
+import type { CreateProjectInput, Secret } from "@adi-simple/types"
 
 export function SetupProjectPage() {
   const navigate = useNavigate()
@@ -28,7 +28,7 @@ export function SetupProjectPage() {
 
   // Optional GitLab executor configuration
   const [configureExecutor, setConfigureExecutor] = useState(false)
-  const [executorHost, setExecutorHost] = useState(DEFAULT_HOSTS.gitlab)
+  const [executorHost, setExecutorHost] = useState<string>(DEFAULT_HOSTS.gitlab)
   const [executorHostUnlocked, setExecutorHostUnlocked] = useState(false)
   const [executorTokenSecretId, setExecutorTokenSecretId] = useState<string | null>(null)
   const [createdProjectId, setCreatedProjectId] = useState<string | null>(null)

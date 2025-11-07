@@ -1,8 +1,9 @@
 import { Button } from '@adi-simple/ui/button'
 import { ExternalLink, Folder, GitBranch, Star, AlertTriangle, Shield, Eye, Play, Zap } from "lucide-react"
 import { siJira, siGitlab, siGithub } from 'simple-icons'
-import type { Task, TaskSource, Project } from "@types"
 import { getComputedMetrics } from '@adi-simple/shared/task-scoring'
+import type { Task } from '@adi/api-contracts'
+import type { Project, TaskSource } from '@types'
 
 /**
  * SimpleIcon component to render simple-icons SVG icons
@@ -264,10 +265,10 @@ export function TaskRow({
         <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-700/30">
           {/* Primary Action - Contextual based on state */}
           {(() => {
-            const isEvaluated = task.ai_evaluation_simple_status === 'completed' || task.ai_evaluation_simple_status === 'success'
-            const isEvaluating = task.ai_evaluation_simple_status?.toLowerCase().includes('ing') || task.ai_evaluation_simple_status === 'running' || task.ai_evaluation_simple_status === 'queued'
-            const isImplementing = task.ai_implementation_status?.toLowerCase().includes('ing') || task.ai_implementation_status === 'running' || task.ai_implementation_status === 'queued'
-            const isImplemented = task.ai_implementation_status === 'completed' || task.ai_implementation_status === 'success'
+            const isEvaluated = task.ai_evaluation_simple_status === 'completed'
+            const isEvaluating = task.ai_evaluation_simple_status === 'evaluating' || task.ai_evaluation_simple_status === 'queued'
+            const isImplementing = task.ai_implementation_status === 'implementing' || task.ai_implementation_status === 'queued'
+            const isImplemented = task.ai_implementation_status === 'completed'
 
             // Show Evaluate as primary action if not evaluated and not currently evaluating
             if (!isEvaluated && !isEvaluating && onEvaluate) {

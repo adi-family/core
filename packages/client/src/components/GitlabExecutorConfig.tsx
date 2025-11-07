@@ -42,7 +42,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
           params: { id: projectId },
         })
         if (data && typeof data === 'object' && 'host' in data) {
-          setExistingConfig(data as ExecutorConfig)
+          setExistingConfig(data as unknown as ExecutorConfig)
           setHost(data.host)
           setHostUnlocked(data.host !== "https://gitlab.com")
         }
@@ -71,7 +71,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
       const data = await client.run(createProjectGitLabExecutorConfig, {
         params: { id: projectId },
         body: { host, access_token_secret_id: accessTokenSecretId },
-      }) as ExecutorConfig
+      }) as unknown as ExecutorConfig
       setExistingConfig(data)
       setAccessTokenSecretId(null) // Clear selection after successful save
       setSuccess("GitLab executor configured successfully!")

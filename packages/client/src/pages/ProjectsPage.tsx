@@ -39,7 +39,7 @@ export function ProjectsPage() {
       >
         <PresenterTable
           presenter={ProjectPresenter}
-          items={projects}
+          items={projects as Project[]}
           loading={loading}
           emptyMessage="No projects found"
           buildPresenter={(project) =>

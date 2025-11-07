@@ -5,14 +5,14 @@ import { taskSchema } from '@adi-simple/types'
 import { listTasksConfig } from '@adi/api-contracts'
 import type { BaseClient } from '@adi-family/http'
 
-const tasksStoreSchema = z.object({
+const _tasksStoreSchema = z.object({
   tasks: z.array(taskSchema),
   loading: z.boolean(),
   error: z.string().nullable(),
   lastFetch: z.number().nullable()
 })
 
-type TasksStore = z.infer<typeof tasksStoreSchema>
+type TasksStore = z.infer<typeof _tasksStoreSchema>
 
 export const tasksStore = proxy<TasksStore>({
   tasks: [],

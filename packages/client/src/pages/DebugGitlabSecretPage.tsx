@@ -4,9 +4,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@adi-
 import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
 import { ProjectSelect } from "@adi-simple/ui/project-select"
-import { GitlabSecretAutocomplete, type Secret } from "@adi-simple/ui/gitlab-secret-autocomplete"
+import { GitlabSecretAutocomplete } from "@adi-simple/ui/gitlab-secret-autocomplete"
 import { GitlabRepositorySelect } from "@adi-simple/ui/gitlab-repository-select"
 import { createAuthenticatedClient } from "@/lib/client"
+import type { Secret } from "@adi-simple/types"
 
 export function DebugGitlabSecretPage() {
   const { getToken } = useAuth()

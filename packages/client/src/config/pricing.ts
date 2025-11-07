@@ -15,8 +15,8 @@ export const PRICING = {
 // Differs from DB type: some nullable fields are required, created_at is string
 export interface ApiUsageMetric {
   id: string
-  session_id: string
-  task_id: string
+  session_id: string | null
+  task_id: string | null
   provider: string
   model: string
   goal: string
@@ -25,9 +25,9 @@ export interface ApiUsageMetric {
   output_tokens: number
   cache_creation_input_tokens: number
   cache_read_input_tokens: number
-  ci_duration_seconds: number
-  iteration_number?: number
-  created_at: string
+  ci_duration_seconds: number | null
+  iteration_number: number | null
+  created_at: string | Date
 }
 
 export interface CostBreakdown {
@@ -60,7 +60,7 @@ export function calculateCostBreakdown(usage: ApiUsageMetric): CostBreakdown {
   const tokenCost = (totalTokens / 1_000_000) * PRICING.PER_MILLION_TOKENS
 
   // CI cost: seconds × $0.0778/hour
-  const ciHours = usage.ci_duration_seconds / 3600
+  const ciHours = (usage.ci_duration_seconds || 0) / 3600
   const ciCost = ciHours * PRICING.PER_CI_HOUR
 
   return {
@@ -106,7 +106,9 @@ export function formatTokens(tokens: number): string {
 /**
  * Format duration in hours and minutes
  */
-export function formatDuration(seconds: number): string {
+export function formatDuration(seconds: number | null): string {
+  if (seconds === null) return '0s'
+
   const hours = Math.floor(seconds / 3600)
   const minutes = Math.floor((seconds % 3600) / 60)
   const secs = seconds % 60

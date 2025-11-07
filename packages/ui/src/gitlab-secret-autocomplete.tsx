@@ -15,15 +15,7 @@ import {
   validateGitLabRawTokenConfig,
   validateGitLabTokenConfig
 } from '@adi/api-contracts/secrets'
-
-export interface Secret {
-  id: string
-  project_id: string
-  name: string
-  value: string
-  created_at: string
-  updated_at: string
-}
+import type { Secret } from "@adi-simple/types"
 
 interface GitlabSecretAutocompleteProps {
   client: BaseClient
@@ -154,7 +146,7 @@ export function GitlabSecretAutocomplete({
     }
 
     loadSecrets()
-     
+
   }, [projectId, store])
 
   // Validate token with backend API
@@ -317,7 +309,7 @@ export function GitlabSecretAutocomplete({
     }, 500)
 
     return () => clearTimeout(timeoutId)
-     
+
   }, [snap.selectedSecret, host, snap.mode])
 
   // Clear selected secret validation when deselected
@@ -827,7 +819,6 @@ export function GitlabSecretAutocomplete({
           </div>
         </div>
       )}
-
     </div>
   )
 }
