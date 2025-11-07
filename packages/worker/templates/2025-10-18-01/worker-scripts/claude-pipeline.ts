@@ -148,7 +148,7 @@ async function executeClaudeAgent(
       }
     }
 
-    output = JSON.stringify(mockOutput) + '\n'
+    output = `${JSON.stringify(mockOutput)  }\n`
     output += `\n\nFinal Result: Mock implementation completed successfully`
     iterations = 1
     cost = 0.0001 // Mock minimal cost
@@ -161,7 +161,7 @@ async function executeClaudeAgent(
           const readmePath = `${workspace.path}/README.md`
           const { stdout: readmeContent } = await exec(`cat "${readmePath}" 2>/dev/null || echo "# README"`)
           const timestamp = new Date().toISOString()
-          const updatedContent = readmeContent.trim() + `\n\n<!-- Mock test change: ${timestamp} -->\n`
+          const updatedContent = `${readmeContent.trim()  }\n\n<!-- Mock test change: ${timestamp} -->\n`
           await writeFile(readmePath, updatedContent, 'utf-8')
           logger.info(`  ✓ Updated ${workspace.dirName}/README.md`)
         } catch (error) {
@@ -241,7 +241,7 @@ async function executeClaudeAgent(
       if (chunk.type === 'assistant') {
         const message = JSON.stringify(chunk.message)
         logger.info(`[Assistant] ${message}`)
-        output += message + '\n'
+        output += `${message  }\n`
       }
 
       if (chunk.type === 'stream_event') {
@@ -357,7 +357,7 @@ async function main() {
     const agentResults: {
       exitCode: number;
       output: string;
-      changes: { [key: string]: any },
+      changes: Record<string, any>,
       errors: string[];
     } = {
       exitCode: 0,

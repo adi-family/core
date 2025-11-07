@@ -7,11 +7,11 @@ import { createAuthenticatedClient } from "@/lib/client"
 import { getProjectGitLabExecutorConfig, createProjectGitLabExecutorConfig, deleteProjectGitLabExecutorConfig } from '@adi/api-contracts/projects'
 import { CheckCircle2, XCircle, Loader2, Trash2 } from "lucide-react"
 
-type GitlabExecutorConfigProps = {
+interface GitlabExecutorConfigProps {
   projectId: string
 }
 
-type ExecutorConfig = {
+interface ExecutorConfig {
   host: string
   user: string
   verified_at: string
@@ -54,7 +54,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
     }
 
     loadConfig()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [projectId])
 
   const handleSave = async () => {

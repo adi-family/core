@@ -91,7 +91,7 @@ export interface Runner {
  */
 export function createEvalScheduler(
   sql: Sql,
-  intervalMinutes: number = 1
+  intervalMinutes = 1
 ): Runner {
   const intervalMs = intervalMinutes * 60 * 1000
   let timer: NodeJS.Timeout | null = null

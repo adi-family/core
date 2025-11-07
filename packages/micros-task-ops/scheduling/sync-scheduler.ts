@@ -19,7 +19,7 @@ const logger = createLogger({ namespace: 'sync-scheduler' })
 export async function syncTaskSourcesNeedingSync(
   sql: Sql,
   minutesSinceLastSync: number,
-  queuedTimeoutMinutes: number = 120
+  queuedTimeoutMinutes = 120
 ): Promise<void> {
   logger.info(`Looking for task sources needing sync:`)
   logger.info(`  - Last synced > ${minutesSinceLastSync} minutes ago`)
@@ -84,9 +84,9 @@ export interface Runner {
  */
 export function createSyncScheduler(
   sql: Sql,
-  intervalMinutes: number = 15,
-  syncThresholdMinutes: number = 30,
-  queuedTimeoutMinutes: number = 120
+  intervalMinutes = 15,
+  syncThresholdMinutes = 30,
+  queuedTimeoutMinutes = 120
 ): Runner {
   const intervalMs = intervalMinutes * 60 * 1000
   let timer: NodeJS.Timeout | null = null

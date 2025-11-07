@@ -90,7 +90,7 @@ export const deleteTaskSource = async (sql: Sql, id: string): Promise<void> => {
 export const findTaskSourcesNeedingSync = async (
   sql: Sql,
   minutesSinceLastSync: number,
-  queuedTimeoutMinutes: number = 120
+  queuedTimeoutMinutes = 120
 ): Promise<TaskSource[]> => {
   return get(sql<TaskSource[]>`
     SELECT * FROM task_sources

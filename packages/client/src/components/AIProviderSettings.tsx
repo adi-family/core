@@ -18,11 +18,11 @@ import {
   validateProjectAIProviderConfig
 } from "@adi/api-contracts/projects"
 
-type AIProviderSettingsProps = {
+interface AIProviderSettingsProps {
   projectId: string
 }
 
-type FormData = {
+interface FormData {
   type: ProviderType
   api_key: string
   endpoint_url?: string
@@ -36,7 +36,7 @@ type FormData = {
   temperature?: number
 }
 
-type StoreState = {
+interface StoreState {
   currentConfigs: AIProviderConfig | null
   selectedProvider: Provider | null
   formData: FormData

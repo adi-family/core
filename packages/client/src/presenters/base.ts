@@ -18,23 +18,23 @@ export abstract class BasePresenter<T> {
   /**
    * Get table columns configuration
    */
-  abstract getTableColumns(): Array<{
+  abstract getTableColumns(): {
     key: string
     label: string
     render: (model: T) => ReactNode
     sortable?: boolean
-  }>
+  }[]
 
   /**
    * Get available actions for the model
    */
-  abstract getActions(): Array<{
+  abstract getActions(): {
     label: string
     onClick: (model: T) => void | Promise<void>
     variant?: 'default' | 'destructive' | 'outline' | 'secondary' | 'ghost' | 'link'
     disabled?: boolean
     loading?: boolean
-  }>
+  }[]
 
   /**
    * Get model identifier
@@ -52,7 +52,7 @@ export abstract class BasePresenter<T> {
   /**
    * Truncate text with ellipsis
    */
-  protected truncateText(text: string | null | undefined, maxLength: number = 50): string {
+  protected truncateText(text: string | null | undefined, maxLength = 50): string {
     if (!text) return '-'
     return text.length > maxLength ? `${text.substring(0, maxLength)}...` : text
   }
@@ -60,7 +60,7 @@ export abstract class BasePresenter<T> {
   /**
    * Truncate ID for display
    */
-  protected truncateId(id: string, length: number = 8): string {
+  protected truncateId(id: string, length = 8): string {
     return `${id.substring(0, length)}...`
   }
 

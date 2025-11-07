@@ -21,7 +21,7 @@ import { getWorkerCacheConfig } from '@adi/api-contracts/worker-cache'
 import { Loader2, CheckCircle2, Circle } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
-type WorkerCache = {
+interface WorkerCache {
   id: number
   issue_id: string
   repo: string

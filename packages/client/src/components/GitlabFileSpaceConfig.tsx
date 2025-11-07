@@ -8,7 +8,7 @@ import { createAuthenticatedClient } from "@/lib/client"
 import type { GitlabFileSpaceConfig as GitlabFileSpaceConfigType, Secret } from "../../../types"
 import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 
-type GitlabFileSpaceConfigProps = {
+interface GitlabFileSpaceConfigProps {
   projectId: string
   config: GitlabFileSpaceConfigType
   onChange: (field: keyof GitlabFileSpaceConfigType, value: string) => void

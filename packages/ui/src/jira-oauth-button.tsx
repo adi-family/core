@@ -3,20 +3,20 @@ import { Button } from './button'
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { JiraIcon } from './jira-icon'
 
-export type JiraSite = {
+export interface JiraSite {
   id: string
   url: string
   name: string
   scopes: string[]
 }
 
-export type OAuthResult = {
+export interface OAuthResult {
   secretId: string
   expiresAt: string
   sites: JiraSite[]
 }
 
-type JiraOAuthButtonProps = {
+interface JiraOAuthButtonProps {
   projectId: string
   onSuccess: (result: OAuthResult) => void
   onError?: (error: string) => void

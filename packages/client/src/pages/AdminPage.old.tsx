@@ -37,7 +37,7 @@ interface RefreshResult {
   success: boolean
   error?: string
   filesUpdated?: number
-  fileErrors?: Array<{ file: string; error: string }>
+  fileErrors?: { file: string; error: string }[]
 }
 
 interface RefreshResponse {
@@ -119,7 +119,7 @@ export function AdminPage() {
   // Load on mount
   useEffect(() => {
     loadRepositories()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [])
 
   // Load usage metrics when tab changes
@@ -127,7 +127,7 @@ export function AdminPage() {
     if (activeTab === 'usage' && usageMetrics.length === 0) {
       loadUsageMetrics()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [activeTab])
 
   // Operations handlers

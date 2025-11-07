@@ -11,7 +11,7 @@ export const findAllTasks = async (sql: Sql): Promise<Task[]> => {
   return get(sql<Task[]>`SELECT * FROM tasks ORDER BY created_at DESC`)
 }
 
-export type TaskQueryOptions = {
+export interface TaskQueryOptions {
   project_id?: string
   task_source_id?: string
   evaluated_only?: boolean
@@ -20,7 +20,7 @@ export type TaskQueryOptions = {
   per_page?: number
 }
 
-export type PaginatedTasksResult = {
+export interface PaginatedTasksResult {
   tasks: Task[]
   total: number
   page: number

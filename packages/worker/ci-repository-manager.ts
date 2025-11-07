@@ -156,7 +156,7 @@ export class CIRepositoryManager {
       logger.info(`📤 Force uploading CI files for version ${versionPath}...`)
     }
 
-    const filesToUpload: Array<{ path: string; content: string }> = []
+    const filesToUpload: { path: string; content: string }[] = []
 
     // 1. Upload GitLab CI configuration files
     const ciConfigs = [

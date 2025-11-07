@@ -18,6 +18,7 @@ const DEFAULT_OPTIONS: Required<RetryOptions> = {
   initialDelayMs: RETRY_DEFAULTS.initialDelayMs,
   maxDelayMs: RETRY_DEFAULTS.maxDelayMs,
   backoffMultiplier: RETRY_DEFAULTS.backoffMultiplier,
+  // eslint-disable-next-line @typescript-eslint/no-empty-function
   onRetry: () => {},
 }
 

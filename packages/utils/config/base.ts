@@ -1,4 +1,5 @@
-import { z, type ZodTypeAny, type ZodError } from 'zod'
+import type { z } from 'zod';
+import { type ZodTypeAny, type ZodError } from 'zod'
 import { createLogger } from '../logger'
 
 const isProd = process.env.NODE_ENV === 'production'

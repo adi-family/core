@@ -16,7 +16,7 @@ interface JiraSearchResponseIssue {
 }
 interface JiraSearchResponse {
   total?: number;
-  issues?: Array<JiraSearchResponseIssue>;
+  issues?: JiraSearchResponseIssue[];
   nextPageToken?: string;
 }
 
@@ -58,7 +58,7 @@ function extractTextFromADF(adf: unknown): string {
       const text = extractFromNode(node);
       // Add newline after paragraphs, headings, etc.
       if (node.type === 'paragraph' || node.type === 'heading') {
-        return text + '\n';
+        return `${text  }\n`;
       }
       return text;
     }).join('').trim();

@@ -7,7 +7,7 @@ import {
   TableRow,
 } from '@adi-simple/ui/table'
 import { Button } from '@adi-simple/ui/button'
-import { BasePresenter } from "@/presenters/base"
+import type { BasePresenter } from "@/presenters/base"
 
 interface PresenterTableProps<T, P extends BasePresenter<T>> {
   presenter: new (model: T, ...args: any[]) => P

@@ -287,7 +287,7 @@ export class GitLabApiClient {
     filePath: string,
     content: string,
     commitMessage: string,
-    branch: string = 'main'
+    branch = 'main'
   ): Promise<void> {
     const input: GitLabFileCreateInput = {
       branch,
@@ -404,7 +404,7 @@ export class GitLabApiClient {
   async getFile(
     projectId: string,
     filePath: string,
-    ref: string = 'main'
+    ref = 'main'
   ): Promise<GitLabFileContent> {
     const file = await this.request<GitLabFileContent>(
       'GET',
@@ -424,7 +424,7 @@ export class GitLabApiClient {
    */
   async getCommitSha(
     projectId: string,
-    branch: string = 'main'
+    branch = 'main'
   ): Promise<string> {
     const commits = await this.request<GitLabCommit[]>(
       'GET',
@@ -461,8 +461,8 @@ export class GitLabApiClient {
    */
   async getTree(
     _projectId: string,
-    _path: string = '',
-    _ref: string = 'main'
+    _path = '',
+    _ref = 'main'
   ): Promise<GitLabTreeEntry[]> {
     // TODO: Implement tree listing when evaluation pipeline needs it
     console.warn('getTree not yet implemented')
@@ -475,7 +475,7 @@ export class GitLabApiClient {
   async getFileContent(
     projectId: string,
     filePath: string,
-    ref: string = 'main'
+    ref = 'main'
   ): Promise<string> {
     const file = await this.getFile(projectId, filePath, ref)
     return file.content
@@ -513,9 +513,9 @@ export class GitLabApiClient {
    */
   async uploadFiles(
     projectId: string,
-    files: Array<{ path: string; content: string }>,
+    files: { path: string; content: string }[],
     commitMessage: string,
-    branch: string = 'main'
+    branch = 'main'
   ): Promise<GitLabCommit> {
     // Prepare file actions - try to determine if file exists
     const actions: GitLabFileAction[] = await Promise.all(

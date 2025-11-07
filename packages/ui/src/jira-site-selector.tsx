@@ -2,14 +2,14 @@ import { useState } from "react"
 import { Label } from './label'
 import { CheckCircle2 } from "lucide-react"
 
-export type JiraSite = {
+export interface JiraSite {
   id: string
   url: string
   name: string
   scopes: string[]
 }
 
-type JiraSiteSelectorProps = {
+interface JiraSiteSelectorProps {
   sites: JiraSite[]
   onSelect: (cloudId: string, site: JiraSite) => void
   selectedCloudId?: string

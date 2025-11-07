@@ -1,4 +1,4 @@
-import { BaseTaskSource } from './base';
+import type { BaseTaskSource } from './base';
 import { GitlabIssuesTaskSource } from './gitlab-issues';
 import { JiraTaskSource } from './jira';
 import { assertNever } from '@utils/assert-never';

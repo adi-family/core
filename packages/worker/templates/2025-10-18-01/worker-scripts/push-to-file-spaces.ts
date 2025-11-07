@@ -27,7 +27,7 @@ interface MergeRequestResult {
 
 interface PushResult {
   mergeRequests: MergeRequestResult[]
-  errors: Array<{ fileSpaceId: string; error: string }>
+  errors: { fileSpaceId: string; error: string }[]
 }
 
 /**

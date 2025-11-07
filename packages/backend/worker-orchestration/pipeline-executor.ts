@@ -329,7 +329,7 @@ async function loadAnthropicEnvVars(
   if (!apiKey) return envVars
 
   envVars.ANTHROPIC_API_KEY = apiKey
-  const maskedKey = apiKey.substring(0, 10) + '...' + apiKey.substring(apiKey.length - 4)
+  const maskedKey = `${apiKey.substring(0, 10)  }...${  apiKey.substring(apiKey.length - 4)}`
   logger.info(`✓ Loaded ANTHROPIC_API_KEY from secret ${config.api_key_secret_id} (${maskedKey}, length: ${apiKey.length})`)
 
   if (config.type === 'self-hosted' && config.endpoint_url) {

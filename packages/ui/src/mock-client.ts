@@ -500,7 +500,7 @@ export const mockProjectClient = {
 } as any as ProjectApiClient
 
 // API client types for new entities
-export type TaskSourceApiClient = {
+export interface TaskSourceApiClient {
   "task-sources": {
     $get: () => Promise<Response>
     "by-project": {
@@ -511,7 +511,7 @@ export type TaskSourceApiClient = {
   }
 }
 
-export type FileSpaceApiClient = {
+export interface FileSpaceApiClient {
   "file-spaces": {
     $get: () => Promise<Response>
     "by-project": {
@@ -522,7 +522,7 @@ export type FileSpaceApiClient = {
   }
 }
 
-export type TaskApiClient = {
+export interface TaskApiClient {
   tasks: {
     $get: () => Promise<Response>
     "by-project": {
@@ -538,7 +538,7 @@ export type TaskApiClient = {
   }
 }
 
-export type SessionApiClient = {
+export interface SessionApiClient {
   sessions: {
     $get: () => Promise<Response>
     "by-task": {
@@ -549,7 +549,7 @@ export type SessionApiClient = {
   }
 }
 
-export type WorkerRepositoryApiClient = {
+export interface WorkerRepositoryApiClient {
   "worker-repositories": {
     $get: () => Promise<Response>
     "by-project": {
@@ -560,7 +560,7 @@ export type WorkerRepositoryApiClient = {
   }
 }
 
-export type PipelineExecutionApiClient = {
+export interface PipelineExecutionApiClient {
   "pipeline-executions": {
     $get: () => Promise<Response>
     "by-session": {

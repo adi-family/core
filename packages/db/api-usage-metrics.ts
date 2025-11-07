@@ -107,7 +107,7 @@ export const findAggregatedUsageMetrics = async (
 export const findRecentUsageMetrics = async (
   sql: Sql,
   filters: UsageMetricsFilters,
-  limit: number = 100
+  limit = 100
 ): Promise<ApiUsageMetric[]> => {
   let whereClause = sql`WHERE 1=1`
 

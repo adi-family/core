@@ -8,14 +8,14 @@ import { createAuthenticatedClient } from "@/lib/client"
 import type { Secret } from "../../../types"
 import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 
-type GitlabIssuesConfig = {
+interface GitlabIssuesConfig {
   repo: string
   labels: string[]
   host?: string
   access_token_secret_id?: string
 }
 
-type GitlabTaskSourceConfigProps = {
+interface GitlabTaskSourceConfigProps {
   projectId: string
   config: GitlabIssuesConfig
   onChange: (field: keyof GitlabIssuesConfig, value: string | string[]) => void

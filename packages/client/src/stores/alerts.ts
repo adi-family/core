@@ -12,7 +12,7 @@ export interface Alert {
   severity: 'warning'
   message: string
   providers: string[]
-  projects: Array<{ id: string; name: string; missingProviders: string[] }>
+  projects: { id: string; name: string; missingProviders: string[] }[]
 }
 
 interface AlertsStore {

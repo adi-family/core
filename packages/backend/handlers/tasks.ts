@@ -180,7 +180,7 @@ export function createTaskHandlers(sql: Sql) {
         return {
           x: effort,
           y: impact,
-          title: t.title.length > 40 ? t.title.substring(0, 40) + '...' : t.title,
+          title: t.title.length > 40 ? `${t.title.substring(0, 40)  }...` : t.title,
           id: t.id,
           impactLabel: result.estimated_impact,
           effortLabel: result.estimated_effort

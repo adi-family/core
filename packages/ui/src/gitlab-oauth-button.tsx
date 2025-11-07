@@ -6,19 +6,19 @@ import { GitLabIcon } from './gitlab-icon'
 // Global flag to prevent double-processing in StrictMode
 const processingCodes = new Set<string>()
 
-export type GitLabUser = {
+export interface GitLabUser {
   username: string
   name: string
   email: string
 }
 
-export type GitLabOAuthResult = {
+export interface GitLabOAuthResult {
   secretId: string
   expiresAt: string
   user: GitLabUser
 }
 
-type GitLabOAuthButtonProps = {
+interface GitLabOAuthButtonProps {
   projectId: string
   onSuccess: (result: GitLabOAuthResult) => void
   onError?: (error: string) => void

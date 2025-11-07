@@ -64,7 +64,7 @@ export const updateSecret = async (sql: Sql, id: string, input: UpdateSecretInpu
   return secret
 }
 
-export type UpsertSecretInput = {
+export interface UpsertSecretInput {
   project_id: string
   name: string
   value: string

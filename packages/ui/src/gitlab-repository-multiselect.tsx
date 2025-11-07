@@ -4,7 +4,7 @@ import { Input } from './input'
 import { Loader2, GitBranch, Check, Search } from "lucide-react"
 import { getGitLabRepositoriesConfig } from '@adi/api-contracts/secrets'
 
-type Repository = {
+interface Repository {
   id: number
   name: string
   path_with_namespace: string
@@ -12,7 +12,7 @@ type Repository = {
   web_url: string
 }
 
-type GitlabRepositoryMultiSelectProps = {
+interface GitlabRepositoryMultiSelectProps {
   client: any
   host: string
   secretId: string

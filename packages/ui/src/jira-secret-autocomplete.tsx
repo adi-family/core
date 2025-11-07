@@ -6,7 +6,7 @@ import { Portal } from './portal'
 import { CheckCircle2, XCircle, Loader2, Plus, AlertCircle, Search } from "lucide-react"
 import { JiraOAuthButton, type OAuthResult } from './jira-oauth-button'
 import { JiraSiteSelector } from './jira-site-selector'
-import { BaseClient } from '@adi-family/http'
+import type { BaseClient } from '@adi-family/http'
 import {
   listSecretsConfig,
   getSecretsByProjectConfig,
@@ -16,7 +16,7 @@ import {
   validateJiraTokenConfig
 } from '@adi/api-contracts/secrets'
 
-export type Secret = {
+export interface Secret {
   id: string
   project_id: string
   name: string
@@ -25,7 +25,7 @@ export type Secret = {
   updated_at: string
 }
 
-type JiraSecretAutocompleteProps = {
+interface JiraSecretAutocompleteProps {
   client: BaseClient
   projectId?: string
   host: string
@@ -119,7 +119,7 @@ export function JiraSecretAutocomplete({
     }
 
     loadSecrets()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [projectId])
 
   // Validate token with backend API
@@ -201,7 +201,7 @@ export function JiraSecretAutocomplete({
     }, 500)
 
     return () => clearTimeout(timeoutId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [newToken, email, mode])
 
   // Re-validate token when host changes
@@ -219,7 +219,7 @@ export function JiraSecretAutocomplete({
       setTokenValid(null)
       setTokenInfo(null)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [host])
 
   // Clear validation state when switching away from create mode
@@ -241,7 +241,7 @@ export function JiraSecretAutocomplete({
     }, 500)
 
     return () => clearTimeout(timeoutId)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [selectedSecret, host, mode])
 
   // Clear selected secret validation when deselected

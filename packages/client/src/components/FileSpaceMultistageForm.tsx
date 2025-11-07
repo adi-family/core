@@ -23,7 +23,7 @@ import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 
 type FileSpaceType = 'gitlab' | 'github'
 
-type Step = {
+interface Step {
   id: number
   title: string
   description: string

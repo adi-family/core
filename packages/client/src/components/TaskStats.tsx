@@ -20,17 +20,17 @@ interface StatsData {
   implemented: number
   inProgress: number
   avgComplexity: string
-  quadrantData: Array<{
+  quadrantData: {
     x: number
     y: number
     title: string
     id: string
     impactLabel: string
     effortLabel: string
-  }>
-  taskTypeData: Array<{ name: string; value: number }>
-  effortData: Array<{ name: string; value: number }>
-  riskData: Array<{ name: string; value: number }>
+  }[]
+  taskTypeData: { name: string; value: number }[]
+  effortData: { name: string; value: number }[]
+  riskData: { name: string; value: number }[]
 }
 
 const COLORS = {

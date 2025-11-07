@@ -5,7 +5,7 @@ import { Portal } from './portal'
 import { Loader2, Search, GitBranch } from "lucide-react"
 import { getGitLabRepositoriesConfig } from '@adi/api-contracts/secrets'
 
-type Repository = {
+interface Repository {
   id: number
   name: string
   path_with_namespace: string
@@ -13,7 +13,7 @@ type Repository = {
   web_url: string
 }
 
-type GitlabRepositorySelectProps = {
+interface GitlabRepositorySelectProps {
   client: any
   host: string
   secretId: string

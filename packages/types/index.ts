@@ -1,25 +1,25 @@
 
-export type GitlabMetadata = {
+export interface GitlabMetadata {
   provider: 'gitlab'
   repo: string
   host?: string
   iid?: number
 }
 
-export type GithubMetadata = {
+export interface GithubMetadata {
   provider: 'github'
   repo: string
   host?: string
 }
 
-export type JiraMetadata = {
+export interface JiraMetadata {
   provider: 'jira'
   host: string
   key: string
   project_key: string
 }
 
-export type GitlabIssue = {
+export interface GitlabIssue {
   id: string
   iid?: number | null
   title: string
@@ -27,7 +27,7 @@ export type GitlabIssue = {
   metadata: GitlabMetadata
 }
 
-export type GithubIssue = {
+export interface GithubIssue {
   id: string
   iid?: number | null
   title: string
@@ -35,21 +35,21 @@ export type GithubIssue = {
   metadata: GithubMetadata
 }
 
-export type JiraIssue = {
+export interface JiraIssue {
   id: string
   title: string
   updated_at: string
   metadata: JiraMetadata
 }
 
-export type GitlabExecutorConfig = {
+export interface GitlabExecutorConfig {
   host: string
   access_token_secret_id: string
   verified_at?: string
   user?: string
 }
 
-export type AnthropicCloudConfig = {
+export interface AnthropicCloudConfig {
   type: 'cloud'
   api_key_secret_id: string
   model?: string
@@ -57,7 +57,7 @@ export type AnthropicCloudConfig = {
   temperature?: number
 }
 
-export type AnthropicSelfHostedConfig = {
+export interface AnthropicSelfHostedConfig {
   type: 'self-hosted'
   api_key_secret_id: string
   endpoint_url: string
@@ -69,14 +69,14 @@ export type AnthropicSelfHostedConfig = {
 
 export type AnthropicConfig = AnthropicCloudConfig | AnthropicSelfHostedConfig
 
-export type OpenAICloudConfig = {
+export interface OpenAICloudConfig {
   type: 'cloud'
   api_key_secret_id: string
   organization_id?: string
   model?: string
 }
 
-export type OpenAIAzureConfig = {
+export interface OpenAIAzureConfig {
   type: 'azure'
   api_key_secret_id: string
   endpoint_url: string
@@ -87,7 +87,7 @@ export type OpenAIAzureConfig = {
   temperature?: number
 }
 
-export type OpenAISelfHostedConfig = {
+export interface OpenAISelfHostedConfig {
   type: 'self-hosted'
   api_key_secret_id: string
   endpoint_url: string
@@ -99,7 +99,7 @@ export type OpenAISelfHostedConfig = {
 
 export type OpenAIConfig = OpenAICloudConfig | OpenAIAzureConfig | OpenAISelfHostedConfig
 
-export type GoogleCloudConfig = {
+export interface GoogleCloudConfig {
   type: 'cloud'
   api_key_secret_id: string
   model?: string
@@ -107,7 +107,7 @@ export type GoogleCloudConfig = {
   temperature?: number
 }
 
-export type GoogleVertexConfig = {
+export interface GoogleVertexConfig {
   type: 'vertex'
   api_key_secret_id: string
   project_id: string
@@ -117,7 +117,7 @@ export type GoogleVertexConfig = {
   temperature?: number
 }
 
-export type GoogleSelfHostedConfig = {
+export interface GoogleSelfHostedConfig {
   type: 'self-hosted'
   api_key_secret_id: string
   endpoint_url: string
@@ -129,13 +129,13 @@ export type GoogleSelfHostedConfig = {
 
 export type GoogleConfig = GoogleCloudConfig | GoogleVertexConfig | GoogleSelfHostedConfig
 
-export type AIProviderConfig = {
+export interface AIProviderConfig {
   anthropic?: AnthropicConfig
   openai?: OpenAIConfig
   google?: GoogleConfig
 }
 
-export type AIProviderValidationResult = {
+export interface AIProviderValidationResult {
   valid: boolean
   endpoint_reachable: boolean
   authentication_valid: boolean
@@ -144,7 +144,7 @@ export type AIProviderValidationResult = {
   tested_at: string
 }
 
-export type Project = {
+export interface Project {
   id: string
   name: string
   enabled: boolean
@@ -155,7 +155,7 @@ export type Project = {
   last_synced_at: string | null
 }
 
-export type AICapabilityCriteria = {
+export interface AICapabilityCriteria {
   // HARD BLOCKERS
   cannot_determine_what_to_implement: boolean
   has_contradictory_requirements: boolean
@@ -182,7 +182,7 @@ export type AICapabilityCriteria = {
   requires_manual_testing: boolean
 }
 
-export type SimpleEvaluationResult = {
+export interface SimpleEvaluationResult {
   should_evaluate: boolean
   clarity_score: number
   has_acceptance_criteria: boolean
@@ -199,7 +199,7 @@ export type SimpleEvaluationResult = {
   estimated_effort: 'low' | 'medium' | 'high'
 }
 
-export type Task = {
+export interface Task {
   id: string
   title: string
   description: string | null
@@ -238,7 +238,7 @@ export type Task = {
   updated_at: string
 }
 
-export type Session = {
+export interface Session {
   id: string
   task_id: string | null
   runner: string
@@ -246,21 +246,21 @@ export type Session = {
   updated_at: string
 }
 
-export type Message = {
+export interface Message {
   id: string
   session_id: string
   data: unknown
   created_at: string
 }
 
-export type CreateProjectInput = {
+export interface CreateProjectInput {
   name: string
   enabled?: boolean
 }
 
 export type UpdateProjectInput = Partial<CreateProjectInput>
 
-export type CreateTaskInput = {
+export interface CreateTaskInput {
   title: string
   description?: string
   status: string
@@ -274,23 +274,23 @@ export type CreateTaskInput = {
 
 export type UpdateTaskInput = Partial<Omit<Task, 'id' | 'created_at' | 'updated_at'>>
 
-export type CreateSessionInput = {
+export interface CreateSessionInput {
   task_id?: string
   runner: string
 }
 
-export type CreateMessageInput = {
+export interface CreateMessageInput {
   session_id: string
   data: unknown
 }
 
-export type GitlabFileSpaceConfig = {
+export interface GitlabFileSpaceConfig {
   repo: string
   host?: string
   access_token_secret_id?: string
 }
 
-export type GithubFileSpaceConfig = {
+export interface GithubFileSpaceConfig {
   repo: string
   host?: string
   access_token_secret_id?: string
@@ -348,7 +348,7 @@ export type CreateTaskSourceInput = {
 
 export type UpdateTaskSourceInput = Partial<CreateTaskSourceInput>
 
-export type WorkerRepository = {
+export interface WorkerRepository {
   id: string
   project_id: string
   source_gitlab: unknown
@@ -357,7 +357,7 @@ export type WorkerRepository = {
   updated_at: string
 }
 
-export type CreateWorkerRepositoryInput = {
+export interface CreateWorkerRepositoryInput {
   project_id: string
   source_gitlab: unknown
   current_version: string
@@ -365,7 +365,7 @@ export type CreateWorkerRepositoryInput = {
 
 export type UpdateWorkerRepositoryInput = Partial<Omit<CreateWorkerRepositoryInput, 'project_id'>>
 
-export type PipelineExecution = {
+export interface PipelineExecution {
   id: string
   session_id: string
   worker_repository_id: string
@@ -376,20 +376,20 @@ export type PipelineExecution = {
   updated_at: string
 }
 
-export type CreatePipelineExecutionInput = {
+export interface CreatePipelineExecutionInput {
   session_id: string
   worker_repository_id: string
   pipeline_id?: string
   status: 'pending' | 'running' | 'success' | 'failed' | 'canceled'
 }
 
-export type UpdatePipelineExecutionInput = {
+export interface UpdatePipelineExecutionInput {
   pipeline_id?: string
   status?: 'pending' | 'running' | 'success' | 'failed' | 'canceled'
   last_status_update?: string
 }
 
-export type PipelineArtifact = {
+export interface PipelineArtifact {
   id: string
   pipeline_execution_id: string
   artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text' | 'task_evaluation' | 'task_implementation'
@@ -398,7 +398,7 @@ export type PipelineArtifact = {
   created_at: string
 }
 
-export type CreatePipelineArtifactInput = {
+export interface CreatePipelineArtifactInput {
   pipeline_execution_id: string
   artifact_type: 'merge_request' | 'issue' | 'branch' | 'commit' | 'execution_result' | 'text' | 'task_evaluation' | 'task_implementation'
   reference_url: string
@@ -410,7 +410,7 @@ export type Result<T> =
   | { ok: false; error: string }
 
 // Worker Cache Types
-export type WorkerCache = {
+export interface WorkerCache {
   id: number
   issue_id: string
   project_id: string
@@ -423,19 +423,19 @@ export type WorkerCache = {
   updated_at: string
 }
 
-export type LockContext = {
+export interface LockContext {
   issueId: string
   workerId: string
   lockTimeoutSeconds?: number
 }
 
-export type SignalInfo = {
+export interface SignalInfo {
   issueId: string
   date: string
   taskId: string
 }
 
-export type Secret = {
+export interface Secret {
   id: string
   project_id: string
   name: string
@@ -453,7 +453,7 @@ export type Secret = {
   updated_at: string
 }
 
-export type CreateSecretInput = {
+export interface CreateSecretInput {
   project_id: string
   name: string
   value: string
@@ -465,7 +465,7 @@ export type CreateSecretInput = {
   scopes?: string
 }
 
-export type UpdateSecretInput = {
+export interface UpdateSecretInput {
   value?: string
   description?: string
   refresh_token?: string
@@ -473,7 +473,7 @@ export type UpdateSecretInput = {
   scopes?: string
 }
 
-export type UserAccess = {
+export interface UserAccess {
   id: string
   user_id: string
   entity_type: 'project' | 'task_source' | 'file_space' | 'secret' | 'task'
@@ -485,7 +485,7 @@ export type UserAccess = {
   created_at: string
 }
 
-export type CreateUserAccessInput = {
+export interface CreateUserAccessInput {
   user_id: string
   entity_type: 'project' | 'task_source' | 'file_space' | 'secret' | 'task'
   entity_id: string
@@ -497,7 +497,7 @@ export type CreateUserAccessInput = {
 
 export type IssueMetadata = GitlabMetadata | GithubMetadata | JiraMetadata;
 
-export type TaskSourceIssue = {
+export interface TaskSourceIssue {
   id: string;
   iid?: number | null;
   title: string;
@@ -506,29 +506,29 @@ export type TaskSourceIssue = {
   uniqueId: string;
   metadata: IssueMetadata;
   state?: 'opened' | 'closed';
-};
+}
 
-export type GitlabIssuesConfig = {
+export interface GitlabIssuesConfig {
   repo: string;
   labels: string[];
   host?: string;
   access_token_secret_id?: string;
-};
+}
 
-export type GithubIssuesConfig = {
+export interface GithubIssuesConfig {
   repo: string;
   labels?: string[];
   host?: string;
   access_token_secret_id?: string;
-};
+}
 
-export type TaskSourceJiraConfig = {
+export interface TaskSourceJiraConfig {
   project_key?: string; // Optional - can use jql_filter instead
   jql_filter?: string;
   host: string;
   access_token_secret_id?: string;
   cloud_id?: string; // Atlassian cloud ID for OAuth
-};
+}
 
 // API Usage Metrics Types
 export interface ApiUsageMetric {
@@ -589,7 +589,7 @@ export interface UsageMetricsFilters {
 }
 
 // API Keys Types
-export type ApiKeyPermissions = {
+export interface ApiKeyPermissions {
   pipeline_execute?: boolean
   read_project?: boolean
   write_project?: boolean
@@ -597,7 +597,7 @@ export type ApiKeyPermissions = {
   write_tasks?: boolean
 }
 
-export type ApiKey = {
+export interface ApiKey {
   id: string
   project_id: string
   name: string
@@ -616,14 +616,14 @@ export type ApiKeyWithSecret = ApiKey & {
   key: string // Only returned on creation
 }
 
-export type CreateApiKeyInput = {
+export interface CreateApiKeyInput {
   project_id: string
   name: string
   permissions?: ApiKeyPermissions
   expires_at?: string | null
 }
 
-export type UpdateApiKeyInput = {
+export interface UpdateApiKeyInput {
   name?: string
   permissions?: ApiKeyPermissions
 }

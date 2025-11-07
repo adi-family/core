@@ -93,13 +93,13 @@ export function createAdminHandlers(sql: Sql) {
     logger.info(`📦 Found ${repositories.length} worker repository(ies)`)
 
     const manager = new CIRepositoryManager()
-    const results: Array<{
+    const results: {
       project: string
       success: boolean
       error?: string
       filesUpdated?: number
-      fileErrors?: Array<{ file: string; error: string }>
-    }> = []
+      fileErrors?: { file: string; error: string }[]
+    }[] = []
 
     let successCount = 0
     let failedCount = 0

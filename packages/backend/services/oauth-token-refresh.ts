@@ -13,7 +13,7 @@ const logger = createLogger({ namespace: 'oauth-token-refresh' })
 /**
  * Check if a secret token is expired or expiring soon
  */
-export function isTokenExpiredOrExpiringSoon(secret: Secret, bufferMinutes: number = 5): boolean {
+export function isTokenExpiredOrExpiringSoon(secret: Secret, bufferMinutes = 5): boolean {
   if (!secret.expires_at) {
     return false // No expiration, assume valid
   }
@@ -161,7 +161,7 @@ export async function refreshJiraToken(sql: Sql, secret: Secret): Promise<string
 export async function getValidOAuthToken(
   sql: Sql,
   secretId: string,
-  bufferMinutes: number = 5
+  bufferMinutes = 5
 ): Promise<string> {
   const secret = await findSecretById(sql, secretId)
 

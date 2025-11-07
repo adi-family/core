@@ -25,21 +25,21 @@ import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 
 type TaskSourceType = 'gitlab_issues' | 'jira' | 'github_issues'
 
-type GitlabIssuesConfig = {
+interface GitlabIssuesConfig {
   repo: string
   labels: string[]
   host?: string
   access_token_secret_id?: string
 }
 
-type GithubIssuesConfig = {
+interface GithubIssuesConfig {
   repo: string
   labels?: string[]
   host?: string
   access_token_secret_id?: string
 }
 
-type JiraConfig = {
+interface JiraConfig {
   project_key?: string
   jql_filter?: string
   host: string
@@ -47,7 +47,7 @@ type JiraConfig = {
   cloud_id?: string
 }
 
-type Step = {
+interface Step {
   id: number
   title: string
   description: string

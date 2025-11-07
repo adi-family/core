@@ -42,7 +42,7 @@ export function TasksPage() {
   const [totalCount, setTotalCount] = useState(0)
   const observerTarget = useRef<HTMLDivElement>(null)
 
-  const fetchData = useCallback(async (pageNum: number = 1, append: boolean = false) => {
+  const fetchData = useCallback(async (pageNum = 1, append = false) => {
     if (append) {
       setLoadingMore(true)
     } else {

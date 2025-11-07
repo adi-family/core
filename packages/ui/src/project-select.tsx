@@ -4,7 +4,7 @@ import { Label } from './label'
 import { Check, Folder } from 'lucide-react'
 import type { BaseClient } from '@adi-family/http'
 
-export type Project = {
+export interface Project {
   id: string
   name: string
   created_at: string

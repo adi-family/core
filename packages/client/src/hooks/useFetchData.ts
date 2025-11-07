@@ -51,7 +51,7 @@ export function useFetchData<T>(
     fetchData().catch((err) => {
       console.error('Unexpected error in fetchData:', err)
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [options?.skip])
 
   return { data, loading, error, refetch: fetchData }
