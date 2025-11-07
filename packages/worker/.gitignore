@@ -1,6 +1,0 @@
-.turbo
-dist
-node_modules
-
-# Bundles need to be committed for GitLab CI (no build step in CI yet)
-# bundles

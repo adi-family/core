@@ -1,7 +1,0 @@
-@import "tailwindcss";
-@config "../tailwind.config.ts";
-
-* {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
