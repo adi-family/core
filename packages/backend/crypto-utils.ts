@@ -20,25 +20,22 @@ function getEncryptionKey(): string {
 export function decrypt(encryptedData: string): string {
   const key = getEncryptionKey();
 
-  // Decode from base64
   const buffer = Buffer.from(encryptedData, 'base64');
 
-  // Extract salt, IV, tag, and encrypted data
   const salt = buffer.subarray(0, SALT_LENGTH);
   const iv = buffer.subarray(SALT_LENGTH, SALT_LENGTH + IV_LENGTH);
   const tag = buffer.subarray(
     SALT_LENGTH + IV_LENGTH,
-    SALT_LENGTH + IV_LENGTH + TAG_LENGTH
+    SALT_LENGTH + IV_LENGTH + TAG_LENGTH,
   );
   const encrypted = buffer.subarray(SALT_LENGTH + IV_LENGTH + TAG_LENGTH);
 
-  // Derive key from password
   const derivedKey = crypto.pbkdf2Sync(
     key,
     salt,
     ITERATIONS,
     KEY_LENGTH,
-    'sha512'
+    'sha512',
   );
 
   // Create decipher
