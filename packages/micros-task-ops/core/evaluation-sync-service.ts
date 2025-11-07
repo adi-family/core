@@ -74,11 +74,11 @@ export async function syncTaskEvaluationStatus(
       logger.info(`🔄 Syncing task ${task.id} evaluation status (pipeline: ${pipelineStatus})`)
 
       if (pipelineStatus === 'success') {
-        await handleSuccessfulPipeline(sql, execution, task)
+        await handleSuccessfulPipeline(sql, execution, task as any)
       } else if (pipelineStatus === 'failed') {
-        await handleFailedPipeline(sql, task)
+        await handleFailedPipeline(sql, task as any)
       } else if (pipelineStatus === 'canceled') {
-        await handleCanceledPipeline(sql, task)
+        await handleCanceledPipeline(sql, task as any)
       }
     } else if (isImplementationPipeline) {
       // Only update if task is still in 'implementing' state

@@ -192,7 +192,7 @@ export async function updatePipelineStatus(executionId: string, sql: Sql): Promi
       logger.info(`✓ Updated pipeline execution status to: ${newStatus}`)
 
       // Sync task evaluation status if pipeline completed (using DB)
-      await syncTaskEvaluationStatus(sql, execution, newStatus)
+      await syncTaskEvaluationStatus(sql, execution as any, newStatus)
     } else {
       logger.info(`  No status change (still ${execution.status})`)
 
@@ -203,7 +203,7 @@ export async function updatePipelineStatus(executionId: string, sql: Sql): Promi
 
       // Also try to sync task status for completed pipelines we just discovered (using DB)
       if (['success', 'failed', 'canceled'].includes(execution.status)) {
-        await syncTaskEvaluationStatus(sql, execution, execution.status as 'success' | 'failed' | 'canceled')
+        await syncTaskEvaluationStatus(sql, execution as any, execution.status as 'success' | 'failed' | 'canceled')
       }
     }
   } catch (error) {
