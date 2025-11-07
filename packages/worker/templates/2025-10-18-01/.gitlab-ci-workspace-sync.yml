@@ -1,0 +1,46 @@
+##
+# Workspace Sync Pipeline
+# Syncs file space repositories as git submodules
+# Triggered when file spaces are created or updated
+##
+
+stages:
+  - sync
+
+variables:
+  GIT_STRATEGY: clone
+  GIT_DEPTH: 0
+  GIT_SUBMODULE_STRATEGY: none
+
+workspace-sync:
+  stage: sync
+  image: oven/bun:1.1.38
+
+  before_script:
+    # Install git
+    - apt-get update && apt-get install -y git
+
+    # Configure git
+    - git config --global user.email "ci@adi-simple.com"
+    - git config --global user.name "ADI CI"
+
+    # Navigate to binaries directory
+    - cd 2025-10-18-01
+
+  script:
+    # Sync workspaces (file spaces) as git submodules (worker binary)
+    - echo "🔄 Syncing workspace repositories..."
+    - chmod +x binaries/worker
+    - ./binaries/worker sync
+
+    # Show sync results
+    - echo "✅ Workspace sync completed"
+    - cd ../workspaces && ls -la || echo "No workspaces directory yet"
+
+  rules:
+    # Run on manual trigger or API trigger
+    - if: '$CI_PIPELINE_SOURCE == "api" || $CI_PIPELINE_SOURCE == "trigger" || $CI_PIPELINE_SOURCE == "web"'
+      when: always
+
+  tags:
+    - docker

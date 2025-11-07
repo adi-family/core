@@ -1,0 +1,184 @@
+# GitLab CI configuration for Claude AI implementation
+# This pipeline implements tasks using Claude Agent SDK
+
+stages:
+  - prepare
+  - execute
+  - report
+
+variables:
+  WORKER_IMAGE: "oven/bun:latest"
+  GIT_SUBMODULE_STRATEGY: none
+
+workflow:
+  rules:
+    # Only run on API/pipeline triggers or when SYNC_ONLY is set
+    - if: '$CI_PIPELINE_SOURCE == "api"'
+    - if: '$CI_PIPELINE_SOURCE == "trigger"'
+    - if: '$CI_PIPELINE_SOURCE == "pipeline"'
+    - if: '$SYNC_ONLY == "true"'
+    # Block all other automatic triggers (push, merge_request, etc.)
+    - when: never
+
+sync-only:
+  stage: prepare
+  image: $WORKER_IMAGE
+  tags:
+    - claude
+  script:
+    - echo "Syncing workspace repositories only (SYNC_ONLY mode)"
+    - echo "Installing git..."
+    - apt-get update && apt-get install -y git
+    - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
+    - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
+
+    # Configure git credentials for pushing
+    - |
+      if [ -n "$WORKER_REPO_TOKEN" ]; then
+        git config --global credential.helper store
+        echo "https://oauth2:${WORKER_REPO_TOKEN}@gitlab.com" > ~/.git-credentials
+        echo "✓ Worker repository credentials configured"
+      fi
+      if [ -n "$GITLAB_TOKEN" ]; then
+        echo "https://oauth2:${GITLAB_TOKEN}@gitlab.com" >> ~/.git-credentials
+        echo "✓ Workspace credentials configured"
+      fi
+
+    # Run sync-workspaces (worker binary)
+    - cd 2025-10-18-01
+    - chmod +x binaries/worker
+    - ./binaries/worker sync
+    - echo "✓ Submodules synced successfully"
+  rules:
+    - if: '$SYNC_ONLY == "true"'
+
+prepare:
+  stage: prepare
+  image: $WORKER_IMAGE
+  tags:
+    - claude
+  script:
+    - echo "✓ Using pre-bundled scripts, no installation needed"
+    - echo "SESSION_ID=$SESSION_ID"
+    - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
+    - echo "PROJECT_ID=$PROJECT_ID"
+
+    # Debug: Check if API credentials are available
+    - |
+      if [ -z "$API_BASE_URL" ]; then
+        echo "⚠️  Warning: API_BASE_URL is not set"
+      else
+        echo "✓ API_BASE_URL is set: $API_BASE_URL"
+      fi
+    - |
+      if [ -z "$API_TOKEN" ]; then
+        echo "❌ Error: API_TOKEN is not set"
+      else
+        echo "✓ API_TOKEN is set (length: ${#API_TOKEN})"
+      fi
+  rules:
+    - if: '$SYNC_ONLY == "true"'
+      when: never
+    - when: always
+
+execute:
+  stage: execute
+  image: $WORKER_IMAGE
+  tags:
+    - claude
+  script:
+    # Install git if not available (needed by worker for cloning)
+    - echo "Installing git..."
+    - apt-get update && apt-get install -y git curl
+    - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
+    - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
+
+    # Clean up old results from previous runs
+    - rm -rf 2025-10-18-01/results
+    - echo "✓ Cleaned up old results directory"
+
+    - cd 2025-10-18-01/worker-scripts
+
+    # Debug: Check if required variables are set
+    - echo "SESSION_ID=$SESSION_ID"
+    - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
+    - echo "PROJECT_ID=$PROJECT_ID"
+    - |
+      if [ -z "$API_BASE_URL" ]; then
+        echo "⚠️  Warning: API_BASE_URL is not set"
+      else
+        echo "✓ API_BASE_URL is set: $API_BASE_URL"
+      fi
+    - |
+      if [ -z "$API_TOKEN" ]; then
+        echo "❌ Error: API_TOKEN is not set"
+      else
+        echo "✓ API_TOKEN is set (length: ${#API_TOKEN})"
+      fi
+    - |
+      if [ -z "$ANTHROPIC_API_KEY" ]; then
+        echo "❌ Error: ANTHROPIC_API_KEY is not set"
+      else
+        echo "✓ ANTHROPIC_API_KEY is set (length: ${#ANTHROPIC_API_KEY})"
+      fi
+
+    # Update status to 'running'
+    - |
+      if [ -n "$API_BASE_URL" ]; then
+        bun -e "await fetch(process.env.API_BASE_URL + '/pipeline-executions/' + process.env.PIPELINE_EXECUTION_ID, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + process.env.API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({status:'running'}) })"
+      else
+        echo "⚠️  API_BASE_URL not set, skipping status update"
+      fi
+
+    # Run Claude implementation pipeline (worker binary) and capture exit code
+    - chmod +x ../binaries/worker
+    - ../binaries/worker claude || EXIT_CODE=$?
+    - EXIT_CODE=${EXIT_CODE:-0}
+
+    # Update status based on exit code
+    - |
+      if [ -n "$API_BASE_URL" ]; then
+        if [ $EXIT_CODE -eq 0 ]; then
+          bun -e "await fetch(process.env.API_BASE_URL + '/pipeline-executions/' + process.env.PIPELINE_EXECUTION_ID, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + process.env.API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({status:'success'}) })"
+        else
+          bun -e "await fetch(process.env.API_BASE_URL + '/pipeline-executions/' + process.env.PIPELINE_EXECUTION_ID, { method: 'PATCH', headers: { 'Authorization': 'Bearer ' + process.env.API_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({status:'failed'}) })"
+        fi
+      else
+        echo "⚠️  API_BASE_URL not set, skipping status update"
+      fi
+      exit $EXIT_CODE
+  artifacts:
+    paths:
+      - 2025-10-18-01/results/
+    expire_in: 7 days
+  rules:
+    - if: '$SYNC_ONLY == "true"'
+      when: never
+    - when: always
+
+report:
+  stage: report
+  image: $WORKER_IMAGE
+  tags:
+    - claude
+  script:
+    # Debug: Check if artifacts were downloaded
+    - ls -la 2025-10-18-01/ || echo "Directory not found"
+    - ls -la 2025-10-18-01/results/ || echo "Results directory not found"
+
+    # Install git for pushing changes to file spaces
+    - echo "Installing git..."
+    - apt-get update && apt-get install -y git
+    - git config --global user.email "${GITLAB_USER_EMAIL:-ci@adi-pipeline.dev}"
+    - git config --global user.name "${GITLAB_USER_NAME:-ADI Pipeline}"
+
+    # Upload implementation artifacts via our API (includes pushing to file spaces and creating MRs, worker binary)
+    - cd 2025-10-18-01
+    - chmod +x binaries/worker
+    - ./binaries/worker upload-results
+  dependencies:
+    - execute
+  rules:
+    - if: '$SYNC_ONLY == "true"'
+      when: never
+    - when: always

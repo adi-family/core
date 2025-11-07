@@ -1,0 +1,32 @@
+{
+  "name": "@adi-simple/worker",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently --names \"manager,binary\" -c \"cyan,magenta\" \"bun --env-file=../../.env --watch ci-repository-manager.ts\" \"bun scripts/build-bundles.ts watch\"",
+    "build": "bun build ci-repository-manager.ts --outdir dist --target bun && bun scripts/build-bundles.ts",
+    "build:binary": "bun scripts/build-bundles.ts binary",
+    "build:all": "bun scripts/build-bundles.ts all",
+    "build:bundles": "bun scripts/build-bundles.ts bundles",
+    "build:clean": "bun scripts/build-bundles.ts clean",
+    "start": "bun --env-file=../../.env ci-repository-manager.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "eslint ."
+  },
+  "dependencies": {
+    "@adi-simple/db": "*",
+    "@adi-simple/shared": "*",
+    "@adi-simple/types": "*",
+    "@adi-simple/utils": "*",
+    "@anthropic-ai/claude-agent-sdk": "^0.1.27",
+    "@anthropic-ai/sdk": "^0.67.0",
+    "@gitbeaker/rest": "^43.5.0",
+    "dotenv": "^17.2.3"
+  },
+  "devDependencies": {
+    "@types/bun": "latest",
+    "@types/node": "^24.7.1",
+    "typescript": "~5.9.3"
+  }
+}

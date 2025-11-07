@@ -1,0 +1,10 @@
+.turbo
+dist
+node_modules
+
+# Bundles need to be committed for GitLab CI (no build step in CI yet)
+# bundles
+
+# Large binaries - should be built in CI
+templates/*/binaries/
+templates/*/worker-scripts/node_modules/

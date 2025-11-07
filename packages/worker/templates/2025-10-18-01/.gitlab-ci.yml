@@ -1,0 +1,45 @@
+##
+# Main GitLab CI Configuration
+# Routes to different pipeline configs based on SYNC_TYPE or RUNNER_TYPE variable
+##
+
+# If SYNC_TYPE=workspace, run workspace sync
+# Otherwise, route to runner-specific configs (claude, evaluation, etc.)
+
+include:
+  - local: '.gitlab-ci-workspace-sync.yml'
+    rules:
+      - if: '$SYNC_TYPE == "workspace"'
+
+  # Runner-specific configs (triggered by RUNNER_TYPE variable)
+  - local: '.gitlab-ci-claude.yml'
+    rules:
+      - if: '$RUNNER_TYPE == "claude"'
+
+  - local: '.gitlab-ci-evaluation.yml'
+    rules:
+      - if: '$RUNNER_TYPE == "evaluation"'
+
+  - local: '.gitlab-ci-codex.yml'
+    rules:
+      - if: '$RUNNER_TYPE == "codex"'
+
+  - local: '.gitlab-ci-gemini.yml'
+    rules:
+      - if: '$RUNNER_TYPE == "gemini"'
+
+# Default: If no specific type is set, run workspace sync
+# This ensures that manually triggered pipelines default to workspace sync
+default:
+  interruptible: true
+
+workflow:
+  rules:
+    # Allow API triggers
+    - if: '$CI_PIPELINE_SOURCE == "api" || $CI_PIPELINE_SOURCE == "trigger"'
+      when: always
+    # Allow web/manual triggers
+    - if: '$CI_PIPELINE_SOURCE == "web"'
+      when: always
+    # Block all other triggers (like push, merge_request) unless explicitly needed
+    - when: never
