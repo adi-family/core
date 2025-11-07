@@ -1,0 +1,43 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalPassThroughEnv": ["*"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "build/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "typecheck": {
+      "dependsOn": ["^typecheck"],
+      "outputs": []
+    },
+    "lint": {
+      "dependsOn": ["^lint"],
+      "outputs": []
+    },
+    "tailwind:dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "tailwind:build": {
+      "dependsOn": [],
+      "outputs": ["src/assets/output.css"]
+    }
+  },
+  "globalEnv": [
+    "DATABASE_URL",
+    "CLERK_PUBLISHABLE_KEY",
+    "CLERK_SECRET_KEY",
+    "GITLAB_TOKEN",
+    "GITLAB_URL",
+    "ENCRYPTION_KEY",
+    "CLIENT_PORT",
+    "BACKEND_PORT",
+    "LANDING_PORT",
+    "GITLAB_RUNNER_API_URL",
+    "CLOUDFLARED_TUNNEL_TOKEN"
+  ]
+}
