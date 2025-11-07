@@ -96,13 +96,13 @@ export class CIRepositoryManager {
       description: `ADI Worker Repository for ${config.projectName}`,
     })
 
-    logger.info(`✓ Created GitLab project: ${project.path_with_namespace}`)
+    logger.info(`Created GitLab project: ${project.path_with_namespace}`)
 
     try {
       await client.enableExternalPipelineVariables(project.id.toString())
-      logger.info(`✓ Enabled external pipeline variables for project ${project.path_with_namespace}`)
+      logger.info(`Enabled external pipeline variables for project ${project.path_with_namespace}`)
     } catch (error) {
-      logger.warn(`⚠️  Failed to enable external pipeline variables: ${error instanceof Error ? error.message : String(error)}`)
+      logger.warn(`Failed to enable external pipeline variables: ${error instanceof Error ? error.message : String(error)}`)
     }
 
     return {

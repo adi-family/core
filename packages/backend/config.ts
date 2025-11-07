@@ -84,9 +84,6 @@ export const MOCK_MODE = process.env.MOCK_MODE === 'true'
 // Platform Anthropic Configuration
 // ============================================================================
 
-/**
- * Platform Anthropic configuration (uses direct API key, not secret reference)
- */
 export interface PlatformAnthropicConfig {
   type: 'cloud'
   api_key: string
@@ -95,10 +92,6 @@ export interface PlatformAnthropicConfig {
   temperature?: number
 }
 
-/**
- * Get platform Anthropic configuration for free tier evaluations
- * Returns null if PLATFORM_ANTHROPIC_API_KEY is not set
- */
 export function getPlatformAnthropicConfig(): PlatformAnthropicConfig | null {
   const apiKey = process.env.PLATFORM_ANTHROPIC_API_KEY
 

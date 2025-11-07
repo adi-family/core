@@ -1,9 +1,9 @@
 import { assertNever } from '@utils/assert-never';
-import type { TaskSource, TaskSourceIssue } from "@types";
+import type { TaskSource, TaskSourceConfig, TaskSourceIssue } from "@types";
 
 export abstract class BaseTaskSource {
   protected taskSource: TaskSource;
-  protected config: Record<string, unknown>;
+  protected config: TaskSourceConfig;
 
   constructor(taskSource: TaskSource) {
     switch (taskSource.type) {
@@ -28,7 +28,7 @@ export abstract class BaseTaskSource {
     }
 
     this.taskSource = taskSource;
-    this.config = taskSource.config as any;
+    this.config = taskSource.config;
   }
 
   abstract getIssues(): AsyncIterable<TaskSourceIssue>;

@@ -14,6 +14,7 @@ interface JiraSearchResponseIssue {
     updated?: string;
   };
 }
+
 interface JiraSearchResponse {
   total?: number;
   issues?: JiraSearchResponseIssue[];

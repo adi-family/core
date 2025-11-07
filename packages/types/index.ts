@@ -336,6 +336,8 @@ export type TaskSource = {
   | { type: 'github_issues'; config: GithubIssuesConfig }
   );
 
+export type TaskSourceConfig = GitlabIssuesConfig | TaskSourceJiraConfig | GithubIssuesConfig;
+
 export type CreateTaskSourceInput = {
   project_id: string
   name: string
