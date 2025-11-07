@@ -1,8 +1,3 @@
-/**
- * Pipeline Executor
- * Triggers GitLab CI pipelines for worker execution
- */
-
 import type { Sql } from 'postgres'
 import type { PipelineExecution, GitlabExecutorConfig, AIProviderConfig } from '@types'
 import type { BackendClient } from '../api-client'
@@ -145,18 +140,13 @@ async function ensureWorkerRepository(
   return workerRepo
 }
 
-/**
- * Validate and fetch all required context for pipeline execution
- */
 async function validateAndFetchPipelineContext(sessionId: string, sql: Sql): Promise<PipelineContext> {
-  // Fetch session directly from database (bypass authentication)
   const session = await findSessionById(sql, sessionId)
 
   if (!session.task_id) {
     throw new Error(`Session ${sessionId} has no associated task. Please ensure the session is properly configured.`)
   }
 
-  // Fetch task directly from database (bypass authentication)
   const task = await findTaskById(sql, session.task_id)
 
   if (!task.project_id) {
@@ -173,7 +163,6 @@ async function validateAndFetchPipelineContext(sessionId: string, sql: Sql): Pro
   const workerRepo = await ensureWorkerRepository(project, sql)
   const source = workerRepo.source_gitlab as unknown as GitLabSource
 
-  // Validate source configuration
   if (source.type !== 'gitlab') {
     throw new Error(`Unsupported worker repository type: ${source.type}. Only 'gitlab' is currently supported.`)
   }

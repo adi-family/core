@@ -10,15 +10,17 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
+    "build:all": "turbo run build; npm run worker:build:all",
     "typecheck": "turbo run typecheck",
     "lint": "eslint .",
     "lint:workspaces": "turbo run lint",
     "lint:fix": "eslint . --fix",
     "hooks:install": "sh hooks/install.sh",
     "db:reset": "sh scripts/reset-db.sh",
-    "worker:build": "npm run build:bundles --workspace=packages/worker",
-    "worker:build:watch": "npm run build:bundles:watch --workspace=packages/worker",
-    "worker:clean": "npm run build:bundles:clean --workspace=packages/worker"
+    "worker:build": "npm run build --workspace=packages/worker",
+    "worker:build:all": "npm run build:all --workspace=packages/worker",
+    "worker:build:binary": "npm run build:binary --workspace=packages/worker",
+    "worker:clean": "npm run build:clean --workspace=packages/worker"
   },
   "devDependencies": {
     "@eslint/js": "^9.36.0",

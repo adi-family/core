@@ -1,8 +1,3 @@
-/**
- * Backend configuration
- * Centralized environment variable access for backend services
- */
-
 import { DEFAULT_HOSTS, DEFAULT_MODELS, getProxyConfig as getProxyConfigFromShared, DEFAULT_PORTS, AI_MODEL_DEFAULTS } from '@adi-simple/config'
 
 // ============================================================================

@@ -137,19 +137,14 @@ export class CIRepositoryManager {
     const basePath = config.templateBasePath || this.templateBasePath
     const versionDir = join(basePath, versionPath)
 
-    // Check if bundles and binaries exist (now inside template directory)
-    const bundlesDir = join(basePath, versionPath, 'bundles')
+    // Check if binary exists
     const binariesDir = join(basePath, versionPath, 'binaries')
 
-    if (!existsSync(bundlesDir)) {
-      throw new Error(`❌ Bundles not found at ${bundlesDir}. Run: bun run build:bundles`)
-    }
-
     if (!existsSync(binariesDir)) {
-      throw new Error(`❌ Binaries not found at ${binariesDir}. Run: bun run build:binaries`)
+      throw new Error(`❌ Binary not found at ${binariesDir}. Run: bun run build:binaries`)
     }
 
-    const markerFilePath = `${versionPath}/binaries/evaluation-pipeline`
+    const markerFilePath = `${versionPath}/binaries/worker`
     if (!config.force) {
       try {
         await client.getFile(projectId, markerFilePath, 'main')
@@ -188,19 +183,7 @@ export class CIRepositoryManager {
       }
     }
 
-    // 2. Upload bundled JavaScript files (kept for backwards compatibility)
-    const bundleFiles = await getAllFiles(bundlesDir)
-    for (const bundleFile of bundleFiles) {
-      const bundlePath = join(bundlesDir, bundleFile)
-      const content = await readFile(bundlePath, 'utf-8')
-      filesToUpload.push({
-        path: `${versionPath}/bundles/${bundleFile}`,
-        content,
-      })
-      logger.info(`  📦 Prepared ${versionPath}/bundles/${bundleFile}`)
-    }
-
-    // 2b. Upload compiled binaries
+    // 2. Upload compiled binary
     const binaryFiles = await getAllFiles(binariesDir)
     for (const binaryFile of binaryFiles) {
       const binaryPath = join(binariesDir, binaryFile)
@@ -213,22 +196,7 @@ export class CIRepositoryManager {
       logger.info(`  🔨 Prepared ${versionPath}/binaries/${binaryFile}`)
     }
 
-    // 3. Upload shell scripts (still needed for workspace cloning)
-    const scriptsDir = join(versionDir, 'worker-scripts')
-    if (existsSync(scriptsDir)) {
-      const scriptFiles = await getAllFiles(scriptsDir)
-      const shellScripts = scriptFiles.filter(f => f.endsWith('.sh'))
-
-      for (const scriptFile of shellScripts) {
-        const scriptPath = join(scriptsDir, scriptFile)
-        const content = await readFile(scriptPath, 'utf-8')
-        filesToUpload.push({
-          path: `${versionPath}/worker-scripts/${scriptFile}`,
-          content,
-        })
-        logger.info(`  📜 Prepared ${versionPath}/worker-scripts/${scriptFile}`)
-      }
-    }
+    // Shell scripts are no longer needed - workspace cloning is handled in the binary
 
     // Also upload root .gitlab-ci.yml that routes to versioned config
     const rootCiPath = join(basePath, '.gitlab-ci.yml')
@@ -245,12 +213,12 @@ export class CIRepositoryManager {
 
     // Upload all files in a single batch commit
     const commitMessage = config.force
-      ? `🔨 Admin refresh: Update ${filesToUpload.length} files for version ${versionPath} (binaries + bundles)`
-      : `🔨 Upload CI files for version ${versionPath} (${filesToUpload.length} files, binaries + bundles)`
+      ? `🔨 Admin refresh: Update ${filesToUpload.length} files for version ${versionPath} (single worker binary)`
+      : `🔨 Upload CI files for version ${versionPath} (${filesToUpload.length} files, single worker binary)`
     await client.uploadFiles(projectId, filesToUpload, commitMessage, 'main')
 
     logger.info(`✅ Successfully uploaded ${filesToUpload.length} files for version ${versionPath} in a single commit`)
-    logger.info(`   ${binaryFiles.length} binaries, ${bundleFiles.length} bundles, ${ciConfigs.length} CI configs`)
+    logger.info(`   ${binaryFiles.length} binary, ${ciConfigs.length} CI configs`)
     return filesToUpload.length
   }
 

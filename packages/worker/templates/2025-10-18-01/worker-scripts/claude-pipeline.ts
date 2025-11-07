@@ -9,6 +9,7 @@ import { createLogger } from './shared/logger'
 import { basename } from 'path'
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import { pushToFileSpaces } from './push-to-file-spaces'
+import { cloneWorkspaces } from './shared/workspace-cloner'
 
 const exec = promisify(execCallback)
 const logger = createLogger({ namespace: 'claude-pipeline' })
@@ -292,6 +293,13 @@ async function main() {
   logger.info('🤖 Claude Pipeline Started')
 
   try {
+    // Clone workspaces if FILE_SPACES is provided
+    if (process.env.FILE_SPACES) {
+      logger.info('📦 Cloning workspaces...')
+      await cloneWorkspaces()
+      logger.info('✅ Workspaces cloned successfully')
+    }
+
     // Validate environment
     const env = validateEnvironment([
       'SESSION_ID',

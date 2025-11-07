@@ -82,48 +82,41 @@ async function buildBinaries() {
   // Create binaries directory
   await mkdir(BINARIES_DIR, { recursive: true })
 
-  console.log('🔨 Building worker pipeline binaries...\n')
+  console.log('🔨 Building single worker binary...\n')
 
-  let totalSize = 0
-  let successCount = 0
+  const input = join(SCRIPTS_DIR, 'worker.ts')
+  const output = join(BINARIES_DIR, 'worker')
 
-  for (const pipeline of PIPELINES) {
-    const input = join(SCRIPTS_DIR, `${pipeline}.ts`)
-    const output = join(BINARIES_DIR, pipeline)
-
-    // Check if input file exists
-    if (!existsSync(input)) {
-      console.log(`  ⏭️  Skipping ${pipeline} (not found)`)
-      continue
-    }
-
-    console.log(`  Compiling ${pipeline}...`)
-
-    try {
-      const result = await $`bun build --compile ${input} --outfile=${output}`.quiet()
-
-      if (result.exitCode === 0) {
-        const size = Bun.file(output).size
-        totalSize += size
-        successCount++
-        console.log(`    ✅ ${(size / 1024 / 1024).toFixed(1)} MB`)
-      } else {
-        console.error(`    ❌ Failed to compile ${pipeline}`)
-        console.error(result.stderr.toString())
-      }
-    } catch (error) {
-      console.error(`    ❌ Error compiling ${pipeline}:`, error)
-    }
+  // Check if input file exists
+  if (!existsSync(input)) {
+    console.error(`❌ Worker entry point not found at ${input}`)
+    return false
   }
 
-  const duration = Date.now() - startTime
+  console.log(`  Compiling worker binary...`)
 
-  console.log(`\n✅ Compiled ${successCount}/${PIPELINES.length} binaries in ${duration}ms`)
-  console.log(`📁 Total size: ${(totalSize / 1024 / 1024).toFixed(1)} MB`)
-  console.log(`📂 Output: ${BINARIES_DIR}/\n`)
+  try {
+    const result = await $`bun build --compile ${input} --outfile=${output}`.quiet()
 
-  // Always return true - missing pipelines are optional
-  return true
+    if (result.exitCode === 0) {
+      const size = Bun.file(output).size
+      const duration = Date.now() - startTime
+
+      console.log(`    ✅ ${(size / 1024 / 1024).toFixed(1)} MB`)
+      console.log(`\n✅ Compiled worker binary in ${duration}ms`)
+      console.log(`📁 Size: ${(size / 1024 / 1024).toFixed(1)} MB`)
+      console.log(`📂 Output: ${output}\n`)
+
+      return true
+    } else {
+      console.error(`    ❌ Failed to compile worker binary`)
+      console.error(result.stderr.toString())
+      return false
+    }
+  } catch (error) {
+    console.error(`    ❌ Error compiling worker binary:`, error)
+    return false
+  }
 }
 
 async function watchMode() {
@@ -202,21 +195,18 @@ switch (command) {
     await cleanBundles()
     await cleanBinaries()
     break
-  case 'binaries':
+  case 'bundles':
+    {
+      const success = await buildBundles()
+      process.exit(success ? 0 : 1)
+    }
+    break
+  case 'all':
+  case 'binary':
+  default:
     {
       const success = await buildBinaries()
       process.exit(success ? 0 : 1)
     }
     break
-  case 'all':
-    {
-      const bundlesSuccess = await buildBundles()
-      const binariesSuccess = await buildBinaries()
-      process.exit(bundlesSuccess && binariesSuccess ? 0 : 1)
-    }
-    break
-  default: {
-    const success = await buildBundles()
-    process.exit(success ? 0 : 1)
-  }
 }

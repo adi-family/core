@@ -13,6 +13,7 @@ import { existsSync } from 'fs'
 import { resolve } from 'path'
 import { fileURLToPath } from 'url'
 import { readFile, readdir } from 'fs/promises'
+import { cloneWorkspaces } from './shared/workspace-cloner'
 
 const logger = createLogger({ namespace: 'evaluation-pipeline' })
 
@@ -497,6 +498,13 @@ async function main() {
   logger.info('ℹ️  Simple evaluation already completed in microservice - running advanced evaluation only')
 
   try {
+    // Clone workspaces if FILE_SPACES is provided
+    if (process.env.FILE_SPACES) {
+      logger.info('📦 Cloning workspaces...')
+      await cloneWorkspaces()
+      logger.info('✅ Workspaces cloned successfully')
+    }
+
     // Validate environment
     const env = validateEnvironment([
       'SESSION_ID',

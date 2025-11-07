@@ -44,10 +44,10 @@ sync-only:
         echo "✓ Workspace credentials configured"
       fi
 
-    # Run sync-workspaces (binary version)
+    # Run sync-workspaces (worker binary)
     - cd 2025-10-18-01
-    - chmod +x binaries/sync-workspaces
-    - ./binaries/sync-workspaces
+    - chmod +x binaries/worker
+    - ./binaries/worker sync
     - echo "✓ Submodules synced successfully"
   rules:
     - if: '$SYNC_ONLY == "true"'
@@ -87,28 +87,11 @@ execute:
   tags:
     - evaluation
   script:
-    # Install git if not available
+    # Install git if not available (needed by worker for cloning)
     - echo "Installing git..."
     - apt-get update && apt-get install -y git curl
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
-
-    # Clone target repositories if FILE_SPACES is provided
-    - |
-      if [ -n "$FILE_SPACES" ]; then
-        echo "📦 Cloning workspace repositories..."
-        cd 2025-10-18-01/worker-scripts
-        chmod +x clone-workspace.sh
-        ./clone-workspace.sh
-        source /tmp/workspace-env.sh
-        echo "✓ Cloned $WORKSPACE_COUNT workspace(s)"
-        echo "✓ Workspace base dir: /tmp/workspace-${PIPELINE_EXECUTION_ID}"
-        echo "✓ Primary workspace: $WORKSPACE_DIR"
-        echo "✓ Branch: $WORKSPACE_BRANCH"
-        cd ../..
-      else
-        echo "ℹ️  No FILE_SPACES provided, skipping workspace clone"
-      fi
 
     # Clean up old results from previous runs
     - rm -rf 2025-10-18-01/results
@@ -147,9 +130,9 @@ execute:
         echo "⚠️  API_BASE_URL not set, skipping status update"
       fi
 
-    # Run evaluation pipeline (binary version) and capture exit code
-    - chmod +x ../binaries/evaluation-pipeline
-    - ../binaries/evaluation-pipeline || EXIT_CODE=$?
+    # Run evaluation pipeline (worker binary) and capture exit code
+    - chmod +x ../binaries/worker
+    - ../binaries/worker evaluation || EXIT_CODE=$?
     - EXIT_CODE=${EXIT_CODE:-0}
 
     # Update status based on exit code
@@ -183,10 +166,10 @@ report:
     - ls -la 2025-10-18-01/ || echo "Directory not found"
     - ls -la 2025-10-18-01/results/ || echo "Results directory not found"
 
-    # Upload evaluation artifacts via our API (binary version)
+    # Upload evaluation artifacts via our API (worker binary)
     - cd 2025-10-18-01
-    - chmod +x binaries/upload-evaluation-results
-    - ./binaries/upload-evaluation-results
+    - chmod +x binaries/worker
+    - ./binaries/worker upload-evaluation
   dependencies:
     - execute
   rules:
