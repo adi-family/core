@@ -149,20 +149,23 @@ export class GitLabApiClient {
   private host: string
   private token: string
   private tokenType: 'oauth' | 'pat'
+  private defaultTimeout: number
 
-  constructor(host: string, token: string, tokenType: 'oauth' | 'pat' = 'pat') {
+  constructor(host: string, token: string, tokenType: 'oauth' | 'pat' = 'pat', defaultTimeout = 30000) {
     this.host = host.replace(/\/$/, '')
     this.token = token
     this.tokenType = tokenType
+    this.defaultTimeout = defaultTimeout
   }
 
   /**
-   * Make a GitLab API request
+   * Make a GitLab API request with configurable timeout
    */
   private async request<T>(
     method: string,
     endpoint: string,
-    body?: any
+    body?: any,
+    timeoutMs?: number
   ): Promise<T> {
     const url = `${this.host}/api/v4${endpoint}`
     const headers: Record<string, string> = {
@@ -176,25 +179,39 @@ export class GitLabApiClient {
       headers['PRIVATE-TOKEN'] = this.token
     }
 
+    const timeout = timeoutMs ?? this.defaultTimeout
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), timeout)
+
     const options: RequestInit = {
       method,
       headers,
+      signal: controller.signal,
     }
 
     if (body) {
       options.body = JSON.stringify(body)
     }
 
-    const response = await fetch(url, options)
+    try {
+      const response = await fetch(url, options)
+      clearTimeout(timeoutId)
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      throw new Error(
-        `GitLab API error: ${response.status} ${response.statusText} - ${errorText}`
-      )
+      if (!response.ok) {
+        const errorText = await response.text()
+        throw new Error(
+          `GitLab API error: ${response.status} ${response.statusText} - ${errorText}`
+        )
+      }
+
+      return response.json() as Promise<T>
+    } catch (error) {
+      clearTimeout(timeoutId)
+      if (error instanceof Error && error.name === 'AbortError') {
+        throw new Error(`GitLab API request timeout after ${timeout}ms`)
+      }
+      throw error
     }
-
-    return response.json() as Promise<T>
   }
 
   /**
@@ -241,12 +258,21 @@ export class GitLabApiClient {
 
   /**
    * Upload a file to a repository
+   * @param timeoutMs - Optional timeout in milliseconds (default: auto-calculated based on content size)
    */
   async createFile(
     projectId: string,
     filePath: string,
-    input: GitLabFileCreateInput
+    input: GitLabFileCreateInput,
+    timeoutMs?: number
   ): Promise<void> {
+    // Auto-calculate timeout based on content size for large files
+    const contentSize = input.content.length
+    const contentSizeMB = contentSize / (1024 * 1024)
+    // 2 minutes base + 1 minute per 10MB (minimum 2 minutes, maximum 15 minutes)
+    const autoTimeout = Math.min(Math.max(120000 + (contentSizeMB / 10) * 60000, 120000), 900000)
+    const timeout = timeoutMs ?? autoTimeout
+
     await this.request(
       'POST',
       `/projects/${encodeURIComponent(projectId)}/repository/files/${encodeURIComponent(filePath)}`,
@@ -255,18 +281,28 @@ export class GitLabApiClient {
         content: input.content,
         commit_message: input.commit_message,
         encoding: input.encoding || 'text',
-      }
+      },
+      timeout
     )
   }
 
   /**
    * Update an existing file in a repository
+   * @param timeoutMs - Optional timeout in milliseconds (default: auto-calculated based on content size)
    */
   async updateFile(
     projectId: string,
     filePath: string,
-    input: GitLabFileCreateInput
+    input: GitLabFileCreateInput,
+    timeoutMs?: number
   ): Promise<void> {
+    // Auto-calculate timeout based on content size for large files
+    const contentSize = input.content.length
+    const contentSizeMB = contentSize / (1024 * 1024)
+    // 2 minutes base + 1 minute per 10MB (minimum 2 minutes, maximum 15 minutes)
+    const autoTimeout = Math.min(Math.max(120000 + (contentSizeMB / 10) * 60000, 120000), 900000)
+    const timeout = timeoutMs ?? autoTimeout
+
     await this.request(
       'PUT',
       `/projects/${encodeURIComponent(projectId)}/repository/files/${encodeURIComponent(filePath)}`,
@@ -275,7 +311,8 @@ export class GitLabApiClient {
         content: input.content,
         commit_message: input.commit_message,
         encoding: input.encoding || 'text',
-      }
+      },
+      timeout
     )
   }
 
@@ -483,11 +520,15 @@ export class GitLabApiClient {
 
   /**
    * Create a batch commit with multiple file actions (create/update/delete)
+   * @param timeoutMs - Optional timeout in milliseconds (default: 5 minutes for large uploads)
    */
   async batchCommit(
     projectId: string,
-    input: GitLabBatchCommitInput
+    input: GitLabBatchCommitInput,
+    timeoutMs?: number
   ): Promise<GitLabCommit> {
+    // Default to 5 minutes for batch commits (large file uploads)
+    const timeout = timeoutMs ?? 300000
     return this.request<GitLabCommit>(
       'POST',
       `/projects/${encodeURIComponent(projectId)}/repository/commits`,
@@ -504,19 +545,30 @@ export class GitLabApiClient {
         })),
         author_email: input.authorEmail,
         author_name: input.authorName,
-      }
+      },
+      timeout
     )
   }
 
   /**
    * Upload multiple files in a single commit
+   * @param timeoutMs - Optional timeout in milliseconds (default: auto-calculated based on file sizes)
    */
   async uploadFiles(
     projectId: string,
     files: { path: string; content: string; encoding?: 'text' | 'base64' }[],
     commitMessage: string,
-    branch = 'main'
+    branch = 'main',
+    timeoutMs?: number
   ): Promise<GitLabCommit> {
+    // Calculate total size for timeout estimation
+    const totalSize = files.reduce((sum, file) => sum + file.content.length, 0)
+    const totalSizeMB = totalSize / (1024 * 1024)
+
+    // Auto-calculate timeout: 5 minutes base + 1 minute per MB (minimum 5 minutes, maximum 15 minutes)
+    const autoTimeout = Math.min(Math.max(300000 + (totalSizeMB * 60000), 300000), 900000)
+    const timeout = timeoutMs ?? autoTimeout
+
     // Prepare file actions - try to determine if file exists
     const actions: GitLabFileAction[] = await Promise.all(
       files.map(async (file) => {
@@ -547,7 +599,7 @@ export class GitLabApiClient {
       branch,
       commitMessage: commitMessage,
       actions,
-    })
+    }, timeout)
   }
 
   /**
@@ -661,7 +713,7 @@ export class GitLabApiClient {
             actions,
             authorEmail: options?.authorEmail,
             authorName: options?.authorName,
-          }),
+          }, options?.timeoutMs),
       },
     }
   }

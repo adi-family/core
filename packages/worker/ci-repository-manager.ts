@@ -1,11 +1,13 @@
 import { GitLabApiClient } from '../shared/gitlab-api-client'
-import { readFile } from 'fs/promises'
+import { readFile, writeFile, mkdir, rm } from 'fs/promises'
 import { join } from 'path'
 import { existsSync } from 'fs'
 import { encrypt, decrypt } from '../shared/crypto-utils'
 import { createLogger } from '../utils/logger'
 import { assertNever } from "@utils/assert-never.ts"
 import { getAllFiles } from '@utils/file-system'
+import { execSync } from 'child_process'
+import { tmpdir } from 'os'
 
 const logger = createLogger({ namespace: 'ci-repository-manager' })
 
@@ -121,6 +123,112 @@ export class CIRepositoryManager {
     }
   }
 
+  /**
+   * Upload a single file using git directly (bypasses API/nginx timeouts)
+   */
+  private async uploadFileViaGit(
+    repoUrl: string,
+    accessToken: string,
+    file: { path: string; content: string; encoding?: 'text' | 'base64' },
+    commitMessage: string,
+    branch = 'main'
+  ): Promise<void> {
+    const tmpDir = join(tmpdir(), `gitlab-upload-${Date.now()}`)
+
+    try {
+      // Create temp directory
+      await mkdir(tmpDir, { recursive: true })
+
+      // Clone repository (shallow clone, single branch)
+      const repoUrlWithToken = repoUrl.replace('https://', `https://oauth2:${accessToken}@`)
+
+      // Configure git to handle large files better
+      execSync(`git clone --depth 1 --single-branch --branch ${branch} "${repoUrlWithToken}" .`, {
+        cwd: tmpDir,
+        stdio: 'pipe',
+        env: {
+          ...process.env,
+          GIT_HTTP_MAX_REQUEST_BUFFER: '524288000', // 500MB buffer
+        }
+      })
+
+      // Configure git settings for large files
+      execSync('git config http.postBuffer 524288000', { cwd: tmpDir, stdio: 'pipe' }) // 500MB
+      execSync('git config http.lowSpeedLimit 0', { cwd: tmpDir, stdio: 'pipe' })
+      execSync('git config http.lowSpeedTime 999999', { cwd: tmpDir, stdio: 'pipe' })
+
+      const filePath = join(tmpDir, file.path)
+      const fileDir = join(filePath, '..')
+
+      // Create directory if needed
+      await mkdir(fileDir, { recursive: true })
+
+      // Write file content
+      if (file.encoding === 'base64') {
+        await writeFile(filePath, Buffer.from(file.content, 'base64'))
+      } else {
+        await writeFile(filePath, file.content, 'utf-8')
+      }
+
+      // Git add file
+      execSync(`git add "${file.path}"`, { cwd: tmpDir, stdio: 'pipe' })
+
+      // Check if there are changes to commit
+      const status = execSync('git status --porcelain', { cwd: tmpDir, encoding: 'utf-8' })
+      if (!status.trim()) {
+        logger.info(`✓ File ${file.path} already up to date`)
+        return
+      }
+
+      // Commit
+      execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, {
+        cwd: tmpDir,
+        stdio: 'pipe',
+      })
+
+      // Push with retry logic
+      let pushAttempts = 0
+      const maxAttempts = 3
+      while (pushAttempts < maxAttempts) {
+        try {
+          execSync(`git push origin ${branch}`, {
+            cwd: tmpDir,
+            stdio: 'pipe',
+            env: {
+              ...process.env,
+              GIT_HTTP_MAX_REQUEST_BUFFER: '524288000',
+            }
+          })
+          break
+        } catch (error) {
+          // Check if error is "Everything up-to-date" - this is not a real failure
+          const stderr = error instanceof Error && 'stderr' in error
+            ? String((error as any).stderr)
+            : ''
+
+          if (stderr.includes('Everything up-to-date')) {
+            logger.info('Repository already up-to-date, ignoring push error')
+            break
+          }
+
+          pushAttempts++
+          if (pushAttempts >= maxAttempts) {
+            throw error
+          }
+          logger.warn(`Push attempt ${pushAttempts} failed, retrying...`)
+          await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2s before retry
+        }
+      }
+    } finally {
+      // Clean up temp directory
+      try {
+        await rm(tmpDir, { recursive: true, force: true })
+      } catch (error) {
+        logger.warn(`Failed to clean up temp directory: ${error instanceof Error ? error.message : String(error)}`)
+      }
+    }
+  }
+
   private async uploadCIFilesGitlab(config: UploadCIFilesConfigGitlab): Promise<number> {
     const client = new GitLabApiClient(
       config.source.host,
@@ -139,7 +247,7 @@ export class CIRepositoryManager {
       throw new Error(`❌ Binary not found at ${binariesDir}. Run: bun run build:binaries`)
     }
 
-    const markerFilePath = `${versionPath}/binaries/worker`
+    const markerFilePath = `${versionPath}/binaries/worker.js`
     if (!config.force) {
       try {
         await client.getFile(projectId, markerFilePath, 'main')
@@ -152,9 +260,10 @@ export class CIRepositoryManager {
       logger.info(`📤 Force uploading CI files for version ${versionPath}...`)
     }
 
-    const filesToUpload: { path: string; content: string; encoding?: 'text' | 'base64' }[] = []
+    const configFiles: { path: string; content: string; encoding?: 'text' | 'base64' }[] = []
+    const binaryFilesToUpload: { path: string; content: string; encoding: 'base64'; size: number }[] = []
 
-    // 1. Upload GitLab CI configuration files
+    // 1. Prepare GitLab CI configuration files
     const ciConfigs = [
       '.gitlab-ci.yml',
       '.gitlab-ci-evaluation.yml',
@@ -168,7 +277,7 @@ export class CIRepositoryManager {
       const configPath = join(versionDir, configFile)
       try {
         const content = await readFile(configPath, 'utf-8')
-        filesToUpload.push({
+        configFiles.push({
           path: `${versionPath}/${configFile}`,
           content,
         })
@@ -178,26 +287,27 @@ export class CIRepositoryManager {
       }
     }
 
-    // 2. Upload compiled binary
+    // 2. Prepare compiled binaries
     const binaryFiles = await getAllFiles(binariesDir)
     for (const binaryFile of binaryFiles) {
       const binaryPath = join(binariesDir, binaryFile)
       const content = await readFile(binaryPath)
-      filesToUpload.push({
+      const size = content.length
+      binaryFilesToUpload.push({
         path: `${versionPath}/binaries/${binaryFile}`,
         content: content.toString('base64'),
         encoding: 'base64',
+        size,
       })
-      logger.info(`  🔨 Prepared ${versionPath}/binaries/${binaryFile}`)
+      const sizeMB = (size / (1024 * 1024)).toFixed(2)
+      logger.info(`  🔨 Prepared ${versionPath}/binaries/${binaryFile} (${sizeMB}MB)`)
     }
-
-    // Shell scripts are no longer needed - workspace cloning is handled in the binary
 
     // Also upload root .gitlab-ci.yml that routes to versioned config
     const rootCiPath = join(basePath, '.gitlab-ci.yml')
     try {
       const rootCiContent = await readFile(rootCiPath, 'utf-8')
-      filesToUpload.push({
+      configFiles.push({
         path: '.gitlab-ci.yml',
         content: rootCiContent,
       })
@@ -206,15 +316,60 @@ export class CIRepositoryManager {
       logger.warn(`⚠️  Root .gitlab-ci.yml not found at ${rootCiPath}, skipping`)
     }
 
-    // Upload all files in a single batch commit
-    const commitMessage = config.force
-      ? `🔨 Admin refresh: Update ${filesToUpload.length} files for version ${versionPath} (single worker binary)`
-      : `🔨 Upload CI files for version ${versionPath} (${filesToUpload.length} files, single worker binary)`
-    await client.uploadFiles(projectId, filesToUpload, commitMessage, 'main')
+    let totalFilesUploaded = 0
 
-    logger.info(`✅ Successfully uploaded ${filesToUpload.length} files for version ${versionPath} in a single commit`)
-    logger.info(`   ${binaryFiles.length} binary, ${ciConfigs.length} CI configs`)
-    return filesToUpload.length
+    // Upload CI configuration files in a batch (they're small)
+    if (configFiles.length > 0) {
+      const configCommitMessage = config.force
+        ? `📝 Admin refresh: Update ${configFiles.length} CI config files for version ${versionPath}`
+        : `📝 Upload CI config files for version ${versionPath} (${configFiles.length} files)`
+
+      logger.info(`📦 Uploading ${configFiles.length} CI config files in batch...`)
+      await client.uploadFiles(projectId, configFiles, configCommitMessage, 'main')
+      logger.info(`✅ Successfully uploaded ${configFiles.length} CI config files`)
+      totalFilesUploaded += configFiles.length
+    }
+
+    // Upload binaries via git one at a time (avoids git HTTP backend limits)
+    if (binaryFilesToUpload.length > 0) {
+      const totalBinarySize = binaryFilesToUpload.reduce((sum, b) => sum + b.size, 0)
+      const totalSizeMB = (totalBinarySize / (1024 * 1024)).toFixed(2)
+
+      logger.info(`📦 Uploading ${binaryFilesToUpload.length} binaries via git (${totalSizeMB}MB total)...`)
+      logger.info(`   Uploading one at a time to avoid git HTTP backend limits`)
+
+      // Get project details to construct repo URL
+      const project = await client.getProject(projectId)
+      const accessToken = decrypt(config.source.access_token_encrypted)
+
+      // Upload binaries one at a time to avoid 502 errors
+      for (let i = 0; i < binaryFilesToUpload.length; i++) {
+        const binary = binaryFilesToUpload[i]!
+        const sizeMB = (binary.size / (1024 * 1024)).toFixed(2)
+
+        const binaryCommitMessage = config.force
+          ? `🔨 Admin refresh: Update binary ${binary.path} (${sizeMB}MB)`
+          : `🔨 Upload binary ${binary.path} (${sizeMB}MB)`
+
+        logger.info(`📦 [${i + 1}/${binaryFilesToUpload.length}] Uploading ${binary.path} (${sizeMB}MB)...`)
+
+        await this.uploadFileViaGit(
+          project.http_url_to_repo,
+          accessToken,
+          binary,
+          binaryCommitMessage,
+          'main'
+        )
+
+        logger.info(`✅ [${i + 1}/${binaryFilesToUpload.length}] Successfully uploaded ${binary.path}`)
+        totalFilesUploaded++
+      }
+
+      logger.info(`✅ Successfully uploaded all ${binaryFilesToUpload.length} binaries (${totalSizeMB}MB total)`)
+    }
+
+    logger.info(`✅ Upload complete: ${totalFilesUploaded} total files (${binaryFilesToUpload.length} binaries, ${configFiles.length} configs)`)
+    return totalFilesUploaded
   }
 
   async uploadCIFiles(config: UploadCIFilesConfig): Promise<number> {
