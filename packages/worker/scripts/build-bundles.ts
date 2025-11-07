@@ -11,8 +11,9 @@ import { existsSync } from 'fs'
 import { watch } from 'fs'
 
 const VERSION = '2025-10-18-01'
-const SCRIPTS_DIR = `packages/worker/templates/${VERSION}/worker-scripts`
-const BUNDLES_DIR = `packages/worker/templates/${VERSION}/bundles`
+const SCRIPTS_DIR = `templates/${VERSION}/worker-scripts`
+const BUNDLES_DIR = `templates/${VERSION}/bundles`
+const BINARIES_DIR = `templates/${VERSION}/binaries`
 
 const PIPELINES = [
   'evaluation-pipeline',
@@ -75,6 +76,56 @@ async function buildBundles() {
   return true
 }
 
+async function buildBinaries() {
+  const startTime = Date.now()
+
+  // Create binaries directory
+  await mkdir(BINARIES_DIR, { recursive: true })
+
+  console.log('🔨 Building worker pipeline binaries...\n')
+
+  let totalSize = 0
+  let successCount = 0
+
+  for (const pipeline of PIPELINES) {
+    const input = join(SCRIPTS_DIR, `${pipeline}.ts`)
+    const output = join(BINARIES_DIR, pipeline)
+
+    // Check if input file exists
+    if (!existsSync(input)) {
+      console.log(`  ⏭️  Skipping ${pipeline} (not found)`)
+      continue
+    }
+
+    console.log(`  Compiling ${pipeline}...`)
+
+    try {
+      const result = await $`bun build --compile ${input} --outfile=${output}`.quiet()
+
+      if (result.exitCode === 0) {
+        const size = Bun.file(output).size
+        totalSize += size
+        successCount++
+        console.log(`    ✅ ${(size / 1024 / 1024).toFixed(1)} MB`)
+      } else {
+        console.error(`    ❌ Failed to compile ${pipeline}`)
+        console.error(result.stderr.toString())
+      }
+    } catch (error) {
+      console.error(`    ❌ Error compiling ${pipeline}:`, error)
+    }
+  }
+
+  const duration = Date.now() - startTime
+
+  console.log(`\n✅ Compiled ${successCount}/${PIPELINES.length} binaries in ${duration}ms`)
+  console.log(`📁 Total size: ${(totalSize / 1024 / 1024).toFixed(1)} MB`)
+  console.log(`📂 Output: ${BINARIES_DIR}/\n`)
+
+  // Always return true - missing pipelines are optional
+  return true
+}
+
 async function watchMode() {
   console.log('👀 Watch mode enabled\n')
   console.log('Watching:')
@@ -129,6 +180,16 @@ async function cleanBundles() {
   }
 }
 
+async function cleanBinaries() {
+  console.log('🧹 Cleaning binaries directory...')
+  if (existsSync(BINARIES_DIR)) {
+    await rm(BINARIES_DIR, { recursive: true, force: true })
+    console.log('✅ Binaries cleaned')
+  } else {
+    console.log('ℹ️  Nothing to clean')
+  }
+}
+
 // CLI
 const args = process.argv.slice(2)
 const command = args[0]
@@ -139,6 +200,20 @@ switch (command) {
     break
   case 'clean':
     await cleanBundles()
+    await cleanBinaries()
+    break
+  case 'binaries':
+    {
+      const success = await buildBinaries()
+      process.exit(success ? 0 : 1)
+    }
+    break
+  case 'all':
+    {
+      const bundlesSuccess = await buildBundles()
+      const binariesSuccess = await buildBinaries()
+      process.exit(bundlesSuccess && binariesSuccess ? 0 : 1)
+    }
     break
   default: {
     const success = await buildBundles()

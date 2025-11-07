@@ -10,12 +10,9 @@ import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'oauth-token-refresh' })
 
-/**
- * Check if a secret token is expired or expiring soon
- */
 export function isTokenExpiredOrExpiringSoon(secret: Secret, bufferMinutes = 5): boolean {
   if (!secret.expires_at) {
-    return false // No expiration, assume valid
+    return false
   }
 
   const expiresAt = new Date(secret.expires_at)
@@ -25,9 +22,6 @@ export function isTokenExpiredOrExpiringSoon(secret: Secret, bufferMinutes = 5):
   return expiresAt <= new Date(now.getTime() + bufferMs)
 }
 
-/**
- * Refresh GitLab OAuth token
- */
 export async function refreshGitLabToken(sql: Sql, secret: Secret): Promise<string> {
   const clientId = process.env.GITLAB_OAUTH_CLIENT_ID
   const clientSecret = process.env.GITLAB_OAUTH_CLIENT_SECRET
@@ -90,9 +84,6 @@ export async function refreshGitLabToken(sql: Sql, secret: Secret): Promise<stri
   return access_token
 }
 
-/**
- * Refresh Jira OAuth token
- */
 export async function refreshJiraToken(sql: Sql, secret: Secret): Promise<string> {
   const clientId = process.env.JIRA_OAUTH_CLIENT_ID
   const clientSecret = process.env.JIRA_OAUTH_CLIENT_SECRET
@@ -137,7 +128,6 @@ export async function refreshJiraToken(sql: Sql, secret: Secret): Promise<string
   const { access_token, refresh_token, expires_in, scope } = tokenData
   const expiresAt = new Date(Date.now() + expires_in * 1000)
 
-  // Update secret in database
   await updateSecret(sql, secret.id, {
     value: access_token,
     refresh_token: refresh_token || secret.refresh_token,
@@ -154,10 +144,6 @@ export async function refreshJiraToken(sql: Sql, secret: Secret): Promise<string
   return access_token
 }
 
-/**
- * Automatically refresh OAuth token if expired or expiring soon
- * Returns the valid access token (either existing or newly refreshed)
- */
 export async function getValidOAuthToken(
   sql: Sql,
   secretId: string,
@@ -165,12 +151,10 @@ export async function getValidOAuthToken(
 ): Promise<string> {
   const secret = await findSecretById(sql, secretId)
 
-  // If it's not an OAuth token, just return the value
   if (secret.token_type !== 'oauth') {
     return secret.value
   }
 
-  // Check if token needs refresh
   if (isTokenExpiredOrExpiringSoon(secret, bufferMinutes)) {
     const expiresAt = secret.expires_at ? new Date(secret.expires_at) : null
     const now = new Date()
@@ -183,7 +167,6 @@ export async function getValidOAuthToken(
       timeUntilExpiry: expiresAt ? `${Math.floor((expiresAt.getTime() - now.getTime()) / 1000 / 60)} minutes` : 'N/A'
     })
 
-    // Refresh based on provider
     switch (secret.oauth_provider) {
       case 'gitlab':
         return await refreshGitLabToken(sql, secret)
@@ -195,6 +178,5 @@ export async function getValidOAuthToken(
     }
   }
 
-  // Token is still valid
   return secret.value
 }

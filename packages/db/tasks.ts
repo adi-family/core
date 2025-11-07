@@ -210,10 +210,10 @@ export const findTaskById = async (sql: Sql, id: string): Promise<Task> => {
 
 const createTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
 export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  const presentCols = filterPresentColumns(input, createTaskCols)
+  const presentCols = filterPresentColumns(input as any, createTaskCols)
 
   const [task] = await get(sql<Task[]>`
-    INSERT INTO tasks ${sql(input, presentCols)}
+    INSERT INTO tasks ${sql(input as any, presentCols)}
     RETURNING *
   `)
   if (!task) {
@@ -271,10 +271,10 @@ export const deleteTask = async (sql: Sql, id: string): Promise<void> => {
 
 const upsertTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
 export const upsertTaskFromGitlab = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  const presentCols = filterPresentColumns(input, upsertTaskCols)
+  const presentCols = filterPresentColumns(input as any, upsertTaskCols)
 
   const [task] = await get(sql<Task[]>`
-    INSERT INTO tasks ${sql(input, presentCols)}
+    INSERT INTO tasks ${sql(input as any, presentCols)}
     ON CONFLICT (task_source_id, (source_gitlab_issue->>'id'))
     WHERE source_gitlab_issue IS NOT NULL
     DO UPDATE SET
@@ -293,10 +293,10 @@ export const upsertTaskFromGitlab = async (sql: Sql, input: CreateTaskInput): Pr
 }
 
 export const upsertTaskFromGithub = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  const presentCols = filterPresentColumns(input, upsertTaskCols)
+  const presentCols = filterPresentColumns(input as any, upsertTaskCols)
 
   const [task] = await get(sql<Task[]>`
-    INSERT INTO tasks ${sql(input, presentCols)}
+    INSERT INTO tasks ${sql(input as any, presentCols)}
     ON CONFLICT (task_source_id, (source_github_issue->>'id'))
     WHERE source_github_issue IS NOT NULL
     DO UPDATE SET
@@ -315,10 +315,10 @@ export const upsertTaskFromGithub = async (sql: Sql, input: CreateTaskInput): Pr
 }
 
 export const upsertTaskFromJira = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
-  const presentCols = filterPresentColumns(input, upsertTaskCols)
+  const presentCols = filterPresentColumns(input as any, upsertTaskCols)
 
   const [task] = await get(sql<Task[]>`
-    INSERT INTO tasks ${sql(input, presentCols)}
+    INSERT INTO tasks ${sql(input as any, presentCols)}
     ON CONFLICT (task_source_id, (source_jira_issue->>'id'))
     WHERE source_jira_issue IS NOT NULL
     DO UPDATE SET

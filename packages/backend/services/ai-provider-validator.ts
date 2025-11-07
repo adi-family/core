@@ -20,7 +20,6 @@ export async function validateAnthropicConfig(
       ? config.endpoint_url
       : 'https://api.anthropic.com'
 
-    // Test endpoint reachability and authentication with a minimal request
     const response = await fetch(`${endpoint}/v1/messages`, {
       method: 'POST',
       headers: {

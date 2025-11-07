@@ -34,19 +34,15 @@ export async function selectAIProviderForEvaluation(
   projectId: string,
   evaluationType: 'simple' | 'advanced'
 ): Promise<AIProviderSelection> {
-  // Check user's quota
   const quotaCheck = await checkQuotaAvailable(sql, userId, evaluationType)
 
-  // If at hard limit, require project config
   if (quotaCheck.at_hard_limit) {
     return await requireProjectAIProvider(sql, projectId, quotaCheck, evaluationType)
   }
 
-  // User has quota remaining - try to use platform token
   const platformConfig = getPlatformAnthropicConfig()
 
   if (!platformConfig) {
-    // Platform token not configured - require project config
     return await requireProjectAIProvider(sql, projectId, quotaCheck, evaluationType)
   }
 
@@ -64,17 +60,12 @@ export async function selectAIProviderForEvaluation(
   }
 }
 
-/**
- * Require project to have its own AI provider configured
- * Throws error if not configured
- */
 async function requireProjectAIProvider(
   sql: Sql,
   projectId: string,
   quotaCheck: QuotaCheck,
   evaluationType: 'simple' | 'advanced'
 ): Promise<AIProviderSelection> {
-  // Get project's Anthropic config
   const projectConfig = await getProjectAIProviderConfig(sql, projectId, 'anthropic') as AnthropicConfig | null
 
   if (!projectConfig) {
@@ -85,7 +76,6 @@ async function requireProjectAIProvider(
     )
   }
 
-  // Decrypt API key from secret
   const resolvedConfig = await resolveAnthropicConfig(sql, projectConfig)
 
   return {
@@ -94,9 +84,6 @@ async function requireProjectAIProvider(
   }
 }
 
-/**
- * Resolve Anthropic config by decrypting the API key from secrets
- */
 async function resolveAnthropicConfig(
   sql: Sql,
   config: AnthropicConfig
@@ -122,9 +109,6 @@ async function resolveAnthropicConfig(
   }
 }
 
-/**
- * Custom error for quota exceeded scenarios
- */
 export class QuotaExceededError extends Error {
   constructor(
     message: string,
@@ -135,9 +119,6 @@ export class QuotaExceededError extends Error {
   }
 }
 
-/**
- * Check if project has its own AI provider configured
- */
 export async function checkProjectHasAnthropicProvider(
   sql: Sql,
   projectId: string

@@ -41,9 +41,9 @@ sync-only:
         echo "https://oauth2:${GITLAB_TOKEN}@gitlab.com" >> ~/.git-credentials
         echo "✓ Workspace credentials configured"
       fi
-    - cd worker-scripts
-    - echo "✓ Using pre-bundled scripts"
-    - bun run sync-workspaces.ts
+    - cd ../
+    - chmod +x binaries/sync-workspaces
+    - ./binaries/sync-workspaces
     - echo "✓ Submodules synced successfully"
     - if: '$SYNC_ONLY == "true"'
 
@@ -58,14 +58,9 @@ prepare:
     - apt-get update && apt-get install -y git
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
-    - cd worker-scripts
-    - echo "✓ Using pre-bundled scripts"
+    - echo "✓ Using pre-compiled binaries"
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
-
-    # Sync all workspace repositories
-    - echo "Syncing workspace repositories"
-    - bun run sync-workspaces.ts
     - if: '$SYNC_ONLY == "true"'
       when: never
     - when: always
@@ -87,8 +82,6 @@ execute:
     - rm -rf results
     - echo "✓ Cleaned up old results directory"
 
-    - cd worker-scripts
-
     # Update status to 'running'
     - |
       curl -X PATCH "$API_BASE_URL/pipeline-executions/$PIPELINE_EXECUTION_ID" \
@@ -96,8 +89,9 @@ execute:
         -H "Content-Type: application/json" \
         -d '{"status":"running"}'
 
-    # Run Codex pipeline (TypeScript with Bun)
-    - bun ../bundles/codex-pipeline.js
+    # Run Codex pipeline (binary version)
+    - chmod +x binaries/codex-pipeline
+    - ./binaries/codex-pipeline
 
     # Capture exit code
     - EXIT_CODE=$?
@@ -131,9 +125,9 @@ report:
   tags:
     - implementation
   script:
-    - cd worker-scripts
-    # Upload artifacts via our API (TypeScript)
-    - bun run upload-results.ts
+    # Upload artifacts via our API (binary version)
+    - chmod +x binaries/upload-results
+    - ./binaries/upload-results
   dependencies:
     - execute
   rules:

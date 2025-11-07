@@ -22,10 +22,6 @@ export interface SyncTaskSourceResult {
   errors: string[]
 }
 
-/**
- * Sync a single task source: publish task source ID to RabbitMQ queue
- * The daemon-task-sync will handle fetching issues and creating tasks
- */
 export async function syncTaskSource(
   sql: Sql,
   input: SyncTaskSourceInput
@@ -38,7 +34,6 @@ export async function syncTaskSource(
   }
 
   try {
-    // Fetch task source to validate it exists and is enabled
     let taskSource: TaskSource
     try {
       taskSource = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
@@ -65,16 +60,13 @@ export async function syncTaskSource(
         provider = 'github'
         break
       default:
-        // TypeScript exhaustiveness check - this should never happen
         assertNever(taskSource)
         result.errors.push(`Unsupported task source type: ${taskSource?.type}`)
         return result
     }
 
-    // Mark as queued before publishing
     await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSource.id, 'queued')
 
-    // Publish task source ID and provider to queue for daemon-task-sync to process
     await publishTaskSync({
       taskSourceId: taskSource.id,
       provider
@@ -91,9 +83,6 @@ export async function syncTaskSource(
   return result
 }
 
-/**
- * Sync all enabled task sources for a project
- */
 export async function syncProjectTaskSources(
   sql: Sql,
   projectId: string
@@ -121,9 +110,6 @@ export async function syncProjectTaskSources(
   return combinedResult
 }
 
-/**
- * Sync all enabled projects
- */
 export async function syncAllProjects(
   sql: Sql
 ): Promise<SyncTaskSourceResult> {

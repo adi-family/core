@@ -24,10 +24,6 @@ export interface TriggerWorkspaceSyncResult {
   error?: string
 }
 
-/**
- * Trigger workspace sync pipeline for a project
- * This syncs file spaces (workspace repositories) as git submodules
- */
 export async function triggerWorkspaceSync(
   sql: Sql,
   input: TriggerWorkspaceSyncInput

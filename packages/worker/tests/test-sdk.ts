@@ -5,7 +5,7 @@
  */
 
 import { query } from '@anthropic-ai/claude-agent-sdk'
-import { createLogger } from './shared/logger'
+import { createLogger } from '../templates/2025-10-18-01/worker-scripts/shared/logger'
 import { resolve } from 'path'
 import { fileURLToPath } from 'url'
 

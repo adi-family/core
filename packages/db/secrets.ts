@@ -35,10 +35,10 @@ export const findSecretByProjectAndName = async (sql: Sql, projectId: string, na
 
 const createSecretCols = ['project_id', 'name', 'value', 'description', 'oauth_provider', 'token_type', 'refresh_token', 'expires_at', 'scopes'] as const
 export const createSecret = async (sql: Sql, input: CreateSecretInput): Promise<Secret> => {
-  const presentCols = filterPresentColumns(input, createSecretCols)
+  const presentCols = filterPresentColumns(input as any, createSecretCols)
 
   const [secret] = await get(sql<Secret[]>`
-    INSERT INTO secrets ${sql(input, presentCols)}
+    INSERT INTO secrets ${sql(input as any, presentCols)}
     RETURNING *
   `)
   if (!secret) {
@@ -49,11 +49,11 @@ export const createSecret = async (sql: Sql, input: CreateSecretInput): Promise<
 
 const updateSecretCols = ['value', 'description', 'refresh_token', 'expires_at', 'scopes'] as const
 export const updateSecret = async (sql: Sql, id: string, input: UpdateSecretInput): Promise<Secret> => {
-  const presentCols = filterPresentColumns(input, updateSecretCols)
+  const presentCols = filterPresentColumns(input as any, updateSecretCols)
 
   const secrets = await get(sql<Secret[]>`
     UPDATE secrets
-    SET ${sql(input, presentCols)}, updated_at = NOW()
+    SET ${sql(input as any, presentCols)}, updated_at = NOW()
     WHERE id = ${id}
     RETURNING *
   `)

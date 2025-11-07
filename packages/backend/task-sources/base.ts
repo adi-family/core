@@ -28,7 +28,7 @@ export abstract class BaseTaskSource {
     }
 
     this.taskSource = taskSource;
-    this.config = taskSource.config;
+    this.config = taskSource.config as any;
   }
 
   abstract getIssues(): AsyncIterable<TaskSourceIssue>;

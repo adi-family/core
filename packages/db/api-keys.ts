@@ -112,7 +112,7 @@ export const createApiKey = async (
       ${input.name},
       ${keyHash},
       ${keyPrefix},
-      ${sql.json(permissions)},
+      ${sql.json(permissions as any)},
       ${input.expires_at || null},
       ${createdBy}
     )

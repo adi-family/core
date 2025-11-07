@@ -55,10 +55,8 @@ export function createTaskHandlers(sql: Sql) {
   const implementTask = handler(implementTaskConfig, async (ctx) => {
     const { id } = ctx.params
 
-    // Update task status to queued for implementation
     const task = await taskQueries.updateTaskImplementationStatus(sql, id, 'queued')
 
-    // Publish task to implementation queue
     await publishTaskImpl({ taskId: id })
 
     return {
@@ -71,10 +69,8 @@ export function createTaskHandlers(sql: Sql) {
   const evaluateTask = handler(evaluateTaskConfig, async (ctx) => {
     const { id } = ctx.params
 
-    // Update task status to queued for evaluation
     const task = await taskQueries.updateTaskEvaluationStatus(sql, id, 'queued')
 
-    // Publish task to evaluation queue
     await publishTaskEval({ taskId: id })
 
     return {
@@ -87,7 +83,6 @@ export function createTaskHandlers(sql: Sql) {
   const evaluateTaskAdvancedHandler = handler(evaluateTaskAdvancedConfig, async (ctx) => {
     const { id } = ctx.params
 
-    // Trigger advanced evaluation directly (not via queue)
     const result = await evaluateTaskAdvanced(sql, { taskId: id })
 
     if (result.errors.length > 0) {
@@ -110,7 +105,6 @@ export function createTaskHandlers(sql: Sql) {
   const getTaskStats = handler(getTaskStatsConfig, async (ctx) => {
     const { project_id, task_source_id, evaluated_only, sort_by } = ctx.query || {}
 
-    // Fetch tasks with the same filters as the list view
     const tasks = await taskQueries.findTasksWithFilters(sql, {
       project_id,
       task_source_id,
@@ -118,7 +112,6 @@ export function createTaskHandlers(sql: Sql) {
       sort_by: sort_by as 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc' | undefined
     })
 
-    // Calculate statistics
     const evaluatedTasks = tasks.filter(t =>
       t.ai_evaluation_simple_status === 'completed' ||
       t.ai_evaluation_advanced_status === 'completed'
@@ -134,28 +127,24 @@ export function createTaskHandlers(sql: Sql) {
       t.ai_evaluation_advanced_status === 'evaluating'
     )
 
-    // Task type distribution
     const taskTypeCounts: Record<string, number> = {}
     tasks.forEach(task => {
       const taskType = (task.ai_evaluation_simple_result as any)?.task_type || 'unknown'
       taskTypeCounts[taskType] = (taskTypeCounts[taskType] || 0) + 1
     })
 
-    // Effort estimate distribution
     const effortCounts: Record<string, number> = {}
     tasks.forEach(task => {
       const effort = (task.ai_evaluation_simple_result as any)?.effort_estimate || 'unknown'
       effortCounts[effort] = (effortCounts[effort] || 0) + 1
     })
 
-    // Risk level distribution
     const riskCounts: Record<string, number> = {}
     tasks.forEach(task => {
       const risk = (task.ai_evaluation_simple_result as any)?.risk_level || 'unknown'
       riskCounts[risk] = (riskCounts[risk] || 0) + 1
     })
 
-    // Complexity score average
     const complexityScores = tasks
       .filter(t => (t.ai_evaluation_simple_result as any)?.complexity_score)
       .map(t => (t.ai_evaluation_simple_result as any).complexity_score)
@@ -163,7 +152,6 @@ export function createTaskHandlers(sql: Sql) {
       ? (complexityScores.reduce((a: number, b: number) => a + b, 0) / complexityScores.length).toFixed(1)
       : '0.0'
 
-    // Quadrant data: Impact vs Effort
     const impactEffortMap: Record<string, number> = {
       low: 1,
       medium: 2,

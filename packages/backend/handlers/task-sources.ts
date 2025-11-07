@@ -21,9 +21,6 @@ import { publishTaskSync } from '@adi/queue/publisher'
 
 const logger = createLogger({ namespace: 'task-sources-handler' })
 
-/**
- * Create task source handlers
- */
 export function createTaskSourceHandlers(sql: Sql) {
   async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
     const authHeader = ctx.headers.get('Authorization')
@@ -51,10 +48,7 @@ export function createTaskSourceHandlers(sql: Sql) {
       throw new Error('Unauthorized: Token verification failed')
     }
   }
-  /**
-   * GET /api/task-sources
-   * List all task sources
-   */
+
   const listTaskSources = handler(listTaskSourcesConfig, async (ctx) => {
     const userId = await getUserId(ctx)
     const projectId = ctx.query?.project_id
@@ -68,16 +62,11 @@ export function createTaskSourceHandlers(sql: Sql) {
       return taskSourceQueries.findTaskSourcesByProjectId(sql, projectId)
     }
 
-    // List all task sources from accessible projects
     const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
     const allTaskSources = await taskSourceQueries.findAllTaskSources(sql)
     return allTaskSources.filter(ts => accessibleProjectIds.includes(ts.project_id))
   })
 
-  /**
-   * GET /api/task-sources/:id
-   * Get a single task source by ID
-   */
   const getTaskSource = handler(getTaskSourceConfig, async (ctx) => {
     const userId = await getUserId(ctx)
     const { id } = ctx.params
@@ -91,10 +80,6 @@ export function createTaskSourceHandlers(sql: Sql) {
     return taskSource
   })
 
-  /**
-   * POST /api/task-sources
-   * Create a new task source
-   */
   const createTaskSource = handler(createTaskSourceConfig, async (ctx) => {
     const userId = await getUserId(ctx)
     const { project_id } = ctx.body as any
@@ -106,7 +91,6 @@ export function createTaskSourceHandlers(sql: Sql) {
 
     const taskSource = await taskSourceQueries.createTaskSource(sql, ctx.body as any)
 
-    // Immediately trigger sync for the new task source
     const provider = taskSource.type === 'gitlab_issues' ? 'gitlab' : taskSource.type === 'github_issues' ? 'github' : 'jira'
     await publishTaskSync({ taskSourceId: taskSource.id, provider })
     logger.info(`Triggered immediate sync for newly created task source ${taskSource.id}`)
@@ -114,10 +98,6 @@ export function createTaskSourceHandlers(sql: Sql) {
     return taskSource
   })
 
-  /**
-   * PATCH /api/task-sources/:id
-   * Update a task source
-   */
   const updateTaskSource = handler(updateTaskSourceConfig, async (ctx) => {
     const userId = await getUserId(ctx)
     const { id } = ctx.params
@@ -131,10 +111,6 @@ export function createTaskSourceHandlers(sql: Sql) {
     return taskSourceQueries.updateTaskSource(sql, id, ctx.body as any)
   })
 
-  /**
-   * DELETE /api/task-sources/:id
-   * Delete a task source
-   */
   const deleteTaskSource = handler(deleteTaskSourceConfig, async (ctx) => {
     const userId = await getUserId(ctx)
     const { id } = ctx.params
@@ -149,10 +125,6 @@ export function createTaskSourceHandlers(sql: Sql) {
     return { success: true }
   })
 
-  /**
-   * POST /api/task-sources/:id/sync
-   * Trigger sync for a task source
-   */
   const syncTaskSource = handler(syncTaskSourceConfig, async (ctx) => {
     const userId = await getUserId(ctx)
     const { id } = ctx.params

@@ -12,23 +12,13 @@ const logger = createLogger({ namespace: 'pipeline-api-key' })
 const PIPELINE_KEY_NAME = 'Auto-generated Pipeline Key'
 const SYSTEM_USER_ID = 'system'
 
-/**
- * Get or create an API key for pipeline execution
- * This function ensures each project has a dedicated API key for its pipelines
- *
- * @param sql - Database connection
- * @param projectId - Project UUID
- * @returns The API key (plain text) to use for pipeline authentication
- */
 export async function getOrCreatePipelineApiKey(
   sql: Sql,
   projectId: string
 ): Promise<string> {
   try {
-    // Try to find existing active pipeline key for this project
     const existingKeys = await apiKeyQueries.findApiKeysByProjectId(sql, projectId)
 
-    // Look for the auto-generated pipeline key
     const pipelineKey = existingKeys.find(key =>
       key.name === PIPELINE_KEY_NAME &&
       key.revoked_at === null &&
@@ -61,7 +51,7 @@ export async function getOrCreatePipelineApiKey(
           read_tasks: true,
           write_tasks: true,
         },
-        expires_at: null, // No expiration for pipeline keys
+        expires_at: null,
       },
       SYSTEM_USER_ID
     )

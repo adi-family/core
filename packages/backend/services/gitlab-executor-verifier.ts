@@ -1,8 +1,3 @@
-/**
- * GitLab Executor Verifier
- * Verifies GitLab access tokens for project-level pipeline executors
- */
-
 import type { Sql } from 'postgres'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { createLogger } from '@utils/logger'
@@ -23,10 +18,6 @@ export interface VerifyExecutorResult {
   error?: string
 }
 
-/**
- * Verify GitLab access token by calling the GitLab API
- * Returns user information if valid
- */
 export async function verifyGitLabExecutor(
   input: VerifyExecutorInput
 ): Promise<VerifyExecutorResult> {
@@ -35,11 +26,7 @@ export async function verifyGitLabExecutor(
   try {
     logger.info(`Verifying GitLab executor for host: ${host}`)
 
-    // Create GitLab client with provided token
     const client = new GitLabApiClient(host, access_token)
-
-    // Try to get current user information
-    // This validates both the host and the token
     const user = await client.getCurrentUser()
 
     logger.info(`✓ GitLab executor verified: ${user.username} (${user.id})`)

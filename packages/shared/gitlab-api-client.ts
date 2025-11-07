@@ -513,13 +513,14 @@ export class GitLabApiClient {
    */
   async uploadFiles(
     projectId: string,
-    files: { path: string; content: string }[],
+    files: { path: string; content: string; encoding?: 'text' | 'base64' }[],
     commitMessage: string,
     branch = 'main'
   ): Promise<GitLabCommit> {
     // Prepare file actions - try to determine if file exists
     const actions: GitLabFileAction[] = await Promise.all(
       files.map(async (file) => {
+        const encoding = file.encoding || 'text'
         try {
           // Check if file exists
           await this.getFile(projectId, file.path, branch)
@@ -528,7 +529,7 @@ export class GitLabApiClient {
             action: 'update' as const,
             filePath: file.path,
             content: file.content,
-            encoding: 'text' as const,
+            encoding,
           }
         } catch {
           // File doesn't exist, create it
@@ -536,7 +537,7 @@ export class GitLabApiClient {
             action: 'create' as const,
             filePath: file.path,
             content: file.content,
-            encoding: 'text' as const,
+            encoding,
           }
         }
       })

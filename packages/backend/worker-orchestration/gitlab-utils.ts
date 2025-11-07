@@ -1,13 +1,5 @@
-/**
- * GitLab utility functions for pipeline operations
- * Shared utilities for validating and decrypting GitLab credentials
- */
-
 import { decrypt } from '@shared/crypto-utils'
 
-/**
- * GitLab source configuration type
- */
 export interface GitLabSource {
   type: string
   project_id?: string
@@ -24,9 +16,7 @@ export function validateGitLabSource(source: GitLabSource): void {
         !source.project_id && 'project_id',
         !source.host && 'host',
         !source.access_token_encrypted && 'access_token_encrypted',
-      ]
-        .filter(Boolean)
-        .join(', ')}`
+      ].filter(Boolean).join(', ')}`
     )
   }
 }

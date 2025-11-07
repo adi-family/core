@@ -24,16 +24,14 @@ workspace-sync:
     - git config --global user.email "ci@adi-simple.com"
     - git config --global user.name "ADI CI"
 
-    # Navigate to worker scripts directory
-    - cd 2025-10-18-01/worker-scripts
-
-    # Install dependencies
-    - bun install
+    # Navigate to binaries directory
+    - cd 2025-10-18-01
 
   script:
-    # Sync workspaces (file spaces) as git submodules
+    # Sync workspaces (file spaces) as git submodules (binary version)
     - echo "🔄 Syncing workspace repositories..."
-    - bun run sync-workspaces.ts
+    - chmod +x binaries/sync-workspaces
+    - ./binaries/sync-workspaces
 
     # Show sync results
     - echo "✅ Workspace sync completed"
