@@ -1,0 +1,8 @@
+*
+!*.down.sql
+!*.up.sql
+!CLAUDE.md
+!create_migration.sh
+!Dockerfile
+!.env.example
+!.gitignore
