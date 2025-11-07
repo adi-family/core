@@ -222,16 +222,20 @@ export function TaskPage() {
         credentials: 'include',
       }),
       {
-        onSuccess: async () => {
+        onSuccess: async (response) => {
+          console.log('🚀 Implementation API response:', response)
           toast.success('Implementation started successfully!')
           // Refetch task data
           try {
             const taskData = await client.run(getTaskConfig, {
               params: { id: id! },
             })
+            console.log('🔄 Refetched task data:', taskData)
+            console.log('📊 Implementation status in refetched data:', taskData.ai_implementation_status)
             setTask(taskData)
+            console.log('✅ State updated with new task data')
           } catch (error) {
-            console.error('Error refetching task:', error)
+            console.error('❌ Error refetching task:', error)
           }
         },
         onError: (error) => toast.error(`Failed to start implementation: ${error}`)

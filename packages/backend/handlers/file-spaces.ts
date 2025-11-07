@@ -14,14 +14,21 @@ import {
 } from '@adi/api-contracts/file-spaces'
 import * as fileSpaceQueries from '@db/file-spaces'
 import * as userAccessQueries from '@db/user-access'
+import * as apiKeyQueries from '@db/api-keys'
 import { verifyToken } from '@clerk/backend'
 import { CLERK_SECRET_KEY } from '../config'
 import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'file-spaces-handler' })
 
+interface AuthResult {
+  userId?: string
+  projectId?: string
+  isApiKey: boolean
+}
+
 export function createFileSpaceHandlers(sql: Sql) {
-  async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
+  async function authenticate(ctx: HandlerContext<any, any, any>): Promise<AuthResult> {
     const authHeader = ctx.headers.get('Authorization')
     if (!authHeader) {
       throw new Error('Unauthorized: No Authorization header')
@@ -32,6 +39,28 @@ export function createFileSpaceHandlers(sql: Sql) {
       throw new Error('Unauthorized: Invalid token format')
     }
 
+    // Check if this is an API key (starts with adk_)
+    if (token.startsWith('adk_')) {
+      logger.debug('Authenticating with API key')
+      const validation = await apiKeyQueries.validateApiKey(sql, token)
+
+      if (!validation.valid || !validation.projectId) {
+        throw new Error('Unauthorized: Invalid API key')
+      }
+
+      // Check if API key has permission to access file spaces
+      if (!validation.apiKey?.permissions?.read_project) {
+        throw new Error('Forbidden: API key does not have permission to access file spaces')
+      }
+
+      return {
+        projectId: validation.projectId,
+        isApiKey: true
+      }
+    }
+
+    // Otherwise, treat as Clerk JWT token
+    logger.debug('Authenticating with Clerk token')
     if (!CLERK_SECRET_KEY) {
       throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
     }
@@ -41,18 +70,30 @@ export function createFileSpaceHandlers(sql: Sql) {
       if (!payload.sub) {
         throw new Error('Unauthorized: Invalid token payload')
       }
-      return payload.sub
+      return {
+        userId: payload.sub,
+        isApiKey: false
+      }
     } catch (error) {
       logger.error('Token verification failed:', error)
       throw new Error('Unauthorized: Token verification failed')
     }
   }
   const listFileSpaces = handler(listFileSpacesConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const auth = await authenticate(ctx)
     const { project_id } = ctx.query || {}
 
+    // API key authentication - restrict to API key's project
+    if (auth.isApiKey) {
+      if (project_id && project_id !== auth.projectId) {
+        throw new Error('Forbidden: API key does not have access to this project')
+      }
+      return fileSpaceQueries.findFileSpacesByProjectId(sql, auth.projectId!)
+    }
+
+    // Clerk authentication - check user access
     if (project_id) {
-      const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, project_id)
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, auth.userId!, project_id)
       if (!hasAccess) {
         throw new Error('Forbidden: You do not have access to this project')
       }
@@ -61,57 +102,94 @@ export function createFileSpaceHandlers(sql: Sql) {
     }
 
     // List all file spaces from accessible projects
-    const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+    const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, auth.userId!)
     const allFileSpaces = await fileSpaceQueries.findAllFileSpaces(sql)
     return allFileSpaces.filter(fs => accessibleProjectIds.includes(fs.project_id))
   })
 
   const getFileSpace = handler(getFileSpaceConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const auth = await authenticate(ctx)
     const { id } = ctx.params
 
     const fileSpace = await fileSpaceQueries.findFileSpaceById(sql, id)
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, fileSpace.project_id)
-    if (!hasAccess) {
-      throw new Error('Forbidden: You do not have access to this file space')
+
+    // API key authentication - check project match
+    if (auth.isApiKey) {
+      if (fileSpace.project_id !== auth.projectId) {
+        throw new Error('Forbidden: API key does not have access to this file space')
+      }
+    } else {
+      // Clerk authentication - check user access
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, auth.userId!, fileSpace.project_id)
+      if (!hasAccess) {
+        throw new Error('Forbidden: You do not have access to this file space')
+      }
     }
 
     return fileSpace
   })
 
   const createFileSpace = handler(createFileSpaceConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const auth = await authenticate(ctx)
     const { project_id } = ctx.body as any
 
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, project_id, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You need admin role to create file spaces for this project')
+    // API key authentication - check project match and write permission
+    if (auth.isApiKey) {
+      if (project_id !== auth.projectId) {
+        throw new Error('Forbidden: API key does not have access to this project')
+      }
+      // API keys don't have admin role concept, just check they have write permission
+      // For now, we'll allow it if they have read_project permission
+    } else {
+      // Clerk authentication - check user has admin access
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, auth.userId!, project_id, 'admin')
+      if (!hasAccess) {
+        throw new Error('Forbidden: You need admin role to create file spaces for this project')
+      }
     }
 
     return fileSpaceQueries.createFileSpace(sql, ctx.body as any)
   })
 
   const updateFileSpace = handler(updateFileSpaceConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const auth = await authenticate(ctx)
     const { id } = ctx.params
 
     const fileSpace = await fileSpaceQueries.findFileSpaceById(sql, id)
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, fileSpace.project_id, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You need admin role to update this file space')
+
+    // API key authentication - check project match
+    if (auth.isApiKey) {
+      if (fileSpace.project_id !== auth.projectId) {
+        throw new Error('Forbidden: API key does not have access to this file space')
+      }
+    } else {
+      // Clerk authentication - check user has admin access
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, auth.userId!, fileSpace.project_id, 'admin')
+      if (!hasAccess) {
+        throw new Error('Forbidden: You need admin role to update this file space')
+      }
     }
 
     return fileSpaceQueries.updateFileSpace(sql, id, ctx.body as any)
   })
 
   const deleteFileSpace = handler(deleteFileSpaceConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const auth = await authenticate(ctx)
     const { id } = ctx.params
 
     const fileSpace = await fileSpaceQueries.findFileSpaceById(sql, id)
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, fileSpace.project_id, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You need admin role to delete this file space')
+
+    // API key authentication - check project match
+    if (auth.isApiKey) {
+      if (fileSpace.project_id !== auth.projectId) {
+        throw new Error('Forbidden: API key does not have access to this file space')
+      }
+    } else {
+      // Clerk authentication - check user has admin access
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, auth.userId!, fileSpace.project_id, 'admin')
+      if (!hasAccess) {
+        throw new Error('Forbidden: You need admin role to delete this file space')
+      }
     }
 
     await fileSpaceQueries.deleteFileSpace(sql, id)
@@ -119,15 +197,23 @@ export function createFileSpaceHandlers(sql: Sql) {
   })
 
   const getTaskFileSpaces = handler(getTaskFileSpacesConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const auth = await authenticate(ctx)
     const { id } = ctx.params
 
     // Get task's project and check access
     const fileSpaces = await fileSpaceQueries.findFileSpacesByTaskId(sql, id)
     if (fileSpaces.length > 0 && fileSpaces[0]) {
-      const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, fileSpaces[0].project_id)
-      if (!hasAccess) {
-        throw new Error('Forbidden: You do not have access to this task')
+      // API key authentication - check project match
+      if (auth.isApiKey) {
+        if (fileSpaces[0].project_id !== auth.projectId) {
+          throw new Error('Forbidden: API key does not have access to this task')
+        }
+      } else {
+        // Clerk authentication - check user access
+        const hasAccess = await userAccessQueries.hasProjectAccess(sql, auth.userId!, fileSpaces[0].project_id)
+        if (!hasAccess) {
+          throw new Error('Forbidden: You do not have access to this task')
+        }
       }
     }
 

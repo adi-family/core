@@ -1,13 +1,6 @@
-/**
- * Worker Cache API Contracts
- */
-
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-/**
- * Worker cache entry schema
- */
 const workerCacheSchema = z.object({
   id: z.number(),
   issue_id: z.string(),
@@ -21,15 +14,8 @@ const workerCacheSchema = z.object({
   updated_at: z.string()
 })
 
-/**
- * Worker cache entry type (inferred from schema)
- */
 export type WorkerCacheResponse = z.infer<typeof workerCacheSchema>
 
-/**
- * Get worker cache entries
- * GET /api/worker-cache
- */
 export const getWorkerCacheConfig = {
   method: 'GET',
   route: route.static('/api/worker-cache'),

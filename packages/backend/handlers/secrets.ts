@@ -3,11 +3,12 @@
  */
 
 import type { Sql } from 'postgres'
-import { handler } from '@adi-family/http'
+import { handler, type HandlerContext } from '@adi-family/http'
 import {
   listSecretsConfig,
   getSecretsByProjectConfig,
   getSecretConfig,
+  getSecretValueConfig,
   createSecretConfig,
   validateGitLabRawTokenConfig,
   validateGitLabTokenConfig,
@@ -16,9 +17,48 @@ import {
   validateJiraTokenConfig
 } from '@adi/api-contracts'
 import * as secretQueries from '@db/secrets'
+import * as apiKeyQueries from '@db/api-keys'
 import { getDecryptedSecretValue } from '../services/secrets'
+import { createLogger } from '@utils/logger'
+
+const logger = createLogger({ namespace: 'secrets-handler' })
 
 export function createSecretHandlers(sql: Sql) {
+  /**
+   * Authenticate request using API key
+   * Workers need to access secrets, so we only support API key auth
+   */
+  async function authenticateApiKey(ctx: HandlerContext<any, any, any>): Promise<string> {
+    const authHeader = ctx.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Unauthorized: No Authorization header')
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    if (!token) {
+      throw new Error('Unauthorized: Invalid token format')
+    }
+
+    // Check if this is an API key (starts with adk_)
+    if (!token.startsWith('adk_')) {
+      throw new Error('Unauthorized: Only API key authentication is supported for this endpoint')
+    }
+
+    logger.debug('Authenticating with API key')
+    const validation = await apiKeyQueries.validateApiKey(sql, token)
+
+    if (!validation.valid || !validation.projectId) {
+      throw new Error('Unauthorized: Invalid API key')
+    }
+
+    // Check if API key has permission to access secrets
+    if (!validation.apiKey?.permissions?.read_project) {
+      throw new Error('Forbidden: API key does not have permission to access secrets')
+    }
+
+    return validation.projectId
+  }
+
   const listSecrets = handler(listSecretsConfig, async (_ctx) => {
     const secrets = await secretQueries.findAllSecrets(sql)
 
@@ -69,6 +109,23 @@ export function createSecretHandlers(sql: Sql) {
       scopes: secret.scopes,
       created_at: secret.created_at,
       updated_at: secret.updated_at
+    }
+  })
+
+  const getSecretValue = handler(getSecretValueConfig, async (ctx) => {
+    const projectId = await authenticateApiKey(ctx)
+    const { id } = ctx.params
+
+    // Verify the secret belongs to the project that the API key has access to
+    const secret = await secretQueries.findSecretById(sql, id)
+    if (secret.project_id !== projectId) {
+      throw new Error('Forbidden: API key does not have access to this secret')
+    }
+
+    const value = await getDecryptedSecretValue(sql, id)
+
+    return {
+      value
     }
   })
 
@@ -304,6 +361,7 @@ export function createSecretHandlers(sql: Sql) {
     listSecrets,
     getSecretsByProject,
     getSecret,
+    getSecretValue,
     createSecret,
     validateGitLabRawToken,
     validateGitLabToken,

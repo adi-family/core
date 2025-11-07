@@ -5,7 +5,6 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-// Artifact schema - matches database type
 const artifactSchema = z.object({
   id: z.string(),
   pipeline_execution_id: z.string(),
@@ -15,10 +14,6 @@ const artifactSchema = z.object({
   created_at: z.string().or(z.date())
 })
 
-/**
- * List pipeline executions
- * GET /api/pipeline-executions
- */
 export const listPipelineExecutionsConfig = {
   method: 'GET',
   route: route.static('/api/pipeline-executions'),
@@ -42,10 +37,6 @@ export const listPipelineExecutionsConfig = {
   }
 } as const
 
-/**
- * List all pipeline artifacts
- * GET /api/pipeline-artifacts
- */
 export const listPipelineArtifactsConfig = {
   method: 'GET',
   route: route.static('/api/pipeline-artifacts'),
@@ -59,10 +50,6 @@ export const listPipelineArtifactsConfig = {
   }
 } as const
 
-/**
- * Get artifacts by execution ID
- * GET /pipeline-executions/:executionId/artifacts
- */
 export const getExecutionArtifactsConfig = {
   method: 'GET',
   route: route.dynamic('/pipeline-executions/:executionId/artifacts', z.object({ executionId: z.string() })),
@@ -71,10 +58,6 @@ export const getExecutionArtifactsConfig = {
   }
 } as const
 
-/**
- * Create artifact for execution
- * POST /pipeline-executions/:executionId/artifacts
- */
 export const createExecutionArtifactConfig = {
   method: 'POST',
   route: route.dynamic('/pipeline-executions/:executionId/artifacts', z.object({ executionId: z.string() })),
@@ -90,10 +73,6 @@ export const createExecutionArtifactConfig = {
   }
 } as const
 
-/**
- * Create pipeline execution
- * POST /api/pipeline-executions
- */
 export const createPipelineExecutionConfig = {
   method: 'POST',
   route: route.static('/api/pipeline-executions'),
@@ -119,10 +98,6 @@ export const createPipelineExecutionConfig = {
   }
 } as const
 
-/**
- * Update pipeline execution
- * PATCH /api/pipeline-executions/:id
- */
 export const updatePipelineExecutionConfig = {
   method: 'PATCH',
   route: route.dynamic('/api/pipeline-executions/:id', z.object({ id: z.string() })),

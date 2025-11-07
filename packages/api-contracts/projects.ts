@@ -1,11 +1,6 @@
-/**
- * Project API Contracts
- */
-
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-// AI Provider Config Schemas
 const anthropicCloudConfigSchema = z.object({
   type: z.literal('cloud'),
   api_key_secret_id: z.string(),
@@ -99,13 +94,10 @@ const gitlabExecutorConfigSchema = z.object({
   user: z.string().optional()
 })
 
-/**
- * Exported response types (inferred from schemas)
- */
 export type ProjectResponse = z.infer<typeof projectSchema>
 export type AIProviderConfigResponse = z.infer<typeof aiProviderConfigSchema>
 export type GitLabExecutorConfigResponse = z.infer<typeof gitlabExecutorConfigSchema>
-export type AIProviderValidationResponse = {
+export interface AIProviderValidationResponse {
   valid: boolean
   endpoint_reachable: boolean
   authentication_valid: boolean
@@ -114,7 +106,6 @@ export type AIProviderValidationResponse = {
   tested_at: string
 }
 
-// Schemas
 const projectSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -126,10 +117,6 @@ const projectSchema = z.object({
   last_synced_at: z.string().nullable()
 })
 
-/**
- * List all projects
- * GET /api/projects
- */
 export const listProjectsConfig = {
   method: 'GET',
   route: route.static('/api/projects'),
@@ -138,10 +125,6 @@ export const listProjectsConfig = {
   }
 } as const
 
-/**
- * Get project by ID
- * GET /api/projects/:id
- */
 export const getProjectConfig = {
   method: 'GET',
   route: route.dynamic('/api/projects/:id', z.object({ id: z.string() })),
@@ -150,10 +133,6 @@ export const getProjectConfig = {
   }
 } as const
 
-/**
- * Create new project
- * POST /api/projects
- */
 export const createProjectConfig = {
   method: 'POST',
   route: route.static('/api/projects'),
@@ -168,10 +147,6 @@ export const createProjectConfig = {
   }
 } as const
 
-/**
- * Update project
- * PATCH /api/projects/:id
- */
 export const updateProjectConfig = {
   method: 'PATCH',
   route: route.dynamic('/api/projects/:id', z.object({ id: z.string() })),
@@ -186,10 +161,6 @@ export const updateProjectConfig = {
   }
 } as const
 
-/**
- * Delete project
- * DELETE /api/projects/:id
- */
 export const deleteProjectConfig = {
   method: 'DELETE',
   route: route.dynamic('/api/projects/:id', z.object({ id: z.string() })),
@@ -198,10 +169,6 @@ export const deleteProjectConfig = {
   }
 } as const
 
-/**
- * Get project stats
- * GET /api/projects/:id/stats
- */
 export const getProjectStatsConfig = {
   method: 'GET',
   route: route.dynamic('/api/projects/:id/stats', z.object({ id: z.string() })),
@@ -214,10 +181,6 @@ export const getProjectStatsConfig = {
   }
 } as const
 
-/**
- * Get AI providers for project
- * GET /api/projects/:id/ai-providers
- */
 export const getProjectAIProvidersConfig = {
   method: 'GET',
   route: route.dynamic('/api/projects/:id/ai-providers', z.object({ id: z.string() })),
@@ -226,10 +189,6 @@ export const getProjectAIProvidersConfig = {
   }
 } as const
 
-/**
- * Update AI provider configuration
- * PUT /api/projects/:id/ai-providers/:provider
- */
 export const updateProjectAIProviderConfig = {
   method: 'PUT',
   route: route.dynamic('/api/projects/:id/ai-providers/:provider', z.object({
@@ -244,10 +203,6 @@ export const updateProjectAIProviderConfig = {
   }
 } as const
 
-/**
- * Delete AI provider configuration
- * DELETE /api/projects/:id/ai-providers/:provider
- */
 export const deleteProjectAIProviderConfig = {
   method: 'DELETE',
   route: route.dynamic('/api/projects/:id/ai-providers/:provider', z.object({
@@ -259,10 +214,6 @@ export const deleteProjectAIProviderConfig = {
   }
 } as const
 
-/**
- * Validate AI provider configuration
- * POST /api/projects/:id/ai-providers/:provider/validate
- */
 export const validateProjectAIProviderConfig = {
   method: 'POST',
   route: route.dynamic('/api/projects/:id/ai-providers/:provider/validate', z.object({
@@ -284,10 +235,6 @@ export const validateProjectAIProviderConfig = {
   }
 } as const
 
-/**
- * Get GitLab job executor configuration
- * GET /api/projects/:id/job-executor-gitlab
- */
 export const getProjectGitLabExecutorConfig = {
   method: 'GET',
   route: route.dynamic('/api/projects/:id/job-executor-gitlab', z.object({ id: z.string() })),
@@ -296,10 +243,6 @@ export const getProjectGitLabExecutorConfig = {
   }
 } as const
 
-/**
- * Create/Update GitLab job executor configuration
- * POST /api/projects/:id/job-executor-gitlab
- */
 export const createProjectGitLabExecutorConfig = {
   method: 'POST',
   route: route.dynamic('/api/projects/:id/job-executor-gitlab', z.object({ id: z.string() })),

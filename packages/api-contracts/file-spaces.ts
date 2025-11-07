@@ -1,11 +1,6 @@
-/**
- * File Spaces API Contracts
- */
-
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-// File space schema
 const fileSpaceSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -17,27 +12,19 @@ const fileSpaceSchema = z.object({
   updated_at: z.string()
 })
 
-/**
- * List file spaces
- * GET /api/file-spaces?project_id=xxx
- */
 export const listFileSpacesConfig = {
   method: 'GET',
   route: route.static('/api/file-spaces'),
   query: {
     schema: z.object({
       project_id: z.string().optional()
-    })
+    }),
   },
   response: {
     schema: z.array(fileSpaceSchema)
-  }
+  },
 } as const
 
-/**
- * Get file space by ID
- * GET /api/file-spaces/:id
- */
 export const getFileSpaceConfig = {
   method: 'GET',
   route: route.dynamic('/api/file-spaces/:id', z.object({ id: z.string() })),

@@ -59,36 +59,48 @@ async function processWorkspace(path: string, taskId?: string): Promise<Workspac
     return { path, dirName, rep, branch }
   }
 
-  // Fetch latest changes
+  // Get current branch (workspace is already on correct branch from cloning)
+  const { stdout: currentBranch } = await exec(`cd ${path} && git rev-parse --abbrev-ref HEAD`)
+  const baseBranch = currentBranch.trim()
+
+  logger.info(`  Base branch: ${baseBranch}`)
   logger.info(`  Fetching latest changes...`)
   await exec(`cd ${path} && git fetch origin`)
 
-  // Detect default branch (main or master)
-  let defaultBranch = 'main'
-  try {
-    await exec(`cd ${path} && git rev-parse --verify origin/main`)
-  } catch {
-    defaultBranch = 'master'
-  }
-
-  // Checkout default branch (from detached HEAD if needed)
-  logger.info(`  Checking out ${defaultBranch}...`)
-  await exec(`cd ${path} && git checkout ${defaultBranch}`)
-  await exec(`cd ${path} && git pull origin ${defaultBranch}`)
-
-  // Create task-specific branch
+  // Check if task-specific branch already exists (for retries/resuming)
   const taskBranch = `adi/task-${taskId}`
-  logger.info(`  Creating task branch: ${taskBranch}`)
+  let taskBranchExists = false
 
   try {
-    // Delete branch if it exists (in case of retry)
-    await exec(`cd ${path} && git branch -D ${taskBranch} 2>/dev/null || true`)
+    await exec(`cd ${path} && git rev-parse --verify origin/${taskBranch}`)
+    taskBranchExists = true
+    logger.info(`  Found existing task branch: ${taskBranch}`)
   } catch {
-    // Ignore errors if branch doesn't exist
+    logger.info(`  Task branch does not exist yet: ${taskBranch}`)
   }
 
-  await exec(`cd ${path} && git checkout -b ${taskBranch}`)
-  logger.info(`  ✓ Ready on branch: ${taskBranch}`)
+  if (taskBranchExists) {
+    // Task branch exists - checkout and pull to resume work
+    logger.info(`  Checking out existing task branch: ${taskBranch}`)
+    try {
+      // Try to checkout existing local branch
+      await exec(`cd ${path} && git checkout ${taskBranch}`)
+    } catch {
+      // Branch doesn't exist locally, create tracking branch
+      await exec(`cd ${path} && git checkout -b ${taskBranch} origin/${taskBranch}`)
+    }
+    logger.info(`  Pulling latest changes from task branch...`)
+    await exec(`cd ${path} && git pull origin ${taskBranch}`)
+    logger.info(`  ✓ Resumed on branch: ${taskBranch}`)
+  } else {
+    // Task branch doesn't exist - create from base branch
+    logger.info(`  Pulling latest changes from base branch: ${baseBranch}...`)
+    await exec(`cd ${path} && git pull origin ${baseBranch}`)
+
+    logger.info(`  Creating new task branch: ${taskBranch}`)
+    await exec(`cd ${path} && git checkout -b ${taskBranch}`)
+    logger.info(`  ✓ Ready on new branch: ${taskBranch}`)
+  }
 
   return {
     path,
@@ -319,8 +331,11 @@ async function main() {
     await apiClient.updateTaskImplementationStatus(task.id, 'implementing')
     logger.info('✓ Task status updated to implementing')
 
-    // Read available workspaces from disk (already synced as git submodules)
-    const workspacesPath = '../workspaces'
+    // Read available workspaces from disk
+    const workspacesPath = process.env.PIPELINE_EXECUTION_ID
+      ? `/tmp/workspace-${process.env.PIPELINE_EXECUTION_ID}`
+      : '../workspaces'
+
     const workspaces = await processWorkspaces(workspacesPath)
     const availableWorkspaces = workspaces.map(ws => ws.dirName)
 
@@ -339,11 +354,16 @@ async function main() {
     logger.info(`Description: ${task.description || 'N/A'}`)
 
     // Initialize agent results
-    const agentResults = {
+    const agentResults: {
+      exitCode: number;
+      output: string;
+      changes: { [key: string]: any },
+      errors: string[];
+    } = {
       exitCode: 0,
       output: '',
       changes: {},
-      errors: [] as string[],
+      errors: [],
     }
 
     // Run Claude Code with available workspaces context
@@ -353,7 +373,7 @@ async function main() {
     let workspaceContext = 'Available workspace repositories:\n'
     if (availableWorkspaces.length > 0) {
       for (const ws of availableWorkspaces) {
-        workspaceContext += `- workspaces/${ws}/\n`
+        workspaceContext += `- ${ws}/\n`
       }
     } else {
       workspaceContext += '(No workspaces configured)\n'
@@ -365,7 +385,7 @@ async function main() {
     // Execute Claude Agent SDK
     const { output, errors, cost, iterations } = await executeClaudeAgent(
       prompt,
-      '..',  // Root directory
+      workspacesPath,
       { ANTHROPIC_API_KEY: env.ANTHROPIC_API_KEY },
       workspaces  // Pass workspaces for mock mode
     )

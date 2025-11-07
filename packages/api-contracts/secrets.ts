@@ -1,13 +1,6 @@
-/**
- * Secrets API Contracts
- */
-
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-/**
- * Secret schema (without encrypted value)
- */
 const secretSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -20,23 +13,14 @@ const secretSchema = z.object({
   updated_at: z.string()
 })
 
-/**
- * Secret schema with project_id
- */
 const secretWithProjectSchema = secretSchema.extend({
   project_id: z.string()
 })
 
-/**
- * Secret response types (inferred from schemas)
- */
 export type SecretResponse = z.infer<typeof secretSchema>
 export type SecretWithProjectResponse = z.infer<typeof secretWithProjectSchema>
 
-/**
- * Secret validation response types
- */
-export type GitLabTokenValidationResponse = {
+export interface GitLabTokenValidationResponse {
   validated: boolean
   username?: string
   scopeValidation?: {
@@ -46,7 +30,7 @@ export type GitLabTokenValidationResponse = {
   error?: string
 }
 
-export type JiraTokenValidationResponse = {
+export interface JiraTokenValidationResponse {
   valid: boolean
   username?: string
   accountId?: string
@@ -54,15 +38,8 @@ export type JiraTokenValidationResponse = {
   error?: string
 }
 
-/**
- * GitLab repository item (from GitLab API)
- */
 export type GitLabRepositoryResponse = Record<string, unknown>
 
-/**
- * Get decrypted secret value by ID
- * GET /api/secrets/:id/value
- */
 export const getSecretValueConfig = {
   method: 'GET',
   route: route.dynamic('/api/secrets/:id/value', z.object({ id: z.string() })),
@@ -73,10 +50,6 @@ export const getSecretValueConfig = {
   }
 } as const
 
-/**
- * List all secrets
- * GET /api/secrets
- */
 export const listSecretsConfig = {
   method: 'GET',
   route: route.static('/api/secrets'),
@@ -85,10 +58,6 @@ export const listSecretsConfig = {
   }
 } as const
 
-/**
- * Get secrets by project ID
- * GET /api/secrets/by-project/:projectId
- */
 export const getSecretsByProjectConfig = {
   method: 'GET',
   route: route.dynamic('/api/secrets/by-project/:projectId', z.object({ projectId: z.string() })),
@@ -97,10 +66,6 @@ export const getSecretsByProjectConfig = {
   }
 } as const
 
-/**
- * Get secret by ID
- * GET /api/secrets/:id
- */
 export const getSecretConfig = {
   method: 'GET',
   route: route.dynamic('/api/secrets/:id', z.object({ id: z.string() })),
@@ -109,10 +74,6 @@ export const getSecretConfig = {
   }
 } as const
 
-/**
- * Create secret
- * POST /api/secrets
- */
 export const createSecretConfig = {
   method: 'POST',
   route: route.static('/api/secrets'),
@@ -134,10 +95,6 @@ export const createSecretConfig = {
   }
 } as const
 
-/**
- * Validate GitLab raw token
- * POST /api/secrets/validate-gitlab-raw-token
- */
 export const validateGitLabRawTokenConfig = {
   method: 'POST',
   route: route.static('/api/secrets/validate-gitlab-raw-token'),
@@ -161,10 +118,6 @@ export const validateGitLabRawTokenConfig = {
   }
 } as const
 
-/**
- * Validate GitLab token by secret ID
- * POST /api/secrets/validate-gitlab-token
- */
 export const validateGitLabTokenConfig = {
   method: 'POST',
   route: route.static('/api/secrets/validate-gitlab-token'),
@@ -188,10 +141,6 @@ export const validateGitLabTokenConfig = {
   }
 } as const
 
-/**
- * Get GitLab repositories using a secret
- * POST /api/secrets/gitlab-repositories
- */
 export const getGitLabRepositoriesConfig = {
   method: 'POST',
   route: route.static('/api/secrets/gitlab-repositories'),
@@ -208,10 +157,6 @@ export const getGitLabRepositoriesConfig = {
   }
 } as const
 
-/**
- * Validate Jira raw token
- * POST /api/secrets/validate-jira-raw-token
- */
 export const validateJiraRawTokenConfig = {
   method: 'POST',
   route: route.static('/api/secrets/validate-jira-raw-token'),
@@ -233,10 +178,6 @@ export const validateJiraRawTokenConfig = {
   },
 } as const
 
-/**
- * Validate Jira token by secret ID
- * POST /api/secrets/validate-jira-token
- */
 export const validateJiraTokenConfig = {
   method: 'POST',
   route: route.static('/api/secrets/validate-jira-token'),

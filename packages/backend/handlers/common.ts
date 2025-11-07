@@ -1,7 +1,3 @@
-/**
- * Common handlers (healthcheck, etc.)
- */
-
 import { handler } from '@adi-family/http'
 import { healthcheckConfig } from '@adi/api-contracts/healthcheck'
 

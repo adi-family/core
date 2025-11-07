@@ -1,34 +1,4 @@
 #!/bin/bash
-#
-# Smart Workspace Cloning Script
-# Clones multiple repositories with intelligent branch detection and shallow cloning
-#
-# Usage:
-#   ./clone-workspace.sh
-#
-# Required environment variables:
-#   FILE_SPACES       - JSON array of file space configurations
-#   PIPELINE_EXECUTION_ID - Unique ID for this execution (for temp directory naming)
-#
-# Optional environment variables:
-#   CLONE_DEPTH       - Clone depth (default: 4)
-#   REPO_BRANCH       - Specific branch to clone (overrides auto-detection for all repos)
-#
-# FILE_SPACES JSON format:
-#   [
-#     {
-#       "name": "workspace-name",
-#       "id": "workspace-id",
-#       "repo": "https://github.com/user/repo.git",
-#       "host": "https://github.com",
-#       "token": "optional-access-token"
-#     }
-#   ]
-#
-# Outputs:
-#   WORKSPACE_DIRS    - Newline-separated list of cloned workspace paths
-#   WORKSPACE_NAMES   - Newline-separated list of workspace names
-#
 
 set -e  # Exit on error
 
@@ -97,7 +67,15 @@ for i in $(seq 0 $((FILE_SPACE_COUNT - 1))); do
     REPO_TOKEN=$(echo "$FILE_SPACES" | bun -e "const data = JSON.parse(await Bun.stdin.text()); console.log(data[$i].token || '')")
 
     log_info "Name: $WORKSPACE_NAME"
+    log_info "ID: $WORKSPACE_ID"
     log_info "Repository: $REPO_URL"
+
+    # Generate workspace directory name using same logic as push-to-file-spaces
+    # Format: sanitized-name-{first8chars-of-id}
+    SANITIZED_NAME=$(echo "$WORKSPACE_NAME" | tr '[:upper:]' '[:lower:]' | sed 's/[^a-z0-9-]/-/g' | sed 's/-\+/-/g' | sed 's/^-\|-$//g')
+    ID_PREFIX=$(echo "$WORKSPACE_ID" | cut -c1-8)
+    WORKSPACE_DIR_NAME="${SANITIZED_NAME}-${ID_PREFIX}"
+    log_info "Workspace directory: $WORKSPACE_DIR_NAME"
 
     # Inject authentication token if provided
     CLONE_URL="$REPO_URL"
@@ -178,7 +156,7 @@ for i in $(seq 0 $((FILE_SPACE_COUNT - 1))); do
     fi
 
     # Clone the repository
-    WORKSPACE_DIR="${BASE_DIR}/workspace-${i}"
+    WORKSPACE_DIR="${BASE_DIR}/${WORKSPACE_DIR_NAME}"
     mkdir -p "$WORKSPACE_DIR"
 
     log_info "Cloning into: $WORKSPACE_DIR"

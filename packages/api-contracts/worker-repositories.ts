@@ -1,11 +1,6 @@
-/**
- * Worker Repository API Contracts
- */
-
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-// GitLab source schema
 const gitLabSourceSchema = z.object({
   type: z.string(),
   project_id: z.string().optional(),
@@ -15,7 +10,6 @@ const gitLabSourceSchema = z.object({
   access_token_encrypted: z.string().optional()
 })
 
-// Worker repository schema
 const workerRepositorySchema = z.object({
   id: z.string(),
   project_id: z.string(),
@@ -25,10 +19,6 @@ const workerRepositorySchema = z.object({
   updated_at: z.string().or(z.date())
 })
 
-/**
- * Get worker repository by project ID
- * GET /api/projects/:projectId/worker-repository
- */
 export const getWorkerRepositoryByProjectConfig = {
   method: 'GET',
   route: route.dynamic('/api/projects/:projectId/worker-repository', z.object({ projectId: z.string() })),
@@ -37,10 +27,6 @@ export const getWorkerRepositoryByProjectConfig = {
   }
 } as const
 
-/**
- * Create worker repository
- * POST /api/worker-repositories
- */
 export const createWorkerRepositoryConfig = {
   method: 'POST',
   route: route.static('/api/worker-repositories'),

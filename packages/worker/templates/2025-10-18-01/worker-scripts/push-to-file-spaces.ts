@@ -338,8 +338,11 @@ async function main(): Promise<PushResult> {
       return result
     }
 
-    // Get all workspace directories
-    const workspacesDir = '../workspaces'
+    // Get all workspace directories from environment or default location
+    const workspacesDir = process.env.PIPELINE_EXECUTION_ID
+      ? `/tmp/workspace-${process.env.PIPELINE_EXECUTION_ID}`
+      : '../workspaces'
+
     const entries = await readdir(workspacesDir, { withFileTypes: true })
     const workspaces = entries
       .filter(entry => entry.isDirectory() && !entry.name.startsWith('.'))

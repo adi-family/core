@@ -5,7 +5,6 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-// Message schema - matches database type
 const messageSchema = z.object({
   id: z.string(),
   session_id: z.string(),
@@ -13,7 +12,6 @@ const messageSchema = z.object({
   created_at: z.string().or(z.date())
 })
 
-// Pipeline execution schema - matches database type
 const pipelineExecutionSchema = z.object({
   id: z.string(),
   session_id: z.string(),
@@ -25,7 +23,6 @@ const pipelineExecutionSchema = z.object({
   updated_at: z.string().or(z.date())
 })
 
-// Session schema
 const sessionSchema = z.object({
   id: z.string(),
   task_id: z.string().nullable(),
@@ -34,10 +31,6 @@ const sessionSchema = z.object({
   updated_at: z.string().or(z.date())
 })
 
-/**
- * Get messages by session ID
- * GET /sessions/:sessionId/messages
- */
 export const getSessionMessagesConfig = {
   method: 'GET',
   route: route.dynamic('/sessions/:sessionId/messages', z.object({ sessionId: z.string() })),
@@ -46,10 +39,6 @@ export const getSessionMessagesConfig = {
   }
 } as const
 
-/**
- * Get pipeline executions by session ID
- * GET /sessions/:sessionId/pipeline-executions
- */
 export const getSessionPipelineExecutionsConfig = {
   method: 'GET',
   route: route.dynamic('/sessions/:sessionId/pipeline-executions', z.object({ sessionId: z.string() })),
@@ -58,10 +47,6 @@ export const getSessionPipelineExecutionsConfig = {
   }
 } as const
 
-/**
- * Get session by ID
- * GET /api/sessions/:id
- */
 export const getSessionConfig = {
   method: 'GET',
   route: route.dynamic('/api/sessions/:id', z.object({ id: z.string() })),
@@ -70,10 +55,6 @@ export const getSessionConfig = {
   }
 } as const
 
-/**
- * List all sessions
- * GET /api/sessions
- */
 export const listSessionsConfig = {
   method: 'GET',
   route: route.static('/api/sessions'),

@@ -101,6 +101,7 @@ execute:
         ./clone-workspace.sh
         source /tmp/workspace-env.sh
         echo "✓ Cloned $WORKSPACE_COUNT workspace(s)"
+        echo "✓ Workspace base dir: /tmp/workspace-${PIPELINE_EXECUTION_ID}"
         echo "✓ Primary workspace: $WORKSPACE_DIR"
         echo "✓ Branch: $WORKSPACE_BRANCH"
         cd ../..

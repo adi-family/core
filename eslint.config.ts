@@ -22,8 +22,6 @@ export default tseslint.config(
       "**/.turbo/**",
       "**/coverage",
       "**/coverage/**",
-      "**/storybook-static",
-      "**/storybook-static/**",
       ".next",
       ".next/**",
       "**/.next",
@@ -80,10 +78,12 @@ export default tseslint.config(
   // TypeScript configuration
   {
     files: ["**/*.{ts,tsx,mts,cts}"],
+    ignores: ["**/*.config.{ts,mts}"],
     languageOptions: {
       parser: tseslint.parser,
       parserOptions: {
-        project: true,
+        projectService: true,
+        tsconfigRootDir: import.meta.dirname,
         ecmaVersion: "latest",
         sourceType: "module",
       },
@@ -94,16 +94,8 @@ export default tseslint.config(
     },
     rules: {
       // Code style
-      "comma-dangle": "off",
-      "@typescript-eslint/comma-dangle": ["error", "always-multiline"],
-      "semi": "off",
-      "@typescript-eslint/semi": ["error", "always"],
-      "quotes": "off",
-      "@typescript-eslint/quotes": ["error", "double", { avoidEscape: true }],
       "object-curly-spacing": ["error", "always"],
       "array-bracket-spacing": ["error", "never"],
-      "comma-spacing": "off",
-      "@typescript-eslint/comma-spacing": ["error", { before: false, after: true }],
       "key-spacing": ["error", { beforeColon: false, afterColon: true }],
       "semi-spacing": ["error", { before: false, after: true }],
 
@@ -119,7 +111,6 @@ export default tseslint.config(
           caughtErrorsIgnorePattern: "^_",
         },
       ],
-      "@typescript-eslint/prefer-const": "error",
       "@typescript-eslint/no-non-null-assertion": "warn",
       "@typescript-eslint/consistent-type-imports": [
         "error",
@@ -128,6 +119,7 @@ export default tseslint.config(
 
       // Best practices
       "prefer-template": "error",
+      "prefer-const": "error",
       "no-var": "error",
       "eqeqeq": ["error", "always", { null: "ignore" }],
       "no-case-declarations": "off",

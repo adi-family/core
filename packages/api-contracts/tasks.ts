@@ -1,11 +1,6 @@
-/**
- * Task API Contracts
- */
-
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-// Session schema - matches database type
 const sessionSchema = z.object({
   id: z.string(),
   task_id: z.string().nullable(),
@@ -14,7 +9,6 @@ const sessionSchema = z.object({
   updated_at: z.string().or(z.date())
 })
 
-// Artifact schema - matches database type
 const artifactSchema = z.object({
   id: z.string(),
   pipeline_execution_id: z.string(),
@@ -24,7 +18,6 @@ const artifactSchema = z.object({
   created_at: z.string().or(z.date())
 })
 
-// Task schema - matches database type
 const taskSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -48,14 +41,12 @@ const taskSchema = z.object({
     blockers: z.array(z.string()).optional(),
     requirements: z.array(z.string()).optional()
   }).nullable(),
+  ai_implementation_status: z.enum(['pending', 'queued', 'implementing', 'completed', 'failed']).nullable(),
+  ai_implementation_session_id: z.string().nullable(),
   created_at: z.string().or(z.date()),
   updated_at: z.string().or(z.date())
 })
 
-/**
- * Get sessions by task ID
- * GET /tasks/:taskId/sessions
- */
 export const getTaskSessionsConfig = {
   method: 'GET',
   route: route.dynamic('/tasks/:taskId/sessions', z.object({ taskId: z.string() })),
@@ -64,10 +55,6 @@ export const getTaskSessionsConfig = {
   }
 } as const
 
-/**
- * Get artifacts by task ID
- * GET /tasks/:taskId/artifacts
- */
 export const getTaskArtifactsConfig = {
   method: 'GET',
   route: route.dynamic('/tasks/:taskId/artifacts', z.object({ taskId: z.string() })),
@@ -76,10 +63,6 @@ export const getTaskArtifactsConfig = {
   }
 } as const
 
-/**
- * Get task by ID
- * GET /api/tasks/:id
- */
 export const getTaskConfig = {
   method: 'GET',
   route: route.dynamic('/api/tasks/:id', z.object({ id: z.string() })),
@@ -88,10 +71,6 @@ export const getTaskConfig = {
   }
 } as const
 
-/**
- * List all tasks
- * GET /api/tasks
- */
 export const listTasksConfig = {
   method: 'GET',
   route: route.static('/api/tasks'),
@@ -107,10 +86,6 @@ export const listTasksConfig = {
   }
 } as const
 
-/**
- * Implement task
- * POST /api/tasks/:id/implement
- */
 export const implementTaskConfig = {
   method: 'POST',
   route: route.dynamic('/api/tasks/:id/implement', z.object({ id: z.string() })),
@@ -126,10 +101,6 @@ export const implementTaskConfig = {
   }
 } as const
 
-/**
- * Evaluate task (simple evaluation)
- * POST /api/tasks/:id/evaluate
- */
 export const evaluateTaskConfig = {
   method: 'POST',
   route: route.dynamic('/api/tasks/:id/evaluate', z.object({ id: z.string() })),
@@ -145,10 +116,6 @@ export const evaluateTaskConfig = {
   }
 } as const
 
-/**
- * Evaluate task advanced (advanced agentic evaluation)
- * POST /api/tasks/:id/evaluate-advanced
- */
 export const evaluateTaskAdvancedConfig = {
   method: 'POST',
   route: route.dynamic('/api/tasks/:id/evaluate-advanced', z.object({ id: z.string() })),
@@ -164,10 +131,6 @@ export const evaluateTaskAdvancedConfig = {
   }
 } as const
 
-/**
- * Get tasks by task source ID
- * GET /api/tasks/by-task-source/:taskSourceId
- */
 export const getTasksByTaskSourceConfig = {
   method: 'GET',
   route: route.dynamic('/api/tasks/by-task-source/:taskSourceId', z.object({ taskSourceId: z.string() })),
@@ -176,10 +139,6 @@ export const getTasksByTaskSourceConfig = {
   }
 } as const
 
-/**
- * Get tasks by project ID
- * GET /api/tasks/by-project/:projectId
- */
 export const getTasksByProjectConfig = {
   method: 'GET',
   route: route.dynamic('/api/tasks/by-project/:projectId', z.object({ projectId: z.string() })),
@@ -188,10 +147,6 @@ export const getTasksByProjectConfig = {
   }
 } as const
 
-/**
- * Get task statistics
- * GET /api/tasks/stats
- */
 export const getTaskStatsConfig = {
   method: 'GET',
   route: route.static('/api/tasks/stats'),
@@ -234,10 +189,6 @@ export const getTaskStatsConfig = {
   }
 } as const
 
-/**
- * Update task implementation status
- * POST /api/tasks/:id/implementation-status
- */
 export const updateTaskImplementationStatusConfig = {
   method: 'POST',
   route: route.dynamic('/api/tasks/:id/implementation-status', z.object({ id: z.string() })),

@@ -1,14 +1,6 @@
-/**
- * Healthcheck API Contract
- */
-
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-/**
- * Healthcheck endpoint
- * GET /healthcheck
- */
 export const healthcheckConfig = {
   method: 'GET',
   route: route.static('/healthcheck'),

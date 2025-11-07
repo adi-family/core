@@ -1,8 +1,3 @@
-/**
- * @adi/api-contracts - Shared API contracts
- * contracts, api-definitions
- */
-
 export * from './healthcheck'
 export * from './projects'
 export * from './tasks'

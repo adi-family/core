@@ -1,18 +1,9 @@
-/**
- * Admin API contracts
- * admin-endpoints, usage-metrics
- */
-
 import { route } from '@adi-family/http'
 import { z } from 'zod'
 
-/**
- * Get recent API usage metrics
- * GET /admin/usage-metrics
- */
 export const getUsageMetricsConfig = {
   method: 'GET',
-  route: route.static('/admin/usage-metrics'),
+  route: route.static('/api/admin/usage-metrics'),
   query: {
     schema: z.object({
       start_date: z.string().optional(),
@@ -59,13 +50,9 @@ export const getUsageMetricsConfig = {
   }
 } as const
 
-/**
- * Get worker repositories
- * GET /admin/worker-repos
- */
 export const getWorkerReposConfig = {
   method: 'GET',
-  route: route.static('/admin/worker-repos'),
+  route: route.static('/api/admin/worker-repos'),
   response: {
     schema: z.object({
       repositories: z.array(z.object({
@@ -81,13 +68,9 @@ export const getWorkerReposConfig = {
   }
 } as const
 
-/**
- * Refresh worker repositories
- * POST /admin/refresh-worker-repos
- */
 export const refreshWorkerReposConfig = {
   method: 'POST',
-  route: route.static('/admin/refresh-worker-repos'),
+  route: route.static('/api/admin/refresh-worker-repos'),
   body: {
     schema: z.object({}).optional()
   },
@@ -114,13 +97,9 @@ export const refreshWorkerReposConfig = {
   }
 } as const
 
-/**
- * Execute admin operation
- * POST /admin/operations/:operation
- */
 export const executeAdminOperationConfig = {
   method: 'POST',
-  route: route.dynamic('/admin/operations/:operation', z.object({ operation: z.string() })),
+  route: route.dynamic('/api/admin/operations/:operation', z.object({ operation: z.string() })),
   body: {
     schema: z.object({}).optional()
   },

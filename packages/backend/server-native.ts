@@ -77,10 +77,13 @@ const allHandlers = [
   alertHandlers.listAlerts,
   // Admin
   adminHandlers.getUsageMetrics,
+  adminHandlers.getWorkerRepos,
+  adminHandlers.refreshWorkerRepos,
   // Secrets
   secretHandlers.listSecrets,
   secretHandlers.getSecretsByProject,
   secretHandlers.getSecret,
+  secretHandlers.getSecretValue,
   secretHandlers.createSecret,
   secretHandlers.validateGitLabRawToken,
   secretHandlers.validateGitLabToken,

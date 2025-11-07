@@ -1,13 +1,6 @@
-/**
- * Task Sources API Contracts
- */
-
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-/**
- * GitLab Issues Config Schema
- */
 const gitlabIssuesConfigSchema = z.object({
   repo: z.string(),
   labels: z.array(z.string()),
@@ -15,9 +8,6 @@ const gitlabIssuesConfigSchema = z.object({
   access_token_secret_id: z.string().optional()
 })
 
-/**
- * GitHub Issues Config Schema
- */
 const githubIssuesConfigSchema = z.object({
   repo: z.string(),
   labels: z.array(z.string()).optional(),
@@ -25,9 +15,6 @@ const githubIssuesConfigSchema = z.object({
   access_token_secret_id: z.string().optional()
 })
 
-/**
- * Jira Config Schema
- */
 const jiraConfigSchema = z.object({
   project_key: z.string().optional(),
   jql_filter: z.string().optional(),
@@ -36,9 +23,6 @@ const jiraConfigSchema = z.object({
   cloud_id: z.string().optional()
 })
 
-/**
- * Task Source Schema
- */
 const taskSourceSchema = z.discriminatedUnion('type', [
   z.object({
     id: z.string(),
@@ -78,18 +62,11 @@ const taskSourceSchema = z.discriminatedUnion('type', [
   })
 ])
 
-/**
- * Exported response types (inferred from schemas)
- */
 export type TaskSourceResponse = z.infer<typeof taskSourceSchema>
 export type GitLabIssuesConfig = z.infer<typeof gitlabIssuesConfigSchema>
 export type JiraConfig = z.infer<typeof jiraConfigSchema>
 export type GitHubIssuesConfig = z.infer<typeof githubIssuesConfigSchema>
 
-/**
- * List task sources
- * GET /api/task-sources
- */
 export const listTaskSourcesConfig = {
   method: 'GET',
   route: route.static('/api/task-sources'),
@@ -103,10 +80,6 @@ export const listTaskSourcesConfig = {
   }
 } as const
 
-/**
- * Get task source by ID
- * GET /api/task-sources/:id
- */
 export const getTaskSourceConfig = {
   method: 'GET',
   route: route.dynamic('/api/task-sources/:id', z.object({ id: z.string() })),
@@ -115,9 +88,6 @@ export const getTaskSourceConfig = {
   }
 } as const
 
-/**
- * Create task source body schema
- */
 const createTaskSourceBodySchema = z.discriminatedUnion('type', [
   z.object({
     project_id: z.string(),
@@ -142,10 +112,6 @@ const createTaskSourceBodySchema = z.discriminatedUnion('type', [
   })
 ])
 
-/**
- * Create task source
- * POST /api/task-sources
- */
 export const createTaskSourceConfig = {
   method: 'POST',
   route: route.static('/api/task-sources'),
@@ -157,9 +123,6 @@ export const createTaskSourceConfig = {
   }
 } as const
 
-/**
- * Update task source body schema
- */
 const updateTaskSourceBodySchema = z.union([
   z.object({
     name: z.string().optional(),
@@ -181,10 +144,6 @@ const updateTaskSourceBodySchema = z.union([
   })
 ])
 
-/**
- * Update task source
- * PATCH /api/task-sources/:id
- */
 export const updateTaskSourceConfig = {
   method: 'PATCH',
   route: route.dynamic('/api/task-sources/:id', z.object({ id: z.string() })),
@@ -196,10 +155,6 @@ export const updateTaskSourceConfig = {
   }
 } as const
 
-/**
- * Sync task source
- * POST /api/task-sources/:id/sync
- */
 export const syncTaskSourceConfig = {
   method: 'POST',
   route: route.dynamic('/api/task-sources/:id/sync', z.object({ id: z.string() })),
@@ -214,10 +169,6 @@ export const syncTaskSourceConfig = {
   }
 } as const
 
-/**
- * Delete task source
- * DELETE /api/task-sources/:id
- */
 export const deleteTaskSourceConfig = {
   method: 'DELETE',
   route: route.dynamic('/api/task-sources/:id', z.object({ id: z.string() })),
