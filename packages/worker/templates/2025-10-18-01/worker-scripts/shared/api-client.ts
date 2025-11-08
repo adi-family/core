@@ -82,9 +82,9 @@ export class ApiClient {
     return this.fetch<FileSpace[]>(`/api/tasks/${taskId}/file-spaces`)
   }
 
-  async getSecretValue(secretId: string): Promise<string> {
-    const result = await this.fetch<{ value: string }>(`/api/secrets/${secretId}/value`)
-    return result.value
+  async getSecretValue(secretId: string): Promise<{ value: string; token_type: 'api' | 'oauth' | 'pat' | null }> {
+    const result = await this.fetch<{ value: string; token_type: 'api' | 'oauth' | 'pat' | null }>(`/api/secrets/${secretId}/value`)
+    return result
   }
 
   async createPipelineArtifact(

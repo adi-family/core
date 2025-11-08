@@ -48,7 +48,7 @@ ${errorText}`);
   }
   async getSecretValue(secretId) {
     const result = await this.fetch(`/api/secrets/${secretId}/value`);
-    return result.value;
+    return result;
   }
   async createPipelineArtifact(executionId, data) {
     await this.fetch(`/pipeline-executions/${executionId}/artifacts`, {
@@ -435,7 +435,7 @@ async function hasChanges(workspacePath) {
     return false;
   }
 }
-function getGitLabClient(fileSpace, token) {
+function getGitLabClient(fileSpace, token, tokenType) {
   if (!fileSpace.config || typeof fileSpace.config !== "object") {
     return null;
   }
@@ -449,12 +449,14 @@ function getGitLabClient(fileSpace, token) {
     logger.warn("Token not provided, cannot create GitLab client");
     return null;
   }
+  const clientTokenType = tokenType === "oauth" ? "oauth" : "pat";
   logger.info(`   \uD83D\uDD10 Creating GitLab API client:`);
   logger.info(`      Host: ${host}`);
   logger.info(`      Token length: ${token.length} chars`);
   logger.info(`      Token starts with: ${token.substring(0, 8)}...`);
-  logger.info(`      Token type: 'pat' (PRIVATE-TOKEN header)`);
-  return new GitLabApiClient(host, token, "pat");
+  logger.info(`      Token type from DB: '${tokenType}'`);
+  logger.info(`      Using auth type: '${clientTokenType}' (${clientTokenType === "oauth" ? "Bearer" : "PRIVATE-TOKEN"} header)`);
+  return new GitLabApiClient(host, token, clientTokenType);
 }
 function getProjectPath(fileSpace) {
   if (!fileSpace.config || typeof fileSpace.config !== "object" || !("repo" in fileSpace.config)) {
@@ -474,7 +476,7 @@ function getProjectPath(fileSpace) {
   repo = repo.replace(/^\//, "").replace(/\.git$/, "");
   return repo;
 }
-async function pushWorkspaceToFileSpace(workspacePath, fileSpace, taskId, taskTitle, taskDescription, gitlabToken) {
+async function pushWorkspaceToFileSpace(workspacePath, fileSpace, taskId, taskTitle, taskDescription, gitlabToken, gitlabTokenType) {
   const workspaceName = workspacePath.split("/").pop() || "unknown";
   logger.info(`
 \uD83D\uDCE6 Processing workspace: ${workspaceName}`);
@@ -552,7 +554,7 @@ Task ID: ${taskId}`;
     }
   }
   logger.info(`   \uD83D\uDD00 Creating merge request...`);
-  const gitlabClient = getGitLabClient(fileSpace, gitlabToken);
+  const gitlabClient = getGitLabClient(fileSpace, gitlabToken, gitlabTokenType);
   if (!gitlabClient) {
     throw new Error("Could not create GitLab client - missing token or host");
   }
@@ -655,11 +657,14 @@ async function main() {
         continue;
       }
       let gitlabToken = null;
+      let gitlabTokenType = null;
       if (fileSpace.config && fileSpace.config.access_token_secret_id) {
         try {
           logger.info(`\uD83D\uDD11 Retrieving token for file space: ${fileSpace.name}`);
-          gitlabToken = await apiClient.getSecretValue(fileSpace.config.access_token_secret_id);
-          logger.info(`\u2713 Token retrieved successfully`);
+          const secretData = await apiClient.getSecretValue(fileSpace.config.access_token_secret_id);
+          gitlabToken = secretData.value;
+          gitlabTokenType = secretData.token_type;
+          logger.info(`\u2713 Token retrieved successfully (type: ${gitlabTokenType})`);
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
           logger.error(`\u274C Failed to retrieve token for ${fileSpace.name}: ${errorMsg}`);
@@ -689,7 +694,7 @@ async function main() {
         continue;
       }
       try {
-        const mrResult = await pushWorkspaceToFileSpace(workspace.path, fileSpace, task.id, task.title, task.description, gitlabToken);
+        const mrResult = await pushWorkspaceToFileSpace(workspace.path, fileSpace, task.id, task.title, task.description, gitlabToken, gitlabTokenType);
         result.mergeRequests.push(mrResult);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);

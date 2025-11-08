@@ -48,7 +48,8 @@ export const getSecretValueConfig = {
   route: route.dynamic('/api/secrets/:id/value', z.object({ id: z.string() })),
   response: {
     schema: z.object({
-      value: z.string()
+      value: z.string(),
+      token_type: z.enum(['api', 'oauth', 'pat']).nullable()
     })
   }
 } as const

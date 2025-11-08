@@ -43,7 +43,7 @@ ${errorText}`);
   }
   async getSecretValue(secretId) {
     const result = await this.fetch(`/api/secrets/${secretId}/value`);
-    return result.value;
+    return result;
   }
   async createPipelineArtifact(executionId, data) {
     await this.fetch(`/pipeline-executions/${executionId}/artifacts`, {

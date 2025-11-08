@@ -125,7 +125,8 @@ export function createSecretHandlers(sql: Sql) {
     const value = await getDecryptedSecretValue(sql, id)
 
     return {
-      value
+      value,
+      token_type: secret.token_type
     }
   })
 

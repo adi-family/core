@@ -46,7 +46,7 @@ async function hasChanges(workspacePath: string): Promise<boolean> {
 /**
  * Get the GitLab API client for a file space
  */
-function getGitLabClient(fileSpace: any, token: string): GitLabApiClient | null {
+function getGitLabClient(fileSpace: any, token: string, tokenType: 'oauth' | 'pat' | 'api' | null): GitLabApiClient | null {
   if (!fileSpace.config || typeof fileSpace.config !== 'object') {
     return null
   }
@@ -69,15 +69,18 @@ function getGitLabClient(fileSpace: any, token: string): GitLabApiClient | null 
     return null
   }
 
+  // Map token type to GitLab client auth type
+  // 'api' tokens are treated as PAT for GitLab
+  const clientTokenType = (tokenType === 'oauth') ? 'oauth' : 'pat'
+
   logger.info(`   🔐 Creating GitLab API client:`)
   logger.info(`      Host: ${host}`)
   logger.info(`      Token length: ${token.length} chars`)
   logger.info(`      Token starts with: ${token.substring(0, 8)}...`)
-  logger.info(`      Token type: 'pat' (PRIVATE-TOKEN header)`)
+  logger.info(`      Token type from DB: '${tokenType}'`)
+  logger.info(`      Using auth type: '${clientTokenType}' (${clientTokenType === 'oauth' ? 'Bearer' : 'PRIVATE-TOKEN'} header)`)
 
-  // Use 'pat' token type - the oauth2:TOKEN format in git URLs uses PAT tokens
-  // For API calls, PATs use PRIVATE-TOKEN header, not Bearer (OAuth)
-  return new GitLabApiClient(host, token, 'pat')
+  return new GitLabApiClient(host, token, clientTokenType)
 }
 
 /**
@@ -117,7 +120,8 @@ async function pushWorkspaceToFileSpace(
   taskId: string,
   taskTitle: string,
   taskDescription: string | null,
-  gitlabToken: string
+  gitlabToken: string,
+  gitlabTokenType: 'oauth' | 'pat' | 'api' | null
 ): Promise<MergeRequestResult> {
   const workspaceName = workspacePath.split('/').pop() || 'unknown'
 
@@ -224,7 +228,7 @@ async function pushWorkspaceToFileSpace(
   // Create merge request using GitLab API
   logger.info(`   🔀 Creating merge request...`)
 
-  const gitlabClient = getGitLabClient(fileSpace, gitlabToken)
+  const gitlabClient = getGitLabClient(fileSpace, gitlabToken, gitlabTokenType)
   if (!gitlabClient) {
     throw new Error('Could not create GitLab client - missing token or host')
   }
@@ -370,11 +374,14 @@ async function main(): Promise<PushResult> {
 
       // Get the GitLab token for this file space
       let gitlabToken: string | null = null
+      let gitlabTokenType: 'oauth' | 'pat' | 'api' | null = null
       if (fileSpace.config && fileSpace.config.access_token_secret_id) {
         try {
           logger.info(`🔑 Retrieving token for file space: ${fileSpace.name}`)
-          gitlabToken = await apiClient.getSecretValue(fileSpace.config.access_token_secret_id)
-          logger.info(`✓ Token retrieved successfully`)
+          const secretData = await apiClient.getSecretValue(fileSpace.config.access_token_secret_id)
+          gitlabToken = secretData.value
+          gitlabTokenType = secretData.token_type
+          logger.info(`✓ Token retrieved successfully (type: ${gitlabTokenType})`)
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error)
           logger.error(`❌ Failed to retrieve token for ${fileSpace.name}: ${errorMsg}`)
@@ -415,7 +422,8 @@ async function main(): Promise<PushResult> {
           task.id,
           task.title,
           task.description,
-          gitlabToken
+          gitlabToken,
+          gitlabTokenType
         )
         result.mergeRequests.push(mrResult)
       } catch (error) {
