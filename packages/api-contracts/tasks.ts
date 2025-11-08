@@ -176,3 +176,18 @@ export const updateTaskImplementationStatusConfig = {
     })
   }
 } as const
+
+export const updateTaskConfig = {
+  method: 'PATCH',
+  route: route.dynamic('/api/tasks/:id', z.object({ id: z.string() })),
+  body: {
+    schema: z.object({
+      status: z.string().optional(),
+      title: z.string().optional(),
+      description: z.string().optional()
+    })
+  },
+  response: {
+    schema: taskSchema
+  }
+} as const

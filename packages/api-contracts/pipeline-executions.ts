@@ -121,3 +121,31 @@ export const updatePipelineExecutionConfig = {
     })
   }
 } as const
+
+export const saveExecutionApiUsageConfig = {
+  method: 'POST',
+  route: route.dynamic('/pipeline-executions/:executionId/usage', z.object({ executionId: z.string() })),
+  body: {
+    schema: z.object({
+      session_id: z.string(),
+      task_id: z.string(),
+      provider: z.string(),
+      model: z.string(),
+      goal: z.string(),
+      phase: z.string(),
+      input_tokens: z.number().optional(),
+      output_tokens: z.number().optional(),
+      cache_creation_input_tokens: z.number().optional(),
+      cache_read_input_tokens: z.number().optional(),
+      ci_duration_seconds: z.number().optional(),
+      iteration_number: z.number().optional(),
+      metadata: z.any().optional()
+    })
+  },
+  response: {
+    schema: z.object({
+      success: z.boolean(),
+      message: z.string().optional()
+    })
+  }
+} as const

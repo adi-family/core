@@ -53,6 +53,7 @@ const allHandlers = [
   taskHandlers.evaluateTask,
   taskHandlers.evaluateTaskAdvanced,
   taskHandlers.updateTaskImplementationStatus,
+  taskHandlers.updateTask,
   // Sessions
   sessionHandlers.getSessionMessages,
   sessionHandlers.getSessionPipelineExecutions,
@@ -64,6 +65,7 @@ const allHandlers = [
   pipelineExecutionHandlers.createExecutionArtifact,
   pipelineExecutionHandlers.createPipelineExecution,
   pipelineExecutionHandlers.updatePipelineExecution,
+  pipelineExecutionHandlers.saveExecutionApiUsage,
   // Messages
   messageHandlers.listMessages,
   // Task Sources

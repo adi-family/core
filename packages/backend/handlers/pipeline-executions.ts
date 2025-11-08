@@ -9,10 +9,12 @@ import {
   getExecutionArtifactsConfig,
   createExecutionArtifactConfig,
   createPipelineExecutionConfig,
-  updatePipelineExecutionConfig
+  updatePipelineExecutionConfig,
+  saveExecutionApiUsageConfig
 } from '@adi/api-contracts/pipeline-executions'
 import * as pipelineArtifactQueries from '@db/pipeline-artifacts'
 import * as pipelineExecutionQueries from '@db/pipeline-executions'
+import * as apiUsageQueries from '@db/api-usage-metrics'
 
 export function createPipelineExecutionHandlers(sql: Sql) {
   const listPipelineArtifacts = handler(listPipelineArtifactsConfig, async (ctx) => {
@@ -55,11 +57,39 @@ export function createPipelineExecutionHandlers(sql: Sql) {
     return execution
   })
 
+  const saveExecutionApiUsage = handler(saveExecutionApiUsageConfig, async (ctx) => {
+    const { executionId } = ctx.params
+    const body = ctx.body
+
+    await apiUsageQueries.createApiUsageMetric(sql, {
+      pipeline_execution_id: executionId,
+      session_id: body.session_id,
+      task_id: body.task_id,
+      provider: body.provider,
+      model: body.model,
+      goal: body.goal,
+      phase: body.phase,
+      input_tokens: body.input_tokens,
+      output_tokens: body.output_tokens,
+      cache_creation_input_tokens: body.cache_creation_input_tokens,
+      cache_read_input_tokens: body.cache_read_input_tokens,
+      ci_duration_seconds: body.ci_duration_seconds,
+      iteration_number: body.iteration_number,
+      metadata: body.metadata
+    })
+
+    return {
+      success: true,
+      message: 'API usage saved successfully'
+    }
+  })
+
   return {
     listPipelineArtifacts,
     getExecutionArtifacts,
     createExecutionArtifact,
     createPipelineExecution,
-    updatePipelineExecution
+    updatePipelineExecution,
+    saveExecutionApiUsage
   }
 }

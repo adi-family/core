@@ -13,7 +13,8 @@ import {
   evaluateTaskConfig,
   evaluateTaskAdvancedConfig,
   getTaskStatsConfig,
-  updateTaskImplementationStatusConfig
+  updateTaskImplementationStatusConfig,
+  updateTaskConfig
 } from '@adi/api-contracts/tasks'
 import * as sessionQueries from '@db/sessions'
 import * as pipelineArtifactQueries from '@db/pipeline-artifacts'
@@ -215,6 +216,14 @@ export function createTaskHandlers(sql: Sql) {
     }
   })
 
+  const updateTaskHandler = handler(updateTaskConfig, async (ctx) => {
+    const { id } = ctx.params
+    const body = ctx.body
+
+    const task = await taskQueries.updateTask(sql, id, body)
+    return task
+  })
+
   return {
     getTaskSessions,
     getTaskArtifacts,
@@ -224,6 +233,7 @@ export function createTaskHandlers(sql: Sql) {
     evaluateTask,
     evaluateTaskAdvanced: evaluateTaskAdvancedHandler,
     getTaskStats,
-    updateTaskImplementationStatus: updateTaskImplementationStatusHandler
+    updateTaskImplementationStatus: updateTaskImplementationStatusHandler,
+    updateTask: updateTaskHandler
   }
 }
