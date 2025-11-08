@@ -25,3 +25,10 @@ packages/client/src/assets/output.css
 
 *storybook.log
 storybook-static
+
+
+
+.nx/cache
+.nx/workspace-data
+.cursor/rules/nx-rules.mdc
+.github/instructions/nx.instructions.md

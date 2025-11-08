@@ -18,6 +18,7 @@
     "@adi-simple/ui": "*",
     "@adi/api-contracts": "*",
     "@clerk/clerk-react": "^5.53.2",
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.14",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

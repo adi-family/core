@@ -1,0 +1,82 @@
+{
+  "$schema": "./node_modules/nx/schemas/nx-schema.json",
+  "namedInputs": {
+    "sharedGlobals": [
+      {
+        "env": "DATABASE_URL"
+      },
+      {
+        "env": "CLERK_PUBLISHABLE_KEY"
+      },
+      {
+        "env": "CLERK_SECRET_KEY"
+      },
+      {
+        "env": "GITLAB_TOKEN"
+      },
+      {
+        "env": "GITLAB_URL"
+      },
+      {
+        "env": "ENCRYPTION_KEY"
+      },
+      {
+        "env": "CLIENT_PORT"
+      },
+      {
+        "env": "BACKEND_PORT"
+      },
+      {
+        "env": "LANDING_PORT"
+      },
+      {
+        "env": "GITLAB_RUNNER_API_URL"
+      },
+      {
+        "env": "CLOUDFLARED_TUNNEL_TOKEN"
+      }
+    ],
+    "default": [
+      "{projectRoot}/**/*",
+      "sharedGlobals"
+    ]
+  },
+  "targetDefaults": {
+    "build": {
+      "dependsOn": [
+        "^build"
+      ],
+      "outputs": [
+        "{projectRoot}/dist/**",
+        "{projectRoot}/.next/**",
+        "!{projectRoot}/.next/cache/**",
+        "{projectRoot}/build/**"
+      ],
+      "cache": true
+    },
+    "dev": {
+      "cache": false
+    },
+    "typecheck": {
+      "dependsOn": [
+        "^typecheck"
+      ],
+      "cache": true
+    },
+    "lint": {
+      "dependsOn": [
+        "^lint"
+      ],
+      "cache": true
+    },
+    "tailwind:dev": {
+      "cache": false
+    },
+    "tailwind:build": {
+      "outputs": [
+        "{projectRoot}/src/assets/output.css"
+      ],
+      "cache": true
+    }
+  }
+}
