@@ -6,13 +6,55 @@ import { mkdir, readdir, writeFile } from 'fs/promises'
 import { promisify } from 'util'
 import { exec as execCallback } from 'child_process'
 import { createLogger } from './shared/logger'
-import { basename } from 'path'
+import { basename, resolve } from 'path'
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import { pushToFileSpaces } from './push-to-file-spaces'
 import { cloneWorkspaces } from './shared/workspace-cloner'
+import { existsSync } from 'fs'
+import { fileURLToPath } from 'url'
 
 const exec = promisify(execCallback)
 const logger = createLogger({ namespace: 'claude-pipeline' })
+
+/**
+ * Get Claude Code executable path
+ */
+function getClaudePath(): string {
+  // Try global npm installation first (typical in CI)
+  const globalPaths = [
+    '/usr/local/bin/claude',
+    '/usr/bin/claude',
+    process.env.NODE_PATH ? `${process.env.NODE_PATH}/.bin/claude` : null,
+  ].filter(Boolean) as string[]
+
+  for (const path of globalPaths) {
+    if (existsSync(path)) {
+      logger.info(`✓ Claude executable found at: ${path}`)
+      return path
+    }
+  }
+
+  // Fallback to local node_modules
+  const __dirname = fileURLToPath(new URL('.', import.meta.url))
+  const claudePath = resolve(__dirname, 'node_modules/.bin/claude')
+  logger.info(`Using Claude executable: ${claudePath}`)
+
+  if (!existsSync(claudePath)) {
+    logger.error(`❌ Claude executable not found at: ${claudePath}`)
+    logger.info('Checking alternative locations...')
+    const altPath = resolve(__dirname, '../node_modules/.bin/claude')
+    logger.info(`Alternative path: ${altPath} - exists: ${existsSync(altPath)}`)
+
+    if (existsSync(altPath)) {
+      logger.info(`✓ Using alternative path: ${altPath}`)
+      return altPath
+    }
+  } else {
+    logger.info(`✓ Claude executable found at: ${claudePath}`)
+  }
+
+  return claudePath
+}
 
 interface WorkspaceData {
   path: string;
@@ -202,11 +244,14 @@ async function executeClaudeAgent(
   try {
     logger.info('🤖 Starting Claude Agent SDK...')
 
+    const claudePath = getClaudePath()
+
     logger.info(`📋 Query options:`)
     logger.info(`  - permissionMode: acceptEdits`)
     logger.info(`  - executable: bun`)
     logger.info(`  - cwd: ${workspacePath}`)
     logger.info(`  - allowedTools: Bash, Read, Write, Edit, Glob, Grep`)
+    logger.info(`  - pathToClaudeCodeExecutable: ${claudePath}`)
     logger.info(`  - ANTHROPIC_API_KEY set: ${!!env.ANTHROPIC_API_KEY}`)
 
     const iterator = query({
@@ -220,6 +265,7 @@ async function executeClaudeAgent(
         executable: 'bun',
         cwd: workspacePath,
         allowedTools: ['Bash', 'Read', 'Write', 'Edit', 'Glob', 'Grep'],
+        pathToClaudeCodeExecutable: claudePath,
         stderr: (data: string) => {
           logger.error(`[Claude Code stderr] ${data}`)
         },

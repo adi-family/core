@@ -92,6 +92,11 @@ execute:
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
 
+    # Install Claude Code CLI
+    - echo "Installing Claude Code CLI..."
+    - npm install -g @anthropic-ai/claude-code
+    - echo "✓ Claude Code CLI installed"
+
     # Clean up old results from previous runs
     - rm -rf 2025-10-18-01/results
     - echo "✓ Cleaned up old results directory"

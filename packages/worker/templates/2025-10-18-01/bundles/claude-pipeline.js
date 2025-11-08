@@ -159,7 +159,7 @@ function validateEnvironment(required) {
 import { mkdir as mkdir2, readdir as readdir2, writeFile as writeFile2 } from "fs/promises";
 import { promisify as promisify2 } from "util";
 import { exec as execCallback2 } from "child_process";
-import { basename } from "path";
+import { basename, resolve } from "path";
 
 // templates/2025-10-18-01/worker-scripts/node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs
 import { join as join3 } from "path";
@@ -13226,8 +13226,39 @@ async function cloneWorkspaces() {
 if (false) {}
 
 // templates/2025-10-18-01/worker-scripts/claude-pipeline.ts
+import { existsSync as existsSync2 } from "fs";
+import { fileURLToPath as fileURLToPath2 } from "url";
 var exec2 = promisify2(execCallback2);
 var logger3 = createLogger({ namespace: "claude-pipeline" });
+function getClaudePath() {
+  const globalPaths = [
+    "/usr/local/bin/claude",
+    "/usr/bin/claude",
+    process.env.NODE_PATH ? `${process.env.NODE_PATH}/.bin/claude` : null
+  ].filter(Boolean);
+  for (const path of globalPaths) {
+    if (existsSync2(path)) {
+      logger3.info(`\u2713 Claude executable found at: ${path}`);
+      return path;
+    }
+  }
+  const __dirname2 = fileURLToPath2(new URL(".", import.meta.url));
+  const claudePath = resolve(__dirname2, "node_modules/.bin/claude");
+  logger3.info(`Using Claude executable: ${claudePath}`);
+  if (!existsSync2(claudePath)) {
+    logger3.error(`\u274C Claude executable not found at: ${claudePath}`);
+    logger3.info("Checking alternative locations...");
+    const altPath = resolve(__dirname2, "../node_modules/.bin/claude");
+    logger3.info(`Alternative path: ${altPath} - exists: ${existsSync2(altPath)}`);
+    if (existsSync2(altPath)) {
+      logger3.info(`\u2713 Using alternative path: ${altPath}`);
+      return altPath;
+    }
+  } else {
+    logger3.info(`\u2713 Claude executable found at: ${claudePath}`);
+  }
+  return claudePath;
+}
 async function processWorkspaces(workspacesDir) {
   const entries = await readdir2(workspacesDir, { withFileTypes: true });
   const workspaceDirs = entries.filter((entry) => entry.isDirectory() && !entry.name.startsWith(".")).map((entry) => `${workspacesDir}/${entry.name}`);
@@ -13351,11 +13382,13 @@ Final Result: Mock implementation completed successfully`;
   }
   try {
     logger3.info("\uD83E\uDD16 Starting Claude Agent SDK...");
+    const claudePath = getClaudePath();
     logger3.info(`\uD83D\uDCCB Query options:`);
     logger3.info(`  - permissionMode: acceptEdits`);
     logger3.info(`  - executable: bun`);
     logger3.info(`  - cwd: ${workspacePath}`);
     logger3.info(`  - allowedTools: Bash, Read, Write, Edit, Glob, Grep`);
+    logger3.info(`  - pathToClaudeCodeExecutable: ${claudePath}`);
     logger3.info(`  - ANTHROPIC_API_KEY set: ${!!env.ANTHROPIC_API_KEY}`);
     const iterator = query({
       prompt,
@@ -13368,6 +13401,7 @@ Final Result: Mock implementation completed successfully`;
         executable: "bun",
         cwd: workspacePath,
         allowedTools: ["Bash", "Read", "Write", "Edit", "Glob", "Grep"],
+        pathToClaudeCodeExecutable: claudePath,
         stderr: (data) => {
           logger3.error(`[Claude Code stderr] ${data}`);
         }
