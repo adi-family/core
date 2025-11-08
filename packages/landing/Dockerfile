@@ -1,30 +1,13 @@
-# Turborepo-optimized multi-stage build for Next.js landing page
-# Stage 1: Pruner - extracts only the required workspace dependencies
-FROM node:22-alpine AS pruner
+# Multi-stage build for Next.js landing page
+# Stage 1: Installer & Builder
+FROM node:22-alpine AS installer
 WORKDIR /app
-
-# Install turbo globally
-RUN npm install -g turbo@2.6.0
 
 # Copy entire monorepo
 COPY . .
 
-# Prune the monorepo for the landing package
-# Creates out/json/ with package.json files and out/full/ with source code
-RUN turbo prune @adi-simple/landing --docker
-
-# Stage 2: Installer & Builder
-FROM node:22-alpine AS installer
-WORKDIR /app
-
-# Copy package.json files from pruner
-COPY --from=pruner /app/out/json/ .
-
 # Install dependencies (lockfile will be generated fresh)
 RUN npm install
-
-# Copy source code from pruner
-COPY --from=pruner /app/out/full/ .
 
 # Build the landing page
 WORKDIR /app/packages/landing
