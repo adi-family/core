@@ -1,25 +1,28 @@
 # Multi-stage build for client service
 # Stage 1: Installer & Builder
-FROM node:22-alpine AS installer
+FROM node:22-alpine AS builder
 WORKDIR /app
+
+# Copy package files first for better layer caching
+COPY package*.json ./
+COPY packages/client/package*.json ./packages/client/
+
+# Install dependencies (includes nx in devDependencies)
+RUN npm install --legacy-peer-deps
 
 # Copy entire monorepo
 COPY . .
 
-# Install dependencies for all workspaces
-RUN npm install --workspaces
-
-# Build the client
+# Build the client using Nx
 # All env vars (CLIENT_PORT, BACKEND_URL, VITE_API_URL) come from Coolify
-WORKDIR /app/packages/client
-RUN npx vite build
+RUN npx nx build client
 
 # Stage 3: Runner - production image
 FROM node:22-alpine AS runner
 WORKDIR /app
 
 # Copy only the built dist folder
-COPY --from=installer /app/packages/client/dist ./dist
+COPY --from=builder /app/packages/client/dist ./dist
 
 # Install a simple static file server
 RUN npm install -g sirv-cli

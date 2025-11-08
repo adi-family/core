@@ -1,17 +1,20 @@
 # Multi-stage build for Next.js landing page
 # Stage 1: Installer & Builder
-FROM node:22-alpine AS installer
+FROM node:22-alpine AS builder
 WORKDIR /app
+
+# Copy package files first for better layer caching
+COPY package*.json ./
+COPY packages/landing/package*.json ./packages/landing/
+
+# Install dependencies (includes nx in devDependencies)
+RUN npm install --legacy-peer-deps
 
 # Copy entire monorepo
 COPY . .
 
-# Install dependencies for all workspaces
-RUN npm install --workspaces
-
-# Build the landing page
-WORKDIR /app/packages/landing
-RUN npm run build
+# Build the landing page using Nx
+RUN npx nx build landing
 
 # Stage 3: Runner - production image
 FROM node:22-alpine AS runner
@@ -24,9 +27,9 @@ RUN addgroup --system --gid 1001 nodejs && \
     adduser --system --uid 1001 nextjs
 
 # Copy Next.js standalone output
-COPY --from=installer --chown=nextjs:nodejs /app/packages/landing/.next/standalone ./
-COPY --from=installer --chown=nextjs:nodejs /app/packages/landing/.next/static ./packages/landing/.next/static
-COPY --from=installer --chown=nextjs:nodejs /app/packages/landing/public ./packages/landing/public
+COPY --from=builder --chown=nextjs:nodejs /app/packages/landing/.next/standalone ./
+COPY --from=builder --chown=nextjs:nodejs /app/packages/landing/.next/static ./packages/landing/.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/packages/landing/public ./packages/landing/public
 
 USER nextjs
 

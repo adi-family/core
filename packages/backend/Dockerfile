@@ -1,13 +1,16 @@
 # Multi-stage build for backend service
 # Stage 1: Installer
-FROM node:22-alpine AS installer
+FROM node:22-alpine AS builder
 WORKDIR /app
+
+# Copy package files first for better layer caching
+COPY package*.json ./
+
+# Install dependencies (includes nx in devDependencies)
+RUN npm install --legacy-peer-deps
 
 # Copy entire monorepo
 COPY . .
-
-# Install dependencies for all workspaces
-RUN npm install --workspaces
 
 # Stage 3: Runner - production image
 FROM node:22-alpine AS runner
@@ -16,8 +19,8 @@ WORKDIR /app
 # Set environment
 ENV NODE_ENV=production
 
-# Copy installed node_modules and source from installer
-COPY --from=installer /app .
+# Copy installed node_modules and source from builder
+COPY --from=builder /app .
 
 # Health check (uses SERVER_PORT from Coolify)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
