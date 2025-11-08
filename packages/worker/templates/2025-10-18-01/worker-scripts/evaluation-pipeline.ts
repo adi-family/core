@@ -16,6 +16,7 @@ import { readFile, readdir } from 'fs/promises'
 import { cloneWorkspaces } from './shared/workspace-cloner'
 
 const logger = createLogger({ namespace: 'evaluation-pipeline' })
+const RESULTS_DIR = '2025-10-18-01/results'
 
 /**
  * Workspace information
@@ -99,8 +100,8 @@ Yes (Confidence: 80%)
 *Generated in MOCK_MODE - no real codebase analysis performed*
 `
 
-  await writeFile('../results/agentic-verdict.json', JSON.stringify(mockVerdict, null, 2), 'utf-8')
-  await writeFile('../results/evaluation-report.md', mockReport, 'utf-8')
+  await writeFile(`${RESULTS_DIR}/agentic-verdict.json`, JSON.stringify(mockVerdict, null, 2), 'utf-8')
+  await writeFile(`${RESULTS_DIR}/evaluation-report.md`, mockReport, 'utf-8')
 
   const agenticUsage = {
     provider: 'anthropic',
@@ -116,7 +117,7 @@ Yes (Confidence: 80%)
     metadata: { iterations: 1, sdk_cost_usd: 0.0001, mock: true }
   }
 
-  await writeFile('../results/agentic-usage.json', JSON.stringify(agenticUsage, null, 2), 'utf-8')
+  await writeFile(`${RESULTS_DIR}/agentic-usage.json`, JSON.stringify(agenticUsage, null, 2), 'utf-8')
 
   logger.info('📊 Mock agentic evaluation usage tracked')
   logger.info('✓ Mock agentic evaluation completed')
@@ -422,7 +423,7 @@ async function executeClaudeAgent(
         metadata: { iterations, sdk_cost_usd: cost }
       }
 
-      await writeFile('../results/agentic-usage.json', JSON.stringify(agenticUsage, null, 2), 'utf-8')
+      await writeFile(`${RESULTS_DIR}/agentic-usage.json`, JSON.stringify(agenticUsage, null, 2), 'utf-8')
       logger.info('📊 Agentic evaluation usage tracked')
     }
   }
@@ -442,10 +443,10 @@ async function readEvaluationResults(): Promise<EvaluationResult> {
     logger.error('Results directory not found or empty')
   }
 
-  const verdictJson = await readFile('../results/agentic-verdict.json', 'utf-8')
+  const verdictJson = await readFile(`${RESULTS_DIR}/agentic-verdict.json`, 'utf-8')
   const verdict = JSON.parse(verdictJson)
 
-  const report = await readFile('../results/evaluation-report.md', 'utf-8')
+  const report = await readFile(`${RESULTS_DIR}/evaluation-report.md`, 'utf-8')
 
   logger.info(`✓ Agentic evaluation: can_implement=${verdict.can_implement}, confidence=${verdict.confidence}`)
   return { verdict, report }
@@ -550,7 +551,7 @@ async function main() {
     try {
       await mkdir('../results', { recursive: true })
       await writeFile(
-        '../results/error.json',
+        `${RESULTS_DIR}/error.json`,
         JSON.stringify({
           error: error instanceof Error ? error.message : String(error),
           timestamp: new Date().toISOString(),

@@ -130,6 +130,7 @@ export const findRecentUsageMetrics = async (
   return get(sql<ApiUsageMetric[]>`
     SELECT
       id,
+      pipeline_execution_id,
       session_id,
       task_id,
       provider,
@@ -142,6 +143,7 @@ export const findRecentUsageMetrics = async (
       cache_read_input_tokens,
       ci_duration_seconds,
       iteration_number,
+      metadata,
       created_at
     FROM api_usage_metrics
     ${whereClause}

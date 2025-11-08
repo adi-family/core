@@ -15,6 +15,7 @@ import { fileURLToPath } from 'url'
 
 const exec = promisify(execCallback)
 const logger = createLogger({ namespace: 'claude-pipeline' })
+const RESULTS_DIR = '2025-10-18-01/results'
 
 /**
  * Get Claude Code executable path
@@ -245,7 +246,7 @@ async function executeClaudeAgent(
     }
 
     await writeFile(
-      '../results/implementation-usage.json',
+      `${RESULTS_DIR}/implementation-usage.json`,
       JSON.stringify(implementationUsage, null, 2),
       'utf-8'
     )
@@ -331,7 +332,7 @@ async function executeClaudeAgent(
         }
 
         await writeFile(
-          '../results/implementation-usage.json',
+          `${RESULTS_DIR}/implementation-usage.json`,
           JSON.stringify(implementationUsage, null, 2),
           'utf-8'
         )
@@ -415,7 +416,7 @@ async function main() {
     }
 
     // Create results directory
-    await mkdir('../results', { recursive: true })
+    await mkdir(RESULTS_DIR, { recursive: true })
 
     logger.info('🔧 Running Claude SDK...')
     logger.info(`Task: ${task.title}`)
@@ -495,7 +496,7 @@ async function main() {
 
     // Save results for report stage
     await Bun.write(
-      '../results/output.json',
+      `${RESULTS_DIR}/output.json`,
       JSON.stringify(
         {
           session,
@@ -517,7 +518,7 @@ async function main() {
   } catch (error) {
     logger.error('❌ Claude pipeline failed:', error)
     await Bun.write(
-      '../results/error.json',
+      `${RESULTS_DIR}/error.json`,
       JSON.stringify(
         {
           error: error instanceof Error ? error.message : String(error),

@@ -13345,7 +13345,7 @@ Final Result: Mock implementation completed successfully`;
       iteration_number: iterations,
       metadata: { iterations, sdk_cost_usd: cost, mock: true }
     };
-    await writeFile2("../results/implementation-usage.json", JSON.stringify(implementationUsage, null, 2), "utf-8");
+    await writeFile2(`${RESULTS_DIR}/implementation-usage.json`, JSON.stringify(implementationUsage, null, 2), "utf-8");
     logger3.info("\uD83D\uDCCA Mock implementation usage tracked");
     logger3.info("\u2713 Mock mode execution completed");
     return { output, errors, cost, iterations };
@@ -13416,7 +13416,7 @@ Final Result: ${resultText}`;
           iteration_number: iterations,
           metadata: { iterations, sdk_cost_usd: cost }
         };
-        await writeFile2("../results/implementation-usage.json", JSON.stringify(implementationUsage, null, 2), "utf-8");
+        await writeFile2(`${RESULTS_DIR}/implementation-usage.json`, JSON.stringify(implementationUsage, null, 2), "utf-8");
         logger3.info("\uD83D\uDCCA Implementation usage tracked");
       }
     }
@@ -13473,7 +13473,7 @@ async function main2() {
 \uD83D\uDCE6 Preparing: ${ws.dirName}`);
       await processWorkspace(ws.path, task.id);
     }
-    await mkdir2("../results", { recursive: true });
+    await mkdir2(RESULTS_DIR, { recursive: true });
     logger3.info("\uD83D\uDD27 Running Claude SDK...");
     logger3.info(`Task: ${task.title}`);
     logger3.info(`Description: ${task.description || "N/A"}`);
@@ -13525,7 +13525,7 @@ ${task.description || ""}`;
       logger3.error("\u274C Failed to push to file spaces:", error);
       logger3.error(error instanceof Error ? error.message : String(error));
     }
-    await Bun.write("../results/output.json", JSON.stringify({
+    await Bun.write(`${RESULTS_DIR}/output.json`, JSON.stringify({
       session,
       task,
       agentResults,
@@ -13539,14 +13539,14 @@ ${task.description || ""}`;
     process.exit(0);
   } catch (error) {
     logger3.error("\u274C Claude pipeline failed:", error);
-    await Bun.write("../results/error.json", JSON.stringify({
+    await Bun.write(`${RESULTS_DIR}/error.json`, JSON.stringify({
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     }, null, 2));
     process.exit(1);
   }
 }
-var exec2, logger3;
+var exec2, logger3, RESULTS_DIR = "2025-10-18-01/results";
 var init_claude_pipeline = __esm(() => {
   init_env_validator();
   init_sdk();
@@ -13620,8 +13620,8 @@ Yes (Confidence: 80%)
 ---
 *Generated in MOCK_MODE - no real codebase analysis performed*
 `;
-  await writeFile3("../results/agentic-verdict.json", JSON.stringify(mockVerdict, null, 2), "utf-8");
-  await writeFile3("../results/evaluation-report.md", mockReport, "utf-8");
+  await writeFile3(`${RESULTS_DIR2}/agentic-verdict.json`, JSON.stringify(mockVerdict, null, 2), "utf-8");
+  await writeFile3(`${RESULTS_DIR2}/evaluation-report.md`, mockReport, "utf-8");
   const agenticUsage = {
     provider: "anthropic",
     model: "claude-sonnet-4-5",
@@ -13635,7 +13635,7 @@ Yes (Confidence: 80%)
     iteration_number: 1,
     metadata: { iterations: 1, sdk_cost_usd: 0.0001, mock: true }
   };
-  await writeFile3("../results/agentic-usage.json", JSON.stringify(agenticUsage, null, 2), "utf-8");
+  await writeFile3(`${RESULTS_DIR2}/agentic-usage.json`, JSON.stringify(agenticUsage, null, 2), "utf-8");
   logger4.info("\uD83D\uDCCA Mock agentic evaluation usage tracked");
   logger4.info("\u2713 Mock agentic evaluation completed");
   return { verdict: mockVerdict, report: mockReport };
@@ -13868,7 +13868,7 @@ async function executeClaudeAgent2(prompt, claudeEnv, claudePath, workingDir, ag
         iteration_number: iterations,
         metadata: { iterations, sdk_cost_usd: cost }
       };
-      await writeFile3("../results/agentic-usage.json", JSON.stringify(agenticUsage, null, 2), "utf-8");
+      await writeFile3(`${RESULTS_DIR2}/agentic-usage.json`, JSON.stringify(agenticUsage, null, 2), "utf-8");
       logger4.info("\uD83D\uDCCA Agentic evaluation usage tracked");
     }
   }
@@ -13882,9 +13882,9 @@ async function readEvaluationResults() {
   } catch {
     logger4.error("Results directory not found or empty");
   }
-  const verdictJson = await readFile("../results/agentic-verdict.json", "utf-8");
+  const verdictJson = await readFile(`${RESULTS_DIR2}/agentic-verdict.json`, "utf-8");
   const verdict = JSON.parse(verdictJson);
-  const report = await readFile("../results/evaluation-report.md", "utf-8");
+  const report = await readFile(`${RESULTS_DIR2}/evaluation-report.md`, "utf-8");
   logger4.info(`\u2713 Agentic evaluation: can_implement=${verdict.can_implement}, confidence=${verdict.confidence}`);
   return { verdict, report };
 }
@@ -13954,7 +13954,7 @@ async function main3() {
     logger4.error("\u274C Advanced evaluation pipeline failed:", error);
     try {
       await mkdir3("../results", { recursive: true });
-      await writeFile3("../results/error.json", JSON.stringify({
+      await writeFile3(`${RESULTS_DIR2}/error.json`, JSON.stringify({
         error: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
         stack: error instanceof Error ? error.stack : undefined
@@ -13977,7 +13977,7 @@ async function main3() {
     throw error;
   }
 }
-var logger4;
+var logger4, RESULTS_DIR2 = "2025-10-18-01/results";
 var init_evaluation_pipeline = __esm(() => {
   init_env_validator();
   init_sdk();
@@ -14037,7 +14037,7 @@ async function main4() {
     } else {
       logger5.info("\u2139\uFE0F  No file space configured for this task");
     }
-    await mkdir4("../results", { recursive: true });
+    await mkdir4(RESULTS_DIR3, { recursive: true });
     logger5.info("\uD83D\uDD27 Running Codex agent...");
     logger5.info(`Task: ${task.title}`);
     logger5.info(`Description: ${task.description || "N/A"}`);
@@ -14061,7 +14061,7 @@ async function main4() {
     } else {
       logger5.info("\u2713 No clarification needed");
     }
-    await Bun.write("../results/output.json", JSON.stringify({
+    await Bun.write(`${RESULTS_DIR3}/output.json`, JSON.stringify({
       session,
       task,
       fileSpace,
@@ -14073,14 +14073,14 @@ async function main4() {
     process.exit(0);
   } catch (error) {
     logger5.error("\u274C Codex pipeline failed:", error);
-    await Bun.write("../results/error.json", JSON.stringify({
+    await Bun.write(`${RESULTS_DIR3}/error.json`, JSON.stringify({
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     }, null, 2));
     process.exit(1);
   }
 }
-var logger5;
+var logger5, RESULTS_DIR3 = "2025-10-18-01/results";
 var init_codex_pipeline = __esm(() => {
   init_env_validator();
   logger5 = createLogger({ namespace: "codex-pipeline" });
@@ -14136,7 +14136,7 @@ async function main5() {
     } else {
       logger6.info("\u2139\uFE0F  No file space configured for this task");
     }
-    await mkdir5("../results", { recursive: true });
+    await mkdir5(RESULTS_DIR4, { recursive: true });
     logger6.info("\uD83D\uDD27 Running Gemini agent...");
     logger6.info(`Task: ${task.title}`);
     logger6.info(`Description: ${task.description || "N/A"}`);
@@ -14160,7 +14160,7 @@ async function main5() {
     } else {
       logger6.info("\u2713 No clarification needed");
     }
-    await Bun.write("../results/output.json", JSON.stringify({
+    await Bun.write(`${RESULTS_DIR4}/output.json`, JSON.stringify({
       session,
       task,
       fileSpace,
@@ -14172,14 +14172,14 @@ async function main5() {
     process.exit(0);
   } catch (error) {
     logger6.error("\u274C Gemini pipeline failed:", error);
-    await Bun.write("../results/error.json", JSON.stringify({
+    await Bun.write(`${RESULTS_DIR4}/error.json`, JSON.stringify({
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     }, null, 2));
     process.exit(1);
   }
 }
-var logger6;
+var logger6, RESULTS_DIR4 = "2025-10-18-01/results";
 var init_gemini_pipeline = __esm(() => {
   init_env_validator();
   logger6 = createLogger({ namespace: "gemini-pipeline" });
@@ -14309,7 +14309,7 @@ async function main7() {
     const task = await apiClient.getTask(session.task_id);
     logger8.info(`\u2713 Task loaded: ${task.title}`);
     logger8.info("\u2139\uFE0F  Simple evaluation already handled by microservice before CI");
-    const agenticUsageFile = "../results/agentic-usage.json";
+    const agenticUsageFile = `${RESULTS_DIR5}/agentic-usage.json`;
     if (await fileExists2(agenticUsageFile)) {
       try {
         const usageText = await readFile3(agenticUsageFile, "utf-8");
@@ -14320,13 +14320,13 @@ async function main7() {
         logger8.error("Failed to upload agentic eval usage:", usageError);
       }
     }
-    const agenticVerdictExists = await fileExists2("../results/agentic-verdict.json");
-    const reportExists = await fileExists2("../results/evaluation-report.md");
+    const agenticVerdictExists = await fileExists2(`${RESULTS_DIR5}/agentic-verdict.json`);
+    const reportExists = await fileExists2(`${RESULTS_DIR5}/evaluation-report.md`);
     if (agenticVerdictExists && reportExists) {
-      const agenticVerdictText = await readFile3("../results/agentic-verdict.json", "utf-8");
+      const agenticVerdictText = await readFile3(`${RESULTS_DIR5}/agentic-verdict.json`, "utf-8");
       const agenticVerdict = JSON.parse(agenticVerdictText);
       logger8.info("\u2713 Agentic verdict loaded");
-      const reportText = await readFile3("../results/evaluation-report.md", "utf-8");
+      const reportText = await readFile3(`${RESULTS_DIR5}/evaluation-report.md`, "utf-8");
       logger8.info("\u2713 Evaluation report loaded");
       const agenticResult = {
         ...agenticVerdict,
@@ -14363,7 +14363,7 @@ async function main7() {
     process.exit(1);
   }
 }
-var logger8;
+var logger8, RESULTS_DIR5 = "2025-10-18-01/results";
 var init_upload_evaluation_results = __esm(() => {
   logger8 = createLogger({ namespace: "upload-evaluation" });
   if (!process.env.__WORKER_BINARY__) {

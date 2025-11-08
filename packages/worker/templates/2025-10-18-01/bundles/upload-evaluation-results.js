@@ -124,6 +124,7 @@ function createLogger(config) {
 
 // templates/2025-10-18-01/worker-scripts/upload-evaluation-results.ts
 var logger = createLogger({ namespace: "upload-evaluation" });
+var RESULTS_DIR = "2025-10-18-01/results";
 async function fileExists(path) {
   return Bun.file(path).exists();
 }
@@ -144,7 +145,7 @@ async function main() {
     const task = await apiClient.getTask(session.task_id);
     logger.info(`\u2713 Task loaded: ${task.title}`);
     logger.info("\u2139\uFE0F  Simple evaluation already handled by microservice before CI");
-    const agenticUsageFile = "../results/agentic-usage.json";
+    const agenticUsageFile = `${RESULTS_DIR}/agentic-usage.json`;
     if (await fileExists(agenticUsageFile)) {
       try {
         const usageText = await readFile(agenticUsageFile, "utf-8");
@@ -155,13 +156,13 @@ async function main() {
         logger.error("Failed to upload agentic eval usage:", usageError);
       }
     }
-    const agenticVerdictExists = await fileExists("../results/agentic-verdict.json");
-    const reportExists = await fileExists("../results/evaluation-report.md");
+    const agenticVerdictExists = await fileExists(`${RESULTS_DIR}/agentic-verdict.json`);
+    const reportExists = await fileExists(`${RESULTS_DIR}/evaluation-report.md`);
     if (agenticVerdictExists && reportExists) {
-      const agenticVerdictText = await readFile("../results/agentic-verdict.json", "utf-8");
+      const agenticVerdictText = await readFile(`${RESULTS_DIR}/agentic-verdict.json`, "utf-8");
       const agenticVerdict = JSON.parse(agenticVerdictText);
       logger.info("\u2713 Agentic verdict loaded");
-      const reportText = await readFile("../results/evaluation-report.md", "utf-8");
+      const reportText = await readFile(`${RESULTS_DIR}/evaluation-report.md`, "utf-8");
       logger.info("\u2713 Evaluation report loaded");
       const agenticResult = {
         ...agenticVerdict,

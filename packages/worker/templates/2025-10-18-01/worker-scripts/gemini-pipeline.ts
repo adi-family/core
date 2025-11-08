@@ -12,6 +12,7 @@ import { mkdir } from 'fs/promises'
 import { createLogger } from './shared/logger'
 
 const logger = createLogger({ namespace: 'gemini-pipeline' })
+const RESULTS_DIR = '2025-10-18-01/results'
 
 async function main() {
   logger.info('🤖 Gemini Pipeline Started')
@@ -61,7 +62,7 @@ async function main() {
     }
 
     // Create results directory
-    await mkdir('../results', { recursive: true })
+    await mkdir(RESULTS_DIR, { recursive: true })
 
     // TODO: Implement actual Gemini execution
     logger.info('🔧 Running Gemini agent...')
@@ -100,7 +101,7 @@ async function main() {
 
     // Save results
     await Bun.write(
-      '../results/output.json',
+      `${RESULTS_DIR}/output.json`,
       JSON.stringify(
         {
           session,
@@ -120,7 +121,7 @@ async function main() {
   } catch (error) {
     logger.error('❌ Gemini pipeline failed:', error)
     await Bun.write(
-      '../results/error.json',
+      `${RESULTS_DIR}/error.json`,
       JSON.stringify(
         {
           error: error instanceof Error ? error.message : String(error),

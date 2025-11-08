@@ -41,8 +41,7 @@ sync-only:
         echo "https://oauth2:${GITLAB_TOKEN}@gitlab.com" >> ~/.git-credentials
         echo "✓ Workspace credentials configured"
       fi
-    - cd ../
-    - bun binaries/worker.js sync
+    - bun 2025-10-18-01/binaries/worker.js sync
     - echo "✓ Submodules synced successfully"
     - if: '$SYNC_ONLY == "true"'
 
@@ -78,7 +77,7 @@ execute:
 
 
     # Clean up old results from previous runs
-    - rm -rf results
+    - rm -rf 2025-10-18-01/results
     - echo "✓ Cleaned up old results directory"
 
     # Update status to 'running'
@@ -89,10 +88,14 @@ execute:
         -d '{"status":"running"}'
 
     # Run Codex pipeline (worker bundle)
-    - bun binaries/worker.js codex
+    - bun 2025-10-18-01/binaries/worker.js codex
 
     # Capture exit code
     - EXIT_CODE=$?
+
+    # Ensure results directory exists for artifacts (even if empty)
+    - mkdir -p 2025-10-18-01/results
+    - echo "Results directory ensured at 2025-10-18-01/results"
 
     # Update status based on exit code
     - |
@@ -110,7 +113,7 @@ execute:
       fi
   artifacts:
     paths:
-      - results/
+      - 2025-10-18-01/results/
     expire_in: 7 days
   rules:
     - if: '$SYNC_ONLY == "true"'
@@ -123,7 +126,12 @@ report:
   tags:
     - implementation
   script:
+    # Debug: Check if artifacts were downloaded
+    - ls -la 2025-10-18-01/ || echo "Directory not found"
+    - ls -la 2025-10-18-01/results/ || echo "Results directory not found"
+
     # Upload artifacts via our API (worker bundle)
+    - cd 2025-10-18-01
     - bun binaries/worker.js upload-results
   dependencies:
     - execute

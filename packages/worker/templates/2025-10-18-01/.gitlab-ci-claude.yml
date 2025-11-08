@@ -102,8 +102,6 @@ execute:
     - rm -rf 2025-10-18-01/results
     - echo "✓ Cleaned up old results directory"
 
-    - cd 2025-10-18-01/worker-scripts
-
     # Debug: Check if required variables are set
     - echo "SESSION_ID=$SESSION_ID"
     - echo "PIPELINE_EXECUTION_ID=$PIPELINE_EXECUTION_ID"
@@ -136,8 +134,12 @@ execute:
       fi
 
     # Run Claude implementation pipeline (worker bundle) and capture exit code
-    - bun ../binaries/worker.js claude || EXIT_CODE=$?
+    - bun 2025-10-18-01/binaries/worker.js claude || EXIT_CODE=$?
     - EXIT_CODE=${EXIT_CODE:-0}
+
+    # Ensure results directory exists for artifacts (even if empty)
+    - mkdir -p 2025-10-18-01/results
+    - echo "Results directory ensured at 2025-10-18-01/results"
 
     # Update status based on exit code
     - |

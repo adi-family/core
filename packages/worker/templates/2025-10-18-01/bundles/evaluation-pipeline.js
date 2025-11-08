@@ -12618,6 +12618,7 @@ if (false) {}
 
 // templates/2025-10-18-01/worker-scripts/evaluation-pipeline.ts
 var logger2 = createLogger({ namespace: "evaluation-pipeline" });
+var RESULTS_DIR = "2025-10-18-01/results";
 async function handleMockMode(task) {
   logger2.info("\uD83C\uDFAD MOCK MODE ENABLED - Returning mock agentic evaluation");
   const mockVerdict = {
@@ -12666,8 +12667,8 @@ Yes (Confidence: 80%)
 ---
 *Generated in MOCK_MODE - no real codebase analysis performed*
 `;
-  await writeFile2("../results/agentic-verdict.json", JSON.stringify(mockVerdict, null, 2), "utf-8");
-  await writeFile2("../results/evaluation-report.md", mockReport, "utf-8");
+  await writeFile2(`${RESULTS_DIR}/agentic-verdict.json`, JSON.stringify(mockVerdict, null, 2), "utf-8");
+  await writeFile2(`${RESULTS_DIR}/evaluation-report.md`, mockReport, "utf-8");
   const agenticUsage = {
     provider: "anthropic",
     model: "claude-sonnet-4-5",
@@ -12681,7 +12682,7 @@ Yes (Confidence: 80%)
     iteration_number: 1,
     metadata: { iterations: 1, sdk_cost_usd: 0.0001, mock: true }
   };
-  await writeFile2("../results/agentic-usage.json", JSON.stringify(agenticUsage, null, 2), "utf-8");
+  await writeFile2(`${RESULTS_DIR}/agentic-usage.json`, JSON.stringify(agenticUsage, null, 2), "utf-8");
   logger2.info("\uD83D\uDCCA Mock agentic evaluation usage tracked");
   logger2.info("\u2713 Mock agentic evaluation completed");
   return { verdict: mockVerdict, report: mockReport };
@@ -12914,7 +12915,7 @@ async function executeClaudeAgent(prompt, claudeEnv, claudePath, workingDir, age
         iteration_number: iterations,
         metadata: { iterations, sdk_cost_usd: cost }
       };
-      await writeFile2("../results/agentic-usage.json", JSON.stringify(agenticUsage, null, 2), "utf-8");
+      await writeFile2(`${RESULTS_DIR}/agentic-usage.json`, JSON.stringify(agenticUsage, null, 2), "utf-8");
       logger2.info("\uD83D\uDCCA Agentic evaluation usage tracked");
     }
   }
@@ -12928,9 +12929,9 @@ async function readEvaluationResults() {
   } catch {
     logger2.error("Results directory not found or empty");
   }
-  const verdictJson = await readFile("../results/agentic-verdict.json", "utf-8");
+  const verdictJson = await readFile(`${RESULTS_DIR}/agentic-verdict.json`, "utf-8");
   const verdict = JSON.parse(verdictJson);
-  const report = await readFile("../results/evaluation-report.md", "utf-8");
+  const report = await readFile(`${RESULTS_DIR}/evaluation-report.md`, "utf-8");
   logger2.info(`\u2713 Agentic evaluation: can_implement=${verdict.can_implement}, confidence=${verdict.confidence}`);
   return { verdict, report };
 }
@@ -13000,7 +13001,7 @@ async function main() {
     logger2.error("\u274C Advanced evaluation pipeline failed:", error);
     try {
       await mkdir2("../results", { recursive: true });
-      await writeFile2("../results/error.json", JSON.stringify({
+      await writeFile2(`${RESULTS_DIR}/error.json`, JSON.stringify({
         error: error instanceof Error ? error.message : String(error),
         timestamp: new Date().toISOString(),
         stack: error instanceof Error ? error.stack : undefined

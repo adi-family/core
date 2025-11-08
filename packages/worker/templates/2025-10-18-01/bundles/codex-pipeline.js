@@ -163,6 +163,7 @@ function validateEnvironment(required) {
 // templates/2025-10-18-01/worker-scripts/codex-pipeline.ts
 import { mkdir } from "fs/promises";
 var logger2 = createLogger({ namespace: "codex-pipeline" });
+var RESULTS_DIR = "2025-10-18-01/results";
 async function main() {
   logger2.info("\uD83E\uDD16 Codex Pipeline Started");
   try {
@@ -198,7 +199,7 @@ async function main() {
     } else {
       logger2.info("\u2139\uFE0F  No file space configured for this task");
     }
-    await mkdir("../results", { recursive: true });
+    await mkdir(RESULTS_DIR, { recursive: true });
     logger2.info("\uD83D\uDD27 Running Codex agent...");
     logger2.info(`Task: ${task.title}`);
     logger2.info(`Description: ${task.description || "N/A"}`);
@@ -222,7 +223,7 @@ async function main() {
     } else {
       logger2.info("\u2713 No clarification needed");
     }
-    await Bun.write("../results/output.json", JSON.stringify({
+    await Bun.write(`${RESULTS_DIR}/output.json`, JSON.stringify({
       session,
       task,
       fileSpace,
@@ -234,7 +235,7 @@ async function main() {
     process.exit(0);
   } catch (error) {
     logger2.error("\u274C Codex pipeline failed:", error);
-    await Bun.write("../results/error.json", JSON.stringify({
+    await Bun.write(`${RESULTS_DIR}/error.json`, JSON.stringify({
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     }, null, 2));

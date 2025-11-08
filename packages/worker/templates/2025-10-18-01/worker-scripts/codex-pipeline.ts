@@ -12,6 +12,7 @@ import { mkdir } from 'fs/promises'
 import { createLogger } from './shared/logger'
 
 const logger = createLogger({ namespace: 'codex-pipeline' })
+const RESULTS_DIR = '2025-10-18-01/results'
 
 async function main() {
   logger.info('🤖 Codex Pipeline Started')
@@ -65,7 +66,7 @@ async function main() {
     }
 
     // Create results directory
-    await mkdir('../results', { recursive: true })
+    await mkdir(RESULTS_DIR, { recursive: true })
 
     // TODO: Implement actual Codex execution
     logger.info('🔧 Running Codex agent...')
@@ -104,7 +105,7 @@ async function main() {
 
     // Save results
     await Bun.write(
-      '../results/output.json',
+      `${RESULTS_DIR}/output.json`,
       JSON.stringify(
         {
           session,
@@ -124,7 +125,7 @@ async function main() {
   } catch (error) {
     logger.error('❌ Codex pipeline failed:', error)
     await Bun.write(
-      '../results/error.json',
+      `${RESULTS_DIR}/error.json`,
       JSON.stringify(
         {
           error: error instanceof Error ? error.message : String(error),

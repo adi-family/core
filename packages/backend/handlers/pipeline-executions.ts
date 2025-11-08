@@ -69,12 +69,12 @@ export function createPipelineExecutionHandlers(sql: Sql) {
       model: body.model,
       goal: body.goal,
       phase: body.phase,
-      input_tokens: body.input_tokens,
-      output_tokens: body.output_tokens,
-      cache_creation_input_tokens: body.cache_creation_input_tokens,
-      cache_read_input_tokens: body.cache_read_input_tokens,
-      ci_duration_seconds: body.ci_duration_seconds,
-      iteration_number: body.iteration_number,
+      input_tokens: body.input_tokens ?? 0,
+      output_tokens: body.output_tokens ?? 0,
+      cache_creation_input_tokens: body.cache_creation_input_tokens ?? 0,
+      cache_read_input_tokens: body.cache_read_input_tokens ?? 0,
+      ci_duration_seconds: body.ci_duration_seconds ?? 0,
+      iteration_number: body.iteration_number ?? 0,
       metadata: body.metadata
     })
 

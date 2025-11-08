@@ -27,23 +27,23 @@ interface TaskRowProps {
  * Calculate expected price based on task complexity and effort
  */
 const calculateExpectedPrice = (complexity: number, effort: string): number => {
-  // Base price from complexity (0-100 -> $0.15-$0.65)
-  const complexityPrice = 0.15 + (complexity / 100) * 0.50
+  // Base price from complexity (0-100 -> $0.20-$2.20)
+  const complexityPrice = 0.20 + (complexity / 100) * 2.00
 
-  // Effort multiplier
+  // Effort multiplier - maps to effort_estimate values (xs, s, m, l, xl)
   const effortMultipliers: Record<string, number> = {
-    'trivial': 0.5,
-    'low': 0.7,
-    'medium': 1.0,
-    'high': 1.5,
-    'very_high': 2.0,
+    'xs': 0.3,      // Extra small: 30% of base
+    's': 0.5,       // Small: 50% of base
+    'm': 1.0,       // Medium: 100% of base
+    'l': 1.5,       // Large: 150% of base
+    'xl': 2.0,      // Extra large: 200% of base
   }
 
   const multiplier = effortMultipliers[effort.toLowerCase()] || 1.0
   const finalPrice = complexityPrice * multiplier
 
-  // Clamp between $0.30 and $1.30
-  return Math.max(0.30, Math.min(1.30, finalPrice))
+  // Clamp between $0.05 and $3.00
+  return Math.max(0.05, Math.min(3.00, finalPrice))
 }
 
 /**

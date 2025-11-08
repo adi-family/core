@@ -13246,6 +13246,7 @@ import { existsSync as existsSync2 } from "fs";
 import { fileURLToPath as fileURLToPath2 } from "url";
 var exec2 = promisify2(execCallback2);
 var logger3 = createLogger({ namespace: "claude-pipeline" });
+var RESULTS_DIR = "2025-10-18-01/results";
 function getClaudePath() {
   const homeDir = process.env.HOME || process.env.USERPROFILE || "";
   const nativeInstallerPaths = [
@@ -13402,7 +13403,7 @@ Final Result: Mock implementation completed successfully`;
       iteration_number: iterations,
       metadata: { iterations, sdk_cost_usd: cost, mock: true }
     };
-    await writeFile2("../results/implementation-usage.json", JSON.stringify(implementationUsage, null, 2), "utf-8");
+    await writeFile2(`${RESULTS_DIR}/implementation-usage.json`, JSON.stringify(implementationUsage, null, 2), "utf-8");
     logger3.info("\uD83D\uDCCA Mock implementation usage tracked");
     logger3.info("\u2713 Mock mode execution completed");
     return { output, errors, cost, iterations };
@@ -13473,7 +13474,7 @@ Final Result: ${resultText}`;
           iteration_number: iterations,
           metadata: { iterations, sdk_cost_usd: cost }
         };
-        await writeFile2("../results/implementation-usage.json", JSON.stringify(implementationUsage, null, 2), "utf-8");
+        await writeFile2(`${RESULTS_DIR}/implementation-usage.json`, JSON.stringify(implementationUsage, null, 2), "utf-8");
         logger3.info("\uD83D\uDCCA Implementation usage tracked");
       }
     }
@@ -13530,7 +13531,7 @@ async function main2() {
 \uD83D\uDCE6 Preparing: ${ws.dirName}`);
       await processWorkspace(ws.path, task.id);
     }
-    await mkdir2("../results", { recursive: true });
+    await mkdir2(RESULTS_DIR, { recursive: true });
     logger3.info("\uD83D\uDD27 Running Claude SDK...");
     logger3.info(`Task: ${task.title}`);
     logger3.info(`Description: ${task.description || "N/A"}`);
@@ -13582,7 +13583,7 @@ ${task.description || ""}`;
       logger3.error("\u274C Failed to push to file spaces:", error);
       logger3.error(error instanceof Error ? error.message : String(error));
     }
-    await Bun.write("../results/output.json", JSON.stringify({
+    await Bun.write(`${RESULTS_DIR}/output.json`, JSON.stringify({
       session,
       task,
       agentResults,
@@ -13596,7 +13597,7 @@ ${task.description || ""}`;
     process.exit(0);
   } catch (error) {
     logger3.error("\u274C Claude pipeline failed:", error);
-    await Bun.write("../results/error.json", JSON.stringify({
+    await Bun.write(`${RESULTS_DIR}/error.json`, JSON.stringify({
       error: error instanceof Error ? error.message : String(error),
       stack: error instanceof Error ? error.stack : undefined
     }, null, 2));
