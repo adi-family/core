@@ -13231,6 +13231,17 @@ import { fileURLToPath as fileURLToPath2 } from "url";
 var exec2 = promisify2(execCallback2);
 var logger3 = createLogger({ namespace: "claude-pipeline" });
 function getClaudePath() {
+  const homeDir = process.env.HOME || process.env.USERPROFILE || "";
+  const nativeInstallerPaths = [
+    resolve(homeDir, ".local/bin/claude"),
+    resolve(homeDir, ".local/share/claude-code/claude")
+  ];
+  for (const path of nativeInstallerPaths) {
+    if (existsSync2(path)) {
+      logger3.info(`\u2713 Claude executable found at: ${path} (native installer)`);
+      return path;
+    }
+  }
   const globalPaths = [
     "/usr/local/bin/claude",
     "/usr/bin/claude",

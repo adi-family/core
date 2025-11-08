@@ -92,9 +92,10 @@ execute:
     - git config --global user.email "${GITLAB_USER_EMAIL:-ci@gitlab.com}"
     - git config --global user.name "${GITLAB_USER_NAME:-GitLab CI}"
 
-    # Install Claude Code CLI
+    # Install Claude Code CLI using native installer
     - echo "Installing Claude Code CLI..."
-    - npm install -g @anthropic-ai/claude-code
+    - curl -fsSL https://claude.ai/install.sh | bash
+    - export PATH="$HOME/.local/bin:$PATH"
     - echo "✓ Claude Code CLI installed"
 
     # Clean up old results from previous runs

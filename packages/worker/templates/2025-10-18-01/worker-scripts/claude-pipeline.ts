@@ -20,7 +20,21 @@ const logger = createLogger({ namespace: 'claude-pipeline' })
  * Get Claude Code executable path
  */
 function getClaudePath(): string {
-  // Try global npm installation first (typical in CI)
+  // Try native installer location first (installed via install.sh)
+  const homeDir = process.env.HOME || process.env.USERPROFILE || ''
+  const nativeInstallerPaths = [
+    resolve(homeDir, '.local/bin/claude'),
+    resolve(homeDir, '.local/share/claude-code/claude'),
+  ]
+
+  for (const path of nativeInstallerPaths) {
+    if (existsSync(path)) {
+      logger.info(`✓ Claude executable found at: ${path} (native installer)`)
+      return path
+    }
+  }
+
+  // Try global npm installation locations
   const globalPaths = [
     '/usr/local/bin/claude',
     '/usr/bin/claude',
