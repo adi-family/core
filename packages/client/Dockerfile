@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy entire monorepo
 COPY . .
 
-# Install dependencies (lockfile will be generated fresh)
-RUN npm install
+# Install dependencies for all workspaces
+RUN npm install --workspaces
 
 # Build the client
 # All env vars (CLIENT_PORT, BACKEND_URL, VITE_API_URL) come from Coolify

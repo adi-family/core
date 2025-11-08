@@ -6,8 +6,8 @@ WORKDIR /app
 # Copy entire monorepo
 COPY . .
 
-# Install dependencies (lockfile will be generated fresh)
-RUN npm install
+# Install dependencies for all workspaces
+RUN npm install --workspaces
 
 # Build the landing page
 WORKDIR /app/packages/landing
