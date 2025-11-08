@@ -24,15 +24,15 @@ async function main() {
   try {
     // Read results from previous stage
     logger.info('📥 Reading results from execute stage...')
-    const resultsText = await readFile('../results/output.json', 'utf-8')
+    const resultsText = await readFile('results/output.json', 'utf-8')
     const results = JSON.parse(resultsText)
 
     logger.info('✓ Results loaded')
 
     // Upload implementation usage metrics
-    if (await fileExists('../results/implementation-usage.json')) {
+    if (await fileExists('results/implementation-usage.json')) {
       try {
-        const usageText = await readFile('../results/implementation-usage.json', 'utf-8')
+        const usageText = await readFile('results/implementation-usage.json', 'utf-8')
         const usage = JSON.parse(usageText)
         await apiClient.saveApiUsage(executionId, sessionId, results.task.id, usage)
         logger.info('✓ Implementation usage metrics uploaded')

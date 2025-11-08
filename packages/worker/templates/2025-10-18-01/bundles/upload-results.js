@@ -135,12 +135,12 @@ async function main() {
   logger.info(`Execution ID: ${executionId}`);
   try {
     logger.info("\uD83D\uDCE5 Reading results from execute stage...");
-    const resultsText = await readFile("../results/output.json", "utf-8");
+    const resultsText = await readFile("results/output.json", "utf-8");
     const results = JSON.parse(resultsText);
     logger.info("\u2713 Results loaded");
-    if (await fileExists("../results/implementation-usage.json")) {
+    if (await fileExists("results/implementation-usage.json")) {
       try {
-        const usageText = await readFile("../results/implementation-usage.json", "utf-8");
+        const usageText = await readFile("results/implementation-usage.json", "utf-8");
         const usage = JSON.parse(usageText);
         await apiClient.saveApiUsage(executionId, sessionId, results.task.id, usage);
         logger.info("\u2713 Implementation usage metrics uploaded");
