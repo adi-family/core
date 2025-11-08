@@ -17,13 +17,10 @@ RUN turbo prune @adi-simple/backend --docker
 FROM node:22-alpine AS installer
 WORKDIR /app
 
-# Copy lockfile and package.json files from pruner
+# Copy package.json files from pruner
 COPY --from=pruner /app/out/json/ .
-COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 
-# Install dependencies
-# Upgrade npm to fix the 'extraneous' bug in npm 10.9.4
-RUN npm install -g npm@10.8.2
+# Install dependencies (lockfile will be generated fresh)
 RUN npm install
 
 # Copy source code from pruner
