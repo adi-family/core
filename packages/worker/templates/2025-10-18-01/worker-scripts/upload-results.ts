@@ -94,6 +94,17 @@ async function main() {
     await apiClient.updateTaskStatus(results.task.id, newStatus)
     logger.info(`✓ Task status updated to: ${newStatus}`)
 
+    // Update implementation status
+    logger.info('📝 Updating implementation status...')
+    const implementationStatus = results.completionCheck.isComplete
+      ? 'completed'
+      : results.agentResults.exitCode === 0
+      ? 'completed'
+      : 'failed'
+
+    await apiClient.updateTaskImplementationStatus(results.task.id, implementationStatus as 'pending' | 'queued' | 'implementing' | 'completed' | 'failed')
+    logger.info(`✓ Implementation status updated to: ${implementationStatus}`)
+
     logger.info('✅ Upload results completed successfully')
     process.exit(0)
   } catch (error) {

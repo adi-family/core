@@ -14261,6 +14261,10 @@ async function main6() {
     const newStatus = results.completionCheck.isComplete ? "completed" : "needs_clarification";
     await apiClient.updateTaskStatus(results.task.id, newStatus);
     logger7.info(`\u2713 Task status updated to: ${newStatus}`);
+    logger7.info("\uD83D\uDCDD Updating implementation status...");
+    const implementationStatus = results.completionCheck.isComplete ? "completed" : results.agentResults.exitCode === 0 ? "completed" : "failed";
+    await apiClient.updateTaskImplementationStatus(results.task.id, implementationStatus);
+    logger7.info(`\u2713 Implementation status updated to: ${implementationStatus}`);
     logger7.info("\u2705 Upload results completed successfully");
     process.exit(0);
   } catch (error) {
