@@ -143,9 +143,13 @@ class GitLabApiClient {
     };
     if (this.tokenType === "oauth") {
       headers["Authorization"] = `Bearer ${this.token}`;
+      console.log(`[GitLabApiClient] Using OAuth token type (Bearer auth) for ${method} ${endpoint}`);
     } else {
       headers["PRIVATE-TOKEN"] = this.token;
+      console.log(`[GitLabApiClient] Using PAT token type (PRIVATE-TOKEN header) for ${method} ${endpoint}`);
     }
+    console.log(`[GitLabApiClient] Request URL: ${url}`);
+    console.log(`[GitLabApiClient] Token length: ${this.token.length} chars, starts with: ${this.token.substring(0, 8)}...`);
     const timeout = timeoutMs ?? this.defaultTimeout;
     const controller = new AbortController;
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -162,6 +166,8 @@ class GitLabApiClient {
       clearTimeout(timeoutId);
       if (!response.ok) {
         const errorText = await response.text();
+        console.error(`[GitLabApiClient] Request failed: ${response.status} ${response.statusText}`);
+        console.error(`[GitLabApiClient] Response body: ${errorText}`);
         throw new Error(`GitLab API error: ${response.status} ${response.statusText} - ${errorText}`);
       }
       return response.json();
@@ -443,6 +449,11 @@ function getGitLabClient(fileSpace, token) {
     logger.warn("Token not provided, cannot create GitLab client");
     return null;
   }
+  logger.info(`   \uD83D\uDD10 Creating GitLab API client:`);
+  logger.info(`      Host: ${host}`);
+  logger.info(`      Token length: ${token.length} chars`);
+  logger.info(`      Token starts with: ${token.substring(0, 8)}...`);
+  logger.info(`      Token type: 'pat' (PRIVATE-TOKEN header)`);
   return new GitLabApiClient(host, token, "pat");
 }
 function getProjectPath(fileSpace) {

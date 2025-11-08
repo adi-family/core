@@ -38,6 +38,7 @@ export default tseslint.config(
       "packages/landing/next-env.d.ts",
       "**/bundles/**",
       "packages/worker/bundles/**",
+      "packages/worker/templates/**/bundles/**",
       "scripts/**",
       "packages/cf-tunnel/**",
       "packages/ui/demo.tsx",

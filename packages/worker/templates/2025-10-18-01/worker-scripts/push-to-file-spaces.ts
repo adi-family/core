@@ -69,6 +69,12 @@ function getGitLabClient(fileSpace: any, token: string): GitLabApiClient | null 
     return null
   }
 
+  logger.info(`   🔐 Creating GitLab API client:`)
+  logger.info(`      Host: ${host}`)
+  logger.info(`      Token length: ${token.length} chars`)
+  logger.info(`      Token starts with: ${token.substring(0, 8)}...`)
+  logger.info(`      Token type: 'pat' (PRIVATE-TOKEN header)`)
+
   // Use 'pat' token type - the oauth2:TOKEN format in git URLs uses PAT tokens
   // For API calls, PATs use PRIVATE-TOKEN header, not Bearer (OAuth)
   return new GitLabApiClient(host, token, 'pat')

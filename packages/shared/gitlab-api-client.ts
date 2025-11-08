@@ -175,9 +175,13 @@ export class GitLabApiClient {
     // Use appropriate authentication header based on token type
     if (this.tokenType === 'oauth') {
       headers['Authorization'] = `Bearer ${this.token}`
+      console.log(`[GitLabApiClient] Using OAuth token type (Bearer auth) for ${method} ${endpoint}`)
     } else {
       headers['PRIVATE-TOKEN'] = this.token
+      console.log(`[GitLabApiClient] Using PAT token type (PRIVATE-TOKEN header) for ${method} ${endpoint}`)
     }
+    console.log(`[GitLabApiClient] Request URL: ${url}`)
+    console.log(`[GitLabApiClient] Token length: ${this.token.length} chars, starts with: ${this.token.substring(0, 8)}...`)
 
     const timeout = timeoutMs ?? this.defaultTimeout
     const controller = new AbortController()
@@ -199,6 +203,8 @@ export class GitLabApiClient {
 
       if (!response.ok) {
         const errorText = await response.text()
+        console.error(`[GitLabApiClient] Request failed: ${response.status} ${response.statusText}`)
+        console.error(`[GitLabApiClient] Response body: ${errorText}`)
         throw new Error(
           `GitLab API error: ${response.status} ${response.statusText} - ${errorText}`
         )
