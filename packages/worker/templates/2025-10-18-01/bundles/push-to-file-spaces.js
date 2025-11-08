@@ -129,12 +129,14 @@ class GitLabApiClient {
   host;
   token;
   tokenType;
-  constructor(host, token, tokenType = "pat") {
+  defaultTimeout;
+  constructor(host, token, tokenType = "pat", defaultTimeout = 30000) {
     this.host = host.replace(/\/$/, "");
     this.token = token;
     this.tokenType = tokenType;
+    this.defaultTimeout = defaultTimeout;
   }
-  async request(method, endpoint, body) {
+  async request(method, endpoint, body, timeoutMs) {
     const url = `${this.host}/api/v4${endpoint}`;
     const headers = {
       "Content-Type": "application/json"
@@ -144,19 +146,32 @@ class GitLabApiClient {
     } else {
       headers["PRIVATE-TOKEN"] = this.token;
     }
+    const timeout = timeoutMs ?? this.defaultTimeout;
+    const controller = new AbortController;
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
     const options = {
       method,
-      headers
+      headers,
+      signal: controller.signal
     };
     if (body) {
       options.body = JSON.stringify(body);
     }
-    const response = await fetch(url, options);
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`GitLab API error: ${response.status} ${response.statusText} - ${errorText}`);
+    try {
+      const response = await fetch(url, options);
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`GitLab API error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      return response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(`GitLab API request timeout after ${timeout}ms`);
+      }
+      throw error;
     }
-    return response.json();
   }
   async createProject(input) {
     return this.request("POST", "/projects", {
@@ -181,21 +196,29 @@ class GitLabApiClient {
   async getProject(projectId) {
     return this.request("GET", `/projects/${encodeURIComponent(projectId)}`);
   }
-  async createFile(projectId, filePath, input) {
+  async createFile(projectId, filePath, input, timeoutMs) {
+    const contentSize = input.content.length;
+    const contentSizeMB = contentSize / (1024 * 1024);
+    const autoTimeout = Math.min(Math.max(120000 + contentSizeMB / 10 * 60000, 120000), 900000);
+    const timeout = timeoutMs ?? autoTimeout;
     await this.request("POST", `/projects/${encodeURIComponent(projectId)}/repository/files/${encodeURIComponent(filePath)}`, {
       branch: input.branch,
       content: input.content,
       commit_message: input.commit_message,
       encoding: input.encoding || "text"
-    });
+    }, timeout);
   }
-  async updateFile(projectId, filePath, input) {
+  async updateFile(projectId, filePath, input, timeoutMs) {
+    const contentSize = input.content.length;
+    const contentSizeMB = contentSize / (1024 * 1024);
+    const autoTimeout = Math.min(Math.max(120000 + contentSizeMB / 10 * 60000, 120000), 900000);
+    const timeout = timeoutMs ?? autoTimeout;
     await this.request("PUT", `/projects/${encodeURIComponent(projectId)}/repository/files/${encodeURIComponent(filePath)}`, {
       branch: input.branch,
       content: input.content,
       commit_message: input.commit_message,
       encoding: input.encoding || "text"
-    });
+    }, timeout);
   }
   async uploadFile(projectId, filePath, content, commitMessage, branch = "main") {
     const input = {
@@ -277,7 +300,8 @@ class GitLabApiClient {
     const file = await this.getFile(projectId, filePath, ref);
     return file.content;
   }
-  async batchCommit(projectId, input) {
+  async batchCommit(projectId, input, timeoutMs) {
+    const timeout = timeoutMs ?? 300000;
     return this.request("POST", `/projects/${encodeURIComponent(projectId)}/repository/commits`, {
       branch: input.branch,
       commit_message: input.commitMessage,
@@ -291,9 +315,13 @@ class GitLabApiClient {
       })),
       author_email: input.authorEmail,
       author_name: input.authorName
-    });
+    }, timeout);
   }
-  async uploadFiles(projectId, files, commitMessage, branch = "main") {
+  async uploadFiles(projectId, files, commitMessage, branch = "main", timeoutMs) {
+    const totalSize = files.reduce((sum, file) => sum + file.content.length, 0);
+    const totalSizeMB = totalSize / (1024 * 1024);
+    const autoTimeout = Math.min(Math.max(300000 + totalSizeMB * 60000, 300000), 900000);
+    const timeout = timeoutMs ?? autoTimeout;
     const actions = await Promise.all(files.map(async (file) => {
       const encoding = file.encoding || "text";
       try {
@@ -317,7 +345,7 @@ class GitLabApiClient {
       branch,
       commitMessage,
       actions
-    });
+    }, timeout);
   }
   async createMergeRequest(projectId, input) {
     return this.request("POST", `/projects/${encodeURIComponent(projectId)}/merge_requests`, {
@@ -376,7 +404,7 @@ class GitLabApiClient {
           actions,
           authorEmail: options?.authorEmail,
           authorName: options?.authorName
-        })
+        }, options?.timeoutMs)
       }
     };
   }

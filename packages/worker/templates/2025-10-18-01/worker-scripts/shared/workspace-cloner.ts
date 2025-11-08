@@ -156,7 +156,7 @@ export class WorkspaceCloner {
 
     // Get clone statistics
     const commitCount = await $`git -C ${workspaceDir} rev-list --count HEAD`.text()
-    const latestCommit = await $`git -C ${workspaceDir} log -1 --format=%h - %s`.text()
+    const latestCommit = await $`git -C ${workspaceDir} log -1 --format='%h - %s'`.text()
 
     console.log(`  Statistics:`)
     console.log(`    Branch: ${targetBranch}`)
