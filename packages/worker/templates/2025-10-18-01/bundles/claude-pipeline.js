@@ -12792,7 +12792,7 @@ function getGitLabClient(fileSpace, token) {
     logger2.warn("Token not provided, cannot create GitLab client");
     return null;
   }
-  return new GitLabApiClient(host, token, "oauth");
+  return new GitLabApiClient(host, token, "pat");
 }
 function getProjectPath(fileSpace) {
   if (!fileSpace.config || typeof fileSpace.config !== "object" || !("repo" in fileSpace.config)) {
