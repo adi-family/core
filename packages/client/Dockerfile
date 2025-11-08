@@ -24,8 +24,13 @@ COPY --from=pruner /app/out/package-lock.json ./package-lock.json
 # Install dependencies
 RUN npm install --legacy-peer-deps
 
-# Manually install the correct rollup binary for ARM64 musl
+# Manually install the correct native binaries for ARM64 musl
 RUN npm install --save-optional @rollup/rollup-linux-arm64-musl --legacy-peer-deps
+RUN npm install --save-optional lightningcss-linux-arm64-musl --legacy-peer-deps
+RUN npm install --save-optional @tailwindcss/oxide-linux-arm64-musl --legacy-peer-deps
+
+# Rebuild native modules to ensure correct bindings for the target platform
+RUN npm rebuild --legacy-peer-deps
 
 # Copy source code from pruner
 COPY --from=pruner /app/out/full/ .
