@@ -69,7 +69,8 @@ function getGitLabClient(fileSpace: any, token: string): GitLabApiClient | null 
     return null
   }
 
-  return new GitLabApiClient(host, token)
+  // Use 'oauth' token type since we're using OAuth tokens (oauth2:TOKEN format for git)
+  return new GitLabApiClient(host, token, 'oauth')
 }
 
 /**
