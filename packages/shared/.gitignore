@@ -1,4 +1,6 @@
-*
-!.gitignore
-!*.ts
-!*.json
+# Build outputs
+dist
+.turbo
+
+# Dependencies
+node_modules
