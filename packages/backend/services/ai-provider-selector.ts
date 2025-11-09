@@ -3,7 +3,7 @@ import type { AnthropicConfig } from '@types'
 import { checkQuotaAvailable, type QuotaCheck } from '@db/user-quotas.ts'
 import { getProjectAIProviderConfig } from '@db/projects.ts'
 import { getDecryptedSecretValue } from './secrets'
-import { getPlatformAnthropicConfig, type PlatformAnthropicConfig } from '../config'
+import { getPlatformAnthropicConfig, type PlatformAnthropicConfig, FREE_QUOTA_DISABLED, FREE_QUOTA_DISABLED_MESSAGE } from '../config'
 
 /**
  * Result of AI provider selection for evaluation
@@ -48,8 +48,10 @@ export async function selectAIProviderForEvaluation(
 
   // Use platform token
   const warning = quotaCheck.at_soft_limit
-    ? `You are using ${quotaCheck.used}/${quotaCheck.hard_limit} free ${evaluationType} evaluations. ` +
-      `Consider configuring your own Anthropic API key in project settings.`
+    ? FREE_QUOTA_DISABLED
+      ? FREE_QUOTA_DISABLED_MESSAGE
+      : `You are using ${quotaCheck.used}/${quotaCheck.hard_limit} free ${evaluationType} evaluations. ` +
+        `Consider configuring your own Anthropic API key in project settings.`
     : undefined
 
   return {
@@ -69,11 +71,12 @@ async function requireProjectAIProvider(
   const projectConfig = await getProjectAIProviderConfig(sql, projectId, 'anthropic') as AnthropicConfig | null
 
   if (!projectConfig) {
-    throw new QuotaExceededError(
-      `Free ${evaluationType} evaluation quota exceeded (${quotaCheck.used}/${quotaCheck.hard_limit}). ` +
-      `Please configure your own Anthropic API key in project settings to continue.`,
-      quotaCheck
-    )
+    const errorMessage = FREE_QUOTA_DISABLED
+      ? FREE_QUOTA_DISABLED_MESSAGE
+      : `Free ${evaluationType} evaluation quota exceeded (${quotaCheck.used}/${quotaCheck.hard_limit}). ` +
+        `Please configure your own Anthropic API key in project settings to continue.`
+
+    throw new QuotaExceededError(errorMessage, quotaCheck)
   }
 
   const resolvedConfig = await resolveAnthropicConfig(sql, projectConfig)

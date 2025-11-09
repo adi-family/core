@@ -79,6 +79,9 @@ export const getProxyConfig = getProxyConfigFromShared
 // ============================================================================
 
 export const MOCK_MODE = process.env.MOCK_MODE === 'true'
+export const FREE_QUOTA_DISABLED = process.env.FREE_QUOTA_DISABLED === 'true'
+export const FREE_QUOTA_DISABLED_MESSAGE = process.env.FREE_QUOTA_DISABLED_MESSAGE ||
+  'Free quota is temporarily disabled. Please configure your own Anthropic API key in project settings.'
 
 // ============================================================================
 // Platform Anthropic Configuration
