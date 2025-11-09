@@ -3,19 +3,16 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Copy package files first for better layer caching
-COPY package*.json ./
-COPY packages/client/package*.json ./packages/client/
-
-# Install dependencies (includes nx in devDependencies)
-RUN npm install --legacy-peer-deps
-
 # Copy entire monorepo
 COPY . .
 
-# Build the client using Nx
+# Install dependencies for all workspaces (includes nx in devDependencies)
+RUN npm install --legacy-peer-deps --workspaces
+
+# Build the client
 # All env vars (CLIENT_PORT, BACKEND_URL, VITE_API_URL) come from Coolify
-RUN npx nx build client
+WORKDIR /app/packages/client
+RUN npm run build
 
 # Stage 3: Runner - production image
 FROM node:22-alpine AS runner

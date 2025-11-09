@@ -3,18 +3,15 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Copy package files first for better layer caching
-COPY package*.json ./
-COPY packages/landing/package*.json ./packages/landing/
-
-# Install dependencies (includes nx in devDependencies)
-RUN npm install --legacy-peer-deps
-
 # Copy entire monorepo
 COPY . .
 
-# Build the landing page using Nx
-RUN npx nx build landing
+# Install dependencies for all workspaces (includes nx in devDependencies)
+RUN npm install --legacy-peer-deps --workspaces
+
+# Build the landing page
+WORKDIR /app/packages/landing
+RUN npm run build
 
 # Stage 3: Runner - production image
 FROM node:22-alpine AS runner

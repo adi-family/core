@@ -3,14 +3,11 @@
 FROM node:22-alpine AS builder
 WORKDIR /app
 
-# Copy package files first for better layer caching
-COPY package*.json ./
-
-# Install dependencies (includes nx in devDependencies)
-RUN npm install --legacy-peer-deps
-
 # Copy entire monorepo
 COPY . .
+
+# Install dependencies for all workspaces (includes nx in devDependencies)
+RUN npm install --legacy-peer-deps --workspaces
 
 # Stage 3: Runner - production image
 FROM node:22-alpine AS runner
