@@ -59,6 +59,10 @@ export async function syncTaskSource(
       case 'github_issues':
         provider = 'github'
         break
+      case 'manual':
+        // Manual task sources don't need syncing, return early
+        result.errors.push('Manual task sources do not require syncing')
+        return result
       default:
         assertNever(taskSource)
         result.errors.push(`Unsupported task source type: ${taskSource?.type}`)

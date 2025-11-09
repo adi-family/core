@@ -21,6 +21,7 @@ interface TaskRowProps {
   onViewDetails: (task: Task) => void
   onStartImplementation?: (task: Task) => void
   onEvaluate?: (task: Task) => void
+  onDelete?: (task: Task) => void
 }
 
 /**
@@ -56,6 +57,7 @@ export function TaskRow({
   onViewDetails,
   onStartImplementation,
   onEvaluate,
+  onDelete,
 }: TaskRowProps) {
   // Compute metrics from evaluation result
   const metrics = task.ai_evaluation_simple_result
@@ -331,6 +333,18 @@ export function TaskRow({
 
             return null
           })()}
+
+          {/* Delete button - only for manual tasks */}
+          {onDelete && task.manual_task_metadata && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDelete(task)}
+              className="border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-400"
+            >
+              Delete
+            </Button>
+          )}
 
           {/* View Details - Always available as secondary action */}
           <Button

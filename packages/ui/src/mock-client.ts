@@ -249,6 +249,8 @@ const mockTasks: Task[] = [
     ai_evaluation_session_id: "session-1",
     ai_implementation_status: "pending",
     ai_implementation_session_id: null,
+    created_by_user_id: null,
+    manual_task_metadata: null,
     created_at: "2024-01-15",
     updated_at: "2024-01-20"
   },
@@ -282,6 +284,8 @@ const mockTasks: Task[] = [
     ai_evaluation_session_id: "session-2",
     ai_implementation_status: "pending",
     ai_implementation_session_id: null,
+    created_by_user_id: null,
+    manual_task_metadata: null,
     created_at: "2024-01-18",
     updated_at: "2024-01-22"
   },
@@ -313,10 +317,12 @@ const mockTasks: Task[] = [
     ai_evaluation_simple_status: "not_started",
     ai_evaluation_advanced_status: "not_started",
     ai_evaluation_session_id: null,
-    ai_implementation_status: "pending",
-    ai_implementation_session_id: null,
-    created_at: "2024-01-20",
-    updated_at: "2024-01-22"
+    ai_implementation_status: "implementing",
+    ai_implementation_session_id: "session-2",
+    created_by_user_id: null,
+    manual_task_metadata: null,
+    created_at: "2024-01-18",
+    updated_at: "2024-01-21"
   },
   {
     id: "task-4",
@@ -346,10 +352,12 @@ const mockTasks: Task[] = [
     source_jira_issue: null,
     ai_evaluation_simple_status: "completed",
     ai_evaluation_advanced_status: "not_started",
-    ai_evaluation_session_id: "session-3",
-    ai_implementation_status: "pending",
-    ai_implementation_session_id: null,
-    created_at: "2024-01-12",
+    ai_evaluation_session_id: null,
+    ai_implementation_status: "completed",
+    ai_implementation_session_id: "session-3",
+    created_by_user_id: null,
+    manual_task_metadata: null,
+    created_at: "2024-01-10",
     updated_at: "2024-01-19"
   },
 ]

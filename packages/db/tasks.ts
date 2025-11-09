@@ -208,7 +208,7 @@ export const findTaskById = async (sql: Sql, id: string): Promise<Task> => {
   return task
 }
 
-const createTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
+const createTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'created_by_user_id', 'manual_task_metadata'] as const
 export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
   const presentCols = filterPresentColumns(input as any, createTaskCols)
 
@@ -222,7 +222,7 @@ export const createTask = async (sql: Sql, input: CreateTaskInput): Promise<Task
   return task
 }
 
-const updateTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'ai_evaluation_simple_status', 'ai_evaluation_advanced_status', 'ai_evaluation_session_id', 'ai_evaluation_simple_verdict', 'ai_evaluation_advanced_verdict', 'ai_evaluation_simple_result', 'ai_evaluation_agentic_result', 'ai_implementation_status', 'ai_implementation_session_id'] as const
+const updateTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'ai_evaluation_simple_status', 'ai_evaluation_advanced_status', 'ai_evaluation_session_id', 'ai_evaluation_simple_verdict', 'ai_evaluation_advanced_verdict', 'ai_evaluation_simple_result', 'ai_evaluation_agentic_result', 'ai_implementation_status', 'ai_implementation_session_id', 'created_by_user_id', 'manual_task_metadata'] as const
 
 export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): Promise<Task> => {
   const presentCols = filterPresentColumns(input, updateTaskCols)
@@ -269,7 +269,7 @@ export const deleteTask = async (sql: Sql, id: string): Promise<void> => {
   }
 }
 
-const upsertTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue'] as const
+const upsertTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'created_by_user_id', 'manual_task_metadata'] as const
 export const upsertTaskFromGitlab = async (sql: Sql, input: CreateTaskInput): Promise<Task> => {
   const presentCols = filterPresentColumns(input as any, upsertTaskCols)
 

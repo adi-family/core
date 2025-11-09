@@ -14,6 +14,7 @@ import { Label } from '@adi-simple/ui/label'
 import { TaskRow } from "@/components/TaskRow"
 import { TaskStats } from "@/components/TaskStats"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/Tabs"
+import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { createAuthenticatedClient } from "@/lib/client"
 import { designTokens } from "@/theme/tokens"
 import { navigateTo } from "@/utils/navigation"
@@ -21,7 +22,7 @@ import { useProject } from "@/contexts/ProjectContext"
 import { toast } from "sonner"
 import type { Task } from "../../../types"
 import { listTasksConfig, implementTaskConfig, evaluateTaskConfig } from '@adi/api-contracts'
-import { projectsStore, fetchProjects, taskSourcesStore, fetchTaskSources } from "@/stores"
+import { projectsStore, fetchProjects, taskSourcesStore, fetchTaskSources, deleteTask } from "@/stores"
 
 type SortOption = 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc'
 
@@ -41,6 +42,7 @@ export function TasksPage() {
   const [hasMore, setHasMore] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
   const observerTarget = useRef<HTMLDivElement>(null)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
   const fetchData = useCallback(async (pageNum = 1, append = false) => {
     if (append) {
@@ -186,6 +188,24 @@ export function TasksPage() {
     }
   }
 
+  const handleDelete = async (task: Task) => {
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      await deleteTask(client, task.id)
+      toast.success('Task deleted successfully!')
+      // Refresh the task list
+      setPage(1)
+      setHasMore(true)
+      await fetchData(1, false)
+    } catch (error) {
+      console.error("Error deleting task:", error)
+      toast.error(`Failed to delete task: ${error instanceof Error ? error.message : "Unknown error"}`)
+    }
+  }
+
   // Reset task source filter when project changes
   useEffect(() => {
     setSelectedTaskSourceId("")
@@ -205,10 +225,16 @@ export function TasksPage() {
       <Card className={`bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 shadow-2xl hover:shadow-blue-500/10 hover:border-slate-600/60 ${designTokens.animations.hover} ${designTokens.animations.fadeIn} rounded-2xl`}>
         <CardHeader className={`bg-gradient-to-r ${designTokens.gradients.cardHeader} text-white rounded-t-2xl`}>
           <div className="flex items-center justify-between">
-            <div>
+            <div className="flex-1">
               <CardTitle className={`${designTokens.text.cardTitle} text-white`}>Tasks</CardTitle>
               <CardDescription className={`${designTokens.text.cardDescription} text-gray-200`}>View all tasks in the system</CardDescription>
             </div>
+            <button
+              onClick={() => setIsCreateDialogOpen(true)}
+              className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors border border-white/30 hover:border-white/40 mr-4"
+            >
+              + Create Task
+            </button>
             {!loading && (
               <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
                 <div className="text-xs text-gray-200 mb-0.5">Total Tasks</div>
@@ -306,6 +332,7 @@ export function TasksPage() {
                         onViewDetails={() => navigateTo(`/tasks/${task.id}`)}
                         onStartImplementation={handleStartImplementation}
                         onEvaluate={handleEvaluate}
+                        onDelete={handleDelete}
                       />
                     )
                   })}
@@ -342,6 +369,16 @@ export function TasksPage() {
           )}
         </CardContent>
       </Card>
+
+      <CreateTaskDialog
+        isOpen={isCreateDialogOpen}
+        onClose={() => setIsCreateDialogOpen(false)}
+        onSuccess={() => {
+          setPage(1)
+          setHasMore(true)
+          fetchData(1, false)
+        }}
+      />
     </AnimatedPageContainer>
   )
 }

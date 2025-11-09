@@ -45,6 +45,36 @@ export const findTaskSourcesByProjectIds = async (sql: Sql, projectIds: string[]
   return grouped
 }
 
+/**
+ * Find or create manual task source for a project
+ * Manual task sources are automatically created when needed
+ */
+export const findOrCreateManualTaskSource = async (sql: Sql, projectId: string): Promise<TaskSource> => {
+  // Try to find existing manual task source
+  const taskSources = await get(sql<TaskSource[]>`
+    SELECT * FROM task_sources
+    WHERE project_id = ${projectId} AND type = 'manual'
+    LIMIT 1
+  `)
+
+  if (taskSources.length > 0 && taskSources[0]) {
+    return taskSources[0]
+  }
+
+  // Create manual task source if it doesn't exist
+  const [manualSource] = await get(sql<TaskSource[]>`
+    INSERT INTO task_sources (project_id, name, type, config, enabled)
+    VALUES (${projectId}, 'Manual Tasks', 'manual', '{}'::jsonb, true)
+    RETURNING *
+  `)
+
+  if (!manualSource) {
+    throw new Error('Failed to create manual task source')
+  }
+
+  return manualSource
+}
+
 const createTaskSourceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
 export const createTaskSource = async (sql: Sql, input: CreateTaskSourceInput): Promise<TaskSource> => {
   const [taskSource] = await get(sql<TaskSource[]>`

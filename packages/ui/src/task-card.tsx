@@ -12,6 +12,7 @@ interface TaskCardProps {
   onRetrySync?: () => Promise<void>
   onRetryEvaluation?: () => Promise<void>
   onStartProcessing?: () => Promise<void>
+  onDelete?: (taskId: string) => Promise<void>
 }
 
 /**
@@ -24,7 +25,8 @@ export function TaskCard({
   onUpdateStatus,
   onRetrySync,
   onRetryEvaluation,
-  onStartProcessing
+  onStartProcessing,
+  onDelete
 }: TaskCardProps) {
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleString("en-US", {
@@ -215,6 +217,17 @@ export function TaskCard({
 
         {/* Actions */}
         <div className="flex gap-2 pt-2">
+          {/* Delete button - only for manual tasks */}
+          {onDelete && task.manual_task_metadata && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onDelete(task.id)}
+              className="flex-1 border-red-500/50 text-red-400 hover:bg-red-500/10 hover:border-red-400"
+            >
+              Delete
+            </Button>
+          )}
           {/* Re-evaluate button - always shown */}
           {onRetryEvaluation && (
             <Button

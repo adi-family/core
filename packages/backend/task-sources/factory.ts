@@ -12,6 +12,8 @@ export function createTaskSource(taskSource: TaskSource): BaseTaskSource {
       return new JiraTaskSource(taskSource);
     case 'github_issues':
       throw new Error('GithubIssuesTaskSource not yet implemented');
+    case 'manual':
+      throw new Error('Manual task sources do not support syncing operations');
     default:
       assertNever(taskSource);
   }

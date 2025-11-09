@@ -14,13 +14,27 @@ import {
   evaluateTaskAdvancedConfig,
   getTaskStatsConfig,
   updateTaskImplementationStatusConfig,
-  updateTaskConfig
+  updateTaskConfig,
+  createTaskConfig,
+  deleteTaskConfig
 } from '@adi/api-contracts/tasks'
 import * as sessionQueries from '@db/sessions'
 import * as pipelineArtifactQueries from '@db/pipeline-artifacts'
 import * as taskQueries from '@db/tasks'
+import * as taskSourceQueries from '@db/task-sources'
+import * as userAccessQueries from '@db/user-access'
 import { publishTaskEval, publishTaskImpl } from '@adi/queue/publisher'
 import { evaluateTaskAdvanced } from '@adi/micros-task-eval/service'
+
+/**
+ * Extract user ID from request headers
+ * TODO: Integrate with proper authentication middleware (Clerk)
+ */
+function getUserIdFromHeaders(ctx: any): string | null {
+  // Try to get from X-User-Id header (set by auth middleware)
+  const userId = ctx.headers?.['x-user-id'] || ctx.headers?.['X-User-Id']
+  return userId || null
+}
 
 export function createTaskHandlers(sql: Sql) {
   const getTaskSessions = handler(getTaskSessionsConfig, async (ctx) => {
@@ -224,6 +238,76 @@ export function createTaskHandlers(sql: Sql) {
     return task
   })
 
+  const createTask = handler(createTaskConfig, async (ctx) => {
+    const { title, description, project_id, status } = ctx.body
+
+    // Get user ID from request
+    const userId = getUserIdFromHeaders(ctx)
+    if (!userId) {
+      throw new Error('Authentication required. User ID not found in request.')
+    }
+
+    // Check if user has access to the project
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, project_id, 'developer')
+    if (!hasAccess) {
+      throw new Error('You do not have permission to create tasks in this project. Project owner or developer access required.')
+    }
+
+    // Get or create manual task source for this project
+    const manualSource = await taskSourceQueries.findOrCreateManualTaskSource(sql, project_id)
+
+    // Create task with manual metadata
+    const task = await taskQueries.createTask(sql, {
+      title,
+      description,
+      status: status || 'opened',
+      remote_status: 'opened',
+      project_id,
+      task_source_id: manualSource.id,
+      created_by_user_id: userId,
+      manual_task_metadata: {
+        created_via: 'ui',
+        custom_properties: {}
+      }
+    })
+
+    return task
+  })
+
+  const deleteTask = handler(deleteTaskConfig, async (ctx) => {
+    const { id } = ctx.params
+
+    // Get user ID from request
+    const userId = getUserIdFromHeaders(ctx)
+    if (!userId) {
+      throw new Error('Authentication required. User ID not found in request.')
+    }
+
+    // Get task to check if it can be deleted
+    const task = await taskQueries.findTaskById(sql, id)
+
+    // Only allow deletion of manually created tasks
+    if (!task.manual_task_metadata) {
+      throw new Error('Only manually created tasks can be deleted. Tasks synced from external sources cannot be deleted.')
+    }
+
+    // Get the project ID for this task
+    if (!task.project_id) {
+      throw new Error('Task has no associated project')
+    }
+
+    // Check if user has access to the project
+    // Users with developer access or higher can delete manual tasks in their projects
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, task.project_id, 'developer')
+    if (!hasAccess) {
+      throw new Error('You do not have permission to delete tasks in this project. Project owner or developer access required.')
+    }
+
+    await taskQueries.deleteTask(sql, id)
+
+    return { success: true }
+  })
+
   return {
     getTaskSessions,
     getTaskArtifacts,
@@ -234,6 +318,8 @@ export function createTaskHandlers(sql: Sql) {
     evaluateTaskAdvanced: evaluateTaskAdvancedHandler,
     getTaskStats,
     updateTaskImplementationStatus: updateTaskImplementationStatusHandler,
-    updateTask: updateTaskHandler
+    updateTask: updateTaskHandler,
+    createTask,
+    deleteTask
   }
 }

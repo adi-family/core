@@ -23,6 +23,9 @@ export abstract class BaseTaskSource {
           throw new Error('GitHub task source requires non-empty repo in config');
         }
         break;
+      case 'manual':
+        // Manual task sources don't require config validation
+        break;
       default:
         assertNever(taskSource);
     }

@@ -252,6 +252,14 @@ export const simpleEvaluationResultSchema = z.object({
 
 export type SimpleEvaluationResult = z.infer<typeof simpleEvaluationResultSchema>
 
+// Manual task metadata schema
+export const manualTaskMetadataSchema = z.object({
+  created_via: z.enum(['ui', 'api']),
+  custom_properties: z.record(z.string(), z.unknown()).optional()
+})
+
+export type ManualTaskMetadata = z.infer<typeof manualTaskMetadataSchema>
+
 export const taskSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -286,6 +294,8 @@ export const taskSchema = z.object({
   ai_evaluation_session_id: z.string().nullable(),
   ai_implementation_status: z.enum(['pending', 'queued', 'implementing', 'completed', 'failed']).nullable(),
   ai_implementation_session_id: z.string().nullable(),
+  created_by_user_id: z.string().nullable(),
+  manual_task_metadata: manualTaskMetadataSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string()
 })
@@ -331,7 +341,9 @@ export const createTaskInputSchema = z.object({
   task_source_id: z.string().optional(),
   source_gitlab_issue: gitlabIssueSchema.optional(),
   source_github_issue: githubIssueSchema.optional(),
-  source_jira_issue: jiraIssueSchema.optional()
+  source_jira_issue: jiraIssueSchema.optional(),
+  created_by_user_id: z.string().optional(),
+  manual_task_metadata: manualTaskMetadataSchema.optional()
 })
 
 export type CreateTaskInput = z.infer<typeof createTaskInputSchema>
@@ -451,6 +463,10 @@ export const githubIssuesConfigSchema = z.object({
 
 export type GithubIssuesConfig = z.infer<typeof githubIssuesConfigSchema>
 
+export const manualTaskSourceConfigSchema = z.object({})
+
+export type ManualTaskSourceConfig = z.infer<typeof manualTaskSourceConfigSchema>
+
 export const taskSourceJiraConfigSchema = z.object({
   project_key: z.string().optional(),
   jql_filter: z.string().optional(),
@@ -497,6 +513,18 @@ export const taskSourceSchema = z.discriminatedUnion('type', [
     updated_at: z.string(),
     type: z.literal('github_issues'),
     config: githubIssuesConfigSchema
+  }),
+  z.object({
+    id: z.string(),
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean(),
+    sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
+    last_synced_at: z.string().nullable(),
+    created_at: z.string(),
+    updated_at: z.string(),
+    type: z.literal('manual'),
+    config: manualTaskSourceConfigSchema
   })
 ])
 
@@ -505,7 +533,8 @@ export type TaskSource = z.infer<typeof taskSourceSchema>
 export const taskSourceConfigSchema = z.union([
   gitlabIssuesConfigSchema,
   taskSourceJiraConfigSchema,
-  githubIssuesConfigSchema
+  githubIssuesConfigSchema,
+  manualTaskSourceConfigSchema
 ])
 
 export type TaskSourceConfig = z.infer<typeof taskSourceConfigSchema>
@@ -531,6 +560,13 @@ export const createTaskSourceInputSchema = z.discriminatedUnion('type', [
     enabled: z.boolean().optional(),
     type: z.literal('github_issues'),
     config: githubIssuesConfigSchema
+  }),
+  z.object({
+    project_id: z.string(),
+    name: z.string(),
+    enabled: z.boolean().optional(),
+    type: z.literal('manual'),
+    config: manualTaskSourceConfigSchema
   })
 ])
 
@@ -557,6 +593,13 @@ export const updateTaskSourceInputSchema = z.union([
     enabled: z.boolean().optional(),
     type: z.literal('github_issues').optional(),
     config: githubIssuesConfigSchema.optional()
+  }),
+  z.object({
+    project_id: z.string().optional(),
+    name: z.string().optional(),
+    enabled: z.boolean().optional(),
+    type: z.literal('manual').optional(),
+    config: manualTaskSourceConfigSchema.optional()
   })
 ])
 

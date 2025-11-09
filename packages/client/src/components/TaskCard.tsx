@@ -4,6 +4,8 @@ import { navigateTo } from "@/utils/navigation"
 import { apiCall } from "@/utils/apiCall"
 import { useAuth } from "@clerk/clerk-react"
 import { toast } from "sonner"
+import { createAuthenticatedClient } from "@/lib/client"
+import { deleteTask } from "@/stores/tasks"
 
 interface TaskCardProps {
   task: Task
@@ -117,6 +119,23 @@ export function TaskCard({ task, taskSources, onRefresh }: TaskCardProps) {
     )
   }
 
+  const handleDelete = async (taskId: string) => {
+    if (!confirm('Are you sure you want to delete this task? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      const client = createAuthenticatedClient(getToken)
+      await deleteTask(client, taskId)
+      toast.success('Task deleted successfully!')
+      if (onRefresh) {
+        await onRefresh()
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to delete task')
+    }
+  }
+
   return (
     <UITaskCard
       task={task}
@@ -126,6 +145,7 @@ export function TaskCard({ task, taskSources, onRefresh }: TaskCardProps) {
       onRetrySync={handleRetrySync}
       onRetryEvaluation={handleRetryEvaluation}
       onStartProcessing={handleStartProcessing}
+      onDelete={handleDelete}
     />
   )
 }

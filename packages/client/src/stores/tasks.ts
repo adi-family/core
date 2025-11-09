@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { proxy } from 'valtio'
 import type { Task } from '@adi-simple/types'
 import { taskSchema } from '@adi-simple/types'
-import { listTasksConfig } from '@adi/api-contracts'
+import { listTasksConfig, createTaskConfig, deleteTaskConfig } from '@adi/api-contracts/tasks'
 import type { BaseClient } from '@adi-family/http'
 
 const _tasksStoreSchema = z.object({
@@ -79,4 +79,86 @@ export async function refreshTasks(
 export function getTasksByProject(projectId: string | null): Task[] {
   if (!projectId) return tasksStore.tasks
   return tasksStore.tasks.filter(t => t.project_id === projectId)
+}
+
+/**
+ * Create a new manual task
+ */
+export async function createTask(
+  client: BaseClient,
+  input: {
+    title: string
+    description?: string
+    project_id: string
+    status?: string
+  }
+): Promise<Task> {
+  try {
+    const task = await client.run(createTaskConfig, {
+      body: input
+    })
+
+    // Add to local store
+    tasksStore.tasks.unshift(task)
+
+    return task
+  } catch (error) {
+    tasksStore.error = error instanceof Error ? error.message : 'Failed to create task'
+    console.error('Error creating task:', error)
+    throw error
+  }
+}
+
+/**
+ * Delete a task (only manual tasks can be deleted)
+ */
+export async function deleteTask(
+  client: BaseClient,
+  taskId: string
+): Promise<void> {
+  try {
+    await client.run(deleteTaskConfig, {
+      params: { id: taskId }
+    })
+
+    // Remove from local store
+    const index = tasksStore.tasks.findIndex(t => t.id === taskId)
+    if (index !== -1) {
+      tasksStore.tasks.splice(index, 1)
+    }
+  } catch (error) {
+    tasksStore.error = error instanceof Error ? error.message : 'Failed to delete task'
+    console.error('Error deleting task:', error)
+    throw error
+  }
+}
+
+/**
+ * Update a task in the local store
+ */
+export function updateTaskInStore(taskId: string, updates: Partial<Task>): void {
+  const index = tasksStore.tasks.findIndex(t => t.id === taskId)
+  if (index !== -1) {
+    tasksStore.tasks[index] = { ...tasksStore.tasks[index], ...updates }
+  }
+}
+
+/**
+ * Add a task to the local store
+ */
+export function addTaskToStore(task: Task): void {
+  const exists = tasksStore.tasks.some(t => t.id === task.id)
+  if (!exists) {
+    tasksStore.tasks.unshift(task)
+  }
+}
+
+/**
+ * Remove a task from the local store
+ */
+export function removeTaskFromStore(taskId: string): void {
+  const index = tasksStore.tasks.findIndex(t => t.id === taskId)
+  if (index !== -1) {
+    tasksStore.tasks.splice(index, 1)
+  }
 }

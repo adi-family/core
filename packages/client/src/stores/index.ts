@@ -21,7 +21,12 @@ export {
   tasksStore,
   fetchTasks,
   refreshTasks,
-  getTasksByProject
+  getTasksByProject,
+  createTask,
+  deleteTask,
+  updateTaskInStore,
+  addTaskToStore,
+  removeTaskFromStore
 } from './tasks'
 
 // Task Sources store

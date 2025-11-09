@@ -191,3 +191,29 @@ export const updateTaskConfig = {
     schema: taskSchema
   }
 } as const
+
+export const createTaskConfig = {
+  method: 'POST',
+  route: route.static('/api/tasks'),
+  body: {
+    schema: z.object({
+      title: z.string(),
+      description: z.string().optional(),
+      project_id: z.string(),
+      status: z.string().optional()
+    })
+  },
+  response: {
+    schema: taskSchema
+  }
+} as const
+
+export const deleteTaskConfig = {
+  method: 'DELETE',
+  route: route.dynamic('/api/tasks/:id', z.object({ id: z.string() })),
+  response: {
+    schema: z.object({
+      success: z.boolean()
+    })
+  }
+} as const

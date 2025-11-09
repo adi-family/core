@@ -49,11 +49,13 @@ const allHandlers = [
   taskHandlers.listTasks,
   taskHandlers.getTaskStats,  // Register static route before dynamic route
   taskHandlers.getTask,
+  taskHandlers.createTask,
   taskHandlers.implementTask,
   taskHandlers.evaluateTask,
   taskHandlers.evaluateTaskAdvanced,
   taskHandlers.updateTaskImplementationStatus,
   taskHandlers.updateTask,
+  taskHandlers.deleteTask,
   // Sessions
   sessionHandlers.getSessionMessages,
   sessionHandlers.getSessionPipelineExecutions,
