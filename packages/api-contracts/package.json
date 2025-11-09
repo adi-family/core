@@ -1,6 +1,7 @@
 {
   "name": "@adi/api-contracts",
   "version": "1.0.0",
+  "type": "module",
   "description": "Shared API contracts for adi-simple",
   "main": "./index.ts",
   "types": "./index.ts",
