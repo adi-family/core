@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Debug: verify workspace structure
-RUN ls -la packages/ && cat package.json | grep -A 2 workspaces
+RUN ls -la packages/ && cat package.json | grep -A 2 workspaces && ls -la packages/shared/ && cat packages/shared/package.json
 
 # Install dependencies for all workspaces (includes nx in devDependencies)
 RUN npm install --legacy-peer-deps
