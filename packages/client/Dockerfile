@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 
 # Install dependencies for all workspaces (includes nx in devDependencies)
-RUN npm install --legacy-peer-deps --workspaces
+RUN npm install --legacy-peer-deps
 
 # Build the client
 # All env vars (CLIENT_PORT, BACKEND_URL, VITE_API_URL) come from Coolify
