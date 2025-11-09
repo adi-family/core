@@ -6,6 +6,9 @@ WORKDIR /app
 # Copy entire monorepo
 COPY . .
 
+# Debug: verify workspace structure
+RUN ls -la packages/ && cat package.json | grep -A 2 workspaces
+
 # Install dependencies for all workspaces (includes nx in devDependencies)
 RUN npm install --legacy-peer-deps
 
