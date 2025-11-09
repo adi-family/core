@@ -25,4 +25,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 
 # Run the application with tsx for TypeScript support
 RUN npm install -g tsx
-CMD ["tsx", "packages/backend/index.ts"]
+CMD ["tsx", "packages/backend/server-native.ts"]

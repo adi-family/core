@@ -21,9 +21,9 @@
     "@adi-simple/worker": "*",
     "@adi/queue": "*",
     "@adi/api-contracts": "*",
-    "@adi-family/http": "^1.0.0",
-    "@adi-family/http-express": "^1.0.0",
-    "@adi-family/http-native": "^1.0.0"
+    "@adi-family/http": "^1.0.3",
+    "@adi-family/http-express": "^1.0.3",
+    "@adi-family/http-native": "^1.0.3"
   },
   "devDependencies": {
     "@types/bun": "latest",

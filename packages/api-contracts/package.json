@@ -22,7 +22,7 @@
     "./worker-cache": "./worker-cache.ts"
   },
   "dependencies": {
-    "@adi-family/http": "^1.0.0",
+    "@adi-family/http": "^1.0.3",
     "zod": "^4.1.12"
   }
 }
