@@ -162,7 +162,7 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
   /**
    * Get type badge variant based on task source type
    */
-  getTypeBadgeVariant(type?: 'gitlab_issues' | 'jira' | 'github_issues'): 'orange' | 'purple' | 'blue' | 'gray' {
+  getTypeBadgeVariant(type?: 'gitlab_issues' | 'jira' | 'github_issues' | 'manual'): 'orange' | 'purple' | 'blue' | 'gray' {
     const sourceType = type ?? this.model.type
 
     switch (sourceType) {
@@ -172,6 +172,8 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
         return 'purple'
       case 'jira':
         return 'blue'
+      case 'manual':
+        return 'gray'
       default:
         return 'gray'
     }
@@ -180,7 +182,7 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
   /**
    * Get type badge icon based on task source type
    */
-  getTypeBadgeIcon(type?: 'gitlab_issues' | 'jira' | 'github_issues'): LucideIcon | typeof GithubIcon {
+  getTypeBadgeIcon(type?: 'gitlab_issues' | 'jira' | 'github_issues' | 'manual'): LucideIcon | typeof GithubIcon {
     const sourceType = type ?? this.model.type
 
     switch (sourceType) {
@@ -190,6 +192,8 @@ export class TaskSourcePresenter extends BasePresenter<TaskSource> {
         return GithubIcon
       case 'jira':
         return GitBranch
+      case 'manual':
+        return CheckCircle2
       default:
         return GitBranch
     }
