@@ -63,8 +63,8 @@ export const findOrCreateManualTaskSource = async (sql: Sql, projectId: string):
 
   // Create manual task source if it doesn't exist
   const [manualSource] = await get(sql<TaskSource[]>`
-    INSERT INTO task_sources (project_id, name, type, config, enabled)
-    VALUES (${projectId}, 'Manual Tasks', 'manual', '{}'::jsonb, true)
+    INSERT INTO task_sources (project_id, name, type, config, enabled, auto_evaluate)
+    VALUES (${projectId}, 'Manual Tasks', 'manual', '{}'::jsonb, true, true)
     RETURNING *
   `)
 
@@ -75,7 +75,7 @@ export const findOrCreateManualTaskSource = async (sql: Sql, projectId: string):
   return manualSource
 }
 
-const createTaskSourceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
+const createTaskSourceCols = ['project_id', 'name', 'type', 'config', 'enabled', 'auto_evaluate'] as const
 export const createTaskSource = async (sql: Sql, input: CreateTaskSourceInput): Promise<TaskSource> => {
   const [taskSource] = await get(sql<TaskSource[]>`
     INSERT INTO task_sources ${sql(input, createTaskSourceCols)}
@@ -87,7 +87,7 @@ export const createTaskSource = async (sql: Sql, input: CreateTaskSourceInput): 
   return taskSource
 }
 
-const updateTaskSourceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
+const updateTaskSourceCols = ['project_id', 'name', 'type', 'config', 'enabled', 'auto_evaluate'] as const
 export const updateTaskSource = async (sql: Sql, id: string, input: UpdateTaskSourceInput): Promise<TaskSource> => {
   const presentCols = filterPresentColumns(input, updateTaskSourceCols)
 

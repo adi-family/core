@@ -74,6 +74,7 @@ export function TaskSourceMultistageForm() {
     name: "",
     type: "gitlab_issues" as TaskSourceType,
     enabled: true,
+    auto_evaluate: true,
   })
 
   const [gitlabConfig, setGitlabConfig] = useState<GitlabIssuesConfig>({
@@ -123,6 +124,7 @@ export function TaskSourceMultistageForm() {
           type: 'gitlab_issues',
           config: gitlabConfig,
           enabled: formData.enabled,
+          auto_evaluate: formData.auto_evaluate,
         }
       } else if (formData.type === "github_issues") {
         payload = {
@@ -131,6 +133,7 @@ export function TaskSourceMultistageForm() {
           type: 'github_issues',
           config: githubConfig,
           enabled: formData.enabled,
+          auto_evaluate: formData.auto_evaluate,
         }
       } else {
         payload = {
@@ -139,6 +142,7 @@ export function TaskSourceMultistageForm() {
           type: 'jira',
           config: jiraConfig,
           enabled: formData.enabled,
+          auto_evaluate: formData.auto_evaluate,
         }
       }
 
@@ -557,6 +561,30 @@ export function TaskSourceMultistageForm() {
                     </div>
                   </div>
                 )}
+
+                {/* Auto-evaluate setting - common for all source types */}
+                <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-700/30 backdrop-blur-sm rounded-lg">
+                  <h3 className="text-xs uppercase tracking-wide font-medium text-gray-200">EVALUATION SETTINGS</h3>
+
+                  <div className="flex items-start space-x-3">
+                    <input
+                      type="checkbox"
+                      id="auto_evaluate"
+                      checked={formData.auto_evaluate}
+                      onChange={(e) => handleInputChange("auto_evaluate", e.target.checked)}
+                      className="mt-1 h-4 w-4 rounded border-gray-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+                    />
+                    <div className="flex-1">
+                      <Label htmlFor="auto_evaluate" className="text-sm font-medium text-gray-200 cursor-pointer">
+                        Automatically evaluate new tasks with AI
+                      </Label>
+                      <p className="text-xs text-gray-400 mt-1">
+                        When enabled, tasks synced from this source will automatically be queued for AI evaluation.
+                        Disable this to manually control evaluation and reduce AI costs for high-volume sources.
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
 

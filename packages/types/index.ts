@@ -489,6 +489,7 @@ export const taskSourceSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean(),
+    auto_evaluate: z.boolean(),
     sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
     last_synced_at: z.string().nullable(),
     created_at: z.string(),
@@ -501,6 +502,7 @@ export const taskSourceSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean(),
+    auto_evaluate: z.boolean(),
     sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
     last_synced_at: z.string().nullable(),
     created_at: z.string(),
@@ -513,6 +515,7 @@ export const taskSourceSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean(),
+    auto_evaluate: z.boolean(),
     sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
     last_synced_at: z.string().nullable(),
     created_at: z.string(),
@@ -525,6 +528,7 @@ export const taskSourceSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean(),
+    auto_evaluate: z.boolean(),
     sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
     last_synced_at: z.string().nullable(),
     created_at: z.string(),
@@ -550,6 +554,7 @@ export const createTaskSourceInputSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional(),
     type: z.literal('gitlab_issues'),
     config: gitlabIssuesConfigSchema
   }),
@@ -557,6 +562,7 @@ export const createTaskSourceInputSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional(),
     type: z.literal('jira'),
     config: taskSourceJiraConfigSchema
   }),
@@ -564,6 +570,7 @@ export const createTaskSourceInputSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional(),
     type: z.literal('github_issues'),
     config: githubIssuesConfigSchema
   }),
@@ -571,6 +578,7 @@ export const createTaskSourceInputSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional(),
     type: z.literal('manual'),
     config: manualTaskSourceConfigSchema
   })
@@ -583,6 +591,7 @@ export const updateTaskSourceInputSchema = z.union([
     project_id: z.string().optional(),
     name: z.string().optional(),
     enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional(),
     type: z.literal('gitlab_issues').optional(),
     config: gitlabIssuesConfigSchema.optional()
   }),
@@ -590,6 +599,7 @@ export const updateTaskSourceInputSchema = z.union([
     project_id: z.string().optional(),
     name: z.string().optional(),
     enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional(),
     type: z.literal('jira').optional(),
     config: taskSourceJiraConfigSchema.optional()
   }),
@@ -597,6 +607,7 @@ export const updateTaskSourceInputSchema = z.union([
     project_id: z.string().optional(),
     name: z.string().optional(),
     enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional(),
     type: z.literal('github_issues').optional(),
     config: githubIssuesConfigSchema.optional()
   }),
@@ -604,6 +615,7 @@ export const updateTaskSourceInputSchema = z.union([
     project_id: z.string().optional(),
     name: z.string().optional(),
     enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional(),
     type: z.literal('manual').optional(),
     config: manualTaskSourceConfigSchema.optional()
   })

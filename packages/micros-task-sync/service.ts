@@ -59,8 +59,14 @@ async function validateProject(sql: Sql, projectId: string) {
 /**
  * Queue evaluation for task if quota available
  */
-async function queueEvaluationIfQuotaAvailable(sql: Sql, task: Task, projectId: string): Promise<void> {
+async function queueEvaluationIfQuotaAvailable(sql: Sql, task: Task, projectId: string, taskSource: TaskSource): Promise<void> {
   if (task.ai_evaluation_simple_status !== 'not_started') return
+
+  // Check if auto-evaluation is enabled for this task source
+  if (!taskSource.auto_evaluate) {
+    logger.debug(`Skipping auto-evaluation for task ${task.id} - auto_evaluate disabled for task source ${taskSource.id}`)
+    return
+  }
 
   try {
     const userId = await getProjectOwnerId(sql, projectId)
@@ -113,7 +119,7 @@ async function processIssue(
   logger.debug(`${isNew ? 'Created new' : 'Updated'} task for issue ${issue.id}`)
 
   // Automatically queue simple evaluation (advanced evaluation remains manual)
-  await queueEvaluationIfQuotaAvailable(sql, task, projectId)
+  await queueEvaluationIfQuotaAvailable(sql, task, projectId, taskSource)
 
   return { isNew, isUpdated, task }
 }

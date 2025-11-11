@@ -31,6 +31,7 @@ const taskSourceSchema = z.discriminatedUnion('type', [
     type: z.literal('gitlab_issues'),
     config: gitlabIssuesConfigSchema,
     enabled: z.boolean(),
+    auto_evaluate: z.boolean(),
     sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
     last_synced_at: z.string().nullable(),
     created_at: z.string(),
@@ -43,6 +44,7 @@ const taskSourceSchema = z.discriminatedUnion('type', [
     type: z.literal('jira'),
     config: jiraConfigSchema,
     enabled: z.boolean(),
+    auto_evaluate: z.boolean(),
     sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
     last_synced_at: z.string().nullable(),
     created_at: z.string(),
@@ -55,6 +57,7 @@ const taskSourceSchema = z.discriminatedUnion('type', [
     type: z.literal('github_issues'),
     config: githubIssuesConfigSchema,
     enabled: z.boolean(),
+    auto_evaluate: z.boolean(),
     sync_status: z.enum(['pending', 'queued', 'syncing', 'completed', 'failed']),
     last_synced_at: z.string().nullable(),
     created_at: z.string(),
@@ -94,21 +97,24 @@ const createTaskSourceBodySchema = z.discriminatedUnion('type', [
     name: z.string(),
     type: z.literal('gitlab_issues'),
     config: gitlabIssuesConfigSchema,
-    enabled: z.boolean().optional()
+    enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional()
   }),
   z.object({
     project_id: z.string(),
     name: z.string(),
     type: z.literal('jira'),
     config: jiraConfigSchema,
-    enabled: z.boolean().optional()
+    enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional()
   }),
   z.object({
     project_id: z.string(),
     name: z.string(),
     type: z.literal('github_issues'),
     config: githubIssuesConfigSchema,
-    enabled: z.boolean().optional()
+    enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional()
   })
 ])
 
@@ -128,19 +134,22 @@ const updateTaskSourceBodySchema = z.union([
     name: z.string().optional(),
     type: z.literal('gitlab_issues').optional(),
     config: gitlabIssuesConfigSchema.partial().optional(),
-    enabled: z.boolean().optional()
+    enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional()
   }),
   z.object({
     name: z.string().optional(),
     type: z.literal('jira').optional(),
     config: jiraConfigSchema.partial().optional(),
-    enabled: z.boolean().optional()
+    enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional()
   }),
   z.object({
     name: z.string().optional(),
     type: z.literal('github_issues').optional(),
     config: githubIssuesConfigSchema.partial().optional(),
-    enabled: z.boolean().optional()
+    enabled: z.boolean().optional(),
+    auto_evaluate: z.boolean().optional()
   })
 ])
 

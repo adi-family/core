@@ -96,6 +96,7 @@ const mockTaskSources: TaskSource[] = [
     name: "Web App GitLab Issues",
     type: "gitlab_issues",
     enabled: true,
+    auto_evaluate: true,
     sync_status: "completed",
     last_synced_at: "2024-01-20T10:30:00Z",
     config: {
@@ -113,6 +114,7 @@ const mockTaskSources: TaskSource[] = [
     name: "Mobile App Jira",
     type: "jira",
     enabled: true,
+    auto_evaluate: false,
     sync_status: "completed",
     last_synced_at: "2024-01-21T14:00:00Z",
     config: {
@@ -130,6 +132,7 @@ const mockTaskSources: TaskSource[] = [
     name: "API Service GitHub Issues",
     type: "github_issues",
     enabled: true,
+    auto_evaluate: true,
     sync_status: "syncing",
     last_synced_at: "2024-01-19T08:00:00Z",
     config: {
@@ -147,6 +150,7 @@ const mockTaskSources: TaskSource[] = [
     name: "Web App GitHub Backup",
     type: "github_issues",
     enabled: false,
+    auto_evaluate: false,
     sync_status: "failed",
     last_synced_at: null,
     config: {
