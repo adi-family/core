@@ -223,12 +223,16 @@ export function createSecretHandlers(sql: Sql) {
       const secret = await secretQueries.findSecretById(sql, secretId)
       const token = await getDecryptedSecretValue(sql, secretId)
 
-      const url = new URL(`${host}/api/v4/projects`)
+      // Use Search API when search term is provided for better namespace/group search
+      const url = search
+        ? new URL(`${host}/api/v4/search`)
+        : new URL(`${host}/api/v4/projects`)
+
       url.searchParams.set('per_page', String(perPage || 20))
+
       if (search) {
-        // Search in both namespace (group) and project name
+        url.searchParams.set('scope', 'projects')
         url.searchParams.set('search', search)
-        url.searchParams.set('search_namespaces', 'true')
       }
 
       const headers: Record<string, string> =
@@ -236,15 +240,19 @@ export function createSecretHandlers(sql: Sql) {
           ? { 'Authorization': `Bearer ${token}` }
           : { 'PRIVATE-TOKEN': token }
 
+      logger.debug('Fetching GitLab repositories', { url: url.toString(), tokenType: secret.token_type })
       const response = await fetch(url.toString(), { headers })
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch repositories: ${response.status}`)
+        const errorText = await response.text()
+        logger.error('GitLab API error', { status: response.status, error: errorText, url: url.toString() })
+        throw new Error(`Failed to fetch repositories: ${response.status} - ${errorText}`)
       }
 
       const repositories = await response.json()
       return repositories
     } catch (error) {
+      logger.error('Error fetching GitLab repositories', { error })
       throw new Error(error instanceof Error ? error.message : 'Unknown error')
     }
   })
