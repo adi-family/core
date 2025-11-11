@@ -2,6 +2,8 @@ import { useState } from "react"
 import { Button } from './button'
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { GitLabIcon } from './gitlab-icon'
+import type { BaseClient } from '@adi-family/http'
+import { gitlabOAuthAuthorizeConfig, gitlabOAuthExchangeConfig } from '@adi/api-contracts'
 
 // Global flag to prevent double-processing in StrictMode
 const processingCodes = new Set<string>()
@@ -20,20 +22,20 @@ export interface GitLabOAuthResult {
 
 interface GitLabOAuthButtonProps {
   projectId: string
+  client: BaseClient
   onSuccess: (result: GitLabOAuthResult) => void
   onError?: (error: string) => void
   secretName?: string
   gitlabHost?: string
-  apiBaseUrl?: string
 }
 
 export function GitLabOAuthButton({
   projectId,
+  client,
   onSuccess,
   onError,
   secretName,
   gitlabHost,
-  apiBaseUrl = '',
 }: GitLabOAuthButtonProps) {
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'authorizing' | 'success' | 'error'>('idle')
@@ -49,13 +51,7 @@ export function GitLabOAuthButton({
       const generatedSecretName = secretName || `GitLab OAuth Token - ${new Date().toLocaleDateString()}`
 
       // Step 1: Get authorization URL
-      const authRes = await fetch(`${apiBaseUrl}/oauth/gitlab/authorize`)
-
-      if (!authRes.ok) {
-        throw new Error('Failed to initiate OAuth flow')
-      }
-
-      const { authUrl, state } = await authRes.json()
+      const { authUrl, state } = await client.run(gitlabOAuthAuthorizeConfig)
 
       // Store state and details for callback
       sessionStorage.setItem('gitlab_oauth_state', state)
@@ -108,25 +104,14 @@ export function GitLabOAuthButton({
 
           // Step 4: Exchange code for tokens
           try {
-            const exchangeRes = await fetch(`${apiBaseUrl}/oauth/gitlab/exchange`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
+            const result = await client.run(gitlabOAuthExchangeConfig, {
+              body: {
                 projectId,
                 code,
                 secretName: generatedSecretName,
                 gitlabHost,
-              }),
+              }
             })
-
-            if (!exchangeRes.ok) {
-              const error = await exchangeRes.json()
-              throw new Error(error.error || 'Failed to exchange OAuth code')
-            }
-
-            const result: GitLabOAuthResult = await exchangeRes.json()
 
             setStatus('success')
             setLoading(false)

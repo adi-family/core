@@ -91,13 +91,6 @@ export type JiraOAuthRefreshResponse = z.infer<typeof jiraOAuthRefreshResponseSc
 export const jiraOAuthAuthorizeConfig = {
   method: 'GET',
   route: route.static('/api/oauth/jira/authorize'),
-  query: {
-    schema: z.object({
-      client_id: z.string(),
-      redirect_uri: z.string(),
-      scopes: z.string().optional()
-    })
-  },
   response: {
     schema: jiraOAuthAuthorizeResponseSchema
   }

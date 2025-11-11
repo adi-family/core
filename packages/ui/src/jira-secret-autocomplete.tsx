@@ -36,7 +36,6 @@ interface JiraSecretAutocompleteProps {
   onSiteSelected?: (siteUrl: string, cloudId: string) => void
   label?: string
   required?: boolean
-  apiBaseUrl?: string
   enableOAuth?: boolean
 }
 
@@ -51,7 +50,6 @@ export function JiraSecretAutocomplete({
   onSiteSelected,
   label = "JIRA API TOKEN SECRET",
   required = false,
-  apiBaseUrl = '',
   enableOAuth = true,
 }: JiraSecretAutocompleteProps) {
 
@@ -119,7 +117,7 @@ export function JiraSecretAutocomplete({
     }
 
     loadSecrets()
-     
+
   }, [projectId])
 
   // Validate token with backend API
@@ -201,7 +199,7 @@ export function JiraSecretAutocomplete({
     }, 500)
 
     return () => clearTimeout(timeoutId)
-     
+
   }, [newToken, email, mode])
 
   // Re-validate token when host changes
@@ -219,7 +217,7 @@ export function JiraSecretAutocomplete({
       setTokenValid(null)
       setTokenInfo(null)
     }
-     
+
   }, [host])
 
   // Clear validation state when switching away from create mode
@@ -241,7 +239,7 @@ export function JiraSecretAutocomplete({
     }, 500)
 
     return () => clearTimeout(timeoutId)
-     
+
   }, [selectedSecret, host, mode])
 
   // Clear selected secret validation when deselected
@@ -483,7 +481,7 @@ export function JiraSecretAutocomplete({
                     {!oauthResult && (
                       <JiraOAuthButton
                         projectId={projectId || ''}
-                        apiBaseUrl={apiBaseUrl}
+                        client={client}
                         onSuccess={(result) => {
                           setOAuthResult(result)
                           // Auto-select first site if only one
@@ -636,7 +634,7 @@ export function JiraSecretAutocomplete({
                 {!oauthResult && (
                   <JiraOAuthButton
                     projectId={projectId || ''}
-                    apiBaseUrl={apiBaseUrl}
+                    client={client}
                     onSuccess={(result) => {
                       setOAuthResult(result)
                       // Auto-select first site if only one

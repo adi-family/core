@@ -2,6 +2,8 @@ import { useState } from "react"
 import { Button } from './button'
 import { Loader2, CheckCircle2, XCircle } from "lucide-react"
 import { JiraIcon } from './jira-icon'
+import type { BaseClient } from '@adi-family/http'
+import { jiraOAuthAuthorizeConfig, jiraOAuthExchangeConfig } from '@adi/api-contracts'
 
 export interface JiraSite {
   id: string
@@ -18,10 +20,10 @@ export interface OAuthResult {
 
 interface JiraOAuthButtonProps {
   projectId: string
+  client: BaseClient
   onSuccess: (result: OAuthResult) => void
   onError?: (error: string) => void
   secretName?: string
-  apiBaseUrl?: string
 }
 
 // Global flag to prevent double-processing in StrictMode
@@ -29,10 +31,10 @@ const processingCodes = new Set<string>()
 
 export function JiraOAuthButton({
   projectId,
+  client,
   onSuccess,
   onError,
   secretName,
-  apiBaseUrl = '',
 }: JiraOAuthButtonProps) {
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<'idle' | 'authorizing' | 'success' | 'error'>('idle')
@@ -48,13 +50,7 @@ export function JiraOAuthButton({
       const generatedSecretName = secretName || `Jira OAuth Token - ${new Date().toLocaleDateString()}`
 
       // Step 1: Get authorization URL
-      const authRes = await fetch(`${apiBaseUrl}/oauth/jira/authorize`)
-
-      if (!authRes.ok) {
-        throw new Error('Failed to initiate OAuth flow')
-      }
-
-      const { authUrl, state } = await authRes.json()
+      const { authUrl, state } = await client.run(jiraOAuthAuthorizeConfig)
 
       // Store state and secret name for callback
       sessionStorage.setItem('jira_oauth_state', state)
@@ -104,24 +100,13 @@ export function JiraOAuthButton({
 
           // Step 4: Exchange code for tokens
           try {
-            const exchangeRes = await fetch(`${apiBaseUrl}/oauth/jira/exchange`, {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
+            const result = await client.run(jiraOAuthExchangeConfig, {
+              body: {
                 projectId,
                 code,
                 secretName: generatedSecretName,
-              }),
+              }
             })
-
-            if (!exchangeRes.ok) {
-              const error = await exchangeRes.json()
-              throw new Error(error.error || 'Failed to exchange OAuth code')
-            }
-
-            const result: OAuthResult = await exchangeRes.json()
 
             setStatus('success')
             setLoading(false)

@@ -27,7 +27,6 @@ interface GitlabSecretAutocompleteProps {
   label?: string
   required?: boolean
   requiredScopes?: string[]
-  apiBaseUrl?: string
   enableOAuth?: boolean
 }
 
@@ -72,7 +71,6 @@ export function GitlabSecretAutocomplete({
   label = "GITLAB ACCESS TOKEN SECRET",
   required = false,
   requiredScopes = ["api"],
-  apiBaseUrl = '',
   enableOAuth = true,
 }: GitlabSecretAutocompleteProps) {
 
@@ -556,8 +554,8 @@ export function GitlabSecretAutocomplete({
                 <div className="space-y-2">
                   <GitLabOAuthButton
                     projectId={projectId || ''}
+                    client={client}
                     gitlabHost={host !== 'https://gitlab.com' ? host : undefined}
-                    apiBaseUrl={apiBaseUrl}
                     onSuccess={(result) => {
                       // Fetch the created secret from backend to get full secret object
                       client.run(getSecretConfig, {
@@ -617,8 +615,8 @@ export function GitlabSecretAutocomplete({
                 </p>
                 <GitLabOAuthButton
                   projectId={projectId || ''}
+                  client={client}
                   gitlabHost={host !== 'https://gitlab.com' ? host : undefined}
-                  apiBaseUrl={apiBaseUrl}
                   onSuccess={(result) => {
                     // Fetch the created secret from backend to get full secret object
                     client.run(getSecretConfig, {

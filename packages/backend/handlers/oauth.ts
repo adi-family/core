@@ -154,23 +154,28 @@ export function createOAuthHandlers(sql: Sql) {
   // JIRA OAUTH
   // ============================================================================
 
-  const jiraAuthorize = handler(jiraOAuthAuthorizeConfig, async (ctx) => {
-    const { client_id, redirect_uri, scopes } = ctx.query || {}
-    const state = crypto.randomUUID()
+  const jiraAuthorize = handler(jiraOAuthAuthorizeConfig, async (_ctx) => {
+    const clientId = process.env.JIRA_OAUTH_CLIENT_ID
+    const redirectUri = process.env.JIRA_OAUTH_REDIRECT_URI
 
-    const scopeStr = scopes || 'read:jira-work write:jira-work offline_access'
+    if (!clientId || !redirectUri) {
+      throw new Error('Jira OAuth not configured')
+    }
+
+    const state = crypto.randomUUID()
+    const scopes = 'read:jira-work write:jira-work offline_access'
 
     // Build authorization URL
     const authUrl = new URL('https://auth.atlassian.com/authorize')
     authUrl.searchParams.set('audience', 'api.atlassian.com')
-    authUrl.searchParams.set('client_id', client_id)
-    authUrl.searchParams.set('scope', scopeStr)
-    authUrl.searchParams.set('redirect_uri', redirect_uri)
+    authUrl.searchParams.set('client_id', clientId)
+    authUrl.searchParams.set('scope', scopes)
+    authUrl.searchParams.set('redirect_uri', redirectUri)
     authUrl.searchParams.set('state', state)
     authUrl.searchParams.set('response_type', 'code')
     authUrl.searchParams.set('prompt', 'consent')
 
-    logger.info('Initiating Jira OAuth flow', { client_id, state })
+    logger.info('Initiating Jira OAuth flow', { clientId, state, redirectUri })
 
     return {
       authUrl: authUrl.toString(),
