@@ -224,10 +224,11 @@ export function createSecretHandlers(sql: Sql) {
       const token = await getDecryptedSecretValue(sql, secretId)
 
       const url = new URL(`${host}/api/v4/projects`)
-      url.searchParams.set('membership', 'true')
       url.searchParams.set('per_page', String(perPage || 20))
       if (search) {
+        // Search in both namespace (group) and project name
         url.searchParams.set('search', search)
+        url.searchParams.set('search_namespaces', 'true')
       }
 
       const headers: Record<string, string> =
