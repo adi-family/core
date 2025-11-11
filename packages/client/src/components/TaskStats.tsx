@@ -11,6 +11,7 @@ interface TaskStatsProps {
     task_source_id?: string
     evaluated_only?: string
     sort_by?: string
+    search?: string
   }
 }
 
@@ -60,6 +61,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
         if (filters?.task_source_id) queryParams.task_source_id = filters.task_source_id
         if (filters?.evaluated_only) queryParams.evaluated_only = filters.evaluated_only
         if (filters?.sort_by) queryParams.sort_by = filters.sort_by
+        if (filters?.search) queryParams.search = filters.search
 
         const data = await client.run(getTaskStatsConfig, { query: queryParams })
         setStats(data)

@@ -50,11 +50,12 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const listTasks = handler(listTasksConfig, async (ctx) => {
-    const { project_id, limit } = ctx.query || {}
+    const { project_id, limit, search } = ctx.query || {}
 
     // Use the findTasksWithFilters query to support filtering
     const tasks = await taskQueries.findTasksWithFilters(sql, {
       project_id,
+      search,
       ...(limit && { per_page: limit })
     })
 
@@ -118,13 +119,14 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const getTaskStats = handler(getTaskStatsConfig, async (ctx) => {
-    const { project_id, task_source_id, evaluated_only, sort_by } = ctx.query || {}
+    const { project_id, task_source_id, evaluated_only, sort_by, search } = ctx.query || {}
 
     const tasks = await taskQueries.findTasksWithFilters(sql, {
       project_id,
       task_source_id,
       evaluated_only: evaluated_only === 'true' ? true : undefined,
-      sort_by: sort_by as 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc' | undefined
+      sort_by: sort_by as 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc' | undefined,
+      search
     })
 
     const evaluatedTasks = tasks.filter(t =>

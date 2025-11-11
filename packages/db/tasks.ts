@@ -18,6 +18,7 @@ export interface TaskQueryOptions {
   sort_by?: 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc'
   page?: number
   per_page?: number
+  search?: string
 }
 
 export interface PaginatedTasksResult {
@@ -29,7 +30,7 @@ export interface PaginatedTasksResult {
 }
 
 export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions): Promise<Task[]> => {
-  const { project_id, task_source_id, evaluated_only, sort_by = 'created_desc' } = options
+  const { project_id, task_source_id, evaluated_only, sort_by = 'created_desc', search } = options
 
   // Build WHERE conditions
   const conditions: string[] = []
@@ -47,6 +48,11 @@ export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions):
 
   if (evaluated_only) {
     conditions.push(`ai_evaluation_simple_result IS NOT NULL`)
+  }
+
+  if (search && search.trim()) {
+    conditions.push(`(title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`)
+    params.push(`%${search.trim()}%`)
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
@@ -105,7 +111,7 @@ export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions):
 }
 
 export const findTasksWithFiltersPaginated = async (sql: Sql, options: TaskQueryOptions): Promise<PaginatedTasksResult> => {
-  const { project_id, task_source_id, evaluated_only, sort_by = 'created_desc', page = 1, per_page = 20 } = options
+  const { project_id, task_source_id, evaluated_only, sort_by = 'created_desc', page = 1, per_page = 20, search } = options
 
   // Build WHERE conditions
   const conditions: string[] = []
@@ -123,6 +129,11 @@ export const findTasksWithFiltersPaginated = async (sql: Sql, options: TaskQuery
 
   if (evaluated_only) {
     conditions.push(`ai_evaluation_simple_result IS NOT NULL`)
+  }
+
+  if (search && search.trim()) {
+    conditions.push(`(title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`)
+    params.push(`%${search.trim()}%`)
   }
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''

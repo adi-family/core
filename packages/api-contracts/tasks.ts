@@ -51,6 +51,7 @@ export const listTasksConfig = {
       project_id: z.string().optional(),
       status: z.string().optional(),
       limit: z.number().optional(),
+      search: z.string().optional(),
     }).optional()
   },
   response: {
@@ -127,7 +128,8 @@ export const getTaskStatsConfig = {
       project_id: z.string().optional(),
       task_source_id: z.string().optional(),
       evaluated_only: z.string().optional(),
-      sort_by: z.string().optional()
+      sort_by: z.string().optional(),
+      search: z.string().optional()
     }).optional()
   },
   response: {

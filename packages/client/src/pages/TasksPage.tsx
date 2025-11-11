@@ -11,6 +11,7 @@ import {
 } from '@adi-simple/ui/card'
 import { Select } from '@adi-simple/ui/select'
 import { Label } from '@adi-simple/ui/label'
+import { Input } from '@adi-simple/ui/input'
 import { TaskRow } from "@/components/TaskRow"
 import { TaskStats } from "@/components/TaskStats"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/Tabs"
@@ -38,6 +39,7 @@ export function TasksPage() {
   const [selectedTaskSourceId, setSelectedTaskSourceId] = useState<string>("")
   const [sortBy, setSortBy] = useState<SortOption>('quick_win_desc')
   const [filterEvaluated, setFilterEvaluated] = useState<boolean>(false)
+  const [searchQuery, setSearchQuery] = useState<string>("")
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
   const [totalCount, setTotalCount] = useState(0)
@@ -68,6 +70,9 @@ export function TasksPage() {
       }
       if (sortBy) {
         queryParams.sort_by = sortBy
+      }
+      if (searchQuery && searchQuery.trim()) {
+        queryParams.search = searchQuery.trim()
       }
 
       const tasksDataPromise = client.run(listTasksConfig, { query: queryParams })
@@ -115,7 +120,7 @@ export function TasksPage() {
       setLoading(false)
       setLoadingMore(false)
     }
-  }, [selectedProjectId, selectedTaskSourceId, filterEvaluated, sortBy])
+  }, [selectedProjectId, selectedTaskSourceId, filterEvaluated, sortBy, searchQuery])
 
   const loadMore = useCallback(() => {
     if (!loadingMore && hasMore && !loading) {
@@ -156,7 +161,7 @@ export function TasksPage() {
       console.error("Error fetching data:", error)
       setLoading(false)
     })
-  }, [selectedProjectId, selectedTaskSourceId, filterEvaluated, sortBy, fetchData])
+  }, [selectedProjectId, selectedTaskSourceId, filterEvaluated, sortBy, searchQuery, fetchData])
 
   const handleStartImplementation = async (task: Task) => {
     try {
@@ -251,55 +256,71 @@ export function TasksPage() {
           </div>
         </CardHeader>
         <CardContent className={`${designTokens.spacing.cardPadding} text-gray-100`}>
-          <div className="mb-6 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="mb-6 space-y-4">
             <div>
-              <Label htmlFor="taskSourceFilter" className="block mb-2">
-                Filter by Task Source
+              <Label htmlFor="searchInput" className="block mb-2">
+                Search Tasks
               </Label>
-              <Select
-                id="taskSourceFilter"
-                value={selectedTaskSourceId}
-                onChange={(e) => setSelectedTaskSourceId(e.target.value)}
-              >
-                <option value="">All Task Sources</option>
-                {projectTaskSources.map((taskSource) => (
-                  <option key={taskSource.id} value={taskSource.id}>
-                    {taskSource.name} ({taskSource.type})
-                  </option>
-                ))}
-              </Select>
+              <Input
+                id="searchInput"
+                type="text"
+                placeholder="Search by title or description..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full"
+              />
             </div>
 
-            <div>
-              <Label htmlFor="sortBy" className="block mb-2">
-                Sort By
-              </Label>
-              <Select
-                id="sortBy"
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-              >
-                <option value="quick_win_desc">Quick Win Score (High to Low)</option>
-                <option value="quick_win_asc">Quick Win Score (Low to High)</option>
-                <option value="complexity_asc">Complexity (Low to High)</option>
-                <option value="complexity_desc">Complexity (High to Low)</option>
-                <option value="created_desc">Created Date (Newest First)</option>
-                <option value="created_asc">Created Date (Oldest First)</option>
-              </Select>
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="taskSourceFilter" className="block mb-2">
+                  Filter by Task Source
+                </Label>
+                <Select
+                  id="taskSourceFilter"
+                  value={selectedTaskSourceId}
+                  onChange={(e) => setSelectedTaskSourceId(e.target.value)}
+                >
+                  <option value="">All Task Sources</option>
+                  {projectTaskSources.map((taskSource) => (
+                    <option key={taskSource.id} value={taskSource.id}>
+                      {taskSource.name} ({taskSource.type})
+                    </option>
+                  ))}
+                </Select>
+              </div>
 
-            <div>
-              <Label htmlFor="filterEvaluated" className="block mb-2">
-                Filter
-              </Label>
-              <Select
-                id="filterEvaluated"
-                value={filterEvaluated ? "evaluated" : "all"}
-                onChange={(e) => setFilterEvaluated(e.target.value === "evaluated")}
-              >
-                <option value="all">All Tasks</option>
-                <option value="evaluated">Only Evaluated</option>
-              </Select>
+              <div>
+                <Label htmlFor="sortBy" className="block mb-2">
+                  Sort By
+                </Label>
+                <Select
+                  id="sortBy"
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as SortOption)}
+                >
+                  <option value="quick_win_desc">Quick Win Score (High to Low)</option>
+                  <option value="quick_win_asc">Quick Win Score (Low to High)</option>
+                  <option value="complexity_asc">Complexity (Low to High)</option>
+                  <option value="complexity_desc">Complexity (High to Low)</option>
+                  <option value="created_desc">Created Date (Newest First)</option>
+                  <option value="created_asc">Created Date (Oldest First)</option>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="filterEvaluated" className="block mb-2">
+                  Filter
+                </Label>
+                <Select
+                  id="filterEvaluated"
+                  value={filterEvaluated ? "evaluated" : "all"}
+                  onChange={(e) => setFilterEvaluated(e.target.value === "evaluated")}
+                >
+                  <option value="all">All Tasks</option>
+                  <option value="evaluated">Only Evaluated</option>
+                </Select>
+              </div>
             </div>
           </div>
 
@@ -361,7 +382,8 @@ export function TasksPage() {
                     project_id: selectedProjectId || undefined,
                     task_source_id: selectedTaskSourceId || undefined,
                     evaluated_only: filterEvaluated ? 'true' : undefined,
-                    sort_by: sortBy
+                    sort_by: sortBy,
+                    search: searchQuery || undefined
                   }}
                 />
               </TabsContent>
