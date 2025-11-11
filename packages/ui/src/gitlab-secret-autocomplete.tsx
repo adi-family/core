@@ -28,6 +28,7 @@ interface GitlabSecretAutocompleteProps {
   required?: boolean
   requiredScopes?: string[]
   enableOAuth?: boolean
+  apiBaseUrl?: string
 }
 
 interface StoreState {

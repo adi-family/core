@@ -37,6 +37,7 @@ interface JiraSecretAutocompleteProps {
   label?: string
   required?: boolean
   enableOAuth?: boolean
+  apiBaseUrl?: string
 }
 
 export function JiraSecretAutocomplete({
