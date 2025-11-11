@@ -64,8 +64,8 @@ export default tseslint.config(
     rules: {
       // Code style
       "comma-dangle": ["error", "always-multiline"],
-      "semi": ["error", "always"],
-      "quotes": ["error", "double", { avoidEscape: true }],
+      semi: ["error", "always"],
+      quotes: ["error", "double", { avoidEscape: true }],
       "object-curly-spacing": ["error", "always"],
       "array-bracket-spacing": ["error", "never"],
       "comma-spacing": ["error", { before: false, after: true }],
@@ -76,7 +76,7 @@ export default tseslint.config(
       "prefer-template": "error",
       "prefer-const": "error",
       "no-var": "error",
-      "eqeqeq": ["error", "always", { null: "ignore" }],
+      eqeqeq: ["error", "always", { null: "ignore" }],
       "no-case-declarations": "off",
     },
   },
@@ -131,8 +131,18 @@ export default tseslint.config(
       "prefer-template": "error",
       "prefer-const": "error",
       "no-var": "error",
-      "eqeqeq": ["error", "always", { null: "ignore" }],
+      eqeqeq: ["error", "always", { null: "ignore" }],
       "no-case-declarations": "off",
+
+      // Imports - prevent dynamic imports
+      "no-restricted-syntax": [
+        "warn",
+        {
+          selector: "ImportExpression",
+          message:
+            "Dynamic imports are not allowed. Use static imports instead.",
+        },
+      ],
     },
   },
 

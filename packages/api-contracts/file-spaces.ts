@@ -7,6 +7,7 @@ const fileSpaceSchema = z.object({
   type: z.enum(['gitlab', 'github']),
   project_id: z.string(),
   enabled: z.boolean(),
+  default_branch: z.string().optional(),
   config: z.any(), // FileSpaceConfig type
   created_at: z.string(),
   updated_at: z.string()
@@ -46,6 +47,7 @@ export const createFileSpaceConfig = {
       type: z.enum(['gitlab', 'github']),
       project_id: z.string(),
       enabled: z.boolean().optional(),
+      default_branch: z.string().optional(),
       config: z.any()
     })
   },
@@ -78,6 +80,7 @@ export const updateFileSpaceConfig = {
       name: z.string().optional(),
       type: z.string().optional(),
       enabled: z.boolean().optional(),
+      default_branch: z.string().optional(),
       config: z.any().optional()
     })
   },

@@ -388,6 +388,7 @@ export const fileSpaceSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean(),
+    default_branch: z.string().optional(),
     created_at: z.string(),
     updated_at: z.string(),
     type: z.literal('gitlab'),
@@ -398,6 +399,7 @@ export const fileSpaceSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean(),
+    default_branch: z.string().optional(),
     created_at: z.string(),
     updated_at: z.string(),
     type: z.literal('github'),
@@ -412,6 +414,7 @@ export const createFileSpaceInputSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean().optional(),
+    default_branch: z.string().optional(),
     type: z.literal('gitlab'),
     config: gitlabFileSpaceConfigSchema
   }),
@@ -419,6 +422,7 @@ export const createFileSpaceInputSchema = z.discriminatedUnion('type', [
     project_id: z.string(),
     name: z.string(),
     enabled: z.boolean().optional(),
+    default_branch: z.string().optional(),
     type: z.literal('github'),
     config: githubFileSpaceConfigSchema
   })
@@ -431,6 +435,7 @@ export const updateFileSpaceInputSchema = z.union([
     project_id: z.string().optional(),
     name: z.string().optional(),
     enabled: z.boolean().optional(),
+    default_branch: z.string().optional(),
     type: z.literal('gitlab').optional(),
     config: gitlabFileSpaceConfigSchema.optional()
   }).partial(),
@@ -438,6 +443,7 @@ export const updateFileSpaceInputSchema = z.union([
     project_id: z.string().optional(),
     name: z.string().optional(),
     enabled: z.boolean().optional(),
+    default_branch: z.string().optional(),
     type: z.literal('github').optional(),
     config: githubFileSpaceConfigSchema.optional()
   }).partial()

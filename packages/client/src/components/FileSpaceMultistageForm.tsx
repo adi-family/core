@@ -20,6 +20,7 @@ import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateFileSpaceInput, GitlabFileSpaceConfig as GitlabFileSpaceConfigType, GithubFileSpaceConfig } from "../../../types"
 import { ChevronRight, ChevronLeft, Check } from "lucide-react"
 import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
+import { createFileSpaceConfig } from '@adi/api-contracts/file-spaces'
 
 type FileSpaceType = 'gitlab' | 'github'
 
@@ -53,11 +54,13 @@ export function FileSpaceMultistageForm() {
     name: string
     type: FileSpaceType | ""
     enabled: boolean
+    default_branch: string
   }>({
     project_id: "",
     name: "",
     type: "",
     enabled: true,
+    default_branch: "",
   })
 
   const [gitlabConfig, setGitlabConfig] = useState<GitlabFileSpaceConfigType>({
@@ -96,9 +99,9 @@ export function FileSpaceMultistageForm() {
                 repo,
               },
               enabled: formData.enabled,
+              ...(formData.default_branch && { default_branch: formData.default_branch }),
             }
 
-            const { createFileSpaceConfig } = await import('@adi/api-contracts/file-spaces')
             return client.run(createFileSpaceConfig, {
               body: payload,
             })
@@ -114,9 +117,9 @@ export function FileSpaceMultistageForm() {
             type: 'github',
             config: githubConfig,
             enabled: formData.enabled,
+            ...(formData.default_branch && { default_branch: formData.default_branch }),
           }
 
-          const { createFileSpaceConfig } = await import('@adi/api-contracts/file-spaces')
           await client.run(createFileSpaceConfig, {
             body: payload,
           })
@@ -489,6 +492,23 @@ export function FileSpaceMultistageForm() {
                         />
                       </div>
                     )}
+
+                    <div className="space-y-2">
+                      <Label htmlFor="default_branch" className="text-xs uppercase tracking-wide text-gray-300">
+                        DEFAULT BRANCH FOR MERGE REQUESTS (OPTIONAL)
+                      </Label>
+                      <Input
+                        id="default_branch"
+                        type="text"
+                        value={formData.default_branch}
+                        onChange={(e) => handleInputChange("default_branch", e.target.value)}
+                        className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="e.g., main, master, develop (leave empty for repo default)"
+                      />
+                      <p className="text-xs text-gray-400">
+                        If not set, the repository's default branch will be used
+                      </p>
+                    </div>
                   </div>
                 )}
 
@@ -524,6 +544,23 @@ export function FileSpaceMultistageForm() {
                         className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
                         placeholder="https://github.com"
                       />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label htmlFor="default_branch" className="text-xs uppercase tracking-wide text-gray-300">
+                        DEFAULT BRANCH FOR MERGE REQUESTS (OPTIONAL)
+                      </Label>
+                      <Input
+                        id="default_branch"
+                        type="text"
+                        value={formData.default_branch}
+                        onChange={(e) => handleInputChange("default_branch", e.target.value)}
+                        className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                        placeholder="e.g., main, master, develop (leave empty for repo default)"
+                      />
+                      <p className="text-xs text-gray-400">
+                        If not set, the repository's default branch will be used
+                      </p>
                     </div>
                   </div>
                 )}

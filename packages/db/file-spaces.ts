@@ -56,7 +56,7 @@ export const findFileSpacesByTaskId = async (sql: Sql, taskId: string): Promise<
   `)
 }
 
-const createFileSpaceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
+const createFileSpaceCols = ['project_id', 'name', 'type', 'config', 'enabled', 'default_branch'] as const
 export const createFileSpace = async (sql: Sql, input: CreateFileSpaceInput): Promise<FileSpace> => {
   const [fileSpace] = await get(sql<FileSpace[]>`
     INSERT INTO file_spaces ${sql(input, createFileSpaceCols)}
@@ -68,7 +68,7 @@ export const createFileSpace = async (sql: Sql, input: CreateFileSpaceInput): Pr
   return fileSpace
 }
 
-const updateFileSpaceCols = ['project_id', 'name', 'type', 'config', 'enabled'] as const
+const updateFileSpaceCols = ['project_id', 'name', 'type', 'config', 'enabled', 'default_branch'] as const
 export const updateFileSpace = async (sql: Sql, id: string, input: UpdateFileSpaceInput): Promise<FileSpace> => {
   const presentCols = filterPresentColumns(input, updateFileSpaceCols)
 
