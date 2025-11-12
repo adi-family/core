@@ -6,8 +6,8 @@ import { Label } from '@adi-simple/ui/label'
 import { Button } from '@adi-simple/ui/button'
 import { ApiKeySecretAutocomplete } from '@adi-simple/ui/api-key-secret-autocomplete'
 import { createAuthenticatedClient } from "@/lib/client"
-import type { AIProviderConfig, AIProviderValidationResult, Secret } from "@types"
-import { CheckCircle2, XCircle, Loader2, AlertCircle, Trash2 } from "lucide-react"
+import type { AIProviderConfig, AIProviderValidationResult } from "@types"
+import { CheckCircle2, Loader2, AlertCircle, Trash2 } from "lucide-react"
 import { siAnthropic, siOpenai, siGoogle } from "simple-icons"
 import { toast } from "sonner"
 import type { Provider, ProviderType } from "@adi-simple/config/shared"
@@ -15,8 +15,7 @@ import { supportedProviders } from "@adi-simple/config/shared"
 import {
   getProjectAIProvidersConfig,
   updateProjectAIProviderConfig,
-  deleteProjectAIProviderConfig,
-  validateProjectAIProviderConfig
+  deleteProjectAIProviderConfig
 } from "@adi/api-contracts/projects"
 
 interface AIProviderSettingsProps {
