@@ -1,34 +1,17 @@
 import { GitLabApiClient } from '../shared/gitlab-api-client'
-import { readFile, writeFile, mkdir, rm } from 'fs/promises'
+import { readFile } from 'fs/promises'
 import { join, dirname } from 'path'
 import { existsSync } from 'fs'
 import { encrypt, decrypt } from '../shared/crypto-utils'
 import { createLogger } from '../utils/logger'
 import { assertNever } from "@utils/assert-never.ts"
 import { getAllFiles } from '@utils/file-system'
-import { execSync } from 'child_process'
-import { tmpdir } from 'os'
 import { fileURLToPath } from 'url'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const logger = createLogger({ namespace: 'ci-repository-manager' })
-
-/**
- * Git execution options with proper PATH and shell configuration
- * Ensures git is found in the system PATH (including Homebrew paths)
- */
-const gitExecOptions = (cwd: string, extraEnv?: Record<string, string>) => ({
-  cwd,
-  stdio: 'pipe' as const,
-  shell: '/bin/bash',
-  env: {
-    ...process.env,
-    PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin',
-    ...extraEnv,
-  }
-})
 
 export interface WorkerRepositorySourceGitlab {
   type: 'gitlab'
@@ -142,106 +125,6 @@ export class CIRepositoryManager {
     }
   }
 
-  /**
-   * Upload a single file using git directly (bypasses API/nginx timeouts)
-   */
-  private async uploadFileViaGit(
-    repoUrl: string,
-    accessToken: string,
-    file: { path: string; content: string; encoding?: 'text' | 'base64' },
-    commitMessage: string,
-    branch = 'main'
-  ): Promise<void> {
-    const tmpDir = join(tmpdir(), `gitlab-upload-${Date.now()}`)
-
-    try {
-      // Create temp directory
-      await mkdir(tmpDir, { recursive: true })
-
-      // Clone repository (shallow clone, single branch)
-      const repoUrlWithToken = repoUrl.replace('https://', `https://oauth2:${accessToken}@`)
-
-      // Configure git to handle large files better
-      execSync(`git clone --depth 1 --single-branch --branch ${branch} "${repoUrlWithToken}" .`,
-        gitExecOptions(tmpDir, {
-          GIT_HTTP_MAX_REQUEST_BUFFER: '524288000', // 500MB buffer
-        })
-      )
-
-      // Configure git settings for large files
-      execSync('git config http.postBuffer 524288000', gitExecOptions(tmpDir)) // 500MB
-      execSync('git config http.lowSpeedLimit 0', gitExecOptions(tmpDir))
-      execSync('git config http.lowSpeedTime 999999', gitExecOptions(tmpDir))
-
-      const filePath = join(tmpDir, file.path)
-      const fileDir = join(filePath, '..')
-
-      // Create directory if needed
-      await mkdir(fileDir, { recursive: true })
-
-      // Write file content
-      if (file.encoding === 'base64') {
-        await writeFile(filePath, Buffer.from(file.content, 'base64'))
-      } else {
-        await writeFile(filePath, file.content, 'utf-8')
-      }
-
-      // Git add file
-      execSync(`git add "${file.path}"`, gitExecOptions(tmpDir))
-
-      // Check if there are changes to commit
-      const status = execSync('git status --porcelain', {
-        ...gitExecOptions(tmpDir),
-        encoding: 'utf-8'
-      })
-      if (!status.trim()) {
-        logger.info(`✓ File ${file.path} already up to date`)
-        return
-      }
-
-      // Commit
-      execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, gitExecOptions(tmpDir))
-
-      // Push with retry logic
-      let pushAttempts = 0
-      const maxAttempts = 3
-      while (pushAttempts < maxAttempts) {
-        try {
-          execSync(`git push origin ${branch}`,
-            gitExecOptions(tmpDir, {
-              GIT_HTTP_MAX_REQUEST_BUFFER: '524288000',
-            })
-          )
-          break
-        } catch (error) {
-          // Check if error is "Everything up-to-date" - this is not a real failure
-          const stderr = error instanceof Error && 'stderr' in error
-            ? String((error as any).stderr)
-            : ''
-
-          if (stderr.includes('Everything up-to-date')) {
-            logger.info('Repository already up-to-date, ignoring push error')
-            break
-          }
-
-          pushAttempts++
-          if (pushAttempts >= maxAttempts) {
-            throw error
-          }
-          logger.warn(`Push attempt ${pushAttempts} failed, retrying...`)
-          await new Promise(resolve => setTimeout(resolve, 2000)) // Wait 2s before retry
-        }
-      }
-    } finally {
-      // Clean up temp directory
-      try {
-        await rm(tmpDir, { recursive: true, force: true })
-      } catch (error) {
-        logger.warn(`Failed to clean up temp directory: ${error instanceof Error ? error.message : String(error)}`)
-      }
-    }
-  }
-
   private async uploadCIFilesGitlab(config: UploadCIFilesConfigGitlab): Promise<number> {
     const client = new GitLabApiClient(
       config.source.host,
@@ -343,17 +226,13 @@ export class CIRepositoryManager {
       totalFilesUploaded += configFiles.length
     }
 
-    // Upload binaries via git one at a time (avoids git HTTP backend limits)
+    // Upload binaries via API one at a time (more reliable than git)
     if (binaryFilesToUpload.length > 0) {
       const totalBinarySize = binaryFilesToUpload.reduce((sum, b) => sum + b.size, 0)
       const totalSizeMB = (totalBinarySize / (1024 * 1024)).toFixed(2)
 
-      logger.info(`📦 Uploading ${binaryFilesToUpload.length} binaries via git (${totalSizeMB}MB total)...`)
-      logger.info(`   Uploading one at a time to avoid git HTTP backend limits`)
-
-      // Get project details to construct repo URL
-      const project = await client.getProject(projectId)
-      const accessToken = decrypt(config.source.access_token_encrypted)
+      logger.info(`📦 Uploading ${binaryFilesToUpload.length} binaries via API (${totalSizeMB}MB total)...`)
+      logger.info(`   Uploading one at a time to avoid timeout issues`)
 
       // Upload binaries one at a time to avoid 502 errors
       for (let i = 0; i < binaryFilesToUpload.length; i++) {
@@ -366,13 +245,7 @@ export class CIRepositoryManager {
 
         logger.info(`📦 [${i + 1}/${binaryFilesToUpload.length}] Uploading ${binary.path} (${sizeMB}MB)...`)
 
-        await this.uploadFileViaGit(
-          project.http_url_to_repo,
-          accessToken,
-          binary,
-          binaryCommitMessage,
-          'main'
-        )
+        await client.uploadFiles(projectId, [binary], binaryCommitMessage, 'main')
 
         logger.info(`✅ [${i + 1}/${binaryFilesToUpload.length}] Successfully uploaded ${binary.path}`)
         totalFilesUploaded++
