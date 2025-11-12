@@ -18,6 +18,7 @@
     "./gitlab-repository-select": "./src/gitlab-repository-select.tsx",
     "./gitlab-repository-multiselect": "./src/gitlab-repository-multiselect.tsx",
     "./gitlab-secret-autocomplete": "./src/gitlab-secret-autocomplete.tsx",
+    "./api-key-secret-autocomplete": "./src/api-key-secret-autocomplete.tsx",
     "./gitlab-icon": "./src/gitlab-icon.tsx",
     "./github-icon": "./src/github-icon.tsx",
     "./jira-icon": "./src/jira-icon.tsx",
