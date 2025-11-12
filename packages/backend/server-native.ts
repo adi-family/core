@@ -4,7 +4,7 @@
  */
 
 import { createServer } from 'http'
-import { createHandler } from '@adi-family/http-native'
+import { createHandler } from './utils/custom-native-handler'
 import { sql } from '@db/client'
 import { createProjectHandlers } from './handlers/projects'
 import { createTaskHandlers } from './handlers/tasks'
@@ -18,6 +18,7 @@ import { createSecretHandlers } from './handlers/secrets'
 import { createFileSpaceHandlers } from './handlers/file-spaces'
 import { createOAuthHandlers } from './handlers/oauth'
 import { createLogger } from '@utils/logger'
+import { NotFoundException, BadRequestException, NotEnoughRightsException, AuthRequiredException } from '@utils/exceptions'
 
 const logger = createLogger({ namespace: 'native-server' })
 
@@ -145,8 +146,45 @@ const wrappedHandler = async (req: any, res: any) => {
     return
   }
 
-  // Pass to native handler
-  await requestHandler(req, res)
+  // Pass to native handler with error handling
+  try {
+    await requestHandler(req, res)
+  } catch (error) {
+    // Handle custom exceptions with appropriate status codes
+    if (error instanceof NotFoundException) {
+      res.writeHead(404, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Not Found', message: error.message }))
+      return
+    }
+
+    if (error instanceof BadRequestException) {
+      res.writeHead(400, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Bad Request', message: error.message }))
+      return
+    }
+
+    if (error instanceof AuthRequiredException) {
+      res.writeHead(401, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Unauthorized', message: error.message }))
+      return
+    }
+
+    if (error instanceof NotEnoughRightsException) {
+      res.writeHead(403, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({ error: 'Forbidden', message: error.message }))
+      return
+    }
+
+    // Log unexpected errors
+    logger.error('Unhandled error in request handler:', error)
+
+    // Generic 500 error for unexpected exceptions
+    res.writeHead(500, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({
+      error: 'Internal Server Error',
+      message: error instanceof Error ? error.message : 'Unknown error'
+    }))
+  }
 }
 
 // Create and start server
