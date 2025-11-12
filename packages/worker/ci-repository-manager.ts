@@ -1,6 +1,6 @@
 import { GitLabApiClient } from '../shared/gitlab-api-client'
 import { readFile, writeFile, mkdir, rm } from 'fs/promises'
-import { join } from 'path'
+import { join, dirname } from 'path'
 import { existsSync } from 'fs'
 import { encrypt, decrypt } from '../shared/crypto-utils'
 import { createLogger } from '../utils/logger'
@@ -8,6 +8,10 @@ import { assertNever } from "@utils/assert-never.ts"
 import { getAllFiles } from '@utils/file-system'
 import { execSync } from 'child_process'
 import { tmpdir } from 'os'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 const logger = createLogger({ namespace: 'ci-repository-manager' })
 
