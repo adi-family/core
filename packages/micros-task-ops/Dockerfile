@@ -13,6 +13,9 @@ RUN npm install --legacy-peer-deps
 FROM node:22-alpine AS runner
 WORKDIR /app
 
+# Install git (required for GitLab operations)
+RUN apk add --no-cache git
+
 # Set environment
 ENV NODE_ENV=production
 

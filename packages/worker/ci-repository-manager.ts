@@ -15,6 +15,21 @@ const __dirname = dirname(__filename)
 
 const logger = createLogger({ namespace: 'ci-repository-manager' })
 
+/**
+ * Git execution options with proper PATH and shell configuration
+ * Ensures git is found in the system PATH (including Homebrew paths)
+ */
+const gitExecOptions = (cwd: string, extraEnv?: Record<string, string>) => ({
+  cwd,
+  stdio: 'pipe' as const,
+  shell: '/bin/bash',
+  env: {
+    ...process.env,
+    PATH: process.env.PATH || '/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin',
+    ...extraEnv,
+  }
+})
+
 export interface WorkerRepositorySourceGitlab {
   type: 'gitlab'
   project_id?: string
@@ -147,19 +162,16 @@ export class CIRepositoryManager {
       const repoUrlWithToken = repoUrl.replace('https://', `https://oauth2:${accessToken}@`)
 
       // Configure git to handle large files better
-      execSync(`git clone --depth 1 --single-branch --branch ${branch} "${repoUrlWithToken}" .`, {
-        cwd: tmpDir,
-        stdio: 'pipe',
-        env: {
-          ...process.env,
+      execSync(`git clone --depth 1 --single-branch --branch ${branch} "${repoUrlWithToken}" .`,
+        gitExecOptions(tmpDir, {
           GIT_HTTP_MAX_REQUEST_BUFFER: '524288000', // 500MB buffer
-        }
-      })
+        })
+      )
 
       // Configure git settings for large files
-      execSync('git config http.postBuffer 524288000', { cwd: tmpDir, stdio: 'pipe' }) // 500MB
-      execSync('git config http.lowSpeedLimit 0', { cwd: tmpDir, stdio: 'pipe' })
-      execSync('git config http.lowSpeedTime 999999', { cwd: tmpDir, stdio: 'pipe' })
+      execSync('git config http.postBuffer 524288000', gitExecOptions(tmpDir)) // 500MB
+      execSync('git config http.lowSpeedLimit 0', gitExecOptions(tmpDir))
+      execSync('git config http.lowSpeedTime 999999', gitExecOptions(tmpDir))
 
       const filePath = join(tmpDir, file.path)
       const fileDir = join(filePath, '..')
@@ -175,34 +187,31 @@ export class CIRepositoryManager {
       }
 
       // Git add file
-      execSync(`git add "${file.path}"`, { cwd: tmpDir, stdio: 'pipe' })
+      execSync(`git add "${file.path}"`, gitExecOptions(tmpDir))
 
       // Check if there are changes to commit
-      const status = execSync('git status --porcelain', { cwd: tmpDir, encoding: 'utf-8' })
+      const status = execSync('git status --porcelain', {
+        ...gitExecOptions(tmpDir),
+        encoding: 'utf-8'
+      })
       if (!status.trim()) {
         logger.info(`✓ File ${file.path} already up to date`)
         return
       }
 
       // Commit
-      execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, {
-        cwd: tmpDir,
-        stdio: 'pipe',
-      })
+      execSync(`git commit -m "${commitMessage.replace(/"/g, '\\"')}"`, gitExecOptions(tmpDir))
 
       // Push with retry logic
       let pushAttempts = 0
       const maxAttempts = 3
       while (pushAttempts < maxAttempts) {
         try {
-          execSync(`git push origin ${branch}`, {
-            cwd: tmpDir,
-            stdio: 'pipe',
-            env: {
-              ...process.env,
+          execSync(`git push origin ${branch}`,
+            gitExecOptions(tmpDir, {
               GIT_HTTP_MAX_REQUEST_BUFFER: '524288000',
-            }
-          })
+            })
+          )
           break
         } catch (error) {
           // Check if error is "Everything up-to-date" - this is not a real failure
