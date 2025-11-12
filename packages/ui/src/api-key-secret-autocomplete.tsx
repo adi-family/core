@@ -22,7 +22,7 @@ interface ApiKeySecretAutocompleteProps {
   label?: string
   required?: boolean
   providerName: string
-  helpText?: string
+  helpText?: React.ReactNode
   placeholder?: string
 }
 
