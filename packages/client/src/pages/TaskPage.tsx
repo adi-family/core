@@ -13,12 +13,11 @@ import { Button } from '@adi-simple/ui/button'
 import { Calendar, ExternalLink, ArrowLeft, Circle, CheckCircle2, Loader2, XCircle, Clock, RefreshCw, GitMerge, Star, AlertTriangle, Shield, Eye, TrendingUp, Zap } from "lucide-react"
 import { createAuthenticatedClient } from "@/lib/client"
 import { navigateTo } from "@/utils/navigation"
-import { apiCall } from "@/utils/apiCall"
 import { useAuth } from "@clerk/clerk-react"
 import { toast } from "sonner"
 import { getComputedMetrics } from '@adi-simple/shared/task-scoring'
-import { getTaskConfig, getTaskArtifactsConfig } from '@adi/api-contracts/tasks'
-import { getTaskSourceConfig } from '@adi/api-contracts/task-sources'
+import { getTaskConfig, getTaskArtifactsConfig, evaluateTaskConfig, implementTaskConfig, evaluateTaskAdvancedConfig } from '@adi/api-contracts/tasks'
+import { getTaskSourceConfig, syncTaskSourceConfig } from '@adi/api-contracts/task-sources'
 import { listPipelineArtifactsConfig } from '@adi/api-contracts/pipeline-executions'
 import type { Task, TaskSource, PipelineArtifact } from "../../../types"
 
@@ -32,7 +31,6 @@ export function TaskPage() {
   const [mergeRequestArtifacts, setMergeRequestArtifacts] = useState<PipelineArtifact[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const API_BASE = import.meta.env.VITE_API_URL || '/api'
 
   useEffect(() => {
     const fetchTask = async () => {
@@ -139,139 +137,96 @@ export function TaskPage() {
   const handleRetrySync = async () => {
     if (!taskSource) return
 
-    const token = await getToken()
+    try {
+      await client.run(syncTaskSourceConfig, {
+        params: { id: taskSource.id },
+      })
+      toast.success('Sync restarted successfully!')
 
-    await apiCall(
-      () => fetch(`${API_BASE}/task-sources/${taskSource.id}/sync`, {
-        method: 'POST',
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-        credentials: 'include',
-      }),
-      {
-        onSuccess: async () => {
-          toast.success('Sync restarted successfully!')
-          // Refetch task data
-          try {
-            const taskData = await client.run(getTaskConfig, {
-              params: { id: id! },
-            })
-            setTask(taskData)
-            if (taskData.task_source_id) {
-              try {
-                const taskSourceData = await client.run(getTaskSourceConfig, {
-                  params: { id: taskData.task_source_id },
-                })
-                setTaskSource(taskSourceData)
-              } catch (error) {
-                console.error('Error fetching task source:', error)
-              }
-            }
-          } catch (error) {
-            console.error('Error refetching task:', error)
-          }
-        },
-        onError: (error) => toast.error(`Failed to restart sync: ${error}`)
+      // Refetch task data
+      const taskData = await client.run(getTaskConfig, {
+        params: { id: id! },
+      })
+      setTask(taskData)
+
+      if (taskData.task_source_id) {
+        try {
+          const taskSourceData = await client.run(getTaskSourceConfig, {
+            params: { id: taskData.task_source_id },
+          })
+          setTaskSource(taskSourceData)
+        } catch (error) {
+          console.error('Error fetching task source:', error)
+        }
       }
-    )
+    } catch (error) {
+      console.error('Error restarting sync:', error)
+      toast.error(`Failed to restart sync: ${error}`)
+    }
   }
 
   const handleRetryEvaluation = async () => {
     if (!task) return
 
-    const token = await getToken()
+    try {
+      await client.run(evaluateTaskConfig, {
+        params: { id: task.id },
+      })
+      toast.success('Evaluation restarted successfully!')
 
-    await apiCall(
-      () => fetch(`${API_BASE}/tasks/${task.id}/evaluate`, {
-        method: 'POST',
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-        credentials: 'include',
-      }),
-      {
-        onSuccess: async () => {
-          toast.success('Evaluation restarted successfully!')
-          // Refetch task data
-          try {
-            const taskData = await client.run(getTaskConfig, {
-              params: { id: id! },
-            })
-            setTask(taskData)
-          } catch (error) {
-            console.error('Error refetching task:', error)
-          }
-        },
-        onError: (error) => toast.error(`Failed to restart evaluation: ${error}`)
-      }
-    )
+      // Refetch task data
+      const taskData = await client.run(getTaskConfig, {
+        params: { id: id! },
+      })
+      setTask(taskData)
+    } catch (error) {
+      console.error('Error restarting evaluation:', error)
+      toast.error(`Failed to restart evaluation: ${error}`)
+    }
   }
 
   const handleStartImplementation = async () => {
     if (!task) return
 
-    const token = await getToken()
+    try {
+      const response = await client.run(implementTaskConfig, {
+        params: { id: task.id },
+      })
+      console.log('🚀 Implementation API response:', response)
+      toast.success('Implementation started successfully!')
 
-    await apiCall(
-      () => fetch(`${API_BASE}/tasks/${task.id}/implement`, {
-        method: 'POST',
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-        credentials: 'include',
-      }),
-      {
-        onSuccess: async (response) => {
-          console.log('🚀 Implementation API response:', response)
-          toast.success('Implementation started successfully!')
-          // Refetch task data
-          try {
-            const taskData = await client.run(getTaskConfig, {
-              params: { id: id! },
-            })
-            console.log('🔄 Refetched task data:', taskData)
-            console.log('📊 Implementation status in refetched data:', taskData.ai_implementation_status)
-            setTask(taskData)
-            console.log('✅ State updated with new task data')
-          } catch (error) {
-            console.error('❌ Error refetching task:', error)
-          }
-        },
-        onError: (error) => toast.error(`Failed to start implementation: ${error}`)
-      }
-    )
+      // Refetch task data
+      const taskData = await client.run(getTaskConfig, {
+        params: { id: id! },
+      })
+      console.log('🔄 Refetched task data:', taskData)
+      console.log('📊 Implementation status in refetched data:', taskData.ai_implementation_status)
+      setTask(taskData)
+      console.log('✅ State updated with new task data')
+    } catch (error) {
+      console.error('❌ Error starting implementation:', error)
+      toast.error(`Failed to start implementation: ${error}`)
+    }
   }
 
   const handleStartAdvancedEvaluation = async () => {
     if (!task) return
 
-    const token = await getToken()
+    try {
+      await client.run(evaluateTaskAdvancedConfig, {
+        params: { id: task.id },
+      })
+      toast.success('Advanced evaluation started successfully!')
 
-    await apiCall(
-      () => fetch(`${API_BASE}/tasks/${task.id}/evaluate-advanced`, {
-        method: 'POST',
-        headers: {
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-        credentials: 'include',
-      }),
-      {
-        onSuccess: async () => {
-          toast.success('Advanced evaluation started successfully!')
-          // Refetch task data
-          try {
-            const taskData = await client.run(getTaskConfig, {
-              params: { id: id! },
-            })
-            setTask(taskData)
-          } catch (error) {
-            console.error('Error refetching task:', error)
-          }
-        },
-        onError: (error) => toast.error(`Failed to start advanced evaluation: ${error}`)
-      }
-    )
+      // Refetch task data
+      const taskData = await client.run(getTaskConfig, {
+        params: { id: id! },
+      })
+      setTask(taskData)
+    } catch (error) {
+      console.error('Error starting advanced evaluation:', error)
+      toast.error(`Failed to start advanced evaluation: ${error}`)
+    }
   }
 
   const steps = [
