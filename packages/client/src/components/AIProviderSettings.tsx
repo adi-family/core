@@ -4,8 +4,9 @@ import { proxy, useSnapshot } from "valtio"
 import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
 import { Button } from '@adi-simple/ui/button'
+import { ApiKeySecretAutocomplete } from '@adi-simple/ui/api-key-secret-autocomplete'
 import { createAuthenticatedClient } from "@/lib/client"
-import type { AIProviderConfig, AIProviderValidationResult } from "@types"
+import type { AIProviderConfig, AIProviderValidationResult, Secret } from "@types"
 import { CheckCircle2, XCircle, Loader2, AlertCircle, Trash2 } from "lucide-react"
 import { siAnthropic, siOpenai, siGoogle } from "simple-icons"
 import { toast } from "sonner"
@@ -24,7 +25,7 @@ interface AIProviderSettingsProps {
 
 interface FormData {
   type: ProviderType
-  api_key: string
+  api_key_secret_id: string | null
   endpoint_url?: string
   deployment_name?: string
   api_version?: string
@@ -62,7 +63,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     selectedProvider: null,
     formData: {
       type: 'cloud',
-      api_key: '',
+      api_key_secret_id: null,
     },
     ui: {
       loading: true,
@@ -105,7 +106,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
       const configType = existingConfig.type
       store.formData = {
         type: isProviderType(configType) ? configType : 'cloud',
-        api_key: '', // Don't pre-fill API key for security
+        api_key_secret_id: existingConfig.api_key_secret_id || null,
         endpoint_url: 'endpoint_url' in existingConfig ? existingConfig.endpoint_url : undefined,
         deployment_name: 'deployment_name' in existingConfig ? existingConfig.deployment_name : undefined,
         api_version: 'api_version' in existingConfig ? existingConfig.api_version : undefined,
@@ -119,7 +120,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     } else {
       store.formData = {
         type: 'cloud',
-        api_key: '',
+        api_key_secret_id: null,
       }
     }
   }, [store])
@@ -134,28 +135,13 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     }
   }, [snap.ui.loading, snap.currentConfigs, snap.selectedProvider, handleProviderSelect])
 
-  const handleTestConnection = async () => {
-    if (!snap.selectedProvider) return
-
-    store.ui.validating = true
-    store.validationResult = null
-    store.ui.error = null
-
-    try {
-      const result = await client.run(validateProjectAIProviderConfig, {
-        params: { id: projectId, provider: snap.selectedProvider },
-        body: snap.formData as any,
-      })
-      store.validationResult = result
-    } catch (err) {
-      store.ui.error = `Validation error: ${err instanceof Error ? err.message : "Unknown error"}`
-    } finally {
-      store.ui.validating = false
-    }
-  }
-
   const handleSave = async () => {
     if (!snap.selectedProvider) return
+
+    if (!snap.formData.api_key_secret_id) {
+      store.ui.error = "API key secret is required"
+      return
+    }
 
     store.ui.saving = true
     store.ui.error = null
@@ -178,6 +164,8 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         params: { id: projectId },
       })
       store.currentConfigs = data
+
+      toast.success(`${snap.selectedProvider} configuration saved successfully`)
     } catch (err) {
       store.ui.error = `Save error: ${err instanceof Error ? err.message : "Unknown error"}`
     } finally {
@@ -287,18 +275,18 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
           </select>
         </div>
 
-        <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-wide text-gray-300">API Key *</Label>
-          <Input
-            type="password"
-            value={snap.formData.api_key}
-            onChange={(e) => { store.formData.api_key = e.target.value }}
-            placeholder="Enter API key"
-            className="bg-slate-800/50 border-slate-600 text-gray-100"
-            required
-          />
-          {getApiKeyUrl(snap.selectedProvider, snap.formData.type) && (
-            <p className="text-xs text-gray-400">
+        <ApiKeySecretAutocomplete
+          client={client}
+          projectId={projectId}
+          value={snap.formData.api_key_secret_id}
+          onChange={(secretId) => {
+            store.formData.api_key_secret_id = secretId
+          }}
+          label={`${snap.selectedProvider?.toUpperCase()} API KEY`}
+          required={true}
+          providerName={snap.selectedProvider === 'anthropic' ? 'Anthropic' : snap.selectedProvider === 'openai' ? 'OpenAI' : 'Google'}
+          helpText={getApiKeyUrl(snap.selectedProvider, snap.formData.type) ? (
+            <>
               <a
                 href={getApiKeyUrl(snap.selectedProvider, snap.formData.type)!}
                 target="_blank"
@@ -307,9 +295,10 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
               >
                 Create a new API key
               </a>
-            </p>
-          )}
-        </div>
+            </>
+          ) : undefined}
+          placeholder={snap.selectedProvider === 'anthropic' ? 'sk-ant-...' : snap.selectedProvider === 'openai' ? 'sk-...' : 'AIza...'}
+        />
 
         {/* Endpoint URL for self-hosted, azure, vertex */}
         {(snap.formData.type === 'self-hosted' || snap.formData.type === 'azure') && (
@@ -391,29 +380,6 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
           </div>
         )}
 
-        {/* Validation Result */}
-        {snap.validationResult && (
-          <div className={`p-4 border rounded ${snap.validationResult.valid ? 'bg-green-500/10 border-green-500/30' : 'bg-red-500/10 border-red-500/30'}`}>
-            <div className="flex items-center gap-2 mb-2">
-              {snap.validationResult.valid ? (
-                <CheckCircle2 className="w-5 h-5 text-green-400" />
-              ) : (
-                <XCircle className="w-5 h-5 text-red-400" />
-              )}
-              <span className={`font-medium ${snap.validationResult.valid ? 'text-green-300' : 'text-red-300'}`}>
-                {snap.validationResult.valid ? 'Configuration Valid' : 'Configuration Invalid'}
-              </span>
-            </div>
-            <div className="text-sm space-y-1 text-gray-300">
-              <div>Endpoint Reachable: {snap.validationResult.endpoint_reachable ? '✓' : '✗'}</div>
-              <div>Authentication Valid: {snap.validationResult.authentication_valid ? '✓' : '✗'}</div>
-              {snap.validationResult.error && (
-                <div className="text-red-300 mt-2">{snap.validationResult.error}</div>
-              )}
-            </div>
-          </div>
-        )}
-
         {/* Error Display */}
         {snap.ui.error && (
           <div className="bg-red-500/10 text-red-300 px-4 py-3 border border-red-500/30 rounded flex items-center gap-2">
@@ -425,22 +391,8 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         {/* Action Buttons */}
         <div className="flex gap-2 pt-4">
           <Button
-            onClick={handleTestConnection}
-            disabled={snap.ui.validating || !snap.formData.api_key}
-            variant="outline"
-          >
-            {snap.ui.validating ? (
-              <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Testing...
-              </>
-            ) : (
-              'Test Connection'
-            )}
-          </Button>
-          <Button
             onClick={handleSave}
-            disabled={snap.ui.saving || !snap.formData.api_key}
+            disabled={snap.ui.saving || !snap.formData.api_key_secret_id}
           >
             {snap.ui.saving ? (
               <>
@@ -452,7 +404,10 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
             )}
           </Button>
           <Button
-            onClick={() => { store.selectedProvider = null }}
+            onClick={() => {
+              store.selectedProvider = null
+              store.ui.error = null
+            }}
             variant="ghost"
           >
             Cancel

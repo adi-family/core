@@ -43,6 +43,13 @@ const allHandlers = [
   projectHandlers.createProject,
   projectHandlers.updateProject,
   projectHandlers.deleteProject,
+  projectHandlers.getProjectAIProviders,
+  projectHandlers.updateProjectAIProvider,
+  projectHandlers.deleteProjectAIProvider,
+  projectHandlers.validateProjectAIProvider,
+  projectHandlers.getProjectGitLabExecutor,
+  projectHandlers.createProjectGitLabExecutor,
+  projectHandlers.deleteProjectGitLabExecutor,
   // Tasks
   taskHandlers.getTaskSessions,
   taskHandlers.getTaskArtifacts,

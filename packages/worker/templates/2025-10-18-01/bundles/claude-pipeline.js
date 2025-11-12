@@ -12881,25 +12881,30 @@ Task ID: ${taskId}`;
   logger2.info(`   \uD83D\uDCE4 Pushing branch to remote (force)...`);
   await exec(`cd "${absoluteWorkspacePath}" && git push -f origin ${branchName}`);
   logger2.info(`   \u2713 Branch pushed`);
-  logger2.info(`   \uD83D\uDD0D Detecting default branch...`);
   let defaultBranch = "main";
-  try {
-    const { stdout } = await exec(`cd "${absoluteWorkspacePath}" && git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'`);
-    defaultBranch = stdout.trim();
-    logger2.info(`   \u2713 Default branch: ${defaultBranch}`);
-  } catch {
-    logger2.warn(`   \u26A0\uFE0F  Could not detect via symbolic-ref, trying common branch names...`);
-    const fallbackBranches = ["develop", "dev", "development", "main", "master"];
-    for (const branch of fallbackBranches) {
-      try {
-        await exec(`cd "${absoluteWorkspacePath}" && git rev-parse --verify origin/${branch}`);
-        defaultBranch = branch;
-        logger2.info(`   \u2713 Default branch (fallback): ${defaultBranch}`);
-        break;
-      } catch {}
-    }
-    if (!fallbackBranches.includes(defaultBranch)) {
-      logger2.warn(`   \u26A0\uFE0F  No common branches found, using final fallback: ${defaultBranch}`);
+  if (fileSpace.default_branch) {
+    defaultBranch = fileSpace.default_branch;
+    logger2.info(`   \u2713 Using configured default branch: ${defaultBranch}`);
+  } else {
+    logger2.info(`   \uD83D\uDD0D Detecting default branch...`);
+    try {
+      const { stdout } = await exec(`cd "${absoluteWorkspacePath}" && git symbolic-ref refs/remotes/origin/HEAD | sed 's@^refs/remotes/origin/@@'`);
+      defaultBranch = stdout.trim();
+      logger2.info(`   \u2713 Default branch: ${defaultBranch}`);
+    } catch {
+      logger2.warn(`   \u26A0\uFE0F  Could not detect via symbolic-ref, trying common branch names...`);
+      const fallbackBranches = ["develop", "dev", "development", "main", "master"];
+      for (const branch of fallbackBranches) {
+        try {
+          await exec(`cd "${absoluteWorkspacePath}" && git rev-parse --verify origin/${branch}`);
+          defaultBranch = branch;
+          logger2.info(`   \u2713 Default branch (fallback): ${defaultBranch}`);
+          break;
+        } catch {}
+      }
+      if (!fallbackBranches.includes(defaultBranch)) {
+        logger2.warn(`   \u26A0\uFE0F  No common branches found, using final fallback: ${defaultBranch}`);
+      }
     }
   }
   logger2.info(`   \uD83D\uDD00 Creating merge request...`);

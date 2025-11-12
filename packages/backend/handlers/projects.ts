@@ -11,15 +11,25 @@ import {
   createProjectConfig,
   updateProjectConfig,
   deleteProjectConfig,
-  getProjectStatsConfig
+  getProjectStatsConfig,
+  getProjectAIProvidersConfig,
+  updateProjectAIProviderConfig,
+  deleteProjectAIProviderConfig,
+  validateProjectAIProviderConfig,
+  getProjectGitLabExecutorConfig,
+  createProjectGitLabExecutorConfig,
+  deleteProjectGitLabExecutorConfig
 } from '@adi/api-contracts/projects'
 import * as queries from '../../db/projects'
 import * as userAccessQueries from '../../db/user-access'
 import * as workerRepoQueries from '../../db/worker-repositories'
+import * as secretQueries from '../../db/secrets'
 import { createLogger } from '@utils/logger'
 import { GITLAB_HOST, GITLAB_TOKEN, GITLAB_USER, ENCRYPTION_KEY, CLERK_SECRET_KEY } from '../config'
 import { CIRepositoryManager } from '@worker/ci-repository-manager'
 import { verifyToken } from '@clerk/backend'
+import { validateAIProviderConfig } from '../services/ai-provider-validator'
+import type { AnthropicConfig, OpenAIConfig, GoogleConfig } from '@types'
 
 const logger = createLogger({ namespace: 'projects-handler' })
 
@@ -200,12 +210,192 @@ export function createProjectHandlers(sql: Sql) {
     return { success: true }
   })
 
+  /**
+   * Get AI provider configurations
+   */
+  const getProjectAIProviders = handler(getProjectAIProvidersConfig, async (ctx) => {
+    const { id } = ctx.params
+    const userId = await getUserId(ctx)
+
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id)
+    if (!hasAccess) {
+      throw new Error('Forbidden: You do not have access to this project')
+    }
+
+    const configs = await queries.getProjectAIProviderConfigs(sql, id)
+
+    return configs
+  })
+
+  /**
+   * Update AI provider configuration
+   */
+  const updateProjectAIProvider = handler(updateProjectAIProviderConfig, async (ctx) => {
+    const { id, provider } = ctx.params
+    const config = ctx.body
+    const userId = await getUserId(ctx)
+
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You need admin role to update AI provider configs')
+    }
+
+    // Validate provider type
+    if (!['anthropic', 'openai', 'google'].includes(provider)) {
+      throw new Error(`Invalid provider: ${provider}`)
+    }
+
+    // Verify that api_key_secret_id is provided
+    const apiKeySecretId = (config as any).api_key_secret_id
+    if (!apiKeySecretId) {
+      throw new Error('API key secret ID is required')
+    }
+
+    // Verify the secret exists and belongs to this project
+    const secret = await secretQueries.findSecretById(sql, apiKeySecretId)
+    if (secret.project_id !== id) {
+      throw new Error('Secret does not belong to this project')
+    }
+
+    // Save the config to the database
+    await queries.setProjectAIProviderConfig(
+      sql,
+      id,
+      provider as 'anthropic' | 'openai' | 'google',
+      config as any
+    )
+
+    // Get the updated configs
+    const updatedConfigs = await queries.getProjectAIProviderConfigs(sql, id)
+
+    return updatedConfigs || {}
+  })
+
+  /**
+   * Delete AI provider configuration
+   */
+  const deleteProjectAIProvider = handler(deleteProjectAIProviderConfig, async (ctx) => {
+    const { id, provider } = ctx.params
+    const userId = await getUserId(ctx)
+
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You need admin role to delete AI provider configs')
+    }
+
+    // Validate provider type
+    if (!['anthropic', 'openai', 'google'].includes(provider)) {
+      throw new Error(`Invalid provider: ${provider}`)
+    }
+
+    await queries.removeProjectAIProviderConfig(
+      sql,
+      id,
+      provider as 'anthropic' | 'openai' | 'google'
+    )
+
+    return { success: true }
+  })
+
+  /**
+   * Validate AI provider configuration
+   */
+  const validateProjectAIProvider = handler(validateProjectAIProviderConfig, async (ctx) => {
+    const { id, provider } = ctx.params
+    const config = ctx.body
+    const userId = await getUserId(ctx)
+
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id)
+    if (!hasAccess) {
+      throw new Error('Forbidden: You do not have access to this project')
+    }
+
+    // Validate provider type
+    if (!['anthropic', 'openai', 'google'].includes(provider)) {
+      throw new Error(`Invalid provider: ${provider}`)
+    }
+
+    // Extract api_key from config
+    const apiKey = (config as any).api_key
+    if (!apiKey) {
+      throw new Error('API key is required for validation')
+    }
+
+    // Validate the config
+    const result = await validateAIProviderConfig(
+      provider as 'anthropic' | 'openai' | 'google',
+      config as AnthropicConfig | OpenAIConfig | GoogleConfig,
+      apiKey
+    )
+
+    return result
+  })
+
+  /**
+   * Get GitLab executor configuration
+   */
+  const getProjectGitLabExecutor = handler(getProjectGitLabExecutorConfig, async (ctx) => {
+    const { id } = ctx.params
+    const userId = await getUserId(ctx)
+
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id)
+    if (!hasAccess) {
+      throw new Error('Forbidden: You do not have access to this project')
+    }
+
+    const config = await queries.getProjectJobExecutor(sql, id)
+
+    return config
+  })
+
+  /**
+   * Create/Update GitLab executor configuration
+   */
+  const createProjectGitLabExecutor = handler(createProjectGitLabExecutorConfig, async (ctx) => {
+    const { id } = ctx.params
+    const config = ctx.body
+    const userId = await getUserId(ctx)
+
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You need admin role to update GitLab executor config')
+    }
+
+    await queries.setProjectJobExecutor(sql, id, config)
+
+    return config
+  })
+
+  /**
+   * Delete GitLab executor configuration
+   */
+  const deleteProjectGitLabExecutor = handler(deleteProjectGitLabExecutorConfig, async (ctx) => {
+    const { id } = ctx.params
+    const userId = await getUserId(ctx)
+
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You need admin role to delete GitLab executor config')
+    }
+
+    await queries.removeProjectJobExecutor(sql, id)
+
+    return { success: true }
+  })
+
   return {
     listProjects,
     getProject,
     getProjectStats,
     createProject,
     updateProject,
-    deleteProject
+    deleteProject,
+    getProjectAIProviders,
+    updateProjectAIProvider,
+    deleteProjectAIProvider,
+    validateProjectAIProvider,
+    getProjectGitLabExecutor,
+    createProjectGitLabExecutor,
+    deleteProjectGitLabExecutor
   }
 }
