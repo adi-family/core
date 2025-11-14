@@ -9,7 +9,8 @@ import { promisify } from 'util'
 import { readdir } from 'fs/promises'
 import { ApiClient } from './shared/api-client'
 import { createLogger } from './shared/logger'
-import { GitLabApiClient } from '@adi-simple/shared/gitlab-api-client'
+import { GitLabApiClient } from '@shared/gitlab-api-client'
+import { GitHubApiClient } from '@shared/github-api-client'
 import { getWorkspaceName } from './shared/workspace-utils'
 
 const exec = promisify(execCallback)
@@ -23,6 +24,7 @@ interface MergeRequestResult {
   mrUrl: string
   mrIid: number
   hasChanges: boolean
+  provider: 'gitlab' | 'github'
 }
 
 interface PushResult {
@@ -84,6 +86,32 @@ function getGitLabClient(fileSpace: any, token: string, tokenType: 'oauth' | 'pa
 }
 
 /**
+ * Get the GitHub API client for a file space
+ */
+function getGitHubClient(fileSpace: any, token: string): GitHubApiClient | null {
+  if (!fileSpace.config || typeof fileSpace.config !== 'object') {
+    return null
+  }
+
+  const config = fileSpace.config as { host?: string; access_token_secret_id?: string; repo?: string }
+
+  // Extract host from config
+  const host = config.host || 'https://api.github.com'
+
+  if (!token) {
+    logger.warn('Token not provided, cannot create GitHub client')
+    return null
+  }
+
+  logger.info(`   🔐 Creating GitHub API client:`)
+  logger.info(`      Host: ${host}`)
+  logger.info(`      Token length: ${token.length} chars`)
+  logger.info(`      Token starts with: ${token.substring(0, 8)}...`)
+
+  return new GitHubApiClient(token, host)
+}
+
+/**
  * Extract project path from repository URL or config
  */
 function getProjectPath(fileSpace: any): string | null {
@@ -120,8 +148,8 @@ async function pushWorkspaceToFileSpace(
   taskId: string,
   taskTitle: string,
   taskDescription: string | null,
-  gitlabToken: string,
-  gitlabTokenType: 'oauth' | 'pat' | 'api' | null
+  accessToken: string,
+  tokenType: 'oauth' | 'pat' | 'api' | null
 ): Promise<MergeRequestResult> {
   const workspaceName = workspacePath.split('/').pop() || 'unknown'
 
@@ -183,11 +211,18 @@ async function pushWorkspaceToFileSpace(
   const { stdout: remoteUrl } = await exec(`cd "${absoluteWorkspacePath}" && git remote get-url origin`)
   let pushUrl = remoteUrl.trim()
 
-  // Inject GitLab token if available and URL is HTTPS
-  if (pushUrl.startsWith('https://') && gitlabToken) {
+  // Inject token if available and URL is HTTPS
+  if (pushUrl.startsWith('https://') && accessToken) {
     const url = new URL(pushUrl)
-    url.username = 'oauth2'
-    url.password = gitlabToken
+    // GitHub uses 'x-access-token' or the token directly as username
+    // GitLab uses 'oauth2' as username
+    if (fileSpace.type === 'github') {
+      url.username = 'x-access-token'
+      url.password = accessToken
+    } else {
+      url.username = 'oauth2'
+      url.password = accessToken
+    }
     pushUrl = url.toString()
     logger.info(`   ✓ Authentication injected`)
   }
@@ -233,13 +268,8 @@ async function pushWorkspaceToFileSpace(
     }
   }
 
-  // Create merge request using GitLab API
-  logger.info(`   🔀 Creating merge request...`)
-
-  const gitlabClient = getGitLabClient(fileSpace, gitlabToken, gitlabTokenType)
-  if (!gitlabClient) {
-    throw new Error('Could not create GitLab client - missing token or host')
-  }
+  // Create merge/pull request based on provider
+  logger.info(`   🔀 Creating ${fileSpace.type === 'github' ? 'pull' : 'merge'} request...`)
 
   const projectPath = getProjectPath(fileSpace)
   if (!projectPath) {
@@ -248,49 +278,91 @@ async function pushWorkspaceToFileSpace(
 
   logger.info(`   📍 Project path: ${projectPath}`)
 
-  // Build MR description
-  let mrDescription = `${taskDescription || 'Automated task implementation'}\n\n`
-  mrDescription += `## Task Details\n\n`
-  mrDescription += `**Task ID**: ${taskId}\n`
-  mrDescription += `**Title**: ${taskTitle}\n\n`
-  mrDescription += `---\n`
-  mrDescription += `🤖 Automated by ADI Pipeline\n`
+  // Build MR/PR description
+  let description = `${taskDescription || 'Automated task implementation'}\n\n`
+  description += `## Task Details\n\n`
+  description += `**Task ID**: ${taskId}\n`
+  description += `**Title**: ${taskTitle}\n\n`
+  description += `---\n`
+  description += `🤖 Automated by ADI Pipeline\n`
 
-  // Create the merge request using gitbeaker
   let mr: any
-  let _mrAlreadyExists = false
-  try {
-    mr = await gitlabClient['client'].MergeRequests.create(
-      projectPath,
-      branchName,
-      defaultBranch, // target branch (dynamically detected)
-      taskTitle,
-      {
-        description: mrDescription,
-        removeSourceBranch: true,
+  let mrUrl: string
+  let mrIid: number | string
+
+  if (fileSpace.type === 'github') {
+    // Handle GitHub pull request
+    const githubClient = getGitHubClient(fileSpace, accessToken)
+    if (!githubClient) {
+      throw new Error('Could not create GitHub client - missing token or host')
+    }
+
+    const [owner, repo] = projectPath.split('/')
+    if (!owner || !repo) {
+      throw new Error(`Invalid GitHub repository path: ${projectPath}. Expected format: owner/repo`)
+    }
+
+    try {
+      const pr = await githubClient.createPullRequest(
+        owner,
+        repo,
+        taskTitle,
+        branchName,
+        defaultBranch,
+        description
+      )
+
+      mrUrl = pr.html_url
+      mrIid = pr.number
+      logger.info(`   ✓ Pull request created: #${pr.number}`)
+      logger.info(`   🔗 URL: ${pr.html_url}`)
+    } catch (error: any) {
+      // Check if PR already exists
+      if (error?.message?.includes('A pull request already exists') || error?.message?.includes('already exists')) {
+        logger.info(`   ℹ️  Pull request already exists, skipping creation`)
+        // Estimate PR URL (best effort)
+        mrUrl = `https://github.com/${owner}/${repo}/pulls`
+        mrIid = 'unknown'
+      } else {
+        throw error
       }
-    ) as any
+    }
+  } else {
+    // Handle GitLab merge request
+    const gitlabClient = getGitLabClient(fileSpace, accessToken, tokenType)
+    if (!gitlabClient) {
+      throw new Error('Could not create GitLab client - missing token or host')
+    }
 
-    logger.info(`   ✓ Merge request created: !${mr.iid}`)
-    logger.info(`   🔗 URL: ${mr.web_url}`)
-  } catch (error: any) {
-    // Check if MR already exists (409 Conflict)
-    if (error?.cause?.response?.statusCode === 409 || error?.message?.includes('409') || error?.message?.includes('already exists')) {
-      // Extract MR number from error message if available
-      const mrMatch = error.message?.match(/!(\d+)/)
-      const existingMrNumber = mrMatch ? mrMatch[1] : 'unknown'
+    try {
+      mr = await gitlabClient['client'].MergeRequests.create(
+        projectPath,
+        branchName,
+        defaultBranch,
+        taskTitle,
+        {
+          description,
+          removeSourceBranch: true,
+        }
+      ) as any
 
-      logger.info(`   ℹ️  Merge request already exists: !${existingMrNumber}, skipping creation`)
-      _mrAlreadyExists = true
+      mrUrl = mr.web_url
+      mrIid = mr.iid
+      logger.info(`   ✓ Merge request created: !${mr.iid}`)
+      logger.info(`   🔗 URL: ${mr.web_url}`)
+    } catch (error: any) {
+      // Check if MR already exists (409 Conflict)
+      if (error?.cause?.response?.statusCode === 409 || error?.message?.includes('409') || error?.message?.includes('already exists')) {
+        const mrMatch = error.message?.match(/!(\d+)/)
+        const existingMrNumber = mrMatch ? mrMatch[1] : 'unknown'
 
-      // Create a minimal mr object for return value
-      mr = {
-        iid: existingMrNumber,
-        web_url: `${gitlabClient['host']}/${projectPath}/-/merge_requests/${existingMrNumber}`
+        logger.info(`   ℹ️  Merge request already exists: !${existingMrNumber}, skipping creation`)
+
+        mrUrl = `${gitlabClient['host']}/${projectPath}/-/merge_requests/${existingMrNumber}`
+        mrIid = existingMrNumber
+      } else {
+        throw error
       }
-    } else {
-      // Re-throw if it's a different error
-      throw error
     }
   }
 
@@ -299,9 +371,10 @@ async function pushWorkspaceToFileSpace(
     fileSpaceName: fileSpace.name,
     workspacePath,
     branchName,
-    mrUrl: mr.web_url,
-    mrIid: mr.iid,
+    mrUrl,
+    mrIid: typeof mrIid === 'number' ? mrIid : parseInt(mrIid, 10) || 0,
     hasChanges: true,
+    provider: fileSpace.type,
   }
 }
 
@@ -380,16 +453,16 @@ async function main(): Promise<PushResult> {
         continue
       }
 
-      // Get the GitLab token for this file space
-      let gitlabToken: string | null = null
-      let gitlabTokenType: 'oauth' | 'pat' | 'api' | null = null
+      // Get the access token for this file space
+      let accessToken: string | null = null
+      let tokenType: 'oauth' | 'pat' | 'api' | null = null
       if (fileSpace.config && fileSpace.config.access_token_secret_id) {
         try {
           logger.info(`🔑 Retrieving token for file space: ${fileSpace.name}`)
           const secretData = await apiClient.getSecretValue(fileSpace.config.access_token_secret_id)
-          gitlabToken = secretData.value
-          gitlabTokenType = secretData.token_type
-          logger.info(`✓ Token retrieved successfully (type: ${gitlabTokenType})`)
+          accessToken = secretData.value
+          tokenType = secretData.token_type
+          logger.info(`✓ Token retrieved successfully (type: ${tokenType})`)
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error)
           logger.error(`❌ Failed to retrieve token for ${fileSpace.name}: ${errorMsg}`)
@@ -401,7 +474,7 @@ async function main(): Promise<PushResult> {
         }
       }
 
-      if (!gitlabToken) {
+      if (!accessToken) {
         logger.error(`❌ No access token configured for file space: ${fileSpace.name}`)
         result.errors.push({
           fileSpaceId: fileSpace.id,
@@ -430,8 +503,8 @@ async function main(): Promise<PushResult> {
           task.id,
           task.title,
           task.description,
-          gitlabToken,
-          gitlabTokenType
+          accessToken,
+          tokenType
         )
         result.mergeRequests.push(mrResult)
       } catch (error) {

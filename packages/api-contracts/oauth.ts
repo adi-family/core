@@ -119,3 +119,44 @@ export const jiraOAuthRefreshConfig = {
     schema: jiraOAuthRefreshResponseSchema
   }
 } as const
+
+const githubOAuthAuthorizeResponseSchema = z.object({
+  authUrl: z.string(),
+  state: z.string()
+})
+
+const githubOAuthExchangeResponseSchema = z.object({
+  success: z.boolean(),
+  secretId: z.string(),
+  user: z.object({
+    login: z.string(),
+    name: z.string().nullable()
+  }),
+  scopes: z.array(z.string())
+})
+
+export type GitHubOAuthAuthorizeResponse = z.infer<typeof githubOAuthAuthorizeResponseSchema>
+export type GitHubOAuthExchangeResponse = z.infer<typeof githubOAuthExchangeResponseSchema>
+
+export const githubOAuthAuthorizeConfig = {
+  method: 'GET',
+  route: route.static('/api/oauth/github/authorize'),
+  response: {
+    schema: githubOAuthAuthorizeResponseSchema
+  }
+} as const
+
+export const githubOAuthExchangeConfig = {
+  method: 'POST',
+  route: route.static('/api/oauth/github/exchange'),
+  body: {
+    schema: z.object({
+      projectId: z.string(),
+      code: z.string(),
+      secretName: z.string()
+    })
+  },
+  response: {
+    schema: githubOAuthExchangeResponseSchema
+  }
+} as const

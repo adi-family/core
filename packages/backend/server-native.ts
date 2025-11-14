@@ -116,6 +116,8 @@ const allHandlers = [
   oauthHandlers.jiraAuthorize,
   oauthHandlers.jiraExchange,
   oauthHandlers.jiraRefresh,
+  oauthHandlers.githubAuthorize,
+  oauthHandlers.githubExchange,
 ]
 
 // Create native request handler

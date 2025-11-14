@@ -10,7 +10,9 @@ import {
   gitlabOAuthRefreshConfig,
   jiraOAuthAuthorizeConfig,
   jiraOAuthExchangeConfig,
-  jiraOAuthRefreshConfig
+  jiraOAuthRefreshConfig,
+  githubOAuthAuthorizeConfig,
+  githubOAuthExchangeConfig
 } from '@adi/api-contracts'
 import * as secretQueries from '@db/secrets'
 import { createLogger } from '@utils/logger'
@@ -289,12 +291,130 @@ export function createOAuthHandlers(sql: Sql) {
     }
   })
 
+  // ============================================================================
+  // GITHUB OAUTH
+  // ============================================================================
+
+  const githubAuthorize = handler(githubOAuthAuthorizeConfig, async (_ctx) => {
+    const clientId = process.env.GITHUB_OAUTH_CLIENT_ID
+    const redirectUri = process.env.GITHUB_OAUTH_REDIRECT_URI
+
+    if (!clientId || !redirectUri) {
+      throw new Error('GitHub OAuth not configured')
+    }
+
+    const state = crypto.randomUUID()
+    const scopes = 'repo workflow'
+
+    const authUrl = new URL('https://github.com/login/oauth/authorize')
+    authUrl.searchParams.set('client_id', clientId)
+    authUrl.searchParams.set('redirect_uri', redirectUri)
+    authUrl.searchParams.set('scope', scopes)
+    authUrl.searchParams.set('state', state)
+
+    logger.info('Initiating GitHub OAuth flow', { clientId, state, redirectUri })
+
+    return {
+      authUrl: authUrl.toString(),
+      state
+    }
+  })
+
+  const githubExchange = handler(githubOAuthExchangeConfig, async (ctx) => {
+    const { projectId, code, secretName } = ctx.body
+
+    const clientId = process.env.GITHUB_OAUTH_CLIENT_ID
+    const clientSecret = process.env.GITHUB_OAUTH_CLIENT_SECRET
+    const redirectUri = process.env.GITHUB_OAUTH_REDIRECT_URI
+
+    if (!clientId || !clientSecret || !redirectUri) {
+      throw new Error('GitHub OAuth is not configured on the server')
+    }
+
+    // Exchange code for token
+    const tokenUrl = 'https://github.com/login/oauth/access_token'
+    const tokenResponse = await fetch(tokenUrl, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        client_id: clientId,
+        client_secret: clientSecret,
+        code,
+        redirect_uri: redirectUri
+      })
+    })
+
+    if (!tokenResponse.ok) {
+      const errorText = await tokenResponse.text()
+      logger.error('Failed to exchange GitHub code', { status: tokenResponse.status, error: errorText })
+      throw new Error(`Failed to exchange authorization code: ${errorText}`)
+    }
+
+    const tokenData = await tokenResponse.json() as any
+    const { access_token, scope } = tokenData
+
+    if (!access_token) {
+      logger.error('No access token in GitHub response', { tokenData })
+      throw new Error('Failed to obtain GitHub access token')
+    }
+
+    // Fetch user info to verify token
+    const userResponse = await fetch('https://api.github.com/user', {
+      headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Accept': 'application/vnd.github+json',
+        'X-GitHub-Api-Version': '2022-11-28'
+      }
+    })
+
+    if (!userResponse.ok) {
+      logger.error('Failed to fetch GitHub user', { status: userResponse.status })
+      throw new Error('Failed to verify GitHub token')
+    }
+
+    const userData = await userResponse.json() as any
+    logger.info('GitHub OAuth successful', { login: userData.login })
+
+    // Parse scopes
+    const scopes = scope ? scope.split(',').map((s: string) => s.trim()) : []
+
+    // Store OAuth token as secret (GitHub OAuth tokens don't expire)
+    const secret = await secretQueries.upsertSecret(sql, {
+      project_id: projectId,
+      name: secretName,
+      value: access_token,
+      description: `GitHub OAuth token for ${userData.login} (auto-managed)`,
+      oauth_provider: 'github',
+      token_type: 'oauth',
+      refresh_token: undefined, // GitHub OAuth tokens don't have refresh tokens
+      expires_at: undefined, // GitHub OAuth tokens don't expire
+      scopes: scope || ''
+    })
+
+    logger.info('Successfully stored GitHub OAuth token', { secretId: secret.id })
+
+    return {
+      success: true,
+      secretId: secret.id,
+      user: {
+        login: userData.login,
+        name: userData.name
+      },
+      scopes
+    }
+  })
+
   return {
     gitlabAuthorize,
     gitlabExchange,
     gitlabRefresh,
     jiraAuthorize,
     jiraExchange,
-    jiraRefresh
+    jiraRefresh,
+    githubAuthorize,
+    githubExchange
   }
 }
