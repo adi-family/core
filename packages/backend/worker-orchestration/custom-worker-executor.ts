@@ -3,7 +3,7 @@
  */
 
 import type { Sql } from 'postgres'
-import type { WorkerTaskMessage, Task, Project, Session } from '@types'
+import type { WorkerTaskMessage, Task, Project } from '@types'
 import { createPublisher } from '@adi-simple/queue/publisher'
 import { WORKER_TASKS_QUEUE, WORKER_RESPONSES_QUEUE } from '@adi-simple/queue/queues'
 import { createLogger } from '@utils/logger'
