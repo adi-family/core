@@ -2,8 +2,54 @@ import { createLogger } from '@utils/logger'
 import { TASK_SYNC_QUEUE, TASK_EVAL_QUEUE, TASK_IMPL_QUEUE } from './queues'
 import type { TaskSyncMessage, TaskEvalMessage, TaskImplMessage } from './types'
 import { channel } from "@adi/queue/connection";
+import type { Options } from 'amqplib'
 
 const logger = createLogger({ namespace: 'queue-publisher' })
+
+interface PublishOptions {
+  persistent?: boolean
+  correlationId?: string
+  replyTo?: string
+}
+
+/**
+ * Create a generic publisher for any queue
+ */
+export async function createPublisher() {
+  const ch = await channel.value
+
+  return {
+    async publish<T = any>(queue: string, message: T, options: PublishOptions = {}): Promise<void> {
+      try {
+        const buffer = Buffer.from(JSON.stringify(message))
+
+        const publishOptions: Options.Publish = {
+          persistent: options.persistent ?? true,
+          contentType: 'application/json'
+        }
+
+        if (options.correlationId) {
+          publishOptions.correlationId = options.correlationId
+        }
+
+        if (options.replyTo) {
+          publishOptions.replyTo = options.replyTo
+        }
+
+        const sent = ch.sendToQueue(queue, buffer, publishOptions)
+
+        if (!sent) {
+          logger.warn(`Queue ${queue} is full, message may be buffered`)
+        }
+
+        logger.debug(`Published message to queue ${queue}`)
+      } catch (error) {
+        logger.error(`Failed to publish message to queue ${queue}:`, error)
+        throw error
+      }
+    }
+  }
+}
 
 export async function publishTaskSync(message: TaskSyncMessage): Promise<void> {
   try {

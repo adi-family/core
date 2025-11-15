@@ -9,7 +9,11 @@ import {
   TASK_EVAL_DLX,
   TASK_IMPL_CONFIG,
   TASK_IMPL_DLQ_CONFIG,
-  TASK_IMPL_DLX
+  TASK_IMPL_DLX,
+  WORKER_TASKS_CONFIG,
+  WORKER_TASKS_DLQ_CONFIG,
+  WORKER_TASKS_DLX,
+  WORKER_RESPONSES_CONFIG
 } from './queues'
 import { singleton } from "@utils/singleton";
 
@@ -119,6 +123,35 @@ async function setupQueues(ch: amqp.Channel): Promise<void> {
     deadLetterExchange: TASK_IMPL_CONFIG.deadLetterExchange,
     arguments: {
       'x-message-ttl': TASK_IMPL_CONFIG.messageTtl
+    }
+  })
+
+  // Worker Tasks Queues
+  // Create dead letter exchange
+  await ch.assertExchange(WORKER_TASKS_DLX, 'direct', { durable: true })
+
+  // Create dead letter queue
+  await ch.assertQueue(WORKER_TASKS_DLQ_CONFIG.name, {
+    durable: WORKER_TASKS_DLQ_CONFIG.durable
+  })
+
+  // Bind DLQ to DLX
+  await ch.bindQueue(WORKER_TASKS_DLQ_CONFIG.name, WORKER_TASKS_DLX, WORKER_TASKS_CONFIG.name)
+
+  // Create main queue with DLX
+  await ch.assertQueue(WORKER_TASKS_CONFIG.name, {
+    durable: WORKER_TASKS_CONFIG.durable,
+    deadLetterExchange: WORKER_TASKS_CONFIG.deadLetterExchange,
+    arguments: {
+      'x-message-ttl': WORKER_TASKS_CONFIG.messageTtl
+    }
+  })
+
+  // Worker Responses Queue (no DLX needed)
+  await ch.assertQueue(WORKER_RESPONSES_CONFIG.name, {
+    durable: WORKER_RESPONSES_CONFIG.durable,
+    arguments: {
+      'x-message-ttl': WORKER_RESPONSES_CONFIG.messageTtl
     }
   })
 
