@@ -1,6 +1,6 @@
 import * as amqp from 'amqplib'
 import type { WorkerTaskMessage, WorkerResponseMessage } from '@adi-simple/types'
-import { WORKER_TASKS_QUEUE, WORKER_RESPONSES_QUEUE } from '@adi-simple/queue/queues'
+import { WORKER_TASKS_QUEUE, WORKER_RESPONSES_QUEUE } from '@adi/queue/queues'
 
 export interface WorkerConfig {
   rabbitmqUrl: string

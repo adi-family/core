@@ -4,8 +4,8 @@
 
 import type { Sql } from 'postgres'
 import type { WorkerTaskMessage, Task, Project } from '@types'
-import { createPublisher } from '@adi-simple/queue/publisher'
-import { WORKER_TASKS_QUEUE, WORKER_RESPONSES_QUEUE } from '@adi-simple/queue/queues'
+import { createPublisher } from '@adi/queue/publisher'
+import { WORKER_TASKS_QUEUE, WORKER_RESPONSES_QUEUE } from '@adi/queue/queues'
 import { createLogger } from '@utils/logger'
 import { sql as defaultSql } from '@db/client'
 import { findSessionById, updateSession } from '@db/sessions'

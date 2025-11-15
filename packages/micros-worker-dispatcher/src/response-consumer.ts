@@ -5,7 +5,7 @@
 
 import * as amqp from 'amqplib'
 import type { WorkerResponseMessage } from '@adi-simple/types'
-import { WORKER_RESPONSES_QUEUE } from '@adi-simple/queue/queues'
+import { WORKER_RESPONSES_QUEUE } from '@adi/queue/queues'
 import { createLogger } from '@utils/logger'
 import { sql } from '@db/client'
 import { findSessionById } from '@db/sessions'

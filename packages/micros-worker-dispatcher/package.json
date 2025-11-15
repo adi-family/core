@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@adi-simple/types": "*",
-    "@adi-simple/queue": "*",
+    "@adi/queue": "*",
     "@adi-simple/db": "*",
     "@adi-simple/utils": "*",
     "amqplib": "^0.10.3"
