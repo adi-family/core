@@ -42,3 +42,24 @@ export const deleteSession = async (sql: Sql, id: string): Promise<void> => {
     throw new NotFoundException('Session not found')
   }
 }
+
+export interface UpdateSessionInput {
+  worker_type_override?: string | null
+  executed_by_worker_type?: string | null
+}
+
+export const updateSession = async (sql: Sql, id: string, input: UpdateSessionInput): Promise<Session> => {
+  const [session] = await get(sql<Session[]>`
+    UPDATE sessions
+    SET
+      worker_type_override = COALESCE(${input.worker_type_override}, worker_type_override),
+      executed_by_worker_type = COALESCE(${input.executed_by_worker_type}, executed_by_worker_type),
+      updated_at = NOW()
+    WHERE id = ${id}
+    RETURNING *
+  `)
+  if (!session) {
+    throw new NotFoundException('Session not found')
+  }
+  return session
+}

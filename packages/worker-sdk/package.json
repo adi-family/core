@@ -1,0 +1,20 @@
+{
+  "name": "@adi-simple/worker-sdk",
+  "version": "1.0.0",
+  "description": "SDK for building custom workers for ADI Simple",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@adi-simple/types": "*",
+    "@adi-simple/queue": "*",
+    "amqplib": "^0.10.3"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.1",
+    "typescript": "^5.2.2"
+  }
+}

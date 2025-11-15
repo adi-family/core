@@ -196,12 +196,18 @@ export const aiProviderValidationResultSchema = z.object({
 
 export type AIProviderValidationResult = z.infer<typeof aiProviderValidationResultSchema>
 
+export const workerTypeSchema = z.enum(['gitlab-ci', 'custom-microservice'])
+
+export type WorkerType = z.infer<typeof workerTypeSchema>
+
 export const projectSchema = z.object({
   id: z.string(),
   name: z.string(),
   enabled: z.boolean(),
   job_executor_gitlab: gitlabExecutorConfigSchema.nullable(),
   ai_provider_configs: aiProviderConfigSchema.nullable(),
+  default_worker_type: workerTypeSchema.default('custom-microservice'),
+  allow_worker_override: z.boolean().default(true),
   created_at: z.string(),
   updated_at: z.string(),
   last_synced_at: z.string().nullable()
@@ -306,6 +312,8 @@ export const sessionSchema = z.object({
   id: z.string(),
   task_id: z.string().nullable(),
   runner: z.string(),
+  worker_type_override: workerTypeSchema.nullable().optional(),
+  executed_by_worker_type: workerTypeSchema.nullable().optional(),
   created_at: z.string(),
   updated_at: z.string()
 })
@@ -941,3 +949,45 @@ export const updateApiKeyInputSchema = z.object({
 })
 
 export type UpdateApiKeyInput = z.infer<typeof updateApiKeyInputSchema>
+
+// Worker queue message types
+export const workerTaskMessageSchema = z.object({
+  taskId: z.string(),
+  sessionId: z.string(),
+  projectId: z.string(),
+  taskType: z.enum(['evaluation', 'implementation']),
+  context: z.object({
+    task: taskSchema,
+    project: projectSchema,
+    aiProvider: aiProviderConfigSchema,
+    workspace: z.unknown().optional()
+  }),
+  timeout: z.number(),
+  attempt: z.number(),
+  correlationId: z.string(),
+  replyTo: z.string()
+})
+
+export type WorkerTaskMessage = z.infer<typeof workerTaskMessageSchema>
+
+export const workerResponseMessageSchema = z.object({
+  correlationId: z.string(),
+  sessionId: z.string(),
+  status: z.enum(['success', 'error', 'timeout']),
+  result: z.object({
+    evaluation: z.unknown().optional(),
+    implementation: z.unknown().optional(),
+    artifacts: z.array(z.unknown()).optional()
+  }).optional(),
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    details: z.unknown().optional()
+  }).optional(),
+  metadata: z.object({
+    executionTimeMs: z.number(),
+    workerVersion: z.string()
+  })
+})
+
+export type WorkerResponseMessage = z.infer<typeof workerResponseMessageSchema>

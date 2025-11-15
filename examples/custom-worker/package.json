@@ -1,0 +1,19 @@
+{
+  "name": "custom-worker-example",
+  "version": "1.0.0",
+  "description": "Example custom worker using the ADI Worker SDK",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@adi-simple/worker-sdk": "*",
+    "@adi-simple/types": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2",
+    "tsx": "^4.7.0"
+  }
+}

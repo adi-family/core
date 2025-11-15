@@ -1,0 +1,23 @@
+{
+  "name": "@adi-simple/micros-worker-dispatcher",
+  "version": "1.0.0",
+  "description": "Worker dispatcher microservice for custom workers",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@adi-simple/types": "*",
+    "@adi-simple/queue": "*",
+    "@adi-simple/db": "*",
+    "@adi-simple/utils": "*",
+    "amqplib": "^0.10.3"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.1",
+    "typescript": "^5.2.2",
+    "tsx": "^4.7.0"
+  }
+}

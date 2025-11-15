@@ -54,3 +54,30 @@ export const TASK_IMPL_DLQ_CONFIG: QueueConfig = {
   name: TASK_IMPL_DLQ,
   durable: true
 }
+
+// Worker queues for custom worker microservice
+export const WORKER_TASKS_QUEUE = 'worker-tasks'
+export const WORKER_TASKS_DLQ = 'worker-tasks.dlq'
+export const WORKER_TASKS_DLX = 'worker-tasks.dlx'
+
+export const WORKER_TASKS_CONFIG: QueueConfig = {
+  name: WORKER_TASKS_QUEUE,
+  durable: true,
+  deadLetterExchange: WORKER_TASKS_DLX,
+  deadLetterQueue: WORKER_TASKS_DLQ,
+  messageTtl: 3600000, // 1 hour
+  maxRetries: 3
+}
+
+export const WORKER_TASKS_DLQ_CONFIG: QueueConfig = {
+  name: WORKER_TASKS_DLQ,
+  durable: true
+}
+
+export const WORKER_RESPONSES_QUEUE = 'worker-responses'
+
+export const WORKER_RESPONSES_CONFIG: QueueConfig = {
+  name: WORKER_RESPONSES_QUEUE,
+  durable: true,
+  messageTtl: 86400000 // 24 hours
+}
