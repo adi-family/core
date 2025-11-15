@@ -52,8 +52,8 @@ export const updateSession = async (sql: Sql, id: string, input: UpdateSessionIn
   const [session] = await get(sql<Session[]>`
     UPDATE sessions
     SET
-      worker_type_override = COALESCE(${input.worker_type_override}, worker_type_override),
-      executed_by_worker_type = COALESCE(${input.executed_by_worker_type}, executed_by_worker_type),
+      worker_type_override = COALESCE(${input.worker_type_override ?? null}, worker_type_override),
+      executed_by_worker_type = COALESCE(${input.executed_by_worker_type ?? null}, executed_by_worker_type),
       updated_at = NOW()
     WHERE id = ${id}
     RETURNING *
