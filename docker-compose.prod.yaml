@@ -142,6 +142,44 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
     restart: unless-stopped
 
+  micros-claude-worker:
+    build:
+      context: .
+      dockerfile: packages/micros-claude-worker/Dockerfile
+    container_name: adi-simple-micros-claude-worker
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-rabbit}:${RABBITMQ_PASS:-rabbit}@rabbitmq:5672
+      - NODE_ENV=production
+      - WORKER_NAME=claude-worker
+      - MAX_CONCURRENCY=${CLAUDE_WORKER_CONCURRENCY:-3}
+      # Optional: Fallback API key if tasks don't provide their own
+      # Tasks can override with task.context.aiProvider.anthropic.apiKey
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    restart: unless-stopped
+
+  micros-worker-dispatcher:
+    build:
+      context: .
+      dockerfile: packages/micros-worker-dispatcher/Dockerfile
+    container_name: adi-simple-micros-worker-dispatcher
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-rabbit}:${RABBITMQ_PASS:-rabbit}@rabbitmq:5672
+      - NODE_ENV=production
+    restart: unless-stopped
+
 volumes:
   postgres_data:
   rabbitmq_data:
