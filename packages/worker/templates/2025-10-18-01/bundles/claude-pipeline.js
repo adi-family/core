@@ -12765,6 +12765,233 @@ class GitLabApiClient {
   }
 }
 
+// ../shared/github-api-client.ts
+class GitHubApiClient {
+  host;
+  token;
+  tokenType;
+  defaultTimeout;
+  constructor(token, host = "https://api.github.com", tokenType = "pat", defaultTimeout = 30000) {
+    this.host = host.replace(/\/$/, "").replace(/\/api\/v3$/, "");
+    this.token = token;
+    this.tokenType = tokenType;
+    this.defaultTimeout = defaultTimeout;
+  }
+  async request(method, endpoint, body, timeoutMs) {
+    const url = `${this.host}${endpoint}`;
+    const headers = {
+      Accept: "application/vnd.github+json",
+      Authorization: `Bearer ${this.token}`,
+      "X-GitHub-Api-Version": "2022-11-28"
+    };
+    if (body && method !== "GET") {
+      headers["Content-Type"] = "application/json";
+    }
+    console.log(`[GitHubApiClient] Using ${this.tokenType} token type for ${method} ${endpoint}`);
+    console.log(`[GitHubApiClient] Request URL: ${url}`);
+    const timeout = timeoutMs ?? this.defaultTimeout;
+    const controller = new AbortController;
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    const options = {
+      method,
+      headers,
+      signal: controller.signal
+    };
+    if (body) {
+      options.body = JSON.stringify(body);
+    }
+    try {
+      const response = await fetch(url, options);
+      clearTimeout(timeoutId);
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`[GitHubApiClient] Request failed: ${response.status} ${response.statusText}`);
+        console.error(`[GitHubApiClient] Response body: ${errorText}`);
+        throw new Error(`GitHub API error: ${response.status} ${response.statusText} - ${errorText}`);
+      }
+      if (response.status === 204 || response.headers.get("content-length") === "0") {
+        return {};
+      }
+      return response.json();
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === "AbortError") {
+        throw new Error(`GitHub API request timeout after ${timeout}ms`);
+      }
+      throw error;
+    }
+  }
+  async getCurrentUser() {
+    return this.request("GET", "/user");
+  }
+  async getTokenScopes() {
+    const url = `${this.host}/user`;
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        Accept: "application/vnd.github+json",
+        Authorization: `Bearer ${this.token}`,
+        "X-GitHub-Api-Version": "2022-11-28"
+      }
+    });
+    const scopes = response.headers.get("X-OAuth-Scopes");
+    return scopes ? scopes.split(",").map((s) => s.trim()) : [];
+  }
+  async createRepository(input) {
+    return this.request("POST", "/user/repos", {
+      name: input.name,
+      description: input.description,
+      private: input.private ?? true,
+      auto_init: input.auto_init ?? false
+    });
+  }
+  async getRepository(owner, repo) {
+    return this.request("GET", `/repos/${owner}/${repo}`);
+  }
+  async getFile(owner, repo, path, ref) {
+    const endpoint = ref ? `/repos/${owner}/${repo}/contents/${path}?ref=${encodeURIComponent(ref)}` : `/repos/${owner}/${repo}/contents/${path}`;
+    const file = await this.request("GET", endpoint);
+    if (file.encoding === "base64") {
+      file.content = Buffer.from(file.content, "base64").toString("utf-8");
+    }
+    return file;
+  }
+  async uploadFile(owner, repo, path, content, message, branch, sha) {
+    const endpoint = `/repos/${owner}/${repo}/contents/${path}`;
+    const body = {
+      message,
+      content: Buffer.from(content).toString("base64")
+    };
+    if (branch) {
+      body.branch = branch;
+    }
+    if (sha) {
+      body.sha = sha;
+    }
+    await this.request("PUT", endpoint, body);
+  }
+  async getCommitSha(owner, repo, ref) {
+    const refData = await this.request("GET", `/repos/${owner}/${repo}/git/ref/heads/${ref}`);
+    return refData.object.sha;
+  }
+  async createBranch(owner, repo, branch, fromBranch) {
+    const sha = await this.getCommitSha(owner, repo, fromBranch);
+    await this.request("POST", `/repos/${owner}/${repo}/git/refs`, {
+      ref: `refs/heads/${branch}`,
+      sha
+    });
+  }
+  async createTree(owner, repo, tree, baseTree) {
+    const body = { tree };
+    if (baseTree) {
+      body.base_tree = baseTree;
+    }
+    return this.request("POST", `/repos/${owner}/${repo}/git/trees`, body);
+  }
+  async createCommit(owner, repo, message, tree, parents) {
+    return this.request("POST", `/repos/${owner}/${repo}/git/commits`, {
+      message,
+      tree,
+      parents
+    });
+  }
+  async updateReference(owner, repo, ref, sha, force = false) {
+    await this.request("PATCH", `/repos/${owner}/${repo}/git/refs/heads/${ref}`, {
+      sha,
+      force
+    });
+  }
+  async uploadFiles(owner, repo, files, message, branch) {
+    const targetBranch = branch || "main";
+    const currentSha = await this.getCommitSha(owner, repo, targetBranch);
+    const treeEntries = files.map((file) => ({
+      path: file.path,
+      mode: "100644",
+      type: "blob",
+      content: file.content
+    }));
+    const tree = await this.createTree(owner, repo, treeEntries, currentSha);
+    const commit = await this.createCommit(owner, repo, message, tree.sha, [currentSha]);
+    await this.updateReference(owner, repo, targetBranch, commit.sha);
+    return commit;
+  }
+  async createPullRequest(owner, repo, title, head, base, body) {
+    return this.request("POST", `/repos/${owner}/${repo}/pulls`, {
+      title,
+      head,
+      base,
+      body
+    });
+  }
+  async listIssues(owner, repo, options) {
+    const params = new URLSearchParams;
+    if (options?.state) {
+      params.append("state", options.state);
+    }
+    if (options?.labels && options.labels.length > 0) {
+      params.append("labels", options.labels.join(","));
+    }
+    if (options?.since) {
+      params.append("since", options.since);
+    }
+    if (options?.page) {
+      params.append("page", String(options.page));
+    }
+    if (options?.per_page) {
+      params.append("per_page", String(options.per_page));
+    }
+    const endpoint = `/repos/${owner}/${repo}/issues${params.toString() ? `?${params.toString()}` : ""}`;
+    return this.request("GET", endpoint);
+  }
+  async getIssue(owner, repo, issueNumber) {
+    return this.request("GET", `/repos/${owner}/${repo}/issues/${issueNumber}`);
+  }
+  async triggerWorkflow(owner, repo, workflowId, ref, inputs) {
+    await this.request("POST", `/repos/${owner}/${repo}/actions/workflows/${workflowId}/dispatches`, {
+      ref,
+      inputs
+    });
+  }
+  async getWorkflowRun(owner, repo, runId) {
+    return this.request("GET", `/repos/${owner}/${repo}/actions/runs/${runId}`);
+  }
+  async listWorkflowRuns(owner, repo, options) {
+    const params = new URLSearchParams;
+    if (options?.branch) {
+      params.append("branch", options.branch);
+    }
+    if (options?.status) {
+      params.append("status", options.status);
+    }
+    if (options?.per_page) {
+      params.append("per_page", String(options.per_page));
+    }
+    if (options?.page) {
+      params.append("page", String(options.page));
+    }
+    const endpoint = `/repos/${owner}/${repo}/actions/runs${params.toString() ? `?${params.toString()}` : ""}`;
+    return this.request("GET", endpoint);
+  }
+  async findRepositoryByPath(path) {
+    const [owner, repo] = path.split("/");
+    if (!owner || !repo) {
+      throw new Error(`Invalid repository path format: ${path}. Expected format: owner/repo`);
+    }
+    try {
+      return await this.getRepository(owner, repo);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("404")) {
+        return null;
+      }
+      throw error;
+    }
+  }
+  async getFileContent(owner, repo, path, ref) {
+    const file = await this.getFile(owner, repo, path, ref);
+    return file.content;
+  }
+}
+
 // templates/2025-10-18-01/worker-scripts/shared/workspace-utils.ts
 function getWorkspaceName(fileSpaceName, fileSpaceId) {
   const sanitized = fileSpaceName.replace(/[^a-zA-Z0-9-]/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "").toLowerCase();
@@ -12807,6 +13034,22 @@ function getGitLabClient(fileSpace, token, tokenType) {
   logger2.info(`      Using auth type: '${clientTokenType}' (${clientTokenType === "oauth" ? "Bearer" : "PRIVATE-TOKEN"} header)`);
   return new GitLabApiClient(host, token, clientTokenType);
 }
+function getGitHubClient(fileSpace, token) {
+  if (!fileSpace.config || typeof fileSpace.config !== "object") {
+    return null;
+  }
+  const config = fileSpace.config;
+  const host = config.host || "https://api.github.com";
+  if (!token) {
+    logger2.warn("Token not provided, cannot create GitHub client");
+    return null;
+  }
+  logger2.info(`   \uD83D\uDD10 Creating GitHub API client:`);
+  logger2.info(`      Host: ${host}`);
+  logger2.info(`      Token length: ${token.length} chars`);
+  logger2.info(`      Token starts with: ${token.substring(0, 8)}...`);
+  return new GitHubApiClient(token, host);
+}
 function getProjectPath(fileSpace) {
   if (!fileSpace.config || typeof fileSpace.config !== "object" || !("repo" in fileSpace.config)) {
     return null;
@@ -12825,7 +13068,7 @@ function getProjectPath(fileSpace) {
   repo = repo.replace(/^\//, "").replace(/\.git$/, "");
   return repo;
 }
-async function pushWorkspaceToFileSpace(workspacePath, fileSpace, taskId, taskTitle, taskDescription, gitlabToken, gitlabTokenType) {
+async function pushWorkspaceToFileSpace(workspacePath, fileSpace, taskId, taskTitle, taskDescription, accessToken, tokenType) {
   const workspaceName = workspacePath.split("/").pop() || "unknown";
   logger2.info(`
 \uD83D\uDCE6 Processing workspace: ${workspaceName}`);
@@ -12871,10 +13114,15 @@ Task ID: ${taskId}`;
   logger2.info(`   \u2713 Commit created`);
   const { stdout: remoteUrl } = await exec(`cd "${absoluteWorkspacePath}" && git remote get-url origin`);
   let pushUrl = remoteUrl.trim();
-  if (pushUrl.startsWith("https://") && gitlabToken) {
+  if (pushUrl.startsWith("https://") && accessToken) {
     const url = new URL(pushUrl);
-    url.username = "oauth2";
-    url.password = gitlabToken;
+    if (fileSpace.type === "github") {
+      url.username = "x-access-token";
+      url.password = accessToken;
+    } else {
+      url.username = "oauth2";
+      url.password = accessToken;
+    }
     pushUrl = url.toString();
     logger2.info(`   \u2713 Authentication injected`);
   }
@@ -12907,52 +13155,78 @@ Task ID: ${taskId}`;
       }
     }
   }
-  logger2.info(`   \uD83D\uDD00 Creating merge request...`);
-  const gitlabClient = getGitLabClient(fileSpace, gitlabToken, gitlabTokenType);
-  if (!gitlabClient) {
-    throw new Error("Could not create GitLab client - missing token or host");
-  }
+  logger2.info(`   \uD83D\uDD00 Creating ${fileSpace.type === "github" ? "pull" : "merge"} request...`);
   const projectPath = getProjectPath(fileSpace);
   if (!projectPath) {
     throw new Error("Could not extract project path from file space config");
   }
   logger2.info(`   \uD83D\uDCCD Project path: ${projectPath}`);
-  let mrDescription = `${taskDescription || "Automated task implementation"}
+  let description = `${taskDescription || "Automated task implementation"}
 
 `;
-  mrDescription += `## Task Details
+  description += `## Task Details
 
 `;
-  mrDescription += `**Task ID**: ${taskId}
+  description += `**Task ID**: ${taskId}
 `;
-  mrDescription += `**Title**: ${taskTitle}
+  description += `**Title**: ${taskTitle}
 
 `;
-  mrDescription += `---
+  description += `---
 `;
-  mrDescription += `\uD83E\uDD16 Automated by ADI Pipeline
+  description += `\uD83E\uDD16 Automated by ADI Pipeline
 `;
   let mr;
-  let _mrAlreadyExists = false;
-  try {
-    mr = await gitlabClient["client"].MergeRequests.create(projectPath, branchName, defaultBranch, taskTitle, {
-      description: mrDescription,
-      removeSourceBranch: true
-    });
-    logger2.info(`   \u2713 Merge request created: !${mr.iid}`);
-    logger2.info(`   \uD83D\uDD17 URL: ${mr.web_url}`);
-  } catch (error) {
-    if (error?.cause?.response?.statusCode === 409 || error?.message?.includes("409") || error?.message?.includes("already exists")) {
-      const mrMatch = error.message?.match(/!(\d+)/);
-      const existingMrNumber = mrMatch ? mrMatch[1] : "unknown";
-      logger2.info(`   \u2139\uFE0F  Merge request already exists: !${existingMrNumber}, skipping creation`);
-      _mrAlreadyExists = true;
-      mr = {
-        iid: existingMrNumber,
-        web_url: `${gitlabClient["host"]}/${projectPath}/-/merge_requests/${existingMrNumber}`
-      };
-    } else {
-      throw error;
+  let mrUrl;
+  let mrIid;
+  if (fileSpace.type === "github") {
+    const githubClient = getGitHubClient(fileSpace, accessToken);
+    if (!githubClient) {
+      throw new Error("Could not create GitHub client - missing token or host");
+    }
+    const [owner, repo] = projectPath.split("/");
+    if (!owner || !repo) {
+      throw new Error(`Invalid GitHub repository path: ${projectPath}. Expected format: owner/repo`);
+    }
+    try {
+      const pr = await githubClient.createPullRequest(owner, repo, taskTitle, branchName, defaultBranch, description);
+      mrUrl = pr.html_url;
+      mrIid = pr.number;
+      logger2.info(`   \u2713 Pull request created: #${pr.number}`);
+      logger2.info(`   \uD83D\uDD17 URL: ${pr.html_url}`);
+    } catch (error) {
+      if (error?.message?.includes("A pull request already exists") || error?.message?.includes("already exists")) {
+        logger2.info(`   \u2139\uFE0F  Pull request already exists, skipping creation`);
+        mrUrl = `https://github.com/${owner}/${repo}/pulls`;
+        mrIid = "unknown";
+      } else {
+        throw error;
+      }
+    }
+  } else {
+    const gitlabClient = getGitLabClient(fileSpace, accessToken, tokenType);
+    if (!gitlabClient) {
+      throw new Error("Could not create GitLab client - missing token or host");
+    }
+    try {
+      mr = await gitlabClient["client"].MergeRequests.create(projectPath, branchName, defaultBranch, taskTitle, {
+        description,
+        removeSourceBranch: true
+      });
+      mrUrl = mr.web_url;
+      mrIid = mr.iid;
+      logger2.info(`   \u2713 Merge request created: !${mr.iid}`);
+      logger2.info(`   \uD83D\uDD17 URL: ${mr.web_url}`);
+    } catch (error) {
+      if (error?.cause?.response?.statusCode === 409 || error?.message?.includes("409") || error?.message?.includes("already exists")) {
+        const mrMatch = error.message?.match(/!(\d+)/);
+        const existingMrNumber = mrMatch ? mrMatch[1] : "unknown";
+        logger2.info(`   \u2139\uFE0F  Merge request already exists: !${existingMrNumber}, skipping creation`);
+        mrUrl = `${gitlabClient["host"]}/${projectPath}/-/merge_requests/${existingMrNumber}`;
+        mrIid = existingMrNumber;
+      } else {
+        throw error;
+      }
     }
   }
   return {
@@ -12960,9 +13234,10 @@ Task ID: ${taskId}`;
     fileSpaceName: fileSpace.name,
     workspacePath,
     branchName,
-    mrUrl: mr.web_url,
-    mrIid: mr.iid,
-    hasChanges: true
+    mrUrl,
+    mrIid: typeof mrIid === "number" ? mrIid : parseInt(mrIid, 10) || 0,
+    hasChanges: true,
+    provider: fileSpace.type
   };
 }
 async function main() {
@@ -13010,15 +13285,15 @@ async function main() {
         logger2.info(`\u23ED\uFE0F  Skipping disabled file space: ${fileSpace.name}`);
         continue;
       }
-      let gitlabToken = null;
-      let gitlabTokenType = null;
+      let accessToken = null;
+      let tokenType = null;
       if (fileSpace.config && fileSpace.config.access_token_secret_id) {
         try {
           logger2.info(`\uD83D\uDD11 Retrieving token for file space: ${fileSpace.name}`);
           const secretData = await apiClient.getSecretValue(fileSpace.config.access_token_secret_id);
-          gitlabToken = secretData.value;
-          gitlabTokenType = secretData.token_type;
-          logger2.info(`\u2713 Token retrieved successfully (type: ${gitlabTokenType})`);
+          accessToken = secretData.value;
+          tokenType = secretData.token_type;
+          logger2.info(`\u2713 Token retrieved successfully (type: ${tokenType})`);
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
           logger2.error(`\u274C Failed to retrieve token for ${fileSpace.name}: ${errorMsg}`);
@@ -13029,7 +13304,7 @@ async function main() {
           continue;
         }
       }
-      if (!gitlabToken) {
+      if (!accessToken) {
         logger2.error(`\u274C No access token configured for file space: ${fileSpace.name}`);
         result.errors.push({
           fileSpaceId: fileSpace.id,
@@ -13048,7 +13323,7 @@ async function main() {
         continue;
       }
       try {
-        const mrResult = await pushWorkspaceToFileSpace(workspace.path, fileSpace, task.id, task.title, task.description, gitlabToken, gitlabTokenType);
+        const mrResult = await pushWorkspaceToFileSpace(workspace.path, fileSpace, task.id, task.title, task.description, accessToken, tokenType);
         result.mergeRequests.push(mrResult);
       } catch (error) {
         const errorMsg = error instanceof Error ? error.message : String(error);

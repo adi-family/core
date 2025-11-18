@@ -9,12 +9,10 @@ interface PageCardProps {
   className?: string
   headerClassName?: string
   contentClassName?: string
-  variant?: 'default' | 'glass' | 'dark'
 }
 
 /**
- * Reusable page card wrapper with consistent styling
- * Supports multiple variants for different page contexts
+ * Reusable page card wrapper with consistent Linear-inspired styling
  */
 export function PageCard({
   title,
@@ -23,48 +21,18 @@ export function PageCard({
   className,
   headerClassName,
   contentClassName,
-  variant = 'default',
 }: PageCardProps) {
-  const getCardClassName = () => {
-    if (className) return className
-
-    const baseClasses = `${designTokens.animations.hover} ${designTokens.animations.fadeIn}`
-
-    switch (variant) {
-      case 'glass':
-        return `${baseClasses} bg-white/10 backdrop-blur-xl border border-white/20 shadow-2xl hover:shadow-blue-500/20 rounded-2xl`
-      case 'dark':
-        return `${baseClasses} ${designTokens.glass.dark} ${designTokens.borders.glass} ${designTokens.shadows.cardDark} rounded-2xl`
-      default:
-        // Default: Dark glassmorphism for dark background
-        return `${baseClasses} bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 shadow-2xl hover:shadow-blue-500/10 hover:border-slate-600/60 rounded-2xl`
-    }
-  }
-
-  const getHeaderClassName = () => {
-    if (headerClassName) return headerClassName
-
-    switch (variant) {
-      case 'glass':
-        return `bg-gradient-to-r ${designTokens.gradients.cardHeader} text-white rounded-t-2xl`
-      case 'dark':
-        return `bg-gradient-to-r ${designTokens.gradients.header} text-white border-b ${designTokens.borders.glass} rounded-t-2xl`
-      default:
-        return `bg-gradient-to-r ${designTokens.gradients.cardHeader} text-white rounded-t-2xl`
-    }
-  }
-
   return (
-    <Card className={getCardClassName()}>
-      <CardHeader className={getHeaderClassName()}>
-        <CardTitle className={`${designTokens.text.cardTitle} text-white`}>{title}</CardTitle>
+    <Card className={className ?? `${designTokens.colors.bg.secondary} ${designTokens.borders.default} rounded-lg`}>
+      <CardHeader className={headerClassName ?? `${designTokens.spacing.cardHeader} ${designTokens.borders.bottom}`}>
+        <CardTitle className={designTokens.text.h2}>{title}</CardTitle>
         {description && (
-          <CardDescription className={`${designTokens.text.cardDescription} text-gray-200`}>
+          <CardDescription className={`${designTokens.text.bodySecondary} mt-1`}>
             {description}
           </CardDescription>
         )}
       </CardHeader>
-      <CardContent className={`${contentClassName ?? designTokens.spacing.cardPadding} text-gray-100`}>
+      <CardContent className={contentClassName ?? designTokens.spacing.cardPadding}>
         {children}
       </CardContent>
     </Card>

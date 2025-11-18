@@ -3,7 +3,13 @@ import { SignedIn, SignedOut, SignIn, SignUp } from "@clerk/clerk-react"
 import { Toaster } from "sonner"
 import { ExpertModeProvider } from "./contexts/ExpertModeContext"
 import { ProjectProvider } from "./contexts/ProjectContext"
+import { designTokens } from "./theme/tokens"
 import { Layout } from "./components/Layout"
+import { CommandCenterPage } from "./pages/CommandCenterPage"
+import { ShipModePage } from "./pages/ShipModePage"
+import { ReviewModePage } from "./pages/ReviewModePage"
+import { BuilderBoardPage } from "./pages/BuilderBoardPage"
+import { InsightsPage } from "./pages/InsightsPage"
 import { HomePage } from "./pages/HomePage"
 import { ProjectsPage } from "./pages/ProjectsPage"
 import { ProjectPage } from "./pages/ProjectPage"
@@ -38,14 +44,14 @@ export function App() {
                 <Navigate to="/" replace />
               </SignedIn>
               <SignedOut>
-                <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-6">
+                <div className={`min-h-screen ${designTokens.colors.bg.primary} flex items-center justify-center p-6`}>
                   <div className="w-full max-w-md">
                     <div className="text-center mb-8">
-                      <h1 className="text-6xl font-bold mb-2 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent tracking-tight">
-                        ADI SIMPLE
+                      <h1 className="text-4xl font-semibold mb-2 text-white">
+                        ADI
                       </h1>
-                      <p className="text-xs uppercase tracking-wide text-gray-600">
-                        TASK AUTOMATION PLATFORM
+                      <p className={`${designTokens.text.bodySecondary}`}>
+                        Task automation platform
                       </p>
                     </div>
                     <div className="flex justify-center">
@@ -65,14 +71,14 @@ export function App() {
                 <Navigate to="/" replace />
               </SignedIn>
               <SignedOut>
-                <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100 flex items-center justify-center p-6">
+                <div className={`min-h-screen ${designTokens.colors.bg.primary} flex items-center justify-center p-6`}>
                   <div className="w-full max-w-md">
                     <div className="text-center mb-8">
-                      <h1 className="text-6xl font-bold mb-2 bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent tracking-tight">
-                        ADI SIMPLE
+                      <h1 className="text-4xl font-semibold mb-2 text-white">
+                        ADI
                       </h1>
-                      <p className="text-xs uppercase tracking-wide text-gray-600">
-                        TASK AUTOMATION PLATFORM
+                      <p className={`${designTokens.text.bodySecondary}`}>
+                        Task automation platform
                       </p>
                     </div>
                     <div className="flex justify-center">
@@ -98,7 +104,16 @@ export function App() {
               <SignedIn>
                 <Routes>
                   <Route path="/" element={<Layout />}>
-                    <Route index element={<HomePage />} />
+                    {/* Power User Mode Routes */}
+                    <Route index element={<CommandCenterPage />} />
+                    <Route path="ship" element={<ShipModePage />} />
+                    <Route path="review" element={<ReviewModePage />} />
+                    <Route path="build" element={<BuilderBoardPage />} />
+                    <Route path="insights" element={<InsightsPage />} />
+
+                    {/* Legacy Routes - keeping for compatibility */}
+                    <Route path="home" element={<HomePage />} />
+                    <Route path="board" element={<BuilderBoardPage />} />
                     <Route path="projects" element={<ProjectsPage />} />
                     <Route path="projects/:id" element={<ProjectPage />} />
                     <Route path="setup-project" element={<SetupProjectPage />} />

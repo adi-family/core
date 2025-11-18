@@ -45,16 +45,16 @@ export function FileSpacesPage() {
 
   return (
     <AnimatedPageContainer>
-      <Card className={`bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 shadow-2xl hover:shadow-blue-500/10 hover:border-slate-600/60 ${designTokens.animations.hover} ${designTokens.animations.fadeIn} rounded-2xl`}>
-        <CardHeader className={`bg-gradient-to-r ${designTokens.gradients.cardHeader} text-white rounded-t-2xl`}>
+      <Card className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default} rounded-lg`}>
+        <CardHeader className={`${designTokens.spacing.cardHeader} ${designTokens.borders.bottom}`}>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className={`${designTokens.text.cardTitle} text-white`}>File Spaces</CardTitle>
-              <CardDescription className={`${designTokens.text.cardDescription} text-gray-200`}>Manage repository file spaces for tasks</CardDescription>
+              <CardTitle className={designTokens.text.h2}>File Spaces</CardTitle>
+              <CardDescription className={`${designTokens.text.bodySecondary} mt-1`}>Manage repository file spaces for tasks</CardDescription>
             </div>
             <Button
               onClick={() => navigate("/create-file-space")}
-              className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+              className={`${designTokens.colors.accent.primary} hover:${designTokens.colors.accent.hover} ${designTokens.colors.text.primary} px-4 py-2 rounded-lg transition-colors`}
             >
               Create File Space
             </Button>

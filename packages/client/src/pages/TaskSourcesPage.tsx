@@ -66,46 +66,46 @@ export function TaskSourcesPage() {
 
   return (
     <AnimatedPageContainer>
-      <Card className={`bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 shadow-2xl hover:shadow-blue-500/10 hover:border-slate-600/60 ${designTokens.animations.hover} ${designTokens.animations.fadeIn} rounded-2xl`}>
-        <CardHeader className={`bg-gradient-to-r ${designTokens.gradients.cardHeader} text-white rounded-t-2xl`}>
+      <Card className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default} rounded-lg`}>
+        <CardHeader className={`${designTokens.spacing.cardHeader} ${designTokens.borders.bottom}`}>
           <div className="flex justify-between items-center">
             <div>
-              <CardTitle className={`${designTokens.text.cardTitle} text-white`}>
+              <CardTitle className={designTokens.text.h2}>
                 Task Sources
               </CardTitle>
-              <CardDescription className={`${designTokens.text.cardDescription} text-gray-200`}>
+              <CardDescription className={`${designTokens.text.bodySecondary} mt-1`}>
                 Manage issue tracking integrations for projects
               </CardDescription>
             </div>
             <Button
               onClick={() => navigate("/create-task-source")}
-              className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+              className={`${designTokens.colors.accent.primary} hover:${designTokens.colors.accent.hover} ${designTokens.colors.text.primary} px-4 py-2 rounded-lg transition-colors`}
             >
               Create Task Source
             </Button>
           </div>
         </CardHeader>
-        <CardContent className={`${designTokens.spacing.cardPadding} text-gray-100`}>
+        <CardContent className={designTokens.spacing.cardPadding}>
           {loading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="text-gray-500">Loading task sources...</div>
+              <div className={designTokens.text.bodySecondary}>Loading task sources...</div>
             </div>
           ) : filteredTaskSources.length === 0 ? (
             <div className="flex flex-col justify-center items-center py-12 gap-4">
-              <div className="text-gray-500">No task sources found</div>
+              <div className={designTokens.text.bodySecondary}>No task sources found</div>
               {selectedProjectId && taskSources.length > 0 && (
-                <div className="text-sm text-gray-400">
+                <div className={designTokens.text.caption}>
                   {taskSources.length} task source(s) available in other projects
                 </div>
               )}
               {taskSources.length === 0 && (
-                <div className="text-sm text-gray-400">
+                <div className={designTokens.text.caption}>
                   Click "Create Task Source" to add your first integration
                 </div>
               )}
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className={designTokens.spacing.section}>
               {filteredTaskSources.map((taskSource) => {
                 const project = projects.find((p) => p.id === taskSource.project_id)
                 return (

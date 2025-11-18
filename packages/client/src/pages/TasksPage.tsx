@@ -227,21 +227,21 @@ export function TasksPage() {
 
   return (
     <AnimatedPageContainer>
-      <Card className={`bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 shadow-2xl hover:shadow-blue-500/10 hover:border-slate-600/60 ${designTokens.animations.hover} ${designTokens.animations.fadeIn} rounded-2xl`}>
-        <CardHeader className={`bg-gradient-to-r ${designTokens.gradients.cardHeader} text-white rounded-t-2xl`}>
+      <Card className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default} rounded-lg`}>
+        <CardHeader className={`${designTokens.spacing.cardHeader} ${designTokens.borders.bottom}`}>
           <div className="flex items-center justify-between">
             <div className="flex-1">
-              <CardTitle className={`${designTokens.text.cardTitle} text-white`}>Tasks</CardTitle>
-              <CardDescription className={`${designTokens.text.cardDescription} text-gray-200`}>View all tasks in the system</CardDescription>
+              <CardTitle className={designTokens.text.h2}>Tasks</CardTitle>
+              <CardDescription className={`${designTokens.text.bodySecondary} mt-1`}>View all tasks in the system</CardDescription>
             </div>
             <button
               onClick={() => setIsCreateDialogOpen(true)}
-              className="px-4 py-2 bg-white/20 hover:bg-white/30 text-white rounded-lg transition-colors border border-white/30 hover:border-white/40 mr-4"
+              className={`px-4 py-2 ${designTokens.colors.accent.primary} hover:${designTokens.colors.accent.hover} ${designTokens.colors.text.primary} rounded-lg transition-colors mr-4`}
             >
               + Create Task
             </button>
             {!loading && (
-              <div className="bg-white/10 backdrop-blur-sm px-4 py-2 rounded-lg border border-white/20">
+              <div className={`${designTokens.colors.bg.tertiary} px-4 py-2 rounded-lg ${designTokens.borders.default}`}>
                 <div className="text-xs text-gray-200 mb-0.5">Total Tasks</div>
                 <div className="text-2xl font-bold text-white">
                   {totalCount > 0 ? totalCount : filteredTasks.length}

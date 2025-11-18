@@ -6,7 +6,7 @@ import { TabsContainer, InfoPanel, ContentCard } from '@/components/TabsContaine
 import { Button } from '@adi-simple/ui/button'
 import { designTokens } from '@/theme/tokens'
 import { useExpertMode } from '@/contexts/ExpertModeContext'
-import { Settings } from 'lucide-react'
+import { Settings, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
 import {
   PRICING,
   calculateCostBreakdown,
@@ -380,9 +380,16 @@ export function AdminPage() {
                   ? 'bg-green-500/10 border border-green-500/30'
                   : 'bg-red-500/10 border border-red-500/30'
               }`}>
-                <h3 className="font-semibold mb-1 text-white">
-                  {opsResult.success ? '✅ Success' : '❌ Failed'}
-                </h3>
+                <div className="flex items-center gap-2 mb-1">
+                  {opsResult.success ? (
+                    <CheckCircle className="h-5 w-5 text-green-400" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-red-400" />
+                  )}
+                  <h3 className="font-semibold text-white">
+                    {opsResult.success ? 'Success' : 'Failed'}
+                  </h3>
+                </div>
                 <p className="text-sm text-gray-300">{opsResult.message}</p>
               </div>
             )}
@@ -451,8 +458,14 @@ export function AdminPage() {
         <div className={designTokens.animations.fadeIn}>
           <InfoPanel title="Platform Pricing">
             <div className="space-y-1">
-              <div>💰 <strong>${PRICING.PER_MILLION_TOKENS}</strong> per 1M tokens</div>
-              <div>⏱️ <strong>${PRICING.PER_CI_HOUR.toFixed(8)}</strong> per hour CI time</div>
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4" />
+                <strong>${PRICING.PER_MILLION_TOKENS}</strong> per 1M tokens
+              </div>
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4" />
+                <strong>${PRICING.PER_CI_HOUR.toFixed(8)}</strong> per hour CI time
+              </div>
             </div>
           </InfoPanel>
 

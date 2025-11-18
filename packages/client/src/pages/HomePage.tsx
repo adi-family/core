@@ -143,52 +143,52 @@ export function HomePage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'completed': return 'text-green-400 bg-green-500/10 border-green-500/20'
-      case 'failed': return 'text-red-400 bg-red-500/10 border-red-500/20'
-      case 'in_progress': return 'text-blue-400 bg-blue-500/10 border-blue-500/20'
-      default: return 'text-gray-400 bg-gray-500/10 border-gray-500/20'
+      case 'completed': return designTokens.colors.status.success
+      case 'failed': return designTokens.colors.status.error
+      case 'in_progress': return designTokens.colors.status.info
+      default: return designTokens.colors.status.pending
     }
   }
 
   return (
-    <div className="mx-auto p-6 max-w-7xl min-h-[calc(100vh-3.5rem)]">
-      <div className="mb-8 pt-8">
+    <div className={`px-6 py-6 min-h-[calc(100vh-3rem)]`}>
+      <div className={`mb-6 pt-6 ${designTokens.spacing.section}`}>
         <div className="mb-6">
-          <h1 className="text-6xl font-bold tracking-tight uppercase mb-4 bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent">ADI Dashboard</h1>
-          <p className="text-gray-400 text-sm uppercase tracking-wide">
+          <h1 className={`text-3xl font-semibold mb-2 ${designTokens.colors.text.primary}`}>Dashboard</h1>
+          <p className={designTokens.text.bodySecondary}>
             {selectedProject ? selectedProject.name : 'Task automation platform overview'}
           </p>
         </div>
 
         {/* Cost Counter - Full Width */}
-        <div className="bg-slate-800/50 backdrop-blur-xl border border-slate-700/50 rounded-lg p-6">
+        <div className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default} rounded-lg ${designTokens.spacing.cardPadding}`}>
           <div className="flex items-center justify-between">
-            <div className="text-sm font-medium text-gray-300">Platform Cost (Last 100 API calls)</div>
+            <div className={designTokens.text.label}>Platform Cost (Last 100 API calls)</div>
             {loading ? (
-              <div className="text-2xl font-bold text-blue-400">Loading...</div>
+              <div className="text-2xl font-semibold text-blue-400">Loading...</div>
             ) : (
               <div className="flex items-center gap-8">
                 <div className="text-center">
-                  <div className="text-3xl font-bold text-blue-400">{formatCost(totals.totalCost)}</div>
-                  <div className="text-xs text-gray-400 uppercase mt-1">Total Cost</div>
+                  <div className="text-2xl font-semibold text-blue-400">{formatCost(totals.totalCost)}</div>
+                  <div className={`${designTokens.text.caption} mt-1`}>Total Cost</div>
                 </div>
-                <div className="h-12 w-px bg-slate-600"></div>
+                <div className={`h-10 w-px ${designTokens.colors.bg.tertiary}`}></div>
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-gray-300">{formatTokens(totals.totalTokens)}</div>
-                  <div className="text-xs text-gray-400 uppercase mt-1">Tokens ({formatCost(totals.tokenCost)})</div>
+                  <div className={`text-base font-medium ${designTokens.colors.text.secondary}`}>{formatTokens(totals.totalTokens)}</div>
+                  <div className={`${designTokens.text.caption} mt-1`}>Tokens ({formatCost(totals.tokenCost)})</div>
                 </div>
-                <div className="h-12 w-px bg-slate-600"></div>
+                <div className={`h-10 w-px ${designTokens.colors.bg.tertiary}`}></div>
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-gray-300">{formatCost(totals.ciCost)}</div>
-                  <div className="text-xs text-gray-400 uppercase mt-1">CI Time</div>
+                  <div className={`text-base font-medium ${designTokens.colors.text.secondary}`}>{formatCost(totals.ciCost)}</div>
+                  <div className={`${designTokens.text.caption} mt-1`}>CI Time</div>
                 </div>
-                <div className="h-12 w-px bg-slate-600"></div>
+                <div className={`h-10 w-px ${designTokens.colors.bg.tertiary}`}></div>
                 <div className="text-center">
-                  <div className="text-lg font-semibold text-gray-300">{usageMetrics.length}</div>
-                  <div className="text-xs text-gray-400 uppercase mt-1">API Calls</div>
+                  <div className={`text-base font-medium ${designTokens.colors.text.secondary}`}>{usageMetrics.length}</div>
+                  <div className={`${designTokens.text.caption} mt-1`}>API Calls</div>
                 </div>
-                <div className="h-12 w-px bg-slate-600"></div>
-                <div className="text-right text-xs text-gray-400">
+                <div className={`h-10 w-px ${designTokens.colors.bg.tertiary}`}></div>
+                <div className={`text-right ${designTokens.text.caption}`}>
                   <div>${PRICING.PER_MILLION_TOKENS}/M tokens</div>
                   <div>${PRICING.PER_CI_HOUR.toFixed(4)}/hour CI</div>
                 </div>
@@ -200,28 +200,28 @@ export function HomePage() {
 
       {/* Project Stats Section */}
       {selectedProject && !loading && (
-        <div className="mb-8">
-          <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
-            <CardContent className="p-6">
+        <div className="mb-6">
+          <Card className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default}`}>
+            <CardContent className={designTokens.spacing.cardPadding}>
               {loadingStats ? (
-                <div className="text-center text-gray-500 py-4">Loading stats...</div>
+                <div className={`text-center ${designTokens.text.bodySecondary} py-4`}>Loading stats...</div>
               ) : projectStats ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-7 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-white">{projectStats.total_tasks}</div>
-                    <div className="text-xs text-gray-400 uppercase mt-1">Total Tasks</div>
+                    <div className={`text-2xl font-semibold ${designTokens.colors.text.primary}`}>{projectStats.total_tasks}</div>
+                    <div className={`${designTokens.text.caption} mt-1`}>Total Tasks</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-green-400">{projectStats.completed_tasks}</div>
-                    <div className="text-xs text-gray-400 uppercase mt-1">Completed</div>
+                    <div className="text-2xl font-semibold text-green-400">{projectStats.completed_tasks}</div>
+                    <div className={`${designTokens.text.caption} mt-1`}>Completed</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-3xl font-bold text-yellow-400">{projectStats.pending_tasks}</div>
-                    <div className="text-xs text-gray-400 uppercase mt-1">Pending</div>
+                    <div className="text-2xl font-semibold text-yellow-400">{projectStats.pending_tasks}</div>
+                    <div className={`${designTokens.text.caption} mt-1`}>Pending</div>
                   </div>
                 </div>
               ) : (
-                <div className="text-center text-gray-500 py-4">No stats available</div>
+                <div className={`text-center ${designTokens.text.bodySecondary} py-4`}>No stats available</div>
               )}
             </CardContent>
           </Card>
@@ -229,33 +229,33 @@ export function HomePage() {
       )}
 
       {/* Projects Section */}
-      <div className="mb-8">
-        <div className="flex items-center mb-4">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <Folder className="h-6 w-6 text-blue-400" />
+      <div className="mb-6">
+        <div className="flex items-center mb-3">
+          <h2 className={`${designTokens.text.h2} flex items-center gap-2`}>
+            <Folder className={`${designTokens.icons.header} ${designTokens.icons.color}`} />
             Projects
           </h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
           {loading ? (
-            <div className="text-gray-500">Loading projects...</div>
+            <div className={designTokens.text.bodySecondary}>Loading projects...</div>
           ) : (
             <>
               {projects.map((project) => (
                 <Link key={project.id} to={`/projects/${project.id}`}>
-                  <Card className={`cursor-pointer bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 hover:border-slate-600/60 ${designTokens.animations.hover} transition-all h-[120px]`}>
-                    <CardHeader className="pb-3">
-                      <CardTitle className="text-white text-lg">{project.name}</CardTitle>
+                  <Card className={`cursor-pointer ${designTokens.colors.bg.secondary} ${designTokens.borders.default} ${designTokens.interactions.hover} h-24`}>
+                    <CardHeader className={`${designTokens.spacing.cardHeader} pb-3`}>
+                      <CardTitle className={`${designTokens.text.h3}`}>{project.name}</CardTitle>
                     </CardHeader>
                   </Card>
                 </Link>
               ))}
               {/* New Project Card */}
               <Link to="/setup-project">
-                <Card className={`cursor-pointer bg-slate-800/40 backdrop-blur-xl border-2 border-dashed border-slate-600/50 hover:border-blue-500/60 hover:bg-slate-700/40 ${designTokens.animations.hover} transition-all flex items-center justify-center h-[120px]`}>
-                  <CardContent className="flex flex-col items-center justify-center p-6">
-                    <Plus className="h-8 w-8 text-blue-400 mb-2" />
-                    <span className="text-white font-medium">New Project</span>
+                <Card className={`cursor-pointer ${designTokens.colors.bg.secondary} border-2 border-dashed ${designTokens.colors.border.default} hover:border-[#5e6ad2] ${designTokens.interactions.hover} flex items-center justify-center h-24`}>
+                  <CardContent className="flex flex-col items-center justify-center p-4">
+                    <Plus className={`${designTokens.icons.header} text-[#5e6ad2] mb-1`} />
+                    <span className={`${designTokens.text.body} font-medium`}>New Project</span>
                   </CardContent>
                 </Card>
               </Link>
@@ -265,33 +265,34 @@ export function HomePage() {
       </div>
 
       {/* Latest Tasks */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-            <ListTodo className="h-6 w-6 text-green-400" />
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-3">
+          <h2 className={`${designTokens.text.h2} flex items-center gap-2`}>
+            <ListTodo className={`${designTokens.icons.header} ${designTokens.icons.color}`} />
             Latest Tasks
           </h2>
-          <Link to="/tasks" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+          <Link to="/tasks" className={`${designTokens.text.body} ${designTokens.colors.text.accent} ${designTokens.interactions.hover}`}>
             View All
           </Link>
         </div>
-        <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
-          <CardContent className="p-6">
+        <Card className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default}`}>
+          <CardContent className={designTokens.spacing.cardPadding}>
             {loading ? (
-              <div className="text-gray-500">Loading tasks...</div>
+              <div className={designTokens.text.bodySecondary}>Loading tasks...</div>
             ) : latestTasks.length === 0 ? (
-              <div className="text-gray-500">No tasks found</div>
+              <div className={designTokens.text.bodySecondary}>No tasks found</div>
             ) : (
-              <div className="space-y-3">
+              <div className={designTokens.spacing.listItem}>
                 {latestTasks.map((task) => (
                   <Link key={task.id} to={`/tasks/${task.id}`}>
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 hover:bg-slate-700/50 transition-colors border border-slate-600/30">
+                    <div className={`flex items-center justify-between p-3 rounded-lg ${designTokens.colors.bg.primary} ${designTokens.interactions.hover} ${designTokens.borders.default}`}>
                       <div className="flex-1">
-                        <div className="text-white font-medium text-sm">{task.title}</div>
-                        <div className="text-gray-400 text-xs mt-1">{task.description?.substring(0, 80)}...</div>
+                        <div className={`${designTokens.text.body} font-medium`}>{task.title}</div>
+                        <div className={`${designTokens.text.caption} mt-1`}>{task.description?.substring(0, 80)}...</div>
                       </div>
-                      <div className={`px-2 py-1 rounded text-xs font-medium border ${getStatusColor(task.status)}`}>
-                        {task.status}
+                      <div className="flex items-center gap-1.5">
+                        <div className={`${designTokens.statusDot} ${getStatusColor(task.status)}`} />
+                        <span className={designTokens.text.caption}>{task.status}</span>
                       </div>
                     </div>
                   </Link>
@@ -303,31 +304,31 @@ export function HomePage() {
       </div>
 
       {/* Task Sources & File Spaces Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Task Sources */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <Database className="h-6 w-6 text-purple-400" />
+          <div className="flex items-center justify-between mb-3">
+            <h2 className={`${designTokens.text.h2} flex items-center gap-2`}>
+              <Database className={`${designTokens.icons.header} ${designTokens.icons.color}`} />
               Task Sources
             </h2>
-            <Link to="/task-sources" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+            <Link to="/task-sources" className={`${designTokens.text.body} ${designTokens.colors.text.accent} ${designTokens.interactions.hover}`}>
               View All
             </Link>
           </div>
-          <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
-            <CardContent className="p-6">
+          <Card className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default}`}>
+            <CardContent className={designTokens.spacing.cardPadding}>
               {loading ? (
-                <div className="text-gray-500">Loading task sources...</div>
+                <div className={designTokens.text.bodySecondary}>Loading task sources...</div>
               ) : filteredTaskSources.length === 0 ? (
-                <div className="text-gray-500">No task sources found</div>
+                <div className={designTokens.text.bodySecondary}>No task sources found</div>
               ) : (
-                <div className="space-y-2">
+                <div className={designTokens.spacing.listItem}>
                   {filteredTaskSources.slice(0, 5).map((source) => (
-                    <div key={source.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 border border-slate-600/30">
+                    <div key={source.id} className={`flex items-center justify-between p-3 rounded-lg ${designTokens.colors.bg.primary} ${designTokens.borders.default}`}>
                       <div>
-                        <div className="text-white font-medium text-sm">{source.name}</div>
-                        <div className="text-gray-400 text-xs uppercase">{source.type}</div>
+                        <div className={`${designTokens.text.body} font-medium`}>{source.name}</div>
+                        <div className={designTokens.text.caption}>{source.type}</div>
                       </div>
                     </div>
                   ))}
@@ -339,28 +340,28 @@ export function HomePage() {
 
         {/* File Spaces */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl font-bold text-white flex items-center gap-2">
-              <GitBranch className="h-6 w-6 text-orange-400" />
+          <div className="flex items-center justify-between mb-3">
+            <h2 className={`${designTokens.text.h2} flex items-center gap-2`}>
+              <GitBranch className={`${designTokens.icons.header} ${designTokens.icons.color}`} />
               Repositories
             </h2>
-            <Link to="/file-spaces" className="text-sm text-blue-400 hover:text-blue-300 transition-colors">
+            <Link to="/file-spaces" className={`${designTokens.text.body} ${designTokens.colors.text.accent} ${designTokens.interactions.hover}`}>
               View All
             </Link>
           </div>
-          <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
-            <CardContent className="p-6">
+          <Card className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default}`}>
+            <CardContent className={designTokens.spacing.cardPadding}>
               {loading ? (
-                <div className="text-gray-500">Loading file spaces...</div>
+                <div className={designTokens.text.bodySecondary}>Loading file spaces...</div>
               ) : filteredFileSpaces.length === 0 ? (
-                <div className="text-gray-500">No file spaces found</div>
+                <div className={designTokens.text.bodySecondary}>No file spaces found</div>
               ) : (
-                <div className="space-y-2">
+                <div className={designTokens.spacing.listItem}>
                   {filteredFileSpaces.slice(0, 5).map((space) => (
-                    <div key={space.id} className="flex items-center justify-between p-3 rounded-lg bg-slate-700/30 border border-slate-600/30">
+                    <div key={space.id} className={`flex items-center justify-between p-3 rounded-lg ${designTokens.colors.bg.primary} ${designTokens.borders.default}`}>
                       <div>
-                        <div className="text-white font-medium text-sm">{space.name}</div>
-                        <div className="text-gray-400 text-xs">{space.config.repo}</div>
+                        <div className={`${designTokens.text.body} font-medium`}>{space.name}</div>
+                        <div className={designTokens.text.caption}>{space.config.repo}</div>
                       </div>
                     </div>
                   ))}

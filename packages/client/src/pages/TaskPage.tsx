@@ -20,6 +20,8 @@ import { getTaskConfig, getTaskArtifactsConfig, evaluateTaskConfig, implementTas
 import { getTaskSourceConfig, syncTaskSourceConfig } from '@adi/api-contracts/task-sources'
 import { listPipelineArtifactsConfig } from '@adi/api-contracts/pipeline-executions'
 import type { Task, TaskSource, PipelineArtifact } from "../../../types"
+import { ImplementationProgress } from "@/components/ImplementationProgress"
+import { designTokens } from "@/theme/tokens"
 
 export function TaskPage() {
   const { id } = useParams<{ id: string }>()
@@ -109,7 +111,7 @@ export function TaskPage() {
     })
   }
 
-  const getRemoteStatusVariant = (status: 'opened' | 'closed') => {
+  const _getRemoteStatusVariant = (status: 'opened' | 'closed') => {
     return status === 'opened' ? 'green' : 'gray'
   }
 
@@ -192,19 +194,19 @@ export function TaskPage() {
       const response = await client.run(implementTaskConfig, {
         params: { id: task.id },
       })
-      console.log('🚀 Implementation API response:', response)
+      console.log('Implementation API response:', response)
       toast.success('Implementation started successfully!')
 
       // Refetch task data
       const taskData = await client.run(getTaskConfig, {
         params: { id: id! },
       })
-      console.log('🔄 Refetched task data:', taskData)
-      console.log('📊 Implementation status in refetched data:', taskData.ai_implementation_status)
+      console.log('Refetched task data:', taskData)
+      console.log('Implementation status in refetched data:', taskData.ai_implementation_status)
       setTask(taskData)
-      console.log('✅ State updated with new task data')
+      console.log('State updated with new task data')
     } catch (error) {
-      console.error('❌ Error starting implementation:', error)
+      console.error('Error starting implementation:', error)
       toast.error(`Failed to start implementation: ${error}`)
     }
   }
@@ -341,26 +343,26 @@ export function TaskPage() {
 
         {/* Task Details Card */}
         <Card>
-        <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
-          <CardTitle className="text-2xl uppercase tracking-wide">{task.title}</CardTitle>
-          <CardDescription className="text-gray-300">
+        <CardHeader className={`${designTokens.colors.bg.secondary} ${designTokens.borders.bottom} ${designTokens.spacing.cardHeader}`}>
+          <CardTitle className={designTokens.text.h2}>{task.title}</CardTitle>
+          <CardDescription className={designTokens.text.caption}>
             Task ID: {task.id}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
+        <CardContent className={`${designTokens.spacing.cardPadding} ${designTokens.spacing.section}`}>
           {/* Description */}
           {task.description && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+              <h3 className={`${designTokens.text.label} mb-2`}>
                 Description
               </h3>
-              <p className="text-gray-100">{task.description}</p>
+              <p className={designTokens.text.body}>{task.description}</p>
             </div>
           )}
 
           {/* Step Indicator */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-lg p-4 border border-white/10">
-            <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">
+          <div className={`${designTokens.colors.bg.secondary} rounded-lg ${designTokens.spacing.cardPadding} ${designTokens.borders.default}`}>
+            <h3 className={`${designTokens.text.label} mb-3`}>
               Pipeline Status
             </h3>
             <div className="flex items-center justify-between gap-2">
@@ -374,17 +376,17 @@ export function TaskPage() {
                     <div className="flex flex-col items-center flex-1 gap-0.5">
                       <div className={`flex items-center gap-1.5 ${getStepColor(step.status)}`}>
                         <StepIcon
-                          className={`h-5 w-5 ${isAnimating ? 'animate-spin' : ''}`}
+                          className={`${designTokens.icons.standard} ${isAnimating ? 'animate-spin' : ''}`}
                         />
-                        <span className="text-sm font-medium">{step.label}</span>
+                        <span className={designTokens.text.body}>{step.label}</span>
                       </div>
-                      <span className="text-xs text-gray-400">
+                      <span className={designTokens.text.caption}>
                         {step.status}
                       </span>
                       {isFailed && step.onRetry && (
                         <button
                           onClick={step.onRetry}
-                          className="flex items-center gap-0.5 text-xs text-blue-400 hover:text-blue-300 disabled:opacity-50 mt-1"
+                          className={`flex items-center gap-0.5 ${designTokens.text.caption} ${designTokens.colors.text.accent} ${designTokens.interactions.hover} mt-1`}
                           title="Retry this step"
                         >
                           <RefreshCw className="h-3 w-3" />
@@ -393,7 +395,7 @@ export function TaskPage() {
                       )}
                     </div>
                     {index < steps.length - 1 && (
-                      <div className="h-px bg-white/20 flex-shrink-0 w-8 mx-2" />
+                      <div className={`h-px ${designTokens.colors.bg.tertiary} flex-shrink-0 w-8 mx-2`} />
                     )}
                   </div>
                 )
@@ -402,50 +404,55 @@ export function TaskPage() {
           </div>
 
           {/* Status Information */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+              <h3 className={`${designTokens.text.label} mb-2`}>
                 Status
               </h3>
-              <Badge variant="blue" className="text-sm">
-                {task.status}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <div className={`${designTokens.statusDot} ${designTokens.colors.status.info}`} />
+                <span className={designTokens.text.body}>{task.status}</span>
+              </div>
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+              <h3 className={`${designTokens.text.label} mb-2`}>
                 Remote Status
               </h3>
-              <Badge variant={getRemoteStatusVariant(task.remote_status)} className="text-sm">
-                {task.remote_status}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <div className={`${designTokens.statusDot} ${task.remote_status === 'opened' ? designTokens.colors.status.success : designTokens.colors.status.pending}`} />
+                <span className={designTokens.text.body}>{task.remote_status}</span>
+              </div>
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+              <h3 className={`${designTokens.text.label} mb-2`}>
                 Simple Evaluation Status
               </h3>
-              <Badge variant="gray" className="text-sm">
-                {task.ai_evaluation_simple_status}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <div className={`${designTokens.statusDot} ${designTokens.colors.status.pending}`} />
+                <span className={designTokens.text.body}>{task.ai_evaluation_simple_status}</span>
+              </div>
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+              <h3 className={`${designTokens.text.label} mb-2`}>
                 Advanced Evaluation Status
               </h3>
-              <Badge variant="gray" className="text-sm">
-                {task.ai_evaluation_advanced_status || (task.ai_evaluation_simple_status === 'completed' && task.ai_evaluation_simple_verdict === 'ready' ? 'not_started' : 'not_started')}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <div className={`${designTokens.statusDot} ${designTokens.colors.status.pending}`} />
+                <span className={designTokens.text.body}>{task.ai_evaluation_advanced_status || (task.ai_evaluation_simple_status === 'completed' && task.ai_evaluation_simple_verdict === 'ready' ? 'not_started' : 'not_started')}</span>
+              </div>
             </div>
 
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+              <h3 className={`${designTokens.text.label} mb-2`}>
                 AI Implementation Status
               </h3>
-              <Badge variant="gray" className="text-sm">
-                {task.ai_implementation_status}
-              </Badge>
+              <div className="flex items-center gap-1.5">
+                <div className={`${designTokens.statusDot} ${designTokens.colors.status.pending}`} />
+                <span className={designTokens.text.body}>{task.ai_implementation_status}</span>
+              </div>
             </div>
 
             {task.ai_evaluation_simple_verdict && (
@@ -961,6 +968,19 @@ export function TaskPage() {
                   {evaluationReport}
                 </pre>
               </div>
+            </div>
+          )}
+
+          {/* Implementation Progress */}
+          {task.ai_implementation_session_id && (task.ai_implementation_status === 'implementing' || task.ai_implementation_status === 'queued' || task.ai_implementation_status === 'completed' || task.ai_implementation_status === 'failed') && (
+            <div className="pt-4 border-t border-white/10">
+              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">
+                Implementation Progress
+              </h3>
+              <ImplementationProgress task={task} onComplete={() => {
+                // Refetch task data when implementation completes
+                client.run(getTaskConfig, { params: { id: task.id } }).then(setTask)
+              }} />
             </div>
           )}
 

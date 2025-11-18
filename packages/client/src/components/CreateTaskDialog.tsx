@@ -86,14 +86,14 @@ export function CreateTaskDialog({ isOpen, onClose, onSuccess }: CreateTaskDialo
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 animate-in fade-in duration-200">
       <div className="w-full max-w-2xl mx-4">
-        <Card className={`bg-slate-800/95 backdrop-blur-xl border border-slate-700/50 shadow-2xl ${designTokens.animations.fadeIn} rounded-2xl`}>
-          <CardHeader className={`bg-gradient-to-r ${designTokens.gradients.cardHeader} text-white rounded-t-2xl`}>
-            <CardTitle className={`${designTokens.text.cardTitle} text-white`}>
+        <Card className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default} rounded-lg`}>
+          <CardHeader className={`${designTokens.spacing.cardHeader} ${designTokens.borders.bottom}`}>
+            <CardTitle className={designTokens.text.h2}>
               Create New Task
             </CardTitle>
-            <CardDescription className={`${designTokens.text.cardDescription} text-gray-200`}>
+            <CardDescription className={`${designTokens.text.bodySecondary} mt-1`}>
               Create a manual task to track work outside of your task sources
             </CardDescription>
           </CardHeader>
