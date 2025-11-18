@@ -230,15 +230,20 @@ export function TaskRow({
 
       {/* Content */}
       <div className="p-4">
-        {/* Header: Title and ID */}
+        {/* Header: Title and Key/ID */}
         <div className="flex items-start gap-4 mb-3">
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-semibold text-white mb-1 truncate">
+              {task.task_key && (
+                <span className="text-blue-400 font-mono mr-2">{task.task_key}</span>
+              )}
               {task.title}
             </h3>
-            <p className="text-xs font-mono text-gray-400">
-              ID: {task.id.substring(0, 8)}...
-            </p>
+            {!task.task_key && (
+              <p className="text-xs font-mono text-gray-400">
+                ID: {task.id.substring(0, 8)}...
+              </p>
+            )}
           </div>
         </div>
 

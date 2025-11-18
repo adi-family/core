@@ -204,6 +204,8 @@ export const projectSchema = z.object({
   id: z.string(),
   name: z.string(),
   enabled: z.boolean(),
+  key: z.string().nullable(),
+  task_sequence: z.number().default(0),
   job_executor_gitlab: gitlabExecutorConfigSchema.nullable(),
   ai_provider_configs: aiProviderConfigSchema.nullable(),
   default_worker_type: workerTypeSchema.default('custom-microservice'),
@@ -268,6 +270,7 @@ export type ManualTaskMetadata = z.infer<typeof manualTaskMetadataSchema>
 
 export const taskSchema = z.object({
   id: z.string(),
+  task_key: z.string().nullable(),
   title: z.string(),
   description: z.string().nullable(),
   status: z.string(),
@@ -331,7 +334,8 @@ export type Message = z.infer<typeof messageSchema>
 
 export const createProjectInputSchema = z.object({
   name: z.string(),
-  enabled: z.boolean().optional()
+  enabled: z.boolean().optional(),
+  key: z.string().optional()
 })
 
 export type CreateProjectInput = z.infer<typeof createProjectInputSchema>

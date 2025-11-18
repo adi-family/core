@@ -20,7 +20,7 @@ export const findProjectById = async (sql: Sql, id: string): Promise<Project> =>
   return project
 }
 
-const createProjectCols = ['name', 'enabled'] as const
+const createProjectCols = ['name', 'enabled', 'key'] as const
 export const createProject = async (sql: Sql, input: CreateProjectInput): Promise<Project> => {
   const presentCols = filterPresentColumns(input as any, createProjectCols)
 
@@ -34,7 +34,7 @@ export const createProject = async (sql: Sql, input: CreateProjectInput): Promis
   return project
 }
 
-const updateProjectCols = ['name', 'enabled'] as const
+const updateProjectCols = ['name', 'enabled', 'key'] as const
 export const updateProject = async (sql: Sql, id: string, input: UpdateProjectInput): Promise<Project> => {
   const presentCols = filterPresentColumns(input, updateProjectCols)
 

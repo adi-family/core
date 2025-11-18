@@ -109,6 +109,8 @@ const projectSchema = z.object({
   id: z.string(),
   name: z.string(),
   enabled: z.boolean(),
+  key: z.string().nullable(),
+  task_sequence: z.number(),
   job_executor_gitlab: gitlabExecutorConfigSchema.nullable(),
   ai_provider_configs: aiProviderConfigSchema.nullable(),
   created_at: z.string(),
@@ -142,7 +144,8 @@ export const createProjectConfig = {
   body: {
     schema: z.object({
       name: z.string(),
-      enabled: z.boolean().optional()
+      enabled: z.boolean().optional(),
+      key: z.string().optional()
     })
   },
   response: {
@@ -156,7 +159,8 @@ export const updateProjectConfig = {
   body: {
     schema: z.object({
       name: z.string().optional(),
-      enabled: z.boolean().optional()
+      enabled: z.boolean().optional(),
+      key: z.string().optional()
     })
   },
   response: {

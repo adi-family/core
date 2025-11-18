@@ -344,9 +344,14 @@ export function TaskPage() {
         {/* Task Details Card */}
         <Card>
         <CardHeader className={`${designTokens.colors.bg.secondary} ${designTokens.borders.bottom} ${designTokens.spacing.cardHeader}`}>
-          <CardTitle className={designTokens.text.h2}>{task.title}</CardTitle>
+          <CardTitle className={designTokens.text.h2}>
+            {task.task_key && (
+              <span className="text-blue-400 font-mono mr-3">{task.task_key}</span>
+            )}
+            {task.title}
+          </CardTitle>
           <CardDescription className={designTokens.text.caption}>
-            Task ID: {task.id}
+            {task.task_key ? `UUID: ${task.id}` : `Task ID: ${task.id}`}
           </CardDescription>
         </CardHeader>
         <CardContent className={`${designTokens.spacing.cardPadding} ${designTokens.spacing.section}`}>
