@@ -13,7 +13,7 @@ import { findSessionById } from '@db/sessions'
 const logger = createLogger({ namespace: 'worker-response-consumer' })
 
 export class ResponseConsumer {
-  private connection: amqp.Connection | null = null
+  private connection: amqp.ChannelModel | null = null
   private channel: amqp.Channel | null = null
   private rabbitmqUrl: string
 
@@ -26,10 +26,10 @@ export class ResponseConsumer {
     this.channel = await this.connection.createChannel()
 
     // Assert queue exists
-    await this.channel.assertQueue(WORKER_RESPONSES_QUEUE, { durable: true })
+    await this.channel!.assertQueue(WORKER_RESPONSES_QUEUE, { durable: true })
 
     // Set prefetch to process one message at a time
-    await this.channel.prefetch(1)
+    await this.channel!.prefetch(1)
 
     logger.info(`Connected to RabbitMQ and listening on ${WORKER_RESPONSES_QUEUE}`)
   }
@@ -119,7 +119,7 @@ export class ResponseConsumer {
       await this.channel.close()
     }
     if (this.connection) {
-      await this.connection.close()
+      await this.connection!.close()
     }
     logger.info('Disconnected from RabbitMQ')
   }
