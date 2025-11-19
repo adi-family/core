@@ -1,6 +1,7 @@
 version: '3.8'
 
 services:
+  # Primary PostgreSQL database for the application
   postgres:
     image: postgres:16-alpine
     container_name: adi-simple-postgres
@@ -16,6 +17,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # RabbitMQ message broker for asynchronous task processing
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
     container_name: adi-simple-rabbitmq
@@ -30,6 +32,7 @@ services:
       timeout: 5s
       retries: 5
 
+  # Service to run database migrations on startup
   migrations:
     build:
       context: ./migrations
@@ -43,6 +46,7 @@ services:
     command: ["postgres://postgres:postgres@postgres:5432/postgres?sslmode=disable", "up"]
     restart: "no"
 
+  # Main backend API service
   backend:
     build:
       context: .
@@ -83,6 +87,7 @@ services:
       - GITLAB_ROOT_OAUTH_HOST=${GITLAB_ROOT_OAUTH_HOST:-https://gitlab.com}
     restart: unless-stopped
 
+  # Frontend client application
   client:
     build:
       context: .
@@ -99,6 +104,7 @@ services:
       - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
     restart: unless-stopped
 
+  # Public landing page
   landing:
     build:
       context: .
@@ -113,6 +119,7 @@ services:
       - LANDING_PORT=${LANDING_PORT:-3000}
     restart: unless-stopped
 
+  # Microservice for task operations and management
   micros-task-ops:
     build:
       context: .
@@ -142,6 +149,7 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY}
     restart: unless-stopped
 
+  # Microservice for Implementation of tasks using Claude AI
   micros-claude-worker:
     build:
       context: .
@@ -162,6 +170,7 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     restart: unless-stopped
 
+  # Dispatcher service for managing worker tasks
   micros-worker-dispatcher:
     build:
       context: .
@@ -178,6 +187,51 @@ services:
       - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
       - RABBITMQ_URL=amqp://${RABBITMQ_USER:-rabbit}:${RABBITMQ_PASS:-rabbit}@rabbitmq:5672
       - NODE_ENV=production
+    restart: unless-stopped
+
+  # Microservice for evaluating task results
+  micros-task-eval:
+    build:
+      context: .
+      dockerfile: packages/micros-task-eval/Dockerfile
+    container_name: adi-simple-micros-task-eval
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-rabbit}:${RABBITMQ_PASS:-rabbit}@rabbitmq:5672
+      - NODE_ENV=production
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+    restart: unless-stopped
+
+  # Microservice for synchronizing tasks from external sources (Jira, GitLab, GitHub)
+  micros-task-sync:
+    build:
+      context: .
+      dockerfile: packages/micros-task-sync/Dockerfile
+    container_name: adi-simple-micros-task-sync
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@postgres:5432/postgres
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-rabbit}:${RABBITMQ_PASS:-rabbit}@rabbitmq:5672
+      - NODE_ENV=production
+      - GITLAB_TOKEN=${GITLAB_TOKEN}
+      - GITLAB_HOST=${GITLAB_HOST:-https://gitlab.com}
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+      - JIRA_HOST=${JIRA_HOST}
+      - JIRA_EMAIL=${JIRA_EMAIL}
+      - JIRA_API_TOKEN=${JIRA_API_TOKEN}
     restart: unless-stopped
 
 volumes:

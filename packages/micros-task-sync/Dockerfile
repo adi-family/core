@@ -31,4 +31,4 @@ COPY --from=builder /app/tsconfig.json ./tsconfig.json
 ENV NODE_ENV=production
 
 WORKDIR /app/micros-task-sync
-CMD ["bun", "run", "index.ts"]
+CMD ["bun", "run", "service.ts"]
