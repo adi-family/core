@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
-import { taskSchema as taskSchemaFromTypes, sessionSchema as sessionSchemaFromTypes } from '@adi-simple/types'
+import { taskSchema as taskSchemaFromTypes, sessionSchema as sessionSchemaFromTypes, pipelineArtifactSchema } from '@adi-simple/types'
 
 export const taskSchema = taskSchemaFromTypes
 export type Task = z.infer<typeof taskSchema>
@@ -8,16 +8,7 @@ export type Task = z.infer<typeof taskSchema>
 export const sessionSchema = sessionSchemaFromTypes
 export type Session = z.infer<typeof sessionSchema>
 
-const artifactSchema = z.object({
-  id: z.string(),
-  pipeline_execution_id: z.string(),
-  artifact_type: z.enum(['merge_request', 'issue', 'branch', 'commit', 'execution_result', 'text', 'task_evaluation', 'task_implementation']),
-  reference_url: z.string(),
-  metadata: z.any().nullable(),
-  created_at: z.string().or(z.date())
-})
-
-export type Artifact = z.infer<typeof artifactSchema>
+export type Artifact = z.infer<typeof pipelineArtifactSchema>
 
 export const getTaskSessionsConfig = {
   method: 'GET',
@@ -31,7 +22,7 @@ export const getTaskArtifactsConfig = {
   method: 'GET',
   route: route.dynamic('/tasks/:taskId/artifacts', z.object({ taskId: z.string() })),
   response: {
-    schema: z.array(artifactSchema)
+    schema: z.array(pipelineArtifactSchema)
   }
 } as const
 

@@ -19,7 +19,6 @@ import {
   BarChart3,
   Keyboard,
   DollarSign,
-  Settings
 } from 'lucide-react'
 import { designTokens } from '@/theme/tokens'
 import { useProject } from '@/contexts/ProjectContext'
@@ -140,16 +139,14 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             <Link
               key={item.to}
               to={item.to}
-              className={`p-2 rounded-lg ${
-                isActive
+              className={`p-2 rounded-lg ${isActive
                   ? designTokens.colors.bg.tertiary
                   : designTokens.interactions.hover
-              }`}
+                }`}
               title={`${item.label} (${item.shortcut})`}
             >
-              <Icon className={`${designTokens.icons.standard} ${
-                isActive ? item.color : designTokens.colors.text.secondary
-              }`} />
+              <Icon className={`${designTokens.icons.standard} ${isActive ? item.color : designTokens.colors.text.secondary
+                }`} />
             </Link>
           )
         })}
@@ -164,16 +161,14 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             <Link
               key={item.to}
               to={item.to}
-              className={`relative p-2 rounded-lg ${
-                isActive
+              className={`relative p-2 rounded-lg ${isActive
                   ? designTokens.colors.bg.tertiary
                   : designTokens.interactions.hover
-              }`}
+                }`}
               title={item.label}
             >
-              <Icon className={`${designTokens.icons.standard} ${
-                isActive ? designTokens.colors.text.accent : designTokens.colors.text.secondary
-              }`} />
+              <Icon className={`${designTokens.icons.standard} ${isActive ? designTokens.colors.text.accent : designTokens.colors.text.secondary
+                }`} />
               {item.badge !== undefined && item.badge > 0 && (
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
                   <span className="text-[9px] text-white font-bold">{item.badge > 99 ? '99+' : item.badge}</span>
@@ -260,11 +255,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all group ${
-                  isActive
+                className={`flex items-center justify-between px-3 py-2 rounded-lg transition-all group ${isActive
                     ? `${designTokens.colors.bg.tertiary} ${item.color}`
                     : `${designTokens.colors.text.secondary} ${designTokens.interactions.hover}`
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <Icon className={designTokens.icons.standard} />
@@ -330,11 +324,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${
-                  isActive
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${isActive
                     ? `${designTokens.colors.bg.tertiary} ${designTokens.colors.text.accent}`
                     : `${designTokens.colors.text.secondary} ${designTokens.interactions.hover}`
-                }`}
+                  }`}
               >
                 <Icon className={designTokens.icons.standard} />
                 <span className={designTokens.text.body}>{item.label}</span>
@@ -374,11 +367,10 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
               <Link
                 key={item.to}
                 to={item.to}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg ${
-                  item.isAdmin
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg ${item.isAdmin
                     ? `${designTokens.colors.text.accent} font-medium`
                     : designTokens.colors.text.secondary
-                } ${designTokens.interactions.hover}`}
+                  } ${designTokens.interactions.hover}`}
               >
                 <span className={designTokens.text.body}>{item.label}</span>
               </Link>

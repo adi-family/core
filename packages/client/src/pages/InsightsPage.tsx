@@ -61,7 +61,7 @@ export function InsightsPage() {
     }, 0)
 
     const successRate = projectTasks.filter(t => t.ai_implementation_status === 'completed').length /
-                        Math.max(projectTasks.filter(t => t.ai_implementation_status).length, 1) * 100
+      Math.max(projectTasks.filter(t => t.ai_implementation_status).length, 1) * 100
 
     return {
       shipped: shipped.length,
@@ -101,7 +101,7 @@ export function InsightsPage() {
     ).slice(0, 3)
 
     return completed.map(task => {
-      const evalResult = task.ai_evaluation_simple_result || task.ai_evaluation_advanced_result
+      const evalResult = task.ai_evaluation_simple_result
       return {
         title: task.title,
         impact: evalResult?.estimated_impact || 'medium',
@@ -232,7 +232,7 @@ export function InsightsPage() {
 
             {/* Simple bar chart */}
             <div className="flex items-end gap-4 h-48">
-              {weeklyData.map((day, index) => {
+              {weeklyData.map((day) => {
                 const maxCount = Math.max(...weeklyData.map(d => d.count))
                 const height = (day.count / maxCount) * 100
 

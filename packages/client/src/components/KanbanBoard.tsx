@@ -31,7 +31,7 @@ const columns: ColumnConfig[] = [
   { id: 'done', title: 'Done', color: 'bg-green-700', icon: <CheckCircle className="h-4 w-4" /> }
 ]
 
-export function KanbanBoard({ tasks, _onTasksChange, _onRefresh }: KanbanBoardProps) {
+export function KanbanBoard({ tasks, onRefresh }: KanbanBoardProps) {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
@@ -98,7 +98,7 @@ export function KanbanBoard({ tasks, _onTasksChange, _onRefresh }: KanbanBoardPr
         // Mark as done
         await client.run(updateTaskConfig, {
           params: { id: draggedTask.id },
-          body: { status: 'closed', remote_status: 'closed' }
+          body: { status: 'closed' }
         })
         toast.success('Task marked as done')
       }
@@ -118,7 +118,7 @@ export function KanbanBoard({ tasks, _onTasksChange, _onRefresh }: KanbanBoardPr
       await client.run(evaluateTaskConfig, { params: { id: task.id } })
       toast.success('Evaluation started')
       onRefresh()
-    } catch (error) {
+    } catch {
       toast.error('Failed to start evaluation')
     }
   }
@@ -128,7 +128,7 @@ export function KanbanBoard({ tasks, _onTasksChange, _onRefresh }: KanbanBoardPr
       await client.run(implementTaskConfig, { params: { id: task.id } })
       toast.success('Implementation started')
       onRefresh()
-    } catch (error) {
+    } catch {
       toast.error('Failed to start implementation')
     }
   }
@@ -138,9 +138,8 @@ export function KanbanBoard({ tasks, _onTasksChange, _onRefresh }: KanbanBoardPr
       {columns.map(column => (
         <div
           key={column.id}
-          className={`${designTokens.colors.bg.secondary} rounded-lg ${designTokens.borders.default} ${
-            hoveredColumn === column.id ? 'border-[#5e6ad2]' : ''
-          } transition-colors`}
+          className={`${designTokens.colors.bg.secondary} rounded-lg ${designTokens.borders.default} ${hoveredColumn === column.id ? 'border-[#5e6ad2]' : ''
+            } transition-colors`}
           onDragOver={(e) => handleDragOver(e, column.id)}
           onDrop={() => handleDrop(column.id)}
           onDragLeave={() => setHoveredColumn(null)}

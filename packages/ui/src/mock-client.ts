@@ -224,6 +224,7 @@ const mockFileSpaces: FileSpace[] = [
 const mockTasks: Task[] = [
   {
     id: "task-1",
+    task_key: "TASK-1",
     title: "Fix authentication bug in login flow",
     description: "Users are experiencing intermittent authentication failures",
     status: "open",
@@ -260,6 +261,7 @@ const mockTasks: Task[] = [
   },
   {
     id: "task-2",
+    task_key: "TASK-2",
     title: "Implement dark mode for mobile app",
     description: "Add dark mode support across all screens",
     status: "in_progress",
@@ -295,6 +297,7 @@ const mockTasks: Task[] = [
   },
   {
     id: "task-3",
+    task_key: "TASK-3",
     title: "Optimize API response time",
     description: "API endpoints are slow, need optimization",
     status: "open",
@@ -330,6 +333,7 @@ const mockTasks: Task[] = [
   },
   {
     id: "task-4",
+    task_key: "TASK-4",
     title: "Update documentation for new API endpoints",
     description: null,
     status: "done",
