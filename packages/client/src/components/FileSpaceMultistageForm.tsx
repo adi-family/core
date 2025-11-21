@@ -19,7 +19,7 @@ import { GitlabRepositoryMultiSelect } from '@adi-simple/ui/gitlab-repository-mu
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateFileSpaceInput, GitlabFileSpaceConfig as GitlabFileSpaceConfigType, GithubFileSpaceConfig } from "../../../types"
 import { ChevronRight, ChevronLeft, Check } from "lucide-react"
-import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
+import { DEFAULT_HOSTS, FILE_SPACE_TYPES, GITLAB_SCOPES } from '@adi-simple/config/shared'
 import { createFileSpaceConfig } from '@adi/api-contracts/file-spaces'
 
 type FileSpaceType = 'gitlab' | 'github'
@@ -86,14 +86,15 @@ export function FileSpaceMultistageForm() {
       setLoading(true)
 
       try {
-        if (formData.type === "gitlab") {
+        // FILE_SPACE_TYPES[0] = 'gitlab'
+        if (formData.type === FILE_SPACE_TYPES[0]) {
           // Create multiple file spaces for each selected repository
           const promises = selectedRepositories.map(async (repo) => {
             const fileSpaceName = formData.name || `GitLab: ${repo}`
             const payload: CreateFileSpaceInput = {
               project_id: formData.project_id,
               name: fileSpaceName,
-              type: 'gitlab',
+              type: FILE_SPACE_TYPES[0],
               config: {
                 ...gitlabConfig,
                 repo,
@@ -108,13 +109,14 @@ export function FileSpaceMultistageForm() {
           })
 
           await Promise.all(promises)
-        } else if (formData.type === "github") {
+        } else if (formData.type === FILE_SPACE_TYPES[1]) {
+          // FILE_SPACE_TYPES[1] = 'github'
           // GitHub single repository creation
           const fileSpaceName = formData.name || `GitHub: ${githubConfig.repo}`
           const payload: CreateFileSpaceInput = {
             project_id: formData.project_id,
             name: fileSpaceName,
-            type: 'github',
+            type: FILE_SPACE_TYPES[1],
             config: githubConfig,
             enabled: formData.enabled,
             ...(formData.default_branch && { default_branch: formData.default_branch }),
@@ -170,9 +172,10 @@ export function FileSpaceMultistageForm() {
       case 2:
         return formData.type !== ""
       case 3:
-        if (formData.type === "gitlab") {
+        // FILE_SPACE_TYPES[0] = 'gitlab', FILE_SPACE_TYPES[1] = 'github'
+        if (formData.type === FILE_SPACE_TYPES[0]) {
           return selectedRepositories.length > 0
-        } else if (formData.type === "github") {
+        } else if (formData.type === FILE_SPACE_TYPES[1]) {
           return githubConfig.repo !== ""
         }
         return false
@@ -192,9 +195,10 @@ export function FileSpaceMultistageForm() {
         if (currentStep === 1 && !formData.project_id) {
           setError("Please select a project before proceeding")
         } else if (currentStep === 3) {
-          if (formData.type === "gitlab" && selectedRepositories.length === 0) {
+          // FILE_SPACE_TYPES[0] = 'gitlab', FILE_SPACE_TYPES[1] = 'github'
+          if (formData.type === FILE_SPACE_TYPES[0] && selectedRepositories.length === 0) {
             setError("Please select at least one repository")
-          } else if (formData.type === "github" && !githubConfig.repo) {
+          } else if (formData.type === FILE_SPACE_TYPES[1] && !githubConfig.repo) {
             setError("Please enter a repository")
           } else {
             setError("Please fill in all required fields before proceeding")
@@ -334,7 +338,8 @@ export function FileSpaceMultistageForm() {
                   <button
                     type="button"
                     onClick={() => {
-                      handleInputChange("type", "gitlab")
+                      // FILE_SPACE_TYPES[0] = 'gitlab'
+                      handleInputChange("type", FILE_SPACE_TYPES[0])
                       // Auto-advance to next step after selecting type
                       setTimeout(() => {
                         setCurrentStep(3)
@@ -343,7 +348,7 @@ export function FileSpaceMultistageForm() {
                     }}
                     className={`
                       group relative overflow-hidden rounded-lg border-2 p-6 text-left transition-all duration-200
-                      ${formData.type === "gitlab"
+                      ${formData.type === FILE_SPACE_TYPES[0]
                         ? 'border-orange-500 bg-orange-500/20 shadow-lg shadow-orange-500/20'
                         : 'border-slate-700/50 bg-slate-800/50 hover:border-orange-500/50 hover:bg-slate-700/50 hover:shadow-md'
                       }
@@ -353,12 +358,12 @@ export function FileSpaceMultistageForm() {
                       {/* Icon */}
                       <div className={`
                         flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors
-                        ${formData.type === "gitlab"
+                        ${formData.type === FILE_SPACE_TYPES[0]
                           ? 'bg-orange-500/30 text-orange-400'
                           : 'bg-slate-700/50 text-gray-400 group-hover:bg-orange-500/20 group-hover:text-orange-400'
                         }
                       `}>
-                        {formData.type === "gitlab" ? (
+                        {formData.type === FILE_SPACE_TYPES[0] ? (
                           <Check className="w-6 h-6" />
                         ) : (
                           <GitLabIcon className="w-6 h-6" />
@@ -369,7 +374,7 @@ export function FileSpaceMultistageForm() {
                       <div className="flex-1 min-w-0">
                         <div className={`
                           text-lg font-medium uppercase tracking-wide mb-1 transition-colors
-                          ${formData.type === "gitlab"
+                          ${formData.type === FILE_SPACE_TYPES[0]
                             ? 'text-orange-300'
                             : 'text-gray-200 group-hover:text-gray-100'
                           }
@@ -421,7 +426,8 @@ export function FileSpaceMultistageForm() {
             {currentStep === 3 && (
               <div className="space-y-6 animate-fadeIn">
                 {/* GitLab Configuration */}
-                {formData.type === "gitlab" && (
+                {/* FILE_SPACE_TYPES[0] = 'gitlab' */}
+                {formData.type === FILE_SPACE_TYPES[0] && (
                   <div className="space-y-4 p-4 rounded-xl border border-slate-700/60 bg-slate-900/30 backdrop-blur-sm">
                     <h3 className="text-xs uppercase tracking-wide font-medium text-gray-300">GITLAB FILE SPACE CONFIGURATION</h3>
 
@@ -460,7 +466,7 @@ export function FileSpaceMultistageForm() {
                         handleGitlabConfigChange("access_token_secret_id", secretId || "")
                       }}
                       label={gitlabConfig.host === DEFAULT_HOSTS.gitlab ? "GITLAB ACCESS TOKEN (OPTIONAL - uses default if not set)" : "GITLAB ACCESS TOKEN (requires: api, write_repository scopes)"}
-                      requiredScopes={["api", "write_repository"]}
+                      requiredScopes={GITLAB_SCOPES.fileSpace}
                       required={false}
                       apiBaseUrl={API_URL}
                     />
@@ -513,7 +519,8 @@ export function FileSpaceMultistageForm() {
                 )}
 
                 {/* GitHub Configuration */}
-                {formData.type === "github" && (
+                {/* FILE_SPACE_TYPES[1] = 'github' */}
+                {formData.type === FILE_SPACE_TYPES[1] && (
                   <div className="space-y-4 p-4 rounded-xl border border-slate-700/60 bg-slate-900/30 backdrop-blur-sm">
                     <h3 className="text-xs uppercase tracking-wide font-medium text-gray-300">GITHUB CONFIGURATION</h3>
 
@@ -596,9 +603,10 @@ export function FileSpaceMultistageForm() {
                   disabled={loading || !canProceedFromStep(currentStep)}
                   className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
                 >
+                  {/* FILE_SPACE_TYPES[0] = 'gitlab' */}
                   {loading
                     ? "CREATING..."
-                    : formData.type === "gitlab" && selectedRepositories.length > 1
+                    : formData.type === FILE_SPACE_TYPES[0] && selectedRepositories.length > 1
                     ? `CREATE ${selectedRepositories.length} FILE SPACES`
                     : "CREATE FILE SPACE"
                   }

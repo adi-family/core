@@ -13,6 +13,7 @@ import { createBackendApiClient } from '@backend/api-client'
 import { evaluateSimple } from './simple-evaluator'
 import { selectAIProviderForEvaluation, QuotaExceededError } from '@backend/services/ai-provider-selector'
 import { getProjectOwnerId } from '@db/user-access'
+import { TASK_STATUS, EVALUATION_VERDICTS } from '@config/shared'
 
 const logger = createLogger({ namespace: 'task-eval' })
 
@@ -48,7 +49,7 @@ export async function evaluateTask(
       const errorMsg = 'Task has no associated project'
       logger.error(errorMsg)
       result.errors.push(errorMsg)
-      await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'failed')
+      await taskQueries.updateTaskEvaluationStatus(sql, taskId, TASK_STATUS.evaluation[4])
       return result
     }
 
@@ -59,7 +60,7 @@ export async function evaluateTask(
       const errorMsg = `No project owner found for project ${task.project_id}`
       logger.error(errorMsg)
       result.errors.push(errorMsg)
-      await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'failed')
+      await taskQueries.updateTaskEvaluationStatus(sql, taskId, TASK_STATUS.evaluation[4])
       return result
     }
 
@@ -85,7 +86,7 @@ export async function evaluateTask(
     }
 
     // Now mark task as queued AFTER quota check passes
-    await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'queued')
+    await taskQueries.updateTaskEvaluationStatus(sql, taskId, TASK_STATUS.evaluation[1])
     logger.info(`Task ${taskId} marked as queued for evaluation`)
     logger.info(`Evaluating task: ${task.title}`)
 
@@ -98,7 +99,7 @@ export async function evaluateTask(
     logger.info(`Created evaluation session: ${session.id}`)
 
     // Update task to evaluating status
-    await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'evaluating', session.id)
+    await taskQueries.updateTaskEvaluationStatus(sql, taskId, TASK_STATUS.evaluation[2], session.id)
 
     // Phase 1: Run simple evaluation in microservice
     logger.info('🔍 Phase 1: Running simple evaluation in microservice...')
@@ -140,7 +141,7 @@ export async function evaluateTask(
       const errorMsg = `Simple evaluation failed: ${simpleError instanceof Error ? simpleError.message : String(simpleError)}`
       logger.error(errorMsg)
       result.errors.push(errorMsg)
-      await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'failed', session.id)
+      await taskQueries.updateTaskEvaluationStatus(sql, taskId, TASK_STATUS.evaluation[4], session.id)
       return result
     }
 
@@ -155,16 +156,16 @@ export async function evaluateTask(
     if (!simpleEvalResult.should_evaluate) {
       // Task rejected by simple filter - complete simple evaluation
       logger.info('⚠️  Task rejected by simple filter (no advanced evaluation needed)')
-      await taskQueries.updateTaskEvaluationResult(sql, taskId, 'needs_clarification')
-      await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'completed', session.id)
+      await taskQueries.updateTaskEvaluationResult(sql, taskId, EVALUATION_VERDICTS[1])
+      await taskQueries.updateTaskEvaluationStatus(sql, taskId, TASK_STATUS.evaluation[3], session.id)
       logger.info('✓ Simple evaluation completed (rejected)')
       return result
     }
 
     // Simple evaluation passed - mark as ready for advanced evaluation
     logger.info('✓ Simple evaluation passed - task ready for advanced evaluation')
-    await taskQueries.updateTaskEvaluationResult(sql, taskId, 'ready')
-    await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'completed', session.id)
+    await taskQueries.updateTaskEvaluationResult(sql, taskId, EVALUATION_VERDICTS[0])
+    await taskQueries.updateTaskEvaluationStatus(sql, taskId, TASK_STATUS.evaluation[3], session.id)
     logger.info('✓ Simple evaluation completed successfully - waiting for manual advanced evaluation trigger')
 
     // Note: Advanced evaluation must be triggered manually by the user
@@ -173,7 +174,7 @@ export async function evaluateTask(
     const errorMsg = `Failed to evaluate task ${taskId}: ${error instanceof Error ? error.message : String(error)}`
     logger.error(errorMsg)
     result.errors.push(errorMsg)
-    await taskQueries.updateTaskEvaluationStatus(sql, taskId, 'failed')
+    await taskQueries.updateTaskEvaluationStatus(sql, taskId, TASK_STATUS.evaluation[4])
   }
 
   return result
@@ -252,7 +253,7 @@ export async function evaluateTaskAdvanced(
     logger.info(`Created advanced evaluation session: ${session.id}`)
 
     // Update task to evaluating status for advanced eval
-    await taskQueries.updateTaskEvaluationAdvancedStatus(sql, taskId, 'evaluating', session.id)
+    await taskQueries.updateTaskEvaluationAdvancedStatus(sql, taskId, TASK_STATUS.evaluation[2], session.id)
 
     // Trigger CI for advanced agentic evaluation
     logger.info('🔬 Triggering CI for advanced evaluation...')
@@ -269,7 +270,7 @@ export async function evaluateTaskAdvanced(
       const errorMsg = `Failed to trigger advanced evaluation pipeline: ${pipelineError instanceof Error ? pipelineError.message : String(pipelineError)}`
       logger.error(errorMsg)
       result.errors.push(errorMsg)
-      await taskQueries.updateTaskEvaluationAdvancedStatus(sql, taskId, 'failed', session.id)
+      await taskQueries.updateTaskEvaluationAdvancedStatus(sql, taskId, TASK_STATUS.evaluation[4], session.id)
       return result
     }
 
@@ -279,7 +280,7 @@ export async function evaluateTaskAdvanced(
     logger.error(errorMsg)
     result.errors.push(errorMsg)
     if (result.sessionId) {
-      await taskQueries.updateTaskEvaluationAdvancedStatus(sql, taskId, 'failed')
+      await taskQueries.updateTaskEvaluationAdvancedStatus(sql, taskId, TASK_STATUS.evaluation[4])
     }
   }
 

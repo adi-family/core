@@ -8,6 +8,7 @@
 import { ApiClient } from './shared/api-client'
 import { readFile } from 'fs/promises'
 import { createLogger } from './shared/logger'
+import { EVALUATION_VERDICTS } from '@config/shared'
 
 const logger = createLogger({ namespace: 'upload-evaluation' })
 const RESULTS_DIR = '2025-10-18-01/results'
@@ -99,7 +100,7 @@ async function main() {
       await apiClient.updateTaskEvaluationStatus(task.id, 'completed')
       logger.info('✓ Task evaluation status: completed')
 
-      const evaluationResult = agenticVerdict.can_implement ? 'ready' : 'needs_clarification'
+      const evaluationResult = agenticVerdict.can_implement ? EVALUATION_VERDICTS[0] : EVALUATION_VERDICTS[1]
       await apiClient.updateTaskEvaluationResult(task.id, evaluationResult)
       logger.info(`✓ Task evaluation result: ${evaluationResult}`)
     } else {

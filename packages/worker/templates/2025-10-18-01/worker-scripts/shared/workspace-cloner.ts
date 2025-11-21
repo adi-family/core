@@ -5,6 +5,7 @@
 
 import { $ } from 'bun'
 import { mkdir, writeFile } from 'fs/promises'
+import { DEFAULT_BRANCHES } from '@config/shared'
 
 interface FileSpace {
   id: string
@@ -190,7 +191,7 @@ export class WorkspaceCloner {
         .map(b => b.trim())
 
       // Priority order: dev, develop, development, main, master
-      const priorityBranches = ['dev', 'develop', 'development', 'main', 'master']
+      const priorityBranches = DEFAULT_BRANCHES
 
       for (const preferred of priorityBranches) {
         if (branches.includes(preferred)) {

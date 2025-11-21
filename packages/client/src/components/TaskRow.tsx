@@ -2,6 +2,7 @@ import { Button } from '@adi-simple/ui/button'
 import { ExternalLink, Folder, GitBranch, Star, AlertTriangle, Shield, Eye, Play, Zap } from "lucide-react"
 import { siJira, siGitlab, siGithub } from 'simple-icons'
 import { getComputedMetrics } from '@adi-simple/shared/task-scoring'
+import { PRIORITY_QUADRANTS, PRIORITY_QUADRANT_LABELS, type PriorityQuadrant, EFFORT_MULTIPLIERS } from '@adi-simple/config/shared'
 import type { Task } from '@adi/api-contracts'
 import type { Project, TaskSource } from '@types'
 
@@ -32,15 +33,7 @@ const calculateExpectedPrice = (complexity: number, effort: string): number => {
   const complexityPrice = 0.20 + (complexity / 100) * 2.00
 
   // Effort multiplier - maps to effort_estimate values (xs, s, m, l, xl)
-  const effortMultipliers: Record<string, number> = {
-    'xs': 0.3,      // Extra small: 30% of base
-    's': 0.5,       // Small: 50% of base
-    'm': 1.0,       // Medium: 100% of base
-    'l': 1.5,       // Large: 150% of base
-    'xl': 2.0,      // Extra large: 200% of base
-  }
-
-  const multiplier = effortMultipliers[effort.toLowerCase()] || 1.0
+  const multiplier = EFFORT_MULTIPLIERS[effort.toLowerCase() as keyof typeof EFFORT_MULTIPLIERS] || 1.0
   const finalPrice = complexityPrice * multiplier
 
   // Clamp between $0.05 and $3.00
@@ -73,7 +66,7 @@ export function TaskRow({
     : null
 
   // Check if this is a quick win task
-  const isQuickWin = metrics?.priority_quadrant === 'quick_win'
+  const isQuickWin = metrics?.priority_quadrant === PRIORITY_QUADRANTS[0] // 'quick_win'
 
   const getStatusColor = (status: string | null) => {
     if (!status) return 'text-gray-400'
@@ -87,18 +80,15 @@ export function TaskRow({
     return 'text-gray-400'
   }
 
-  const getPriorityBadgeColor = (quadrant: string) => {
-    if (quadrant === 'quick_win') return 'bg-green-500/20 text-green-300 border-green-500/50'
-    if (quadrant === 'major_project') return 'bg-blue-500/20 text-blue-300 border-blue-500/50'
-    if (quadrant === 'fill_in') return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50'
-    return 'bg-gray-500/20 text-gray-300 border-gray-500/50'
+  const getPriorityBadgeColor = (quadrant: PriorityQuadrant) => {
+    if (quadrant === PRIORITY_QUADRANTS[0]) return 'bg-green-500/20 text-green-300 border-green-500/50' // quick_win
+    if (quadrant === PRIORITY_QUADRANTS[1]) return 'bg-blue-500/20 text-blue-300 border-blue-500/50' // major_project
+    if (quadrant === PRIORITY_QUADRANTS[2]) return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50' // fill_in
+    return 'bg-gray-500/20 text-gray-300 border-gray-500/50' // thankless_task
   }
 
-  const getPriorityLabel = (quadrant: string) => {
-    if (quadrant === 'quick_win') return 'Quick Win'
-    if (quadrant === 'major_project') return 'Major Project'
-    if (quadrant === 'fill_in') return 'Fill In'
-    return 'Low Priority'
+  const getPriorityLabel = (quadrant: PriorityQuadrant) => {
+    return PRIORITY_QUADRANT_LABELS[quadrant]
   }
 
   const getQuickWinScoreColor = (score: number) => {

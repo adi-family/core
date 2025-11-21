@@ -16,6 +16,7 @@ import { navigateTo } from "@/utils/navigation"
 import { useAuth } from "@clerk/clerk-react"
 import { toast } from "sonner"
 import { getComputedMetrics } from '@adi-simple/shared/task-scoring'
+import { PRIORITY_QUADRANTS, PRIORITY_QUADRANT_LABELS, type PriorityQuadrant } from '@adi-simple/config/shared'
 import { getTaskConfig, getTaskArtifactsConfig, evaluateTaskConfig, implementTaskConfig, evaluateTaskAdvancedConfig } from '@adi/api-contracts/tasks'
 import { getTaskSourceConfig, syncTaskSourceConfig } from '@adi/api-contracts/task-sources'
 import { listPipelineArtifactsConfig } from '@adi/api-contracts/pipeline-executions'
@@ -669,15 +670,13 @@ export function TaskPage() {
                       </span>
                       <Badge
                         variant={
-                          metrics.priority_quadrant === 'quick_win' ? 'green' :
-                          metrics.priority_quadrant === 'major_project' ? 'blue' :
-                          metrics.priority_quadrant === 'fill_in' ? 'warning' : 'gray'
+                          metrics.priority_quadrant === PRIORITY_QUADRANTS[0] ? 'green' : // quick_win
+                          metrics.priority_quadrant === PRIORITY_QUADRANTS[1] ? 'blue' : // major_project
+                          metrics.priority_quadrant === PRIORITY_QUADRANTS[2] ? 'warning' : 'gray' // fill_in
                         }
                         className="text-sm"
                       >
-                        {metrics.priority_quadrant === 'quick_win' ? 'Quick Win' :
-                         metrics.priority_quadrant === 'major_project' ? 'Major Project' :
-                         metrics.priority_quadrant === 'fill_in' ? 'Fill In' : 'Low Priority'}
+                        {PRIORITY_QUADRANT_LABELS[metrics.priority_quadrant as PriorityQuadrant]}
                       </Badge>
                     </div>
                     <div className="space-y-2 text-sm text-gray-300">

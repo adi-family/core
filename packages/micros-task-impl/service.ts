@@ -9,6 +9,7 @@ import * as taskQueries from '@db/tasks'
 import * as sessionQueries from '@db/sessions'
 import { triggerPipeline } from '@backend/worker-orchestration/pipeline-executor'
 import { createBackendApiClient } from '@backend/api-client'
+import { TASK_STATUS } from '@config/shared'
 
 const logger = createLogger({ namespace: 'task-impl' })
 
@@ -38,7 +39,7 @@ export async function implementTask(
 
   try {
     // Mark task as queued
-    await taskQueries.updateTaskImplementationStatus(sql, taskId, 'queued')
+    await taskQueries.updateTaskImplementationStatus(sql, taskId, TASK_STATUS.implementation[1])
     logger.info(`Task ${taskId} marked as queued for implementation`)
 
     // Fetch task to validate it exists
@@ -76,7 +77,7 @@ export async function implementTask(
         logger.error(`Stack trace: ${pipelineError.stack}`)
       }
       result.errors.push(errorMsg)
-      await taskQueries.updateTaskImplementationStatus(sql, taskId, 'failed', session.id)
+      await taskQueries.updateTaskImplementationStatus(sql, taskId, TASK_STATUS.implementation[4], session.id)
       return result
     }
 
@@ -88,7 +89,7 @@ export async function implementTask(
       logger.error(`Stack trace: ${error.stack}`)
     }
     result.errors.push(errorMsg)
-    await taskQueries.updateTaskImplementationStatus(sql, taskId, 'failed')
+    await taskQueries.updateTaskImplementationStatus(sql, taskId, TASK_STATUS.implementation[4])
   }
 
   return result

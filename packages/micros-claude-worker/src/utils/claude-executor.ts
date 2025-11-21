@@ -7,6 +7,7 @@ import { createLogger } from '@utils/logger'
 import { query } from '@anthropic-ai/claude-agent-sdk'
 import { existsSync } from 'fs'
 import { resolve } from 'path'
+import { ALLOWED_CLAUDE_TOOLS } from '@config/shared'
 
 const logger = createLogger({ namespace: 'claude-executor' })
 
@@ -170,7 +171,7 @@ export async function executeEvaluation(
   // For evaluation, we use read-only tools
   const evalOptions = {
     ...options,
-    allowedTools: ['Read', 'Glob', 'Grep']
+    allowedTools: ALLOWED_CLAUDE_TOOLS
   }
 
   return executeClaudeAgent(evalOptions)

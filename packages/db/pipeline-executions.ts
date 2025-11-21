@@ -2,6 +2,7 @@ import type { Sql } from 'postgres'
 import type { PipelineExecution, CreatePipelineExecutionInput, UpdatePipelineExecutionInput } from '@types'
 import { get, findOneById, deleteById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
+import { TASK_STATUS } from '@config/shared'
 
 export const findAllPipelineExecutions = async (sql: Sql): Promise<PipelineExecution[]> => {
   return get(sql<PipelineExecution[]>`SELECT * FROM pipeline_executions ORDER BY created_at DESC`)
@@ -22,7 +23,7 @@ export const findPipelineExecutionsBySessionId = async (sql: Sql, sessionId: str
 export const findStalePipelineExecutions = async (sql: Sql, timeoutMinutes: number): Promise<PipelineExecution[]> => {
   return get(sql<PipelineExecution[]>`
     SELECT * FROM pipeline_executions
-    WHERE status IN ('pending', 'running')
+    WHERE status IN (${TASK_STATUS.pipeline[0]}, ${TASK_STATUS.pipeline[1]})
     AND last_status_update < NOW() - INTERVAL '${sql.unsafe(timeoutMinutes.toString())} minutes'
     ORDER BY last_status_update ASC
   `)

@@ -16,6 +16,7 @@ import type { TaskSource, TaskSourceIssue, CreateTaskInput, Task } from "@types"
 import { publishTaskEval } from '@adi/queue/publisher'
 import { getProjectOwnerId } from '@db/user-access'
 import { selectAIProviderForEvaluation, QuotaExceededError } from '@backend/services/ai-provider-selector'
+import { TASK_STATUS, TASK_SOURCE_TYPES } from '@config/shared'
 
 const logger = createLogger({ namespace: 'daemon-task-sync' })
 
@@ -206,7 +207,7 @@ export async function syncTaskSource(
   }
 
   try {
-    await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'syncing')
+    await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, TASK_STATUS.sync[2])
 
     const taskSource = await validateTaskSource(sql, taskSourceId)
     const project = await validateProject(sql, taskSource.project_id)
@@ -227,7 +228,7 @@ export async function syncTaskSource(
       await syncStateQueries.batchUpsertSyncStates(sql, processResult.syncStateUpdates)
     }
 
-    await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'completed', syncStartTime)
+    await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, TASK_STATUS.sync[3], syncStartTime)
     logger.info(`Sync completed for task source ${taskSource.name}: ${result.tasksCreated} created, ${result.tasksUpdated} updated`)
 
     await performRevalidation(sql, input, taskSource.name, result.errors)
@@ -235,7 +236,7 @@ export async function syncTaskSource(
     const errorMsg = `Failed to sync task source ${taskSourceId}: ${error instanceof Error ? error.message : String(error)}`
     logger.error(errorMsg)
     result.errors.push(errorMsg)
-    await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, 'failed')
+    await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSourceId, TASK_STATUS.sync[4])
   }
 
   return result
@@ -260,7 +261,8 @@ export async function revalidateTasksStatus(
     const taskSource = await taskSourceQueries.findTaskSourceById(sql, taskSourceId)
 
     // Only GitLab and GitHub sources support revalidation for now
-    if (taskSource.type !== 'gitlab_issues') {
+    // TASK_SOURCE_TYPES[0] = 'gitlab_issues'
+    if (taskSource.type !== TASK_SOURCE_TYPES[0]) {
       logger.debug(`Revalidation not supported for task source type: ${taskSource.type}`)
       return result
     }

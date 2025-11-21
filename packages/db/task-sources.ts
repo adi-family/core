@@ -2,6 +2,7 @@ import type { Sql } from 'postgres'
 import type { TaskSource, CreateTaskSourceInput, UpdateTaskSourceInput } from '@types'
 import { filterPresentColumns, get, findOneById, deleteById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
+import { TASK_STATUS } from '@config/shared'
 
 export const findAllTaskSources = async (sql: Sql): Promise<TaskSource[]> => {
   return get(sql<TaskSource[]>`SELECT * FROM task_sources ORDER BY created_at DESC`)
@@ -116,22 +117,22 @@ export const findTaskSourcesNeedingSync = async (
         -- Normal case: never synced or synced long ago
         (
           (last_synced_at IS NULL OR last_synced_at < NOW() - (${minutesSinceLastSync}::text || ' minutes')::interval)
-          AND sync_status NOT IN ('syncing', 'queued')
+          AND sync_status NOT IN (${TASK_STATUS.sync[2]}, ${TASK_STATUS.sync[1]})
         )
         -- Corner case: stuck in 'queued' status for too long
         OR (
-          sync_status = 'queued'
+          sync_status = ${TASK_STATUS.sync[1]}
           AND updated_at < NOW() - (${queuedTimeoutMinutes}::text || ' minutes')::interval
         )
         -- Corner case: stuck in 'syncing' status for too long
         OR (
-          sync_status = 'syncing'
+          sync_status = ${TASK_STATUS.sync[2]}
           AND updated_at < NOW() - (${queuedTimeoutMinutes}::text || ' minutes')::interval
         )
       )
     ORDER BY
       CASE
-        WHEN sync_status IN ('queued', 'syncing') AND updated_at < NOW() - (${queuedTimeoutMinutes}::text || ' minutes')::interval THEN 0
+        WHEN sync_status IN (${TASK_STATUS.sync[1]}, ${TASK_STATUS.sync[2]}) AND updated_at < NOW() - (${queuedTimeoutMinutes}::text || ' minutes')::interval THEN 0
         WHEN last_synced_at IS NULL THEN 1
         ELSE 2
       END,
@@ -146,7 +147,7 @@ export const findTaskSourcesNeedingSync = async (
 export const updateTaskSourceSyncStatus = async (
   sql: Sql,
   id: string,
-  status: 'pending' | 'queued' | 'syncing' | 'completed' | 'failed',
+  status: typeof TASK_STATUS.sync[number],
   lastSyncedAt?: Date
 ): Promise<TaskSource> => {
   const taskSources = await get(

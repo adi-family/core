@@ -26,6 +26,7 @@ import * as userAccessQueries from '@db/user-access'
 import { publishTaskEval, publishTaskImpl } from '@adi/queue/publisher'
 import { evaluateTaskAdvanced } from '@adi/micros-task-eval/service'
 import { requireProjectAccess } from '../utils/auth'
+import { TASK_STATUS, EFFORT_LEVELS, RISK_LEVELS, CREATED_VIA } from '@config/shared'
 
 /**
  * Extract user ID from request headers
@@ -72,7 +73,7 @@ export function createTaskHandlers(sql: Sql) {
   const implementTask = handler(implementTaskConfig, async (ctx) => {
     const { id } = ctx.params
 
-    const task = await taskQueries.updateTaskImplementationStatus(sql, id, 'queued')
+    const task = await taskQueries.updateTaskImplementationStatus(sql, id, TASK_STATUS.implementation[1])
 
     await publishTaskImpl({ taskId: id })
 
@@ -206,13 +207,13 @@ export function createTaskHandlers(sql: Sql) {
           value
         }))
         .sort((a, b) => b.value - a.value),
-      effortData: ['xs', 's', 'm', 'l', 'xl', 'unknown']
+      effortData: [...EFFORT_LEVELS, 'unknown']
         .filter(effort => effortCounts[effort])
         .map(effort => ({
           name: effort.toUpperCase(),
           value: effortCounts[effort]
         })),
-      riskData: ['low', 'medium', 'high', 'unknown']
+      riskData: [...RISK_LEVELS, 'unknown']
         .filter(risk => riskCounts[risk])
         .map(risk => ({
           name: risk.charAt(0).toUpperCase() + risk.slice(1),
@@ -266,7 +267,7 @@ export function createTaskHandlers(sql: Sql) {
       task_source_id: manualSource.id,
       created_by_user_id: userId,
       manual_task_metadata: {
-        created_via: 'ui',
+        created_via: CREATED_VIA[0],
         custom_properties: {}
       }
     })

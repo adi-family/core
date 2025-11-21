@@ -6,6 +6,7 @@ import { createTaskConfig, evaluateTaskConfig, implementTaskConfig } from "@adi/
 import { useProject } from "@/contexts/ProjectContext"
 import { designTokens } from "@/theme/tokens"
 import { Bot } from "lucide-react"
+import { CREATED_VIA } from '@adi-simple/config/shared'
 
 interface AITaskChatProps {
   tasks: Task[]
@@ -113,7 +114,7 @@ export function AITaskChat({ tasks, onRefresh }: AITaskChatProps) {
           status: 'open',
           remote_status: 'opened',
           project_id: selectedProjectId,
-          manual_task_metadata: { created_via: 'ui' }
+          manual_task_metadata: { created_via: CREATED_VIA[0] }
         }
       })
 

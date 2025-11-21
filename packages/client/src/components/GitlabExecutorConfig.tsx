@@ -6,6 +6,7 @@ import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocompl
 import { createAuthenticatedClient } from "@/lib/client"
 import { getProjectGitLabExecutorConfig, createProjectGitLabExecutorConfig, deleteProjectGitLabExecutorConfig } from '@adi/api-contracts/projects'
 import { CheckCircle2, XCircle, Loader2, Trash2 } from "lucide-react"
+import { GITLAB_SCOPES } from '@adi-simple/config/shared'
 
 interface GitlabExecutorConfigProps {
   projectId: string
@@ -217,7 +218,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
           onChange={(secretId) => setAccessTokenSecretId(secretId)}
           label="GITLAB ACCESS TOKEN"
           required
-          requiredScopes={["api"]}
+          requiredScopes={GITLAB_SCOPES.executor}
         />
 
         <button

@@ -2,7 +2,7 @@ import { Button } from '@adi-simple/ui/button'
 import { ExternalLink, Folder, Tag } from "lucide-react"
 import { siJira, siGitlab, siGithub } from 'simple-icons'
 import type { TaskSource, Project } from "@types"
-import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
+import { DEFAULT_HOSTS, TASK_SOURCE_TYPES, TASK_SOURCE_TYPE_LABELS } from '@adi-simple/config/shared'
 
 /**
  * SimpleIcon component to render simple-icons SVG icons
@@ -52,17 +52,17 @@ export function TaskSourceRow({
   }
 
   const getTypeDisplayName = (type: string) => {
-    if (type === 'gitlab_issues') return 'GitLab Issues'
-    if (type === 'github_issues') return 'GitHub Issues'
-    if (type === 'jira') return 'Jira'
-    return type
+    // Use shared constants for task source type labels
+    return TASK_SOURCE_TYPE_LABELS[type as keyof typeof TASK_SOURCE_TYPE_LABELS] || type
   }
 
   const getRepositoryOrProject = () => {
-    if (taskSource.type === 'gitlab_issues' || taskSource.type === 'github_issues') {
+    // TASK_SOURCE_TYPES[0] = 'gitlab_issues', TASK_SOURCE_TYPES[1] = 'github_issues'
+    if (taskSource.type === TASK_SOURCE_TYPES[0] || taskSource.type === TASK_SOURCE_TYPES[1]) {
       return taskSource.config.repo
     }
-    if (taskSource.type === 'jira') {
+    // TASK_SOURCE_TYPES[2] = 'jira'
+    if (taskSource.type === TASK_SOURCE_TYPES[2]) {
       // Ensure we return a string, not an object
       const projectKey = taskSource.config.project_key
       return typeof projectKey === 'string' ? projectKey : null
@@ -71,12 +71,14 @@ export function TaskSourceRow({
   }
 
   const getLabels = () => {
-    if (taskSource.type === 'gitlab_issues') {
+    // TASK_SOURCE_TYPES[0] = 'gitlab_issues'
+    if (taskSource.type === TASK_SOURCE_TYPES[0]) {
       const labels = taskSource.config.labels || []
       // Ensure all labels are strings
       return Array.isArray(labels) ? labels.filter(l => typeof l === 'string') : []
     }
-    if (taskSource.type === 'github_issues') {
+    // TASK_SOURCE_TYPES[1] = 'github_issues'
+    if (taskSource.type === TASK_SOURCE_TYPES[1]) {
       const labels = taskSource.config.labels || []
       // Ensure all labels are strings
       return Array.isArray(labels) ? labels.filter(l => typeof l === 'string') : []
@@ -85,15 +87,18 @@ export function TaskSourceRow({
   }
 
   const getExternalUrl = () => {
-    if (taskSource.type === 'gitlab_issues') {
+    // TASK_SOURCE_TYPES[0] = 'gitlab_issues'
+    if (taskSource.type === TASK_SOURCE_TYPES[0]) {
       const host = taskSource.config.host || DEFAULT_HOSTS.gitlab
       return `${host}/${taskSource.config.repo}/-/issues`
     }
-    if (taskSource.type === 'github_issues') {
+    // TASK_SOURCE_TYPES[1] = 'github_issues'
+    if (taskSource.type === TASK_SOURCE_TYPES[1]) {
       const host = taskSource.config.host || DEFAULT_HOSTS.github
       return `${host}/${taskSource.config.repo}/issues`
     }
-    if (taskSource.type === 'jira') {
+    // TASK_SOURCE_TYPES[2] = 'jira'
+    if (taskSource.type === TASK_SOURCE_TYPES[2]) {
       return `${taskSource.config.host}/browse/${taskSource.config.project_key}`
     }
     return null
@@ -187,7 +192,8 @@ export function TaskSourceRow({
         {repoOrProject && (
           <div className="flex items-center gap-2 text-sm mb-2">
             <span className="text-gray-500">
-              {taskSource.type === 'jira' ? 'Project:' : 'Repository:'}
+              {/* TASK_SOURCE_TYPES[2] = 'jira' */}
+              {taskSource.type === TASK_SOURCE_TYPES[2] ? 'Project:' : 'Repository:'}
             </span>
             {externalUrl ? (
               <a
@@ -223,7 +229,8 @@ export function TaskSourceRow({
         )}
 
         {/* JQL Filter for Jira */}
-        {taskSource.type === 'jira' && taskSource.config.jql_filter && (
+        {/* TASK_SOURCE_TYPES[2] = 'jira' */}
+        {taskSource.type === TASK_SOURCE_TYPES[2] && taskSource.config.jql_filter && (
           <div className="flex items-start gap-2 text-sm mt-2">
             <span className="text-gray-500">JQL:</span>
             <span className="text-gray-300 font-mono text-xs">

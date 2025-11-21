@@ -11,7 +11,7 @@ import { CheckCircle2, Loader2, AlertCircle, Trash2 } from "lucide-react"
 import { siAnthropic, siOpenai, siGoogle } from "simple-icons"
 import { toast } from "sonner"
 import type { Provider, ProviderType } from "@adi-simple/config/shared"
-import { supportedProviders } from "@adi-simple/config/shared"
+import { supportedProviders, deploymentTypes, isDeploymentType } from "@adi-simple/config/shared"
 import {
   getProjectAIProvidersConfig,
   updateProjectAIProviderConfig,
@@ -49,9 +49,8 @@ interface StoreState {
   validationResult: AIProviderValidationResult | null
 }
 
-const isProviderType = (value: string): value is ProviderType => {
-  return ['cloud', 'azure', 'vertex', 'self-hosted'].includes(value)
-}
+// Use the type guard from shared config
+// const isDeploymentType imported as isDeploymentType
 
 export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
   const { getToken } = useAuth()
@@ -104,7 +103,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     if (existingConfig) {
       const configType = existingConfig.type
       store.formData = {
-        type: isProviderType(configType) ? configType : 'cloud',
+        type: isDeploymentType(configType) ? configType : 'cloud',
         api_key_secret_id: existingConfig.api_key_secret_id || null,
         endpoint_url: 'endpoint_url' in existingConfig ? existingConfig.endpoint_url : undefined,
         deployment_name: 'deployment_name' in existingConfig ? existingConfig.deployment_name : undefined,
@@ -262,7 +261,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
             value={snap.formData.type}
             onChange={(e) => {
               const value = e.target.value
-              if (isProviderType(value)) {
+              if (isDeploymentType(value)) {
                 store.formData.type = value
               }
             }}

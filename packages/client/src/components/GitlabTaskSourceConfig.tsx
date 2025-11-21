@@ -6,7 +6,7 @@ import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocompl
 import { GitlabRepositorySelect } from '@adi-simple/ui/gitlab-repository-select'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { Secret } from "../../../types"
-import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
+import { DEFAULT_HOSTS, GITLAB_SCOPES } from '@adi-simple/config/shared'
 
 interface GitlabIssuesConfig {
   repo: string
@@ -73,7 +73,7 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
           setSelectedSecret(secret || null)
         }}
         label="GITLAB ACCESS TOKEN (requires: api scope)"
-        requiredScopes={["api"]}
+        requiredScopes={GITLAB_SCOPES.taskSource}
         required={true}
         enableOAuth={true}
         apiBaseUrl={API_BASE_URL}

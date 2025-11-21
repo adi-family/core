@@ -10,6 +10,7 @@ import * as taskSourceQueries from '@db/task-sources'
 import * as projectQueries from '@db/projects'
 import { publishTaskSync } from '@adi/queue/publisher'
 import { assertNever } from "@utils/assert-never";
+import { TASK_STATUS, TASK_SOURCE_TYPES } from '@config/shared'
 
 const logger = createLogger({ namespace: 'orchestrator' })
 
@@ -50,13 +51,13 @@ export async function syncTaskSource(
     // Extract provider from task source type
     let provider: 'gitlab' | 'jira' | 'github'
     switch (taskSource.type) {
-      case 'gitlab_issues':
+      case TASK_SOURCE_TYPES[0]: // 'gitlab_issues'
         provider = 'gitlab'
         break
-      case 'jira':
+      case TASK_SOURCE_TYPES[2]: // 'jira'
         provider = 'jira'
         break
-      case 'github_issues':
+      case TASK_SOURCE_TYPES[1]: // 'github_issues'
         provider = 'github'
         break
       case 'manual':
@@ -69,7 +70,7 @@ export async function syncTaskSource(
         return result
     }
 
-    await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSource.id, 'queued')
+    await taskSourceQueries.updateTaskSourceSyncStatus(sql, taskSource.id, TASK_STATUS.sync[1])
 
     await publishTaskSync({
       taskSourceId: taskSource.id,

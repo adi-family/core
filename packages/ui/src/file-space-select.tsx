@@ -3,6 +3,7 @@ import { Combobox } from './combobox'
 import { Label } from './label'
 import type { FileSpace } from '@adi-simple/types'
 import type { BaseClient } from '@adi-family/http'
+import { FILE_SPACE_TYPE_LABELS } from '@adi-simple/config/shared'
 
 export type FileSpaceApiClient = BaseClient
 
@@ -52,14 +53,8 @@ export function FileSpaceSelect({
   }, [projectId, client])
 
   const getFileSpaceTypeLabel = (type: string) => {
-    switch (type) {
-      case 'gitlab':
-        return 'GitLab'
-      case 'github':
-        return 'GitHub'
-      default:
-        return type
-    }
+    // Use shared constants for file space type labels
+    return FILE_SPACE_TYPE_LABELS[type as keyof typeof FILE_SPACE_TYPE_LABELS] || type
   }
 
   const options = fileSpaces.map((fileSpace) => ({

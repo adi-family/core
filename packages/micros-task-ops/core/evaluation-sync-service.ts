@@ -10,6 +10,7 @@ import { createLogger } from '@utils/logger'
 import * as taskQueries from '@db/tasks'
 import * as sessionQueries from '@db/sessions'
 import * as artifactQueries from '@db/pipeline-artifacts'
+import { TASK_STATUS, EVALUATION_VERDICTS } from '@config/shared'
 
 // Utility to unwrap postgres queries
 function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
@@ -92,16 +93,16 @@ export async function syncTaskEvaluationStatus(
       if (pipelineStatus === 'success') {
         // Use transaction to update both implementation status and overall task status
         await sql.begin(async (sql) => {
-          await taskQueries.updateTaskImplementationStatus(sql, task.id, 'completed')
+          await taskQueries.updateTaskImplementationStatus(sql, task.id, TASK_STATUS.implementation[3])
           // Update overall task status to 'done' when implementation succeeds
           await taskQueries.updateTask(sql, task.id, { status: 'done' })
         })
         logger.info(`✅ Task ${task.id} implementation completed successfully (status: done)`)
       } else if (pipelineStatus === 'failed') {
-        await taskQueries.updateTaskImplementationStatus(sql, task.id, 'failed')
+        await taskQueries.updateTaskImplementationStatus(sql, task.id, TASK_STATUS.implementation[4])
         logger.info(`❌ Task ${task.id} implementation failed`)
       } else if (pipelineStatus === 'canceled') {
-        await taskQueries.updateTaskImplementationStatus(sql, task.id, 'pending')
+        await taskQueries.updateTaskImplementationStatus(sql, task.id, TASK_STATUS.implementation[0])
         logger.info(`🔄 Task ${task.id} implementation reset to pending (pipeline canceled)`)
       }
     }
@@ -132,11 +133,11 @@ async function handleSuccessfulPipeline(
       // Use transaction to update both status and result atomically
       await sql.begin(async (sql) => {
         // Update status to completed
-        await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'completed')
+        await taskQueries.updateTaskEvaluationStatus(sql, task.id, TASK_STATUS.evaluation[3])
 
         // Update result
         const metadata = evalArtifact.metadata as { is_ready: boolean }
-        const result = metadata.is_ready ? 'ready' : 'needs_clarification'
+        const result = metadata.is_ready ? EVALUATION_VERDICTS[0] : EVALUATION_VERDICTS[1]
         await taskQueries.updateTaskEvaluationResult(sql, task.id, result)
 
         logger.info(`✅ Task ${task.id} synced: completed (${result})`)
@@ -148,7 +149,7 @@ async function handleSuccessfulPipeline(
   }
 
   // Fallback: mark as completed without result (direct DB)
-  await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'completed')
+  await taskQueries.updateTaskEvaluationStatus(sql, task.id, TASK_STATUS.evaluation[3])
   logger.warn(`⚠️  Task ${task.id} marked completed but no artifact result found`)
 }
 
@@ -159,7 +160,7 @@ async function handleFailedPipeline(
   sql: Sql,
   task: Task
 ): Promise<void> {
-  await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'failed')
+  await taskQueries.updateTaskEvaluationStatus(sql, task.id, TASK_STATUS.evaluation[4])
   logger.info(`❌ Task ${task.id} marked as failed (pipeline failed)`)
 }
 
@@ -170,7 +171,7 @@ async function handleCanceledPipeline(
   sql: Sql,
   task: Task
 ): Promise<void> {
-  await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'pending')
+  await taskQueries.updateTaskEvaluationStatus(sql, task.id, TASK_STATUS.evaluation[0])
   logger.info(`🔄 Task ${task.id} reset to pending (pipeline canceled)`)
 }
 
@@ -238,7 +239,7 @@ export async function recoverStuckEvaluationsFromDatabase(
           // 1. Simple eval in microservice crashed before completing
           // 2. CI pipeline trigger failed
           // 3. Session was created but pipeline never started
-          await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'pending')
+          await taskQueries.updateTaskEvaluationStatus(sql, task.id, TASK_STATUS.evaluation[0])
           result.tasksRecovered++
           logger.info(`🔄 Task ${task.id} evaluation reset to pending (no pipeline found)`)
 
@@ -257,13 +258,13 @@ export async function recoverStuckEvaluationsFromDatabase(
 
         } else if (task.pipeline_status === 'failed') {
           // Pipeline failed - mark task as failed (direct DB)
-          await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'failed')
+          await taskQueries.updateTaskEvaluationStatus(sql, task.id, TASK_STATUS.evaluation[4])
           result.tasksRecovered++
           logger.info(`❌ Task ${task.id} evaluation marked failed (pipeline failed)`)
 
         } else if (task.pipeline_status === 'canceled') {
           // Pipeline canceled - reset to pending for retry (direct DB)
-          await taskQueries.updateTaskEvaluationStatus(sql, task.id, 'pending')
+          await taskQueries.updateTaskEvaluationStatus(sql, task.id, TASK_STATUS.evaluation[0])
           result.tasksRecovered++
           logger.info(`🔄 Task ${task.id} evaluation reset to pending (pipeline canceled)`)
 
@@ -284,14 +285,14 @@ export async function recoverStuckEvaluationsFromDatabase(
       try {
         if (!task.pipeline_execution_id) {
           // No pipeline found - reset to pending (direct DB)
-          await taskQueries.updateTaskImplementationStatus(sql, task.id, 'pending')
+          await taskQueries.updateTaskImplementationStatus(sql, task.id, TASK_STATUS.implementation[0])
           result.tasksRecovered++
           logger.info(`🔄 Task ${task.id} implementation reset to pending (no pipeline found)`)
 
         } else if (task.pipeline_status === 'success') {
           // Pipeline succeeded - mark as completed and update overall task status
           await sql.begin(async (sql) => {
-            await taskQueries.updateTaskImplementationStatus(sql, task.id, 'completed')
+            await taskQueries.updateTaskImplementationStatus(sql, task.id, TASK_STATUS.implementation[3])
             await taskQueries.updateTask(sql, task.id, { status: 'done' })
           })
           result.tasksRecovered++
@@ -299,13 +300,13 @@ export async function recoverStuckEvaluationsFromDatabase(
 
         } else if (task.pipeline_status === 'failed') {
           // Pipeline failed - mark task as failed (direct DB)
-          await taskQueries.updateTaskImplementationStatus(sql, task.id, 'failed')
+          await taskQueries.updateTaskImplementationStatus(sql, task.id, TASK_STATUS.implementation[4])
           result.tasksRecovered++
           logger.info(`❌ Task ${task.id} implementation marked failed (pipeline failed)`)
 
         } else if (task.pipeline_status === 'canceled') {
           // Pipeline canceled - reset to pending for retry (direct DB)
-          await taskQueries.updateTaskImplementationStatus(sql, task.id, 'pending')
+          await taskQueries.updateTaskImplementationStatus(sql, task.id, TASK_STATUS.implementation[0])
           result.tasksRecovered++
           logger.info(`🔄 Task ${task.id} implementation reset to pending (pipeline canceled)`)
 

@@ -8,6 +8,7 @@ import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger'
 import * as taskSourceQueries from '@db/task-sources'
 import { syncTaskSource } from '@backend/services/orchestrator'
+import { TASK_STATUS } from '@config/shared'
 
 const logger = createLogger({ namespace: 'sync-scheduler' })
 
@@ -43,7 +44,7 @@ export async function syncTaskSourcesNeedingSync(
     for (const taskSource of taskSources) {
       try {
         // Check if this is a stuck task (queued/syncing for too long)
-        const isStuck = ['queued', 'syncing'].includes(taskSource.sync_status)
+        const isStuck = [TASK_STATUS.sync[1], TASK_STATUS.sync[2]].includes(taskSource.sync_status)
         if (isStuck) {
           totalStuck++
           logger.warn(`Task source ${taskSource.id} stuck in '${taskSource.sync_status}' status, re-queuing`)

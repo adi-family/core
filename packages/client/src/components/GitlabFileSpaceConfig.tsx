@@ -6,7 +6,7 @@ import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocompl
 import { GitlabRepositorySelect } from '@adi-simple/ui/gitlab-repository-select'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { GitlabFileSpaceConfig as GitlabFileSpaceConfigType, Secret } from "../../../types"
-import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
+import { DEFAULT_HOSTS, GITLAB_SCOPES } from '@adi-simple/config/shared'
 
 interface GitlabFileSpaceConfigProps {
   projectId: string
@@ -65,7 +65,7 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
           setSelectedSecret(secret || null)
         }}
         label={gitlabHost === DEFAULT_HOSTS.gitlab ? "GITLAB ACCESS TOKEN (OPTIONAL - uses default if not set)" : "GITLAB ACCESS TOKEN (requires: api, write_repository scopes)"}
-        requiredScopes={["api", "write_repository"]}
+        requiredScopes={GITLAB_SCOPES.fileSpace}
         required={false}
       />
 

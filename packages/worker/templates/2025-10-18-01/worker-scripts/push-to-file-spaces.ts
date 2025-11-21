@@ -12,6 +12,7 @@ import { createLogger } from './shared/logger'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { GitHubApiClient } from '@shared/github-api-client'
 import { getWorkspaceName } from './shared/workspace-utils'
+import { DEFAULT_BRANCHES, REQUIRED_ENV_VARS } from '@config/shared'
 
 const exec = promisify(execCallback)
 const logger = createLogger({ namespace: 'push-to-file-spaces' })
@@ -249,7 +250,7 @@ async function pushWorkspaceToFileSpace(
     } catch {
       // Fallback: try common default branch names in order
       logger.warn(`   ⚠️  Could not detect via symbolic-ref, trying common branch names...`)
-      const fallbackBranches = ['develop', 'dev', 'development', 'main', 'master']
+      const fallbackBranches = DEFAULT_BRANCHES
 
       for (const branch of fallbackBranches) {
         try {
@@ -391,7 +392,7 @@ async function main(): Promise<PushResult> {
 
   try {
     // Validate environment
-    const requiredVars = ['SESSION_ID', 'API_BASE_URL', 'API_TOKEN']
+    const requiredVars = REQUIRED_ENV_VARS
     const missing = requiredVars.filter((key) => !process.env[key])
 
     if (missing.length > 0) {

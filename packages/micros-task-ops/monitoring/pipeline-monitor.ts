@@ -13,6 +13,7 @@ import { syncTaskEvaluationStatus } from '../core/evaluation-sync-service'
 import * as pipelineExecutionQueries from '@db/pipeline-executions'
 import * as workerRepositoryQueries from '@db/worker-repositories'
 import { PIPELINE_TIMEOUTS } from '@adi-simple/config'
+import { TASK_STATUS } from '@config/shared'
 
 const logger = createLogger({ namespace: 'pipeline-monitor' })
 
@@ -36,20 +37,20 @@ function mapGitLabStatus(
     case 'waiting_for_resource':
     case 'preparing':
     case 'pending':
-      return 'pending'
+      return TASK_STATUS.pipeline[0]
     case 'running':
-      return 'running'
+      return TASK_STATUS.pipeline[1]
     case 'success':
-      return 'success'
+      return TASK_STATUS.pipeline[2]
     case 'failed':
-      return 'failed'
+      return TASK_STATUS.pipeline[3]
     case 'canceled':
     case 'skipped':
     case 'manual':
-      return 'canceled'
+      return TASK_STATUS.pipeline[4]
     default:
       logger.warn(`Unknown GitLab pipeline status: ${gitlabStatus}`)
-      return 'failed'
+      return TASK_STATUS.pipeline[3]
   }
 }
 
@@ -202,7 +203,7 @@ export async function updatePipelineStatus(executionId: string, sql: Sql): Promi
       })
 
       // Also try to sync task status for completed pipelines we just discovered (using DB)
-      if (['success', 'failed', 'canceled'].includes(execution.status)) {
+      if ([TASK_STATUS.pipeline[2], TASK_STATUS.pipeline[3], TASK_STATUS.pipeline[4]].includes(execution.status)) {
         await syncTaskEvaluationStatus(sql, execution as any, execution.status as 'success' | 'failed' | 'canceled')
       }
     }

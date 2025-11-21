@@ -30,6 +30,7 @@ import { CIRepositoryManager } from '@worker/ci-repository-manager'
 import { validateAIProviderConfig } from '../services/ai-provider-validator'
 import { getUserIdFromClerkToken, requireProjectAccess } from '../utils/auth'
 import type { AnthropicConfig, OpenAIConfig, GoogleConfig } from '@types'
+import { supportedProviders, isProvider } from '@config/shared'
 
 const logger = createLogger({ namespace: 'projects-handler' })
 
@@ -200,7 +201,7 @@ export function createProjectHandlers(sql: Sql) {
     await requireProjectAccess(sql, userId, id, 'admin', 'Forbidden: You need admin role to update AI provider configs')
 
     // Validate provider type
-    if (!['anthropic', 'openai', 'google'].includes(provider)) {
+    if (!isProvider(provider)) {
       throw new Error(`Invalid provider: ${provider}`)
     }
 
@@ -240,7 +241,7 @@ export function createProjectHandlers(sql: Sql) {
     await requireProjectAccess(sql, userId, id, 'admin', 'Forbidden: You need admin role to delete AI provider configs')
 
     // Validate provider type
-    if (!['anthropic', 'openai', 'google'].includes(provider)) {
+    if (!isProvider(provider)) {
       throw new Error(`Invalid provider: ${provider}`)
     }
 
@@ -264,7 +265,7 @@ export function createProjectHandlers(sql: Sql) {
     await requireProjectAccess(sql, userId, id)
 
     // Validate provider type
-    if (!['anthropic', 'openai', 'google'].includes(provider)) {
+    if (!isProvider(provider)) {
       throw new Error(`Invalid provider: ${provider}`)
     }
 

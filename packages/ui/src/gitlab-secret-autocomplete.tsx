@@ -16,6 +16,7 @@ import {
   validateGitLabTokenConfig
 } from '@adi/api-contracts/secrets'
 import type { Secret } from "@adi-simple/types"
+import { GITLAB_SCOPES } from '@adi-simple/config/shared'
 
 interface GitlabSecretAutocompleteProps {
   client: BaseClient
@@ -71,7 +72,7 @@ export function GitlabSecretAutocomplete({
   onSecretCreated,
   label = "GITLAB ACCESS TOKEN SECRET",
   required = false,
-  requiredScopes = ["api"],
+  requiredScopes = GITLAB_SCOPES.taskSource,
   enableOAuth = true,
 }: GitlabSecretAutocompleteProps) {
 
