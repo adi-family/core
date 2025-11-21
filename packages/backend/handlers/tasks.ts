@@ -25,6 +25,7 @@ import * as taskSourceQueries from '@db/task-sources'
 import * as userAccessQueries from '@db/user-access'
 import { publishTaskEval, publishTaskImpl } from '@adi/queue/publisher'
 import { evaluateTaskAdvanced } from '@adi/micros-task-eval/service'
+import { requireProjectAccess } from '../utils/auth'
 
 /**
  * Extract user ID from request headers
@@ -250,10 +251,7 @@ export function createTaskHandlers(sql: Sql) {
     }
 
     // Check if user has access to the project
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, project_id, 'developer')
-    if (!hasAccess) {
-      throw new Error('You do not have permission to create tasks in this project. Project owner or developer access required.')
-    }
+    await requireProjectAccess(sql, userId, project_id, 'developer', 'You do not have permission to create tasks in this project. Project owner or developer access required.')
 
     // Get or create manual task source for this project
     const manualSource = await taskSourceQueries.findOrCreateManualTaskSource(sql, project_id)
@@ -300,10 +298,7 @@ export function createTaskHandlers(sql: Sql) {
 
     // Check if user has access to the project
     // Users with developer access or higher can delete manual tasks in their projects
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, task.project_id, 'developer')
-    if (!hasAccess) {
-      throw new Error('You do not have permission to delete tasks in this project. Project owner or developer access required.')
-    }
+    await requireProjectAccess(sql, userId, task.project_id, 'developer', 'You do not have permission to delete tasks in this project. Project owner or developer access required.')
 
     await taskQueries.deleteTask(sql, id)
 

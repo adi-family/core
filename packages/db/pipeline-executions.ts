@@ -1,22 +1,14 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { PipelineExecution, CreatePipelineExecutionInput, UpdatePipelineExecutionInput } from '@types'
+import { get, findOneById, deleteById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
 
 export const findAllPipelineExecutions = async (sql: Sql): Promise<PipelineExecution[]> => {
   return get(sql<PipelineExecution[]>`SELECT * FROM pipeline_executions ORDER BY created_at DESC`)
 }
 
 export const findPipelineExecutionById = async (sql: Sql, id: string): Promise<PipelineExecution> => {
-  const executions = await get(sql<PipelineExecution[]>`SELECT * FROM pipeline_executions WHERE id = ${id}`)
-  const [execution] = executions
-  if (!execution) {
-    throw new NotFoundException('Pipeline execution not found')
-  }
-  return execution
+  return findOneById<PipelineExecution>(sql, 'pipeline_executions', id, 'Pipeline execution')
 }
 
 export const findPipelineExecutionsBySessionId = async (sql: Sql, sessionId: string): Promise<PipelineExecution[]> => {
@@ -98,9 +90,5 @@ export const updatePipelineExecution = async (sql: Sql, id: string, input: Updat
 }
 
 export const deletePipelineExecution = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM pipeline_executions WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Pipeline execution not found')
-  }
+  return deleteById(sql, 'pipeline_executions', id, 'Pipeline execution')
 }

@@ -6,81 +6,18 @@ import type { TaskSyncMessage, TaskEvalMessage, TaskImplMessage } from '@adi/que
 import { syncTaskSource } from '@micros-task-sync/service'
 import { evaluateTask } from '@micros-task-eval/service'
 import { implementTask } from '@adi/micros-task-impl/service'
-import { channel } from '@adi/queue/connection'
+import { createQueueConsumer, type Runner } from '@adi/queue/consumer-factory'
 
 const logger = createLogger({ namespace: 'queue-consumer' })
 
-export interface Runner {
-  start: () => void | Promise<void>
-  stop: () => void | Promise<void>
-}
-
 export function createTaskSyncConsumer(sql: Sql): Runner {
-  let consumerTag: string | null = null
-
-  return {
-    start: async () => {
-      if (consumerTag) {
-        logger.warn('Task sync consumer already running')
-        return
-      }
-
-      try {
-        const ch = await channel.value;
-
-        await ch.prefetch(10)
-
-        logger.info(`Starting consumer for queue: ${TASK_SYNC_QUEUE}`)
-
-        const result = await ch.consume(TASK_SYNC_QUEUE, async (msg: ConsumeMessage | null) => {
-          if (!msg) {
-            return
-          }
-
-          try {
-            await processTaskSyncMessage(sql, msg)
-            ch.ack(msg)
-          } catch (error) {
-            logger.error('Failed to process task sync message:', error)
-
-            const attempt = (msg.properties.headers?.['x-attempt'] || 0) + 1
-            const maxRetries = TASK_SYNC_CONFIG.maxRetries || 3
-
-            if (attempt >= maxRetries) {
-              logger.error(`Message exceeded max retries (${maxRetries}), sending to DLQ`)
-              ch.nack(msg, false, false)
-            } else {
-              logger.warn(`Retrying message (attempt ${attempt}/${maxRetries})`)
-              ch.nack(msg, false, true)
-            }
-          }
-        }, {
-          noAck: false,
-          consumerTag: `task-sync-${process.pid}-${Date.now()}`
-        })
-
-        consumerTag = result.consumerTag
-
-        logger.info('Task sync consumer started successfully')
-      } catch (error) {
-        logger.error('Failed to start task sync consumer:', error)
-        throw error
-      }
-    },
-
-    stop: async () => {
-      if (consumerTag) {
-        try {
-          const ch = await channel.value;
-          await ch.cancel(consumerTag)
-          consumerTag = null
-          logger.info('Task sync consumer stopped')
-        } catch (error) {
-          logger.error('Failed to stop task sync consumer:', error)
-        }
-      }
-    }
-  }
+  return createQueueConsumer(sql, {
+    queueName: TASK_SYNC_QUEUE,
+    queueConfig: TASK_SYNC_CONFIG,
+    prefetchCount: 10,
+    consumerLabel: 'task-sync',
+    processMessage: processTaskSyncMessage
+  })
 }
 
 async function processTaskSyncMessage(sql: Sql, msg: ConsumeMessage): Promise<void> {
@@ -101,71 +38,13 @@ async function processTaskSyncMessage(sql: Sql, msg: ConsumeMessage): Promise<vo
 }
 
 export function createTaskEvalConsumer(sql: Sql): Runner {
-  let consumerTag: string | null = null
-
-  return {
-    start: async () => {
-      if (consumerTag) {
-        logger.warn('Task eval consumer already running')
-        return
-      }
-
-      try {
-        const ch = await channel.value;
-
-        await ch.prefetch(5)
-
-        logger.info(`Starting consumer for queue: ${TASK_EVAL_QUEUE}`)
-
-        const result = await ch.consume(TASK_EVAL_QUEUE, async (msg: ConsumeMessage | null) => {
-          if (!msg) {
-            return
-          }
-
-          try {
-            await processTaskEvalMessage(sql, msg)
-            ch.ack(msg)
-          } catch (error) {
-            logger.error('Failed to process task eval message:', error)
-
-            const attempt = (msg.properties.headers?.['x-attempt'] || 0) + 1
-            const maxRetries = TASK_EVAL_CONFIG.maxRetries || 3
-
-            if (attempt >= maxRetries) {
-              logger.error(`Message exceeded max retries (${maxRetries}), sending to DLQ`)
-              ch.nack(msg, false, false)
-            } else {
-              logger.warn(`Retrying message (attempt ${attempt}/${maxRetries})`)
-              ch.nack(msg, false, true)
-            }
-          }
-        }, {
-          noAck: false,
-          consumerTag: `task-eval-${process.pid}-${Date.now()}`
-        })
-
-        consumerTag = result.consumerTag
-
-        logger.info('Task eval consumer started successfully')
-      } catch (error) {
-        logger.error('Failed to start task eval consumer:', error)
-        throw error
-      }
-    },
-
-    stop: async () => {
-      if (consumerTag) {
-        try {
-          const ch = await channel.value;
-          await ch.cancel(consumerTag)
-          consumerTag = null
-          logger.info('Task eval consumer stopped')
-        } catch (error) {
-          logger.error('Failed to stop task eval consumer:', error)
-        }
-      }
-    }
-  }
+  return createQueueConsumer(sql, {
+    queueName: TASK_EVAL_QUEUE,
+    queueConfig: TASK_EVAL_CONFIG,
+    prefetchCount: 5,
+    consumerLabel: 'task-eval',
+    processMessage: processTaskEvalMessage
+  })
 }
 
 async function processTaskEvalMessage(sql: Sql, msg: ConsumeMessage): Promise<void> {
@@ -185,75 +64,13 @@ async function processTaskEvalMessage(sql: Sql, msg: ConsumeMessage): Promise<vo
 }
 
 export function createTaskImplConsumer(sql: Sql): Runner {
-  let consumerTag: string | null = null
-
-  return {
-    start: async () => {
-      if (consumerTag) {
-        logger.warn('Task impl consumer already running')
-        return
-      }
-
-      try {
-        const ch = await channel.value;
-
-        await ch.prefetch(3)
-
-        logger.info(`Starting consumer for queue: ${TASK_IMPL_QUEUE}`)
-
-        const result = await ch.consume(TASK_IMPL_QUEUE, async (msg: ConsumeMessage | null) => {
-          if (!msg) {
-            logger.warn('Received null message in task-impl consumer')
-            return
-          }
-
-          logger.debug(`📨 Task impl consumer received message`)
-
-          try {
-            await processTaskImplMessage(sql, msg)
-            ch.ack(msg)
-          } catch (error) {
-            logger.error('❌ EXCEPTION while processing task impl message:', error)
-            logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace')
-
-            const attempt = (msg.properties.headers?.['x-attempt'] || 0) + 1
-            const maxRetries = TASK_IMPL_CONFIG.maxRetries || 3
-
-            if (attempt >= maxRetries) {
-              logger.error(`Message exceeded max retries (${maxRetries}), sending to DLQ`)
-              ch.nack(msg, false, false)
-            } else {
-              logger.warn(`Retrying message (attempt ${attempt}/${maxRetries})`)
-              ch.nack(msg, false, true)
-            }
-          }
-        }, {
-          noAck: false,
-          consumerTag: `task-impl-${process.pid}-${Date.now()}`
-        })
-
-        consumerTag = result.consumerTag
-
-        logger.info('Task impl consumer started successfully')
-      } catch (error) {
-        logger.error('Failed to start task impl consumer:', error)
-        throw error
-      }
-    },
-
-    stop: async () => {
-      if (consumerTag) {
-        try {
-          const ch = await channel.value;
-          await ch.cancel(consumerTag)
-          consumerTag = null
-          logger.info('Task impl consumer stopped')
-        } catch (error) {
-          logger.error('Failed to stop task impl consumer:', error)
-        }
-      }
-    }
-  }
+  return createQueueConsumer(sql, {
+    queueName: TASK_IMPL_QUEUE,
+    queueConfig: TASK_IMPL_CONFIG,
+    prefetchCount: 3,
+    consumerLabel: 'task-impl',
+    processMessage: processTaskImplMessage
+  })
 }
 
 async function processTaskImplMessage(sql: Sql, msg: ConsumeMessage): Promise<void> {

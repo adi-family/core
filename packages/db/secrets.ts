@@ -1,11 +1,7 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { Secret, CreateSecretInput, UpdateSecretInput } from '@types'
-import { filterPresentColumns } from './utils'
+import { filterPresentColumns, get, findOneById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
 
 export const findAllSecrets = async (sql: Sql): Promise<Secret[]> => {
   return get(sql<Secret[]>`SELECT * FROM secrets ORDER BY created_at DESC`)
@@ -16,12 +12,7 @@ export const findSecretsByProjectId = async (sql: Sql, projectId: string): Promi
 }
 
 export const findSecretById = async (sql: Sql, id: string): Promise<Secret> => {
-  const secrets = await get(sql<Secret[]>`SELECT * FROM secrets WHERE id = ${id}`)
-  const [secret] = secrets
-  if (!secret) {
-    throw new NotFoundException('Secret not found')
-  }
-  return secret
+  return findOneById<Secret>(sql, 'secrets', id, 'Secret')
 }
 
 export const findSecretByProjectAndName = async (sql: Sql, projectId: string, name: string): Promise<Secret> => {
@@ -94,9 +85,5 @@ export const upsertSecret = async (sql: Sql, input: UpsertSecretInput): Promise<
 }
 
 export const deleteSecret = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM secrets WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Secret not found')
-  }
+  return deleteById(sql, 'secrets', id, 'Secret')
 }

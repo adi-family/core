@@ -18,6 +18,7 @@ import { createSecretHandlers } from './handlers/secrets'
 import { createFileSpaceHandlers } from './handlers/file-spaces'
 import { createOAuthHandlers } from './handlers/oauth'
 import { createLogger } from '@utils/logger'
+import { setupGracefulShutdown } from './utils/graceful-shutdown'
 import { NotFoundException, BadRequestException, NotEnoughRightsException, AuthRequiredException } from '@utils/exceptions'
 import { ALLOWED_ORIGINS } from './config'
 
@@ -216,21 +217,18 @@ server.listen(PORT, () => {
   logger.info(`📝 Routes registered: ${allHandlers.length}`)
 })
 
-// Graceful shutdown
-process.on('SIGTERM', () => {
-  logger.info('SIGTERM signal received: closing HTTP server')
-  server.close(() => {
-    logger.info('HTTP server closed')
-    process.exit(0)
-  })
-})
-
-process.on('SIGINT', () => {
-  logger.info('SIGINT signal received: closing HTTP server')
-  server.close(() => {
-    logger.info('HTTP server closed')
-    process.exit(0)
-  })
+// Setup graceful shutdown
+setupGracefulShutdown({
+  logger,
+  serviceName: 'HTTP Server',
+  cleanup: async () => {
+    await new Promise<void>((resolve) => {
+      server.close(() => {
+        logger.info('HTTP server closed')
+        resolve()
+      })
+    })
+  }
 })
 
 export { server }

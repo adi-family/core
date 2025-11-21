@@ -5,6 +5,7 @@
 
 import { WorkerClient, type TaskHandler, type WorkerTaskMessage } from '@adi-simple/worker-sdk'
 import { createLogger } from '@utils/logger'
+import { setupGracefulShutdown } from '@backend/utils/graceful-shutdown'
 import { cloneWorkspaces, createTaskBranch, type WorkspaceConfig } from './utils/workspace-cloner'
 import { executeEvaluation, executeImplementation } from './utils/claude-executor'
 import { promisify } from 'util'
@@ -328,16 +329,15 @@ async function main() {
 
     logger.info('✓ Worker is running and ready to process tasks\n')
 
-    // Graceful shutdown
-    const shutdown = async (signal: string) => {
-      logger.info(`\nReceived ${signal}, shutting down gracefully...`)
-      logger.info(`Active tasks: ${client.getActiveTaskCount()}`)
-      await client.close()
-      process.exit(0)
-    }
-
-    process.on('SIGTERM', () => shutdown('SIGTERM'))
-    process.on('SIGINT', () => shutdown('SIGINT'))
+    // Setup graceful shutdown
+    setupGracefulShutdown({
+      logger,
+      serviceName: 'Claude Worker',
+      cleanup: async () => {
+        logger.info(`Active tasks: ${client.getActiveTaskCount()}`)
+        await client.close()
+      }
+    })
 
   } catch (error) {
     logger.error('Failed to start Claude worker:', error)

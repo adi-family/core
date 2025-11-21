@@ -1,23 +1,14 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { Project, CreateProjectInput, UpdateProjectInput, GitlabExecutorConfig, AIProviderConfig, AnthropicConfig, OpenAIConfig, GoogleConfig } from '@types'
-import { filterPresentColumns } from './utils'
+import { filterPresentColumns, get, findOneById, deleteById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
 
 export const findAllProjects = async (sql: Sql): Promise<Project[]> => {
   return get(sql<Project[]>`SELECT * FROM projects ORDER BY created_at DESC`)
 }
 
 export const findProjectById = async (sql: Sql, id: string): Promise<Project> => {
-  const projects = await get(sql<Project[]>`SELECT * FROM projects WHERE id = ${id}`)
-  const [project] = projects
-  if (!project) {
-    throw new NotFoundException('Project not found')
-  }
-  return project
+  return findOneById<Project>(sql, 'projects', id, 'Project')
 }
 
 const createProjectCols = ['name', 'enabled', 'key'] as const
@@ -52,11 +43,7 @@ export const updateProject = async (sql: Sql, id: string, input: UpdateProjectIn
 }
 
 export const deleteProject = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM projects WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Project not found')
-  }
+  return deleteById(sql, 'projects', id, 'Project')
 }
 
 /**

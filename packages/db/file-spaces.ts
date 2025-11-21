@@ -1,23 +1,13 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { FileSpace, CreateFileSpaceInput, UpdateFileSpaceInput } from '@types'
-import { filterPresentColumns } from './utils'
-import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
+import { filterPresentColumns, get, findOneById, deleteById } from './utils'
 
 export const findAllFileSpaces = async (sql: Sql): Promise<FileSpace[]> => {
   return get(sql<FileSpace[]>`SELECT * FROM file_spaces ORDER BY created_at DESC`)
 }
 
 export const findFileSpaceById = async (sql: Sql, id: string): Promise<FileSpace> => {
-  const fileSpaces = await get(sql<FileSpace[]>`SELECT * FROM file_spaces WHERE id = ${id}`)
-  const [fileSpace] = fileSpaces
-  if (!fileSpace) {
-    throw new NotFoundException('File space not found')
-  }
-  return fileSpace
+  return findOneById<FileSpace>(sql, 'file_spaces', id, 'File space')
 }
 
 export const findFileSpacesByProjectId = async (sql: Sql, projectId: string): Promise<FileSpace[]> => {
@@ -88,9 +78,5 @@ export const updateFileSpace = async (sql: Sql, id: string, input: UpdateFileSpa
 }
 
 export const deleteFileSpace = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM file_spaces WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('File space not found')
-  }
+  return deleteById(sql, 'file_spaces', id, 'File space')
 }

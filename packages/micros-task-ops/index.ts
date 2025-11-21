@@ -11,6 +11,7 @@
 
 import { sql } from '@db/client'
 import { createLogger } from '@utils/logger'
+import { setupGracefulShutdown } from '@backend/utils/graceful-shutdown'
 import { loadConfig, logConfig } from './config'
 import { createSyncScheduler, type Runner } from './scheduling/sync-scheduler'
 import { createEvalScheduler } from './scheduling/eval-scheduler'
@@ -89,27 +90,20 @@ async function main() {
 
 main()
 
-// Graceful shutdown handlers
-const shutdown = async (signal: string) => {
-  logger.info(`Received ${signal}, shutting down gracefully...`)
-
-  // Stop all runners
-  for (const runner of runners) {
-    await runner.stop()
-  }
-
-  sql.end().then(() => {
+// Setup graceful shutdown
+setupGracefulShutdown({
+  logger,
+  serviceName: 'Micros-Task-Ops',
+  cleanup: async () => {
+    // Stop all runners
+    for (const runner of runners) {
+      await runner.stop()
+    }
+    // Close database connection
+    await sql.end()
     logger.info('Database connection closed')
-    logger.info('✅ Micros-Task-Ops service stopped')
-    process.exit(0)
-  }).catch((error) => {
-    logger.error('Error closing database connection:', error)
-    process.exit(1)
-  })
-}
-
-process.on('SIGINT', () => shutdown('SIGINT'))
-process.on('SIGTERM', () => shutdown('SIGTERM'))
+  }
+})
 
 // Handle uncaught errors
 process.on('uncaughtException', (error) => {

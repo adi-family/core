@@ -23,6 +23,29 @@ import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'secrets-handler' })
 
+/**
+ * Format secret for API response, excluding encrypted value
+ */
+function projectSecretResponse(secret: any, includeProjectId = false) {
+  const response: any = {
+    id: secret.id,
+    name: secret.name,
+    description: secret.description,
+    oauth_provider: secret.oauth_provider,
+    token_type: secret.token_type,
+    expires_at: secret.expires_at,
+    scopes: secret.scopes,
+    created_at: secret.created_at,
+    updated_at: secret.updated_at
+  }
+
+  if (includeProjectId) {
+    response.project_id = secret.project_id
+  }
+
+  return response
+}
+
 export function createSecretHandlers(sql: Sql) {
   /**
    * Authenticate request using API key
@@ -61,55 +84,19 @@ export function createSecretHandlers(sql: Sql) {
 
   const listSecrets = handler(listSecretsConfig, async (_ctx) => {
     const secrets = await secretQueries.findAllSecrets(sql)
-
-    // Exclude the encrypted value field for security
-    return secrets.map(secret => ({
-      id: secret.id,
-      name: secret.name,
-      project_id: secret.project_id,
-      description: secret.description,
-      oauth_provider: secret.oauth_provider,
-      token_type: secret.token_type,
-      expires_at: secret.expires_at,
-      scopes: secret.scopes,
-      created_at: secret.created_at,
-      updated_at: secret.updated_at
-    }))
+    return secrets.map(secret => projectSecretResponse(secret, true))
   })
 
   const getSecretsByProject = handler(getSecretsByProjectConfig, async (ctx) => {
     const { projectId } = ctx.params
     const secrets = await secretQueries.findSecretsByProjectId(sql, projectId)
-
-    // Exclude the encrypted value field for security
-    return secrets.map(secret => ({
-      id: secret.id,
-      name: secret.name,
-      description: secret.description,
-      oauth_provider: secret.oauth_provider,
-      token_type: secret.token_type,
-      expires_at: secret.expires_at,
-      scopes: secret.scopes,
-      created_at: secret.created_at,
-      updated_at: secret.updated_at
-    }))
+    return secrets.map(secret => projectSecretResponse(secret))
   })
 
   const getSecret = handler(getSecretConfig, async (ctx) => {
     const { id } = ctx.params
     const secret = await secretQueries.findSecretById(sql, id)
-
-    return {
-      id: secret.id,
-      name: secret.name,
-      description: secret.description,
-      oauth_provider: secret.oauth_provider,
-      token_type: secret.token_type,
-      expires_at: secret.expires_at,
-      scopes: secret.scopes,
-      created_at: secret.created_at,
-      updated_at: secret.updated_at
-    }
+    return projectSecretResponse(secret)
   })
 
   const getSecretValue = handler(getSecretValueConfig, async (ctx) => {

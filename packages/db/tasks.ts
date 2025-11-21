@@ -1,11 +1,7 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { Task, CreateTaskInput, UpdateTaskInput } from '@types'
-import { filterPresentColumns } from './utils'
+import { filterPresentColumns, get } from './utils'
 import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
 
 export const findAllTasks = async (sql: Sql): Promise<Task[]> => {
   return get(sql<Task[]>`SELECT * FROM tasks ORDER BY created_at DESC`)
@@ -29,10 +25,17 @@ export interface PaginatedTasksResult {
   total_pages: number
 }
 
-export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions): Promise<Task[]> => {
-  const { project_id, task_source_id, evaluated_only, sort_by = 'created_desc', search } = options
-
-  // Build WHERE conditions
+/**
+ * Build WHERE clause for task queries
+ * @returns Object with whereClause string and params array
+ */
+function buildTaskWhereClause(options: {
+  project_id?: string
+  task_source_id?: string
+  evaluated_only?: boolean
+  search?: string
+}): { whereClause: string; params: any[] } {
+  const { project_id, task_source_id, evaluated_only, search } = options
   const conditions: string[] = []
   const params: any[] = []
 
@@ -57,53 +60,59 @@ export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions):
 
   const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-  // Build ORDER BY clause
-  let orderByClause: string
+  return { whereClause, params }
+}
+
+/**
+ * Build ORDER BY clause for task queries
+ */
+function buildTaskOrderByClause(sort_by?: string): string {
   switch (sort_by) {
     case 'created_asc':
-      orderByClause = 'ORDER BY created_at ASC'
-      break
+      return 'ORDER BY created_at ASC'
     case 'quick_win_desc':
       // Quick win = high impact / low effort
       // Using COALESCE to handle null values, putting them last
-      orderByClause = `ORDER BY
+      return `ORDER BY
         CASE
           WHEN ai_evaluation_simple_result IS NULL THEN 1
           ELSE 0
         END,
         (COALESCE((ai_evaluation_simple_result->>'estimated_impact')::text, 'low')) DESC,
         (COALESCE((ai_evaluation_simple_result->>'estimated_effort')::text, 'high')) ASC`
-      break
     case 'quick_win_asc':
-      orderByClause = `ORDER BY
+      return `ORDER BY
         CASE
           WHEN ai_evaluation_simple_result IS NULL THEN 1
           ELSE 0
         END,
         (COALESCE((ai_evaluation_simple_result->>'estimated_impact')::text, 'low')) ASC,
         (COALESCE((ai_evaluation_simple_result->>'estimated_effort')::text, 'high')) DESC`
-      break
     case 'complexity_asc':
-      orderByClause = `ORDER BY
+      return `ORDER BY
         CASE
           WHEN ai_evaluation_simple_result IS NULL THEN 1
           ELSE 0
         END,
         COALESCE((ai_evaluation_simple_result->>'complexity_score')::numeric, 999) ASC`
-      break
     case 'complexity_desc':
-      orderByClause = `ORDER BY
+      return `ORDER BY
         CASE
           WHEN ai_evaluation_simple_result IS NULL THEN 1
           ELSE 0
         END,
         COALESCE((ai_evaluation_simple_result->>'complexity_score')::numeric, 0) DESC`
-      break
     case 'created_desc':
     default:
-      orderByClause = 'ORDER BY created_at DESC'
-      break
+      return 'ORDER BY created_at DESC'
   }
+}
+
+export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions): Promise<Task[]> => {
+  const { sort_by = 'created_desc' } = options
+
+  const { whereClause, params } = buildTaskWhereClause(options)
+  const orderByClause = buildTaskOrderByClause(sort_by)
 
   const query = `SELECT * FROM tasks ${whereClause} ${orderByClause}`
 
@@ -111,32 +120,9 @@ export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions):
 }
 
 export const findTasksWithFiltersPaginated = async (sql: Sql, options: TaskQueryOptions): Promise<PaginatedTasksResult> => {
-  const { project_id, task_source_id, evaluated_only, sort_by = 'created_desc', page = 1, per_page = 20, search } = options
+  const { sort_by = 'created_desc', page = 1, per_page = 20 } = options
 
-  // Build WHERE conditions
-  const conditions: string[] = []
-  const params: any[] = []
-
-  if (project_id) {
-    conditions.push(`project_id = $${params.length + 1}`)
-    params.push(project_id)
-  }
-
-  if (task_source_id) {
-    conditions.push(`task_source_id = $${params.length + 1}`)
-    params.push(task_source_id)
-  }
-
-  if (evaluated_only) {
-    conditions.push(`ai_evaluation_simple_result IS NOT NULL`)
-  }
-
-  if (search && search.trim()) {
-    conditions.push(`(title ILIKE $${params.length + 1} OR description ILIKE $${params.length + 1})`)
-    params.push(`%${search.trim()}%`)
-  }
-
-  const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+  const { whereClause, params } = buildTaskWhereClause(options)
 
   // Get total count
   const countQuery = `SELECT COUNT(*) as count FROM tasks ${whereClause}`
@@ -144,52 +130,7 @@ export const findTasksWithFiltersPaginated = async (sql: Sql, options: TaskQuery
   const total = parseInt(countResult[0]?.count || '0', 10)
 
   // Build ORDER BY clause
-  let orderByClause: string
-  switch (sort_by) {
-    case 'created_asc':
-      orderByClause = 'ORDER BY created_at ASC'
-      break
-    case 'quick_win_desc':
-      // Quick win = high impact / low effort
-      // Using COALESCE to handle null values, putting them last
-      orderByClause = `ORDER BY
-        CASE
-          WHEN ai_evaluation_simple_result IS NULL THEN 1
-          ELSE 0
-        END,
-        (COALESCE((ai_evaluation_simple_result->>'estimated_impact')::text, 'low')) DESC,
-        (COALESCE((ai_evaluation_simple_result->>'estimated_effort')::text, 'high')) ASC`
-      break
-    case 'quick_win_asc':
-      orderByClause = `ORDER BY
-        CASE
-          WHEN ai_evaluation_simple_result IS NULL THEN 1
-          ELSE 0
-        END,
-        (COALESCE((ai_evaluation_simple_result->>'estimated_impact')::text, 'low')) ASC,
-        (COALESCE((ai_evaluation_simple_result->>'estimated_effort')::text, 'high')) DESC`
-      break
-    case 'complexity_asc':
-      orderByClause = `ORDER BY
-        CASE
-          WHEN ai_evaluation_simple_result IS NULL THEN 1
-          ELSE 0
-        END,
-        COALESCE((ai_evaluation_simple_result->>'complexity_score')::numeric, 999) ASC`
-      break
-    case 'complexity_desc':
-      orderByClause = `ORDER BY
-        CASE
-          WHEN ai_evaluation_simple_result IS NULL THEN 1
-          ELSE 0
-        END,
-        COALESCE((ai_evaluation_simple_result->>'complexity_score')::numeric, 0) DESC`
-      break
-    case 'created_desc':
-    default:
-      orderByClause = 'ORDER BY created_at DESC'
-      break
-  }
+  const orderByClause = buildTaskOrderByClause(sort_by)
 
   // Add pagination
   const offset = (page - 1) * per_page
@@ -211,12 +152,7 @@ export const findTasksWithFiltersPaginated = async (sql: Sql, options: TaskQuery
 }
 
 export const findTaskById = async (sql: Sql, id: string): Promise<Task> => {
-  const tasks = await get(sql<Task[]>`SELECT * FROM tasks WHERE id = ${id}`)
-  const [task] = tasks
-  if (!task) {
-    throw new NotFoundException('Task not found')
-  }
-  return task
+  return findOneById<Task>(sql, 'tasks', id, 'Task')
 }
 
 const createTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'created_by_user_id', 'manual_task_metadata'] as const
@@ -273,11 +209,7 @@ export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): 
 }
 
 export const deleteTask = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM tasks WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Task not found')
-  }
+  return deleteById(sql, 'tasks', id, 'Task')
 }
 
 const upsertTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'created_by_user_id', 'manual_task_metadata'] as const

@@ -1,11 +1,8 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { ApiKey, ApiKeyWithSecret, CreateApiKeyInput, UpdateApiKeyInput } from '@types'
-import { NotFoundException } from '../utils/exceptions'
 import { randomBytes, createHash } from 'crypto'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
+import { get, findOneById, deleteById } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 /**
  * Generate a secure API key with prefix
@@ -57,12 +54,7 @@ export const findAllApiKeysByProjectId = async (sql: Sql, projectId: string): Pr
  * Find API key by ID
  */
 export const findApiKeyById = async (sql: Sql, id: string): Promise<ApiKey> => {
-  const keys = await get(sql<ApiKey[]>`SELECT * FROM api_keys WHERE id = ${id}`)
-  const [key] = keys
-  if (!key) {
-    throw new NotFoundException('API key not found')
-  }
-  return key
+  return findOneById<ApiKey>(sql, 'api_keys', id, 'API key')
 }
 
 /**
@@ -202,11 +194,7 @@ export const updateApiKeyLastUsed = async (sql: Sql, keyHash: string): Promise<v
  * Delete an API key (hard delete)
  */
 export const deleteApiKey = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM api_keys WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('API key not found')
-  }
+  return deleteById(sql, 'api_keys', id, 'API key')
 }
 
 /**
