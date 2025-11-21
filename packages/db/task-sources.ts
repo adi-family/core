@@ -1,23 +1,13 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { TaskSource, CreateTaskSourceInput, UpdateTaskSourceInput } from '@types'
-import { filterPresentColumns } from './utils'
-import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
+import { filterPresentColumns, get, findOneById } from './utils'
 
 export const findAllTaskSources = async (sql: Sql): Promise<TaskSource[]> => {
   return get(sql<TaskSource[]>`SELECT * FROM task_sources ORDER BY created_at DESC`)
 }
 
 export const findTaskSourceById = async (sql: Sql, id: string): Promise<TaskSource> => {
-  const taskSources = await get(sql<TaskSource[]>`SELECT * FROM task_sources WHERE id = ${id}`)
-  const [taskSource] = taskSources
-  if (!taskSource) {
-    throw new NotFoundException('Task source not found')
-  }
-  return taskSource
+  return findOneById<TaskSource>(sql, 'task_sources', id, 'Task source')
 }
 
 export const findTaskSourcesByProjectId = async (sql: Sql, projectId: string): Promise<TaskSource[]> => {

@@ -1,19 +1,13 @@
 import type { Sql } from 'postgres'
 import type { PipelineExecution, CreatePipelineExecutionInput, UpdatePipelineExecutionInput } from '@types'
-import { NotFoundException } from '../utils/exceptions'
-import { get } from './utils'
+import { get, findOneById } from './utils'
 
 export const findAllPipelineExecutions = async (sql: Sql): Promise<PipelineExecution[]> => {
   return get(sql<PipelineExecution[]>`SELECT * FROM pipeline_executions ORDER BY created_at DESC`)
 }
 
 export const findPipelineExecutionById = async (sql: Sql, id: string): Promise<PipelineExecution> => {
-  const executions = await get(sql<PipelineExecution[]>`SELECT * FROM pipeline_executions WHERE id = ${id}`)
-  const [execution] = executions
-  if (!execution) {
-    throw new NotFoundException('Pipeline execution not found')
-  }
-  return execution
+  return findOneById<PipelineExecution>(sql, 'pipeline_executions', id, 'Pipeline execution')
 }
 
 export const findPipelineExecutionsBySessionId = async (sql: Sql, sessionId: string): Promise<PipelineExecution[]> => {

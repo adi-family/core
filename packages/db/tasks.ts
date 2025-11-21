@@ -209,11 +209,7 @@ export const updateTask = async (sql: Sql, id: string, input: UpdateTaskInput): 
 }
 
 export const deleteTask = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM tasks WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Task not found')
-  }
+  return deleteById(sql, 'tasks', id, 'Task')
 }
 
 const upsertTaskCols = ['title', 'description', 'status', 'remote_status', 'project_id', 'task_source_id', 'source_gitlab_issue', 'source_github_issue', 'source_jira_issue', 'created_by_user_id', 'manual_task_metadata'] as const

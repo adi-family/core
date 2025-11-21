@@ -1,6 +1,7 @@
 import type { Sql } from 'postgres'
 import type { Session, CreateSessionInput } from '@types'
-import { get, findOneById } from './utils'
+import { get, findOneById, deleteById } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 export const findAllSessions = async (sql: Sql): Promise<Session[]> => {
   return get(sql<Session[]>`SELECT * FROM sessions ORDER BY created_at DESC`)
@@ -27,11 +28,7 @@ export const createSession = async (sql: Sql, input: CreateSessionInput): Promis
 }
 
 export const deleteSession = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM sessions WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Session not found')
-  }
+  return deleteById(sql, 'sessions', id, 'Session')
 }
 
 export interface UpdateSessionInput {

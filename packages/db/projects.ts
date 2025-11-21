@@ -1,6 +1,7 @@
 import type { Sql } from 'postgres'
 import type { Project, CreateProjectInput, UpdateProjectInput, GitlabExecutorConfig, AIProviderConfig, AnthropicConfig, OpenAIConfig, GoogleConfig } from '@types'
-import { filterPresentColumns, get, findOneById } from './utils'
+import { filterPresentColumns, get, findOneById, deleteById } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 export const findAllProjects = async (sql: Sql): Promise<Project[]> => {
   return get(sql<Project[]>`SELECT * FROM projects ORDER BY created_at DESC`)
@@ -42,11 +43,7 @@ export const updateProject = async (sql: Sql, id: string, input: UpdateProjectIn
 }
 
 export const deleteProject = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM projects WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Project not found')
-  }
+  return deleteById(sql, 'projects', id, 'Project')
 }
 
 /**

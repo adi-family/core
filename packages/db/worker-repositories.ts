@@ -1,23 +1,14 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { WorkerRepository, CreateWorkerRepositoryInput, UpdateWorkerRepositoryInput } from '@types'
-import { filterPresentColumns } from './utils'
+import { filterPresentColumns, get, findOneById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
 
 export const findAllWorkerRepositories = async (sql: Sql): Promise<WorkerRepository[]> => {
   return get(sql<WorkerRepository[]>`SELECT * FROM worker_repositories ORDER BY created_at DESC`)
 }
 
 export const findWorkerRepositoryById = async (sql: Sql, id: string): Promise<WorkerRepository> => {
-  const repos = await get(sql<WorkerRepository[]>`SELECT * FROM worker_repositories WHERE id = ${id}`)
-  const [repo] = repos
-  if (!repo) {
-    throw new NotFoundException('Worker repository not found')
-  }
-  return repo
+  return findOneById<WorkerRepository>(sql, 'worker_repositories', id, 'Worker repository')
 }
 
 export const findWorkerRepositoryByProjectId = async (sql: Sql, projectId: string): Promise<WorkerRepository> => {

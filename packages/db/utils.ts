@@ -33,6 +33,27 @@ export async function findOneById<T>(
 }
 
 /**
+ * Generic function to delete a single entity by ID
+ * @param sql - Postgres connection
+ * @param table - Table name (e.g., 'sessions', 'tasks', 'projects')
+ * @param id - The ID to delete
+ * @param entityName - Human-readable entity name for error messages (e.g., 'Session', 'Task')
+ * @throws NotFoundException if entity not found
+ */
+export async function deleteById(
+  sql: Sql,
+  table: string,
+  id: string,
+  entityName: string
+): Promise<void> {
+  const resultSet = await get(sql.unsafe(`DELETE FROM ${table} WHERE id = $1`, [id]) as any)
+  const deleted = resultSet.count > 0
+  if (!deleted) {
+    throw new NotFoundException(`${entityName} not found`)
+  }
+}
+
+/**
  * Filter columns to only include those present in the input object
  * This prevents postgres from throwing UNDEFINED_VALUE errors when updating with partial data
  */

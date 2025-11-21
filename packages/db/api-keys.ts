@@ -1,8 +1,7 @@
 import type { Sql } from 'postgres'
 import type { ApiKey, ApiKeyWithSecret, CreateApiKeyInput, UpdateApiKeyInput } from '@types'
-import { NotFoundException } from '../utils/exceptions'
 import { randomBytes, createHash } from 'crypto'
-import { get } from './utils'
+import { get, findOneById } from './utils'
 
 /**
  * Generate a secure API key with prefix
@@ -54,12 +53,7 @@ export const findAllApiKeysByProjectId = async (sql: Sql, projectId: string): Pr
  * Find API key by ID
  */
 export const findApiKeyById = async (sql: Sql, id: string): Promise<ApiKey> => {
-  const keys = await get(sql<ApiKey[]>`SELECT * FROM api_keys WHERE id = ${id}`)
-  const [key] = keys
-  if (!key) {
-    throw new NotFoundException('API key not found')
-  }
-  return key
+  return findOneById<ApiKey>(sql, 'api_keys', id, 'API key')
 }
 
 /**

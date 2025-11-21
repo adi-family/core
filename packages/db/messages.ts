@@ -27,9 +27,5 @@ export const createMessage = async (sql: Sql, input: CreateMessageInput): Promis
 }
 
 export const deleteMessage = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM messages WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Message not found')
-  }
+  return deleteById(sql, 'messages', id, 'Message')
 }

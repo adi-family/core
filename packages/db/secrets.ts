@@ -1,6 +1,6 @@
 import type { Sql } from 'postgres'
 import type { Secret, CreateSecretInput, UpdateSecretInput } from '@types'
-import { filterPresentColumns, get } from './utils'
+import { filterPresentColumns, get, findOneById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
 
 export const findAllSecrets = async (sql: Sql): Promise<Secret[]> => {
@@ -12,12 +12,7 @@ export const findSecretsByProjectId = async (sql: Sql, projectId: string): Promi
 }
 
 export const findSecretById = async (sql: Sql, id: string): Promise<Secret> => {
-  const secrets = await get(sql<Secret[]>`SELECT * FROM secrets WHERE id = ${id}`)
-  const [secret] = secrets
-  if (!secret) {
-    throw new NotFoundException('Secret not found')
-  }
-  return secret
+  return findOneById<Secret>(sql, 'secrets', id, 'Secret')
 }
 
 export const findSecretByProjectAndName = async (sql: Sql, projectId: string, name: string): Promise<Secret> => {
