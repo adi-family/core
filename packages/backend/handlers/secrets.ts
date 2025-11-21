@@ -20,8 +20,7 @@ import * as secretQueries from '@db/secrets'
 import * as apiKeyQueries from '@db/api-keys'
 import * as userAccessQueries from '@db/user-access'
 import { getDecryptedSecretValue } from '../services/secrets'
-import { verifyToken } from '@clerk/backend'
-import { CLERK_SECRET_KEY } from '../config'
+import { getUserIdFromClerkToken } from '../utils/auth'
 import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'secrets-handler' })
@@ -50,36 +49,6 @@ function projectSecretResponse(secret: any, includeProjectId = false) {
 }
 
 export function createSecretHandlers(sql: Sql) {
-  /**
-   * Authenticate request using JWT
-   */
-  async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
-    const authHeader = ctx.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Unauthorized: No Authorization header')
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    if (!token) {
-      throw new Error('Unauthorized: Invalid token format')
-    }
-
-    if (!CLERK_SECRET_KEY) {
-      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
-    }
-
-    try {
-      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
-      if (!payload.sub) {
-        throw new Error('Unauthorized: Invalid token payload')
-      }
-      return payload.sub
-    } catch (error) {
-      logger.error('Token verification failed:', error)
-      throw new Error('Unauthorized: Token verification failed')
-    }
-  }
-
   /**
    * Authenticate request using API key
    * Workers need to access secrets, so we support API key auth for getSecretValue
@@ -116,7 +85,7 @@ export function createSecretHandlers(sql: Sql) {
   }
 
   const listSecrets = handler(listSecretsConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
 
     // Get user's accessible projects
     const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
@@ -134,7 +103,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const getSecretsByProject = handler(getSecretsByProjectConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { projectId } = ctx.params
 
     // Verify user has access to the project
@@ -148,7 +117,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const getSecret = handler(getSecretConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
 
     const secret = await secretQueries.findSecretById(sql, id)
@@ -181,7 +150,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const createSecret = handler(createSecretConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const data = ctx.body
 
     // Verify user has admin access to the project
@@ -201,7 +170,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateGitLabRawToken = handler(validateGitLabRawTokenConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
 
     // Note: This endpoint validates a raw token before it's stored, so no project verification needed yet
     // The token will be associated with a project when it's saved via createSecret
@@ -241,7 +210,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateGitLabToken = handler(validateGitLabTokenConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { secretId, hostname, scopes: _scopes } = ctx.body
 
     try {
@@ -288,7 +257,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const getGitLabRepositories = handler(getGitLabRepositoriesConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { secretId, host, search, perPage } = ctx.body
 
     try {
@@ -337,7 +306,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateJiraRawToken = handler(validateJiraRawTokenConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
 
     // Note: This endpoint validates a raw token before it's stored, so no project verification needed yet
 
@@ -379,7 +348,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateJiraToken = handler(validateJiraTokenConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { secretId, hostname } = ctx.body
 
     try {

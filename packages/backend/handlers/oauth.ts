@@ -3,7 +3,7 @@
  */
 
 import type { Sql } from 'postgres'
-import { handler, type HandlerContext } from '@adi-family/http'
+import { handler } from '@adi-family/http'
 import {
   gitlabOAuthAuthorizeConfig,
   gitlabOAuthExchangeConfig,
@@ -18,41 +18,13 @@ import * as secretQueries from '@db/secrets'
 import * as userAccessQueries from '@db/user-access'
 import { createLogger } from '@utils/logger'
 import { refreshGitLabToken, refreshJiraToken } from '@backend/services/oauth-token-refresh'
-import { verifyToken } from '@clerk/backend'
-import { CLERK_SECRET_KEY } from '../config'
+import { getUserIdFromClerkToken } from '../utils/auth'
 
 const logger = createLogger({ namespace: 'oauth-handler' })
 
 export function createOAuthHandlers(sql: Sql) {
-  async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
-    const authHeader = ctx.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Unauthorized: No Authorization header')
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    if (!token) {
-      throw new Error('Unauthorized: Invalid token format')
-    }
-
-    if (!CLERK_SECRET_KEY) {
-      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
-    }
-
-    try {
-      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
-      if (!payload.sub) {
-        throw new Error('Unauthorized: Invalid token payload')
-      }
-      return payload.sub
-    } catch (error) {
-      logger.error('Token verification failed:', error)
-      throw new Error('Unauthorized: Token verification failed')
-    }
-  }
-
   const gitlabAuthorize = handler(gitlabOAuthAuthorizeConfig, async (ctx) => {
-    await getUserId(ctx)
+    await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const gitlabHost = process.env.GITLAB_ROOT_OAUTH_HOST || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
     const clientId = process.env.GITLAB_OAUTH_CLIENT_ID
     const redirectUri = process.env.GITLAB_OAUTH_REDIRECT_URI
@@ -80,7 +52,7 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const gitlabExchange = handler(gitlabOAuthExchangeConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { projectId, code, secretName } = ctx.body
 
     // CRITICAL: Verify user has admin access to the project before storing OAuth token
@@ -170,7 +142,7 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const gitlabRefresh = handler(gitlabOAuthRefreshConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { secretId } = ctx.params
 
     const secret = await secretQueries.findSecretById(sql, secretId)
@@ -202,7 +174,7 @@ export function createOAuthHandlers(sql: Sql) {
   // ============================================================================
 
   const jiraAuthorize = handler(jiraOAuthAuthorizeConfig, async (ctx) => {
-    await getUserId(ctx)
+    await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const clientId = process.env.JIRA_OAUTH_CLIENT_ID
     const redirectUri = process.env.JIRA_OAUTH_REDIRECT_URI
 
@@ -232,7 +204,7 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const jiraExchange = handler(jiraOAuthExchangeConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { projectId, code, secretName, cloudId } = ctx.body
 
     // CRITICAL: Verify user has admin access to the project before storing OAuth token
@@ -324,7 +296,7 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const jiraRefresh = handler(jiraOAuthRefreshConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { secretId } = ctx.params
 
     const secret = await secretQueries.findSecretById(sql, secretId)
@@ -356,7 +328,7 @@ export function createOAuthHandlers(sql: Sql) {
   // ============================================================================
 
   const githubAuthorize = handler(githubOAuthAuthorizeConfig, async (ctx) => {
-    await getUserId(ctx)
+    await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const clientId = process.env.GITHUB_OAUTH_CLIENT_ID
     const redirectUri = process.env.GITHUB_OAUTH_REDIRECT_URI
 
@@ -382,7 +354,7 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const githubExchange = handler(githubOAuthExchangeConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { projectId, code, secretName } = ctx.body
 
     // CRITICAL: Verify user has admin access to the project before storing OAuth token

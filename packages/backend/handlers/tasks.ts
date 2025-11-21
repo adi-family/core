@@ -3,7 +3,7 @@
  */
 
 import type { Sql } from 'postgres'
-import { handler, type HandlerContext } from '@adi-family/http'
+import { handler } from '@adi-family/http'
 import {
   getTaskSessionsConfig,
   getTaskArtifactsConfig,
@@ -25,41 +25,12 @@ import * as taskSourceQueries from '@db/task-sources'
 import * as userAccessQueries from '@db/user-access'
 import { publishTaskEval, publishTaskImpl } from '@adi/queue/publisher'
 import { evaluateTaskAdvanced } from '@adi/micros-task-eval/service'
-import { requireProjectAccess } from '../utils/auth'
-import { verifyToken } from '@clerk/backend'
-import { CLERK_SECRET_KEY } from '../config'
+import { requireProjectAccess, getUserIdFromClerkToken } from '../utils/auth'
 import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'tasks-handler' })
 
 export function createTaskHandlers(sql: Sql) {
-  async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
-    const authHeader = ctx.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Unauthorized: No Authorization header')
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    if (!token) {
-      throw new Error('Unauthorized: Invalid token format')
-    }
-
-    if (!CLERK_SECRET_KEY) {
-      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
-    }
-
-    try {
-      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
-      if (!payload.sub) {
-        throw new Error('Unauthorized: Invalid token payload')
-      }
-      return payload.sub
-    } catch (error) {
-      logger.error('Token verification failed:', error)
-      throw new Error('Unauthorized: Token verification failed')
-    }
-  }
-
   async function verifyTaskAccess(userId: string, taskId: string, minRole: 'viewer' | 'developer' | 'admin' = 'viewer'): Promise<void> {
     const task = await taskQueries.findTaskById(sql, taskId)
 
@@ -73,7 +44,7 @@ export function createTaskHandlers(sql: Sql) {
     }
   }
   const getTaskSessions = handler(getTaskSessionsConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { taskId } = ctx.params
 
     await verifyTaskAccess(userId, taskId)
@@ -83,7 +54,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const getTaskArtifacts = handler(getTaskArtifactsConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { taskId } = ctx.params
 
     await verifyTaskAccess(userId, taskId)
@@ -93,7 +64,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const listTasks = handler(listTasksConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { project_id, limit, search } = ctx.query || {}
 
     // If project_id is specified, verify access to that project
@@ -123,7 +94,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const getTask = handler(getTaskConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
 
     await verifyTaskAccess(userId, id)
@@ -133,7 +104,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const implementTask = handler(implementTaskConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
 
     await verifyTaskAccess(userId, id, 'developer')
@@ -150,7 +121,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const evaluateTask = handler(evaluateTaskConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
 
     await verifyTaskAccess(userId, id, 'developer')
@@ -167,7 +138,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const evaluateTaskAdvancedHandler = handler(evaluateTaskAdvancedConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
 
     await verifyTaskAccess(userId, id, 'developer')
@@ -192,7 +163,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const getTaskStats = handler(getTaskStatsConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { project_id, task_source_id, evaluated_only, sort_by, search } = ctx.query || {}
 
     // Verify access to the project if specified
@@ -303,7 +274,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const updateTaskImplementationStatusHandler = handler(updateTaskImplementationStatusConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
     const { status } = ctx.body
 
@@ -318,7 +289,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const updateTaskHandler = handler(updateTaskConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
     const body = ctx.body
 
@@ -329,7 +300,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const createTask = handler(createTaskConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { title, description, project_id, status } = ctx.body
 
     // Check if user has access to the project
@@ -357,7 +328,7 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const deleteTask = handler(deleteTaskConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
 
     // Get task to check if it can be deleted

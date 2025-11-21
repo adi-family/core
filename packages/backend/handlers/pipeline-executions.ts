@@ -3,7 +3,7 @@
  */
 
 import type { Sql } from 'postgres'
-import { handler, type HandlerContext } from '@adi-family/http'
+import { handler } from '@adi-family/http'
 import {
   listPipelineArtifactsConfig,
   getExecutionArtifactsConfig,
@@ -18,40 +18,12 @@ import * as apiUsageQueries from '@db/api-usage-metrics'
 import * as sessionQueries from '@db/sessions'
 import * as taskQueries from '@db/tasks'
 import * as userAccessQueries from '@db/user-access'
-import { verifyToken } from '@clerk/backend'
-import { CLERK_SECRET_KEY } from '../config'
+import { getUserIdFromClerkToken } from '../utils/auth'
 import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'pipeline-executions-handler' })
 
 export function createPipelineExecutionHandlers(sql: Sql) {
-  async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
-    const authHeader = ctx.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Unauthorized: No Authorization header')
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    if (!token) {
-      throw new Error('Unauthorized: Invalid token format')
-    }
-
-    if (!CLERK_SECRET_KEY) {
-      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
-    }
-
-    try {
-      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
-      if (!payload.sub) {
-        throw new Error('Unauthorized: Invalid token payload')
-      }
-      return payload.sub
-    } catch (error) {
-      logger.error('Token verification failed:', error)
-      throw new Error('Unauthorized: Token verification failed')
-    }
-  }
-
   async function verifyExecutionAccess(userId: string, executionId: string, minRole: 'viewer' | 'developer' = 'viewer'): Promise<void> {
     const execution = await pipelineExecutionQueries.findPipelineExecutionById(sql, executionId)
 
@@ -78,7 +50,7 @@ export function createPipelineExecutionHandlers(sql: Sql) {
   }
 
   const listPipelineArtifacts = handler(listPipelineArtifactsConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { execution_id } = ctx.query || {}
 
     if (execution_id) {
@@ -111,7 +83,7 @@ export function createPipelineExecutionHandlers(sql: Sql) {
   })
 
   const getExecutionArtifacts = handler(getExecutionArtifactsConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { executionId } = ctx.params
 
     await verifyExecutionAccess(userId, executionId)
@@ -121,7 +93,7 @@ export function createPipelineExecutionHandlers(sql: Sql) {
   })
 
   const createExecutionArtifact = handler(createExecutionArtifactConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { executionId } = ctx.params
     const body = ctx.body
 
@@ -136,7 +108,7 @@ export function createPipelineExecutionHandlers(sql: Sql) {
   })
 
   const createPipelineExecution = handler(createPipelineExecutionConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const body = ctx.body
 
     // Verify access to the session's project
@@ -158,7 +130,7 @@ export function createPipelineExecutionHandlers(sql: Sql) {
   })
 
   const updatePipelineExecution = handler(updatePipelineExecutionConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
     const body = ctx.body
 
@@ -169,7 +141,7 @@ export function createPipelineExecutionHandlers(sql: Sql) {
   })
 
   const saveExecutionApiUsage = handler(saveExecutionApiUsageConfig, async (ctx) => {
-    const userId = await getUserId(ctx)
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { executionId } = ctx.params
     const body = ctx.body
 
