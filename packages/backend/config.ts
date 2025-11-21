@@ -21,6 +21,11 @@ export const CLERK_SECRET_KEY = process.env.CLERK_SECRET_KEY || ''
 
 export const SERVICE_FQDN_CLIENT = process.env.SERVICE_FQDN_CLIENT || ''
 
+// Allowed CORS origins (comma-separated in env var)
+export const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map(origin => origin.trim())
+  : ['http://localhost:4173', 'http://localhost:5173']
+
 // ============================================================================
 // API Base URLs
 // ============================================================================
