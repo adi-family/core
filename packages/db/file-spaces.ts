@@ -1,11 +1,7 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { FileSpace, CreateFileSpaceInput, UpdateFileSpaceInput } from '@types'
-import { filterPresentColumns } from './utils'
+import { filterPresentColumns, get } from './utils'
 import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
 
 export const findAllFileSpaces = async (sql: Sql): Promise<FileSpace[]> => {
   return get(sql<FileSpace[]>`SELECT * FROM file_spaces ORDER BY created_at DESC`)

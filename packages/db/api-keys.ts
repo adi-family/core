@@ -1,11 +1,8 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { ApiKey, ApiKeyWithSecret, CreateApiKeyInput, UpdateApiKeyInput } from '@types'
 import { NotFoundException } from '../utils/exceptions'
 import { randomBytes, createHash } from 'crypto'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
+import { get } from './utils'
 
 /**
  * Generate a secure API key with prefix

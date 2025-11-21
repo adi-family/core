@@ -1,11 +1,7 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { Secret, CreateSecretInput, UpdateSecretInput } from '@types'
-import { filterPresentColumns } from './utils'
+import { filterPresentColumns, get } from './utils'
 import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
 
 export const findAllSecrets = async (sql: Sql): Promise<Secret[]> => {
   return get(sql<Secret[]>`SELECT * FROM secrets ORDER BY created_at DESC`)

@@ -14,39 +14,15 @@ import {
 import * as taskSourceQueries from '@db/task-sources'
 import * as userAccessQueries from '@db/user-access'
 import type { Sql } from 'postgres'
-import { verifyToken } from '@clerk/backend'
-import { CLERK_SECRET_KEY } from '../config'
 import { createLogger } from '@utils/logger'
 import { publishTaskSync } from '@adi/queue/publisher'
+import { getUserIdFromClerkToken, requireProjectAccess } from '../utils/auth'
 
 const logger = createLogger({ namespace: 'task-sources-handler' })
 
 export function createTaskSourceHandlers(sql: Sql) {
   async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
-    const authHeader = ctx.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Unauthorized: No Authorization header')
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    if (!token) {
-      throw new Error('Unauthorized: Invalid token format')
-    }
-
-    if (!CLERK_SECRET_KEY) {
-      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
-    }
-
-    try {
-      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
-      if (!payload.sub) {
-        throw new Error('Unauthorized: Invalid token payload')
-      }
-      return payload.sub
-    } catch (error) {
-      logger.error('Token verification failed:', error)
-      throw new Error('Unauthorized: Token verification failed')
-    }
+    return getUserIdFromClerkToken(ctx.headers.get('Authorization'))
   }
 
   const listTaskSources = handler(listTaskSourcesConfig, async (ctx) => {
@@ -54,10 +30,7 @@ export function createTaskSourceHandlers(sql: Sql) {
     const projectId = ctx.query?.project_id
 
     if (projectId) {
-      const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, projectId)
-      if (!hasAccess) {
-        throw new Error('Forbidden: You do not have access to this project')
-      }
+      await requireProjectAccess(sql, userId, projectId)
 
       return taskSourceQueries.findTaskSourcesByProjectId(sql, projectId)
     }
@@ -72,10 +45,7 @@ export function createTaskSourceHandlers(sql: Sql) {
     const { id } = ctx.params
 
     const taskSource = await taskSourceQueries.findTaskSourceById(sql, id)
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, taskSource.project_id)
-    if (!hasAccess) {
-      throw new Error('Forbidden: You do not have access to this task source')
-    }
+    await requireProjectAccess(sql, userId, taskSource.project_id, 'viewer', 'Forbidden: You do not have access to this task source')
 
     return taskSource
   })
@@ -84,10 +54,7 @@ export function createTaskSourceHandlers(sql: Sql) {
     const userId = await getUserId(ctx)
     const { project_id } = ctx.body as any
 
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, project_id, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You need admin role to create task sources for this project')
-    }
+    await requireProjectAccess(sql, userId, project_id, 'admin', 'Forbidden: You need admin role to create task sources for this project')
 
     const taskSource = await taskSourceQueries.createTaskSource(sql, ctx.body as any)
 
@@ -103,10 +70,7 @@ export function createTaskSourceHandlers(sql: Sql) {
     const { id } = ctx.params
 
     const taskSource = await taskSourceQueries.findTaskSourceById(sql, id)
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, taskSource.project_id, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You need admin role to update this task source')
-    }
+    await requireProjectAccess(sql, userId, taskSource.project_id, 'admin', 'Forbidden: You need admin role to update this task source')
 
     return taskSourceQueries.updateTaskSource(sql, id, ctx.body as any)
   })
@@ -116,10 +80,7 @@ export function createTaskSourceHandlers(sql: Sql) {
     const { id } = ctx.params
 
     const taskSource = await taskSourceQueries.findTaskSourceById(sql, id)
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, taskSource.project_id, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You need admin role to delete this task source')
-    }
+    await requireProjectAccess(sql, userId, taskSource.project_id, 'admin', 'Forbidden: You need admin role to delete this task source')
 
     await taskSourceQueries.deleteTaskSource(sql, id)
     return { success: true }

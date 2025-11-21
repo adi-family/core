@@ -1,10 +1,7 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { PipelineExecution, CreatePipelineExecutionInput, UpdatePipelineExecutionInput } from '@types'
 import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
+import { get } from './utils'
 
 export const findAllPipelineExecutions = async (sql: Sql): Promise<PipelineExecution[]> => {
   return get(sql<PipelineExecution[]>`SELECT * FROM pipeline_executions ORDER BY created_at DESC`)

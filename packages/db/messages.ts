@@ -1,10 +1,6 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { Sql } from 'postgres'
 import type { Message, CreateMessageInput } from '@types'
-import { NotFoundException } from '../utils/exceptions'
-
-function get<T extends readonly MaybeRow[]>(q: PendingQuery<T>) {
-  return q.then(v => v);
-}
+import { get, findOneById } from './utils'
 
 export const findAllMessages = async (sql: Sql): Promise<Message[]> => {
   return get(sql<Message[]>`SELECT * FROM messages ORDER BY created_at DESC`);
@@ -15,12 +11,7 @@ export const findMessagesBySessionId = async (sql: Sql, sessionId: string): Prom
 }
 
 export const findMessageById = async (sql: Sql, id: string): Promise<Message> => {
-  const messages = await get(sql<Message[]>`SELECT * FROM messages WHERE id = ${id}`)
-  const [message] = messages
-  if (!message) {
-    throw new NotFoundException('Message not found')
-  }
-  return message
+  return findOneById<Message>(sql, 'messages', id, 'Message')
 }
 
 const createMessageCols = ['session_id', 'data'] as const
