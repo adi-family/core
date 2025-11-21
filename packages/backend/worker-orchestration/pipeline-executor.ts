@@ -470,8 +470,8 @@ function validateRequiredApiKeys(
     return // No validation needed if runner type is not specified
   }
 
-  // Disable non-Claude runners
-  const disabledRunners = ['codex', 'gemini']
+  // Disable non-Claude runners (empty for now - codex and gemini are enabled)
+  const disabledRunners: string[] = []
   if (disabledRunners.includes(runner)) {
     throw new Error(
       `Cannot start ${runner} pipeline: This runner type is currently disabled. ` +
@@ -483,6 +483,8 @@ function validateRequiredApiKeys(
     'evaluation': { key: 'ANTHROPIC_API_KEY', provider: 'Anthropic (Claude)' },
     'claude': { key: 'ANTHROPIC_API_KEY', provider: 'Anthropic (Claude)' },
     'implementation': { key: 'ANTHROPIC_API_KEY', provider: 'Anthropic (Claude)' }, // Legacy support
+    'codex': { key: 'OPENAI_API_KEY', provider: 'OpenAI (Codex)' },
+    'gemini': { key: 'GOOGLE_API_KEY', provider: 'Google (Gemini)' },
   }
 
   const requirement = runnerKeyMap[runner]
