@@ -25,52 +25,89 @@ import * as taskSourceQueries from '@db/task-sources'
 import * as userAccessQueries from '@db/user-access'
 import { publishTaskEval, publishTaskImpl } from '@adi/queue/publisher'
 import { evaluateTaskAdvanced } from '@adi/micros-task-eval/service'
-import { requireProjectAccess } from '../utils/auth'
+import { requireProjectAccess, getUserIdFromClerkToken } from '../utils/auth'
+import { createLogger } from '@utils/logger'
 
-/**
- * Extract user ID from request headers
- * TODO: Integrate with proper authentication middleware (Clerk)
- */
-function getUserIdFromHeaders(ctx: any): string | null {
-  // Try to get from X-User-Id header (set by auth middleware)
-  const userId = ctx.headers?.['x-user-id'] || ctx.headers?.['X-User-Id']
-  return userId || null
-}
+const logger = createLogger({ namespace: 'tasks-handler' })
 
 export function createTaskHandlers(sql: Sql) {
+  async function verifyTaskAccess(userId: string, taskId: string, minRole: 'viewer' | 'developer' | 'admin' = 'viewer'): Promise<void> {
+    const task = await taskQueries.findTaskById(sql, taskId)
+
+    if (!task.project_id) {
+      throw new Error('Forbidden: Task not associated with a project')
+    }
+
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, task.project_id, minRole)
+    if (!hasAccess) {
+      throw new Error(`Forbidden: You do not have ${minRole} access to this task's project`)
+    }
+  }
   const getTaskSessions = handler(getTaskSessionsConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { taskId } = ctx.params
+
+    await verifyTaskAccess(userId, taskId)
+
     const sessions = await sessionQueries.findSessionsByTaskId(sql, taskId)
     return sessions
   })
 
   const getTaskArtifacts = handler(getTaskArtifactsConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { taskId } = ctx.params
+
+    await verifyTaskAccess(userId, taskId)
+
     const artifacts = await pipelineArtifactQueries.findPipelineArtifactsByTaskId(sql, taskId)
     return artifacts
   })
 
   const listTasks = handler(listTasksConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { project_id, limit, search } = ctx.query || {}
 
-    // Use the findTasksWithFilters query to support filtering
-    const tasks = await taskQueries.findTasksWithFilters(sql, {
-      project_id,
+    // If project_id is specified, verify access to that project
+    if (project_id) {
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, project_id)
+      if (!hasAccess) {
+        throw new Error('Forbidden: You do not have access to this project')
+      }
+
+      const tasks = await taskQueries.findTasksWithFilters(sql, {
+        project_id,
+        search,
+        ...(limit && { per_page: limit })
+      })
+
+      return tasks
+    }
+
+    // If no project_id specified, filter by user's accessible projects
+    const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+    const allTasks = await taskQueries.findTasksWithFilters(sql, {
       search,
       ...(limit && { per_page: limit })
     })
 
-    return tasks
+    return allTasks.filter(task => task.project_id && accessibleProjectIds.includes(task.project_id))
   })
 
   const getTask = handler(getTaskConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
+
+    await verifyTaskAccess(userId, id)
+
     const task = await taskQueries.findTaskById(sql, id)
     return task
   })
 
   const implementTask = handler(implementTaskConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
+
+    await verifyTaskAccess(userId, id, 'developer')
 
     const task = await taskQueries.updateTaskImplementationStatus(sql, id, 'queued')
 
@@ -84,7 +121,10 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const evaluateTask = handler(evaluateTaskConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
+
+    await verifyTaskAccess(userId, id, 'developer')
 
     const task = await taskQueries.updateTaskEvaluationStatus(sql, id, 'queued')
 
@@ -98,7 +138,10 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const evaluateTaskAdvancedHandler = handler(evaluateTaskAdvancedConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
+
+    await verifyTaskAccess(userId, id, 'developer')
 
     const result = await evaluateTaskAdvanced(sql, { taskId: id })
 
@@ -120,7 +163,16 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const getTaskStats = handler(getTaskStatsConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { project_id, task_source_id, evaluated_only, sort_by, search } = ctx.query || {}
+
+    // Verify access to the project if specified
+    if (project_id) {
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, project_id)
+      if (!hasAccess) {
+        throw new Error('Forbidden: You do not have access to this project')
+      }
+    }
 
     const tasks = await taskQueries.findTasksWithFilters(sql, {
       project_id,
@@ -222,8 +274,11 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const updateTaskImplementationStatusHandler = handler(updateTaskImplementationStatusConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
     const { status } = ctx.body
+
+    await verifyTaskAccess(userId, id, 'developer')
 
     await taskQueries.updateTaskImplementationStatus(sql, id, status)
 
@@ -234,24 +289,22 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const updateTaskHandler = handler(updateTaskConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
     const body = ctx.body
+
+    await verifyTaskAccess(userId, id, 'developer')
 
     const task = await taskQueries.updateTask(sql, id, body)
     return task
   })
 
   const createTask = handler(createTaskConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { title, description, project_id, status } = ctx.body
 
-    // Get user ID from request
-    const userId = getUserIdFromHeaders(ctx)
-    if (!userId) {
-      throw new Error('Authentication required. User ID not found in request.')
-    }
-
     // Check if user has access to the project
-    await requireProjectAccess(sql, userId, project_id, 'developer', 'You do not have permission to create tasks in this project. Project owner or developer access required.')
+    await requireProjectAccess(sql, userId, project_id, 'developer', 'Forbidden: You do not have permission to create tasks in this project. Developer access required.')
 
     // Get or create manual task source for this project
     const manualSource = await taskSourceQueries.findOrCreateManualTaskSource(sql, project_id)
@@ -275,30 +328,25 @@ export function createTaskHandlers(sql: Sql) {
   })
 
   const deleteTask = handler(deleteTaskConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
-
-    // Get user ID from request
-    const userId = getUserIdFromHeaders(ctx)
-    if (!userId) {
-      throw new Error('Authentication required. User ID not found in request.')
-    }
 
     // Get task to check if it can be deleted
     const task = await taskQueries.findTaskById(sql, id)
 
     // Only allow deletion of manually created tasks
     if (!task.manual_task_metadata) {
-      throw new Error('Only manually created tasks can be deleted. Tasks synced from external sources cannot be deleted.')
+      throw new Error('Forbidden: Only manually created tasks can be deleted. Tasks synced from external sources cannot be deleted.')
     }
 
     // Get the project ID for this task
     if (!task.project_id) {
-      throw new Error('Task has no associated project')
+      throw new Error('Forbidden: Task has no associated project')
     }
 
     // Check if user has access to the project
     // Users with developer access or higher can delete manual tasks in their projects
-    await requireProjectAccess(sql, userId, task.project_id, 'developer', 'You do not have permission to delete tasks in this project. Project owner or developer access required.')
+    await requireProjectAccess(sql, userId, task.project_id, 'developer', 'Forbidden: You do not have permission to delete tasks in this project. Developer access required.')
 
     await taskQueries.deleteTask(sql, id)
 

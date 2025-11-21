@@ -15,13 +15,16 @@ import {
   githubOAuthExchangeConfig
 } from '@adi/api-contracts'
 import * as secretQueries from '@db/secrets'
+import * as userAccessQueries from '@db/user-access'
 import { createLogger } from '@utils/logger'
 import { refreshGitLabToken, refreshJiraToken } from '@backend/services/oauth-token-refresh'
+import { getUserIdFromClerkToken } from '../utils/auth'
 
 const logger = createLogger({ namespace: 'oauth-handler' })
 
 export function createOAuthHandlers(sql: Sql) {
-  const gitlabAuthorize = handler(gitlabOAuthAuthorizeConfig, async (_ctx) => {
+  const gitlabAuthorize = handler(gitlabOAuthAuthorizeConfig, async (ctx) => {
+    await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const gitlabHost = process.env.GITLAB_ROOT_OAUTH_HOST || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
     const clientId = process.env.GITLAB_OAUTH_CLIENT_ID
     const redirectUri = process.env.GITLAB_OAUTH_REDIRECT_URI
@@ -49,7 +52,14 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const gitlabExchange = handler(gitlabOAuthExchangeConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { projectId, code, secretName } = ctx.body
+
+    // CRITICAL: Verify user has admin access to the project before storing OAuth token
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, projectId, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You must have admin access to this project to configure OAuth')
+    }
 
     // Always use GITLAB_ROOT_OAUTH_HOST for OAuth operations
     const host = process.env.GITLAB_ROOT_OAUTH_HOST || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
@@ -132,12 +142,19 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const gitlabRefresh = handler(gitlabOAuthRefreshConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { secretId } = ctx.params
 
     const secret = await secretQueries.findSecretById(sql, secretId)
 
     if (secret.token_type !== 'oauth' || secret.oauth_provider !== 'gitlab') {
       throw new Error('Secret is not a GitLab OAuth token')
+    }
+
+    // Verify user has access to the secret's project
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, secret.project_id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You do not have admin access to this secret\'s project')
     }
 
     // Use shared refresh utility
@@ -156,7 +173,8 @@ export function createOAuthHandlers(sql: Sql) {
   // JIRA OAUTH
   // ============================================================================
 
-  const jiraAuthorize = handler(jiraOAuthAuthorizeConfig, async (_ctx) => {
+  const jiraAuthorize = handler(jiraOAuthAuthorizeConfig, async (ctx) => {
+    await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const clientId = process.env.JIRA_OAUTH_CLIENT_ID
     const redirectUri = process.env.JIRA_OAUTH_REDIRECT_URI
 
@@ -186,7 +204,14 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const jiraExchange = handler(jiraOAuthExchangeConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { projectId, code, secretName, cloudId } = ctx.body
+
+    // CRITICAL: Verify user has admin access to the project before storing OAuth token
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, projectId, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You must have admin access to this project to configure OAuth')
+    }
 
     // Get OAuth config from environment
     const clientId = process.env.JIRA_OAUTH_CLIENT_ID
@@ -271,12 +296,19 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const jiraRefresh = handler(jiraOAuthRefreshConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { secretId } = ctx.params
 
     const secret = await secretQueries.findSecretById(sql, secretId)
 
     if (secret.token_type !== 'oauth' || secret.oauth_provider !== 'jira') {
       throw new Error('Secret is not a Jira OAuth token')
+    }
+
+    // Verify user has access to the secret's project
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, secret.project_id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You do not have admin access to this secret\'s project')
     }
 
     // Use shared refresh utility
@@ -295,7 +327,8 @@ export function createOAuthHandlers(sql: Sql) {
   // GITHUB OAUTH
   // ============================================================================
 
-  const githubAuthorize = handler(githubOAuthAuthorizeConfig, async (_ctx) => {
+  const githubAuthorize = handler(githubOAuthAuthorizeConfig, async (ctx) => {
+    await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const clientId = process.env.GITHUB_OAUTH_CLIENT_ID
     const redirectUri = process.env.GITHUB_OAUTH_REDIRECT_URI
 
@@ -321,7 +354,14 @@ export function createOAuthHandlers(sql: Sql) {
   })
 
   const githubExchange = handler(githubOAuthExchangeConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { projectId, code, secretName } = ctx.body
+
+    // CRITICAL: Verify user has admin access to the project before storing OAuth token
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, projectId, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You must have admin access to this project to configure OAuth')
+    }
 
     const clientId = process.env.GITHUB_OAUTH_CLIENT_ID
     const clientSecret = process.env.GITHUB_OAUTH_CLIENT_SECRET

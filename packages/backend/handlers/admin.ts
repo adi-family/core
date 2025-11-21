@@ -6,6 +6,7 @@ import { findRecentUsageMetrics, findAggregatedUsageMetrics } from '@adi-simple/
 import { findWorkerRepositoryStatus } from '@adi-simple/db/worker-repositories'
 import { CIRepositoryManager } from '@adi-simple/worker/ci-repository-manager'
 import { createLogger } from '@utils/logger'
+import { getUserIdFromClerkToken, requireAdminAccess } from '../utils/auth'
 
 const logger = createLogger({ namespace: 'admin-handler' })
 
@@ -33,7 +34,11 @@ const _refreshResultSchema = z.object({
 type RefreshResult = z.infer<typeof _refreshResultSchema>
 
 export function createAdminHandlers(sql: Sql) {
-  const getUsageMetrics = handler(getUsageMetricsConfig, async ({ query }) => {
+  const getUsageMetrics = handler(getUsageMetricsConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
+    await requireAdminAccess(sql, userId)
+
+    const { query } = ctx
     const filters = {
       start_date: query?.start_date,
       end_date: query?.end_date,
@@ -54,12 +59,18 @@ export function createAdminHandlers(sql: Sql) {
     }
   })
 
-  const getWorkerRepos = handler(getWorkerReposConfig, async () => {
+  const getWorkerRepos = handler(getWorkerReposConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
+    await requireAdminAccess(sql, userId)
+
     const repositories = await findWorkerRepositoryStatus(sql)
     return { repositories }
   })
 
-  const refreshWorkerRepos = handler(refreshWorkerReposConfig, async () => {
+  const refreshWorkerRepos = handler(refreshWorkerReposConfig, async (ctx) => {
+    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
+    await requireAdminAccess(sql, userId)
+
     logger.info('Starting worker repository refresh...')
 
     const repositories = await sql<WorkerRepositoryRow[]>`

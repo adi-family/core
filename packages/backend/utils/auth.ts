@@ -75,3 +75,16 @@ export async function requireProjectAccess(
     throw new Error(roleMessages[minRole] || 'Forbidden: Access denied')
   }
 }
+
+/**
+ * Require that a user has admin access (owner or admin of at least one project)
+ * @param sql - Postgres connection
+ * @param userId - The user ID to check
+ * @throws Error if user does not have admin access
+ */
+export async function requireAdminAccess(sql: Sql, userId: string): Promise<void> {
+  const hasAdminAccess = await userAccessQueries.hasAdminAccess(sql, userId)
+  if (!hasAdminAccess) {
+    throw new Error('Forbidden: Admin access required. You must be an owner or admin of at least one project.')
+  }
+}
