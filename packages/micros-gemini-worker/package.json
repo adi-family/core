@@ -1,0 +1,25 @@
+{
+  "name": "@adi-simple/micros-gemini-worker",
+  "version": "1.0.0",
+  "description": "Gemini worker microservice for executing AI tasks with Google Gemini",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "start": "node dist/index.js"
+  },
+  "dependencies": {
+    "@adi-simple/types": "*",
+    "@adi-simple/worker-sdk": "*",
+    "@adi-simple/db": "*",
+    "@adi-simple/utils": "*",
+    "@google/generative-ai": "^0.21.0",
+    "amqplib": "^0.10.3"
+  },
+  "devDependencies": {
+    "@types/amqplib": "^0.10.1",
+    "typescript": "^5.2.2",
+    "tsx": "^4.7.0"
+  }
+}

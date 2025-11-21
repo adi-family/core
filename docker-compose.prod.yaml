@@ -162,6 +162,48 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
     restart: unless-stopped
 
+  micros-codex-worker:
+    build:
+      context: .
+      dockerfile: packages/micros-codex-worker/Dockerfile
+    container_name: adi-simple-micros-codex-worker
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-rabbit}:${RABBITMQ_PASS:-rabbit}@rabbitmq:5672
+      - NODE_ENV=production
+      - WORKER_NAME=codex-worker
+      - MAX_CONCURRENCY=${CODEX_WORKER_CONCURRENCY:-3}
+      # Optional: Fallback API key if tasks don't provide their own
+      # Tasks can override with task.context.aiProvider.openai.apiKey
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_API_BASE=${OPENAI_API_BASE}
+      - OPENAI_ORGANIZATION=${OPENAI_ORGANIZATION}
+    restart: unless-stopped
+
+  micros-gemini-worker:
+    build:
+      context: .
+      dockerfile: packages/micros-gemini-worker/Dockerfile
+    container_name: adi-simple-micros-gemini-worker
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      migrations:
+        condition: service_completed_successfully
+    environment:
+      - RABBITMQ_URL=amqp://${RABBITMQ_USER:-rabbit}:${RABBITMQ_PASS:-rabbit}@rabbitmq:5672
+      - NODE_ENV=production
+      - WORKER_NAME=gemini-worker
+      - MAX_CONCURRENCY=${GEMINI_WORKER_CONCURRENCY:-3}
+      # Optional: Fallback API key if tasks don't provide their own
+      # Tasks can override with task.context.aiProvider.google.apiKey
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+    restart: unless-stopped
+
   micros-worker-dispatcher:
     build:
       context: .
