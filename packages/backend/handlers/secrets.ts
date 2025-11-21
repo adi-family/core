@@ -18,7 +18,10 @@ import {
 } from '@adi/api-contracts'
 import * as secretQueries from '@db/secrets'
 import * as apiKeyQueries from '@db/api-keys'
+import * as userAccessQueries from '@db/user-access'
 import { getDecryptedSecretValue } from '../services/secrets'
+import { verifyToken } from '@clerk/backend'
+import { CLERK_SECRET_KEY } from '../config'
 import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'secrets-handler' })
@@ -48,8 +51,38 @@ function projectSecretResponse(secret: any, includeProjectId = false) {
 
 export function createSecretHandlers(sql: Sql) {
   /**
+   * Authenticate request using JWT
+   */
+  async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
+    const authHeader = ctx.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Unauthorized: No Authorization header')
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    if (!token) {
+      throw new Error('Unauthorized: Invalid token format')
+    }
+
+    if (!CLERK_SECRET_KEY) {
+      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
+    }
+
+    try {
+      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
+      if (!payload.sub) {
+        throw new Error('Unauthorized: Invalid token payload')
+      }
+      return payload.sub
+    } catch (error) {
+      logger.error('Token verification failed:', error)
+      throw new Error('Unauthorized: Token verification failed')
+    }
+  }
+
+  /**
    * Authenticate request using API key
-   * Workers need to access secrets, so we only support API key auth
+   * Workers need to access secrets, so we support API key auth for getSecretValue
    */
   async function authenticateApiKey(ctx: HandlerContext<any, any, any>): Promise<string> {
     const authHeader = ctx.headers.get('Authorization')
@@ -82,20 +115,50 @@ export function createSecretHandlers(sql: Sql) {
     return validation.projectId
   }
 
-  const listSecrets = handler(listSecretsConfig, async (_ctx) => {
+  const listSecrets = handler(listSecretsConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+
+    // Get user's accessible projects
+    const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+
+    if (accessibleProjectIds.length === 0) {
+      return []
+    }
+
     const secrets = await secretQueries.findAllSecrets(sql)
-    return secrets.map(secret => projectSecretResponse(secret, true))
+
+    // Filter secrets by accessible projects and exclude the encrypted value field for security
+    return secrets
+      .filter(secret => accessibleProjectIds.includes(secret.project_id))
+      .map(secret => projectSecretResponse(secret, true))
   })
 
   const getSecretsByProject = handler(getSecretsByProjectConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const { projectId } = ctx.params
+
+    // Verify user has access to the project
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, projectId)
+    if (!hasAccess) {
+      throw new Error('Forbidden: You do not have access to this project')
+    }
+
     const secrets = await secretQueries.findSecretsByProjectId(sql, projectId)
     return secrets.map(secret => projectSecretResponse(secret))
   })
 
   const getSecret = handler(getSecretConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const { id } = ctx.params
+
     const secret = await secretQueries.findSecretById(sql, id)
+
+    // Verify user has access to the secret's project
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, secret.project_id)
+    if (!hasAccess) {
+      throw new Error('Forbidden: You do not have access to this secret')
+    }
+
     return projectSecretResponse(secret)
   })
 
@@ -118,7 +181,15 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const createSecret = handler(createSecretConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const data = ctx.body
+
+    // Verify user has admin access to the project
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, data.project_id, 'admin')
+    if (!hasAccess) {
+      throw new Error('Forbidden: You must have admin access to this project to create secrets')
+    }
+
     const secret = await secretQueries.createSecret(sql, data as any)
 
     return {
@@ -130,6 +201,11 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateGitLabRawToken = handler(validateGitLabRawTokenConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+
+    // Note: This endpoint validates a raw token before it's stored, so no project verification needed yet
+    // The token will be associated with a project when it's saved via createSecret
+
     const { token, hostname, scopes: _scopes } = ctx.body
 
     try {
@@ -165,10 +241,18 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateGitLabToken = handler(validateGitLabTokenConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const { secretId, hostname, scopes: _scopes } = ctx.body
 
     try {
       const secret = await secretQueries.findSecretById(sql, secretId)
+
+      // Verify user has access to the secret's project
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, secret.project_id)
+      if (!hasAccess) {
+        throw new Error('Forbidden: You do not have access to this secret')
+      }
+
       const token = await getDecryptedSecretValue(sql, secretId)
 
       const headers: Record<string, string> =
@@ -204,10 +288,18 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const getGitLabRepositories = handler(getGitLabRepositoriesConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const { secretId, host, search, perPage } = ctx.body
 
     try {
       const secret = await secretQueries.findSecretById(sql, secretId)
+
+      // Verify user has access to the secret's project
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, secret.project_id)
+      if (!hasAccess) {
+        throw new Error('Forbidden: You do not have access to this secret')
+      }
+
       const token = await getDecryptedSecretValue(sql, secretId)
 
       // Use Search API when search term is provided for better namespace/group search
@@ -245,6 +337,10 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateJiraRawToken = handler(validateJiraRawTokenConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+
+    // Note: This endpoint validates a raw token before it's stored, so no project verification needed yet
+
     const { token, email, hostname } = ctx.body
 
     try {
@@ -283,10 +379,18 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateJiraToken = handler(validateJiraTokenConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const { secretId, hostname } = ctx.body
 
     try {
       const secret = await secretQueries.findSecretById(sql, secretId)
+
+      // Verify user has access to the secret's project
+      const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, secret.project_id)
+      if (!hasAccess) {
+        throw new Error('Forbidden: You do not have access to this secret')
+      }
+
       const token = await getDecryptedSecretValue(sql, secretId)
 
       const isOAuth = secret.token_type === 'oauth' && secret.oauth_provider === 'jira'

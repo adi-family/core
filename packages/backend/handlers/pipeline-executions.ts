@@ -3,7 +3,7 @@
  */
 
 import type { Sql } from 'postgres'
-import { handler } from '@adi-family/http'
+import { handler, type HandlerContext } from '@adi-family/http'
 import {
   listPipelineArtifactsConfig,
   getExecutionArtifactsConfig,
@@ -15,27 +15,118 @@ import {
 import * as pipelineArtifactQueries from '@db/pipeline-artifacts'
 import * as pipelineExecutionQueries from '@db/pipeline-executions'
 import * as apiUsageQueries from '@db/api-usage-metrics'
+import * as sessionQueries from '@db/sessions'
+import * as taskQueries from '@db/tasks'
+import * as userAccessQueries from '@db/user-access'
+import { verifyToken } from '@clerk/backend'
+import { CLERK_SECRET_KEY } from '../config'
+import { createLogger } from '@utils/logger'
+
+const logger = createLogger({ namespace: 'pipeline-executions-handler' })
 
 export function createPipelineExecutionHandlers(sql: Sql) {
+  async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
+    const authHeader = ctx.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Unauthorized: No Authorization header')
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    if (!token) {
+      throw new Error('Unauthorized: Invalid token format')
+    }
+
+    if (!CLERK_SECRET_KEY) {
+      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
+    }
+
+    try {
+      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
+      if (!payload.sub) {
+        throw new Error('Unauthorized: Invalid token payload')
+      }
+      return payload.sub
+    } catch (error) {
+      logger.error('Token verification failed:', error)
+      throw new Error('Unauthorized: Token verification failed')
+    }
+  }
+
+  async function verifyExecutionAccess(userId: string, executionId: string, minRole: 'viewer' | 'developer' = 'viewer'): Promise<void> {
+    const execution = await pipelineExecutionQueries.findPipelineExecutionById(sql, executionId)
+
+    if (!execution.session_id) {
+      throw new Error('Forbidden: Pipeline execution not associated with a session')
+    }
+
+    const session = await sessionQueries.findSessionById(sql, execution.session_id)
+
+    if (!session.task_id) {
+      throw new Error('Forbidden: Session not associated with a task')
+    }
+
+    const task = await taskQueries.findTaskById(sql, session.task_id)
+
+    if (!task.project_id) {
+      throw new Error('Forbidden: Task not associated with a project')
+    }
+
+    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, task.project_id, minRole)
+    if (!hasAccess) {
+      throw new Error(`Forbidden: You do not have ${minRole} access to this execution's project`)
+    }
+  }
+
   const listPipelineArtifacts = handler(listPipelineArtifactsConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const { execution_id } = ctx.query || {}
 
     if (execution_id) {
+      await verifyExecutionAccess(userId, execution_id)
       return pipelineArtifactQueries.findPipelineArtifactsByExecutionId(sql, execution_id)
     }
 
-    return pipelineArtifactQueries.findAllPipelineArtifacts(sql)
+    // Without execution_id, we need to filter by accessible projects
+    const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
+    if (accessibleProjectIds.length === 0) {
+      return []
+    }
+
+    // Get all artifacts and filter by accessible projects
+    const allArtifacts = await pipelineArtifactQueries.findAllPipelineArtifacts(sql)
+    const filteredArtifacts = []
+
+    for (const artifact of allArtifacts) {
+      if (artifact.pipeline_execution_id) {
+        try {
+          await verifyExecutionAccess(userId, artifact.pipeline_execution_id)
+          filteredArtifacts.push(artifact)
+        } catch (error) {
+          // Skip artifacts the user doesn't have access to
+        }
+      }
+    }
+
+    return filteredArtifacts
   })
 
   const getExecutionArtifacts = handler(getExecutionArtifactsConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const { executionId } = ctx.params
+
+    await verifyExecutionAccess(userId, executionId)
+
     const artifacts = await pipelineArtifactQueries.findPipelineArtifactsByExecutionId(sql, executionId)
     return artifacts
   })
 
   const createExecutionArtifact = handler(createExecutionArtifactConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const { executionId } = ctx.params
     const body = ctx.body
+
+    await verifyExecutionAccess(userId, executionId, 'developer')
+
     const artifactData = {
       ...body,
       pipeline_execution_id: executionId
@@ -45,21 +136,44 @@ export function createPipelineExecutionHandlers(sql: Sql) {
   })
 
   const createPipelineExecution = handler(createPipelineExecutionConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const body = ctx.body
+
+    // Verify access to the session's project
+    if (body.session_id) {
+      const session = await sessionQueries.findSessionById(sql, body.session_id)
+      if (session.task_id) {
+        const task = await taskQueries.findTaskById(sql, session.task_id)
+        if (task.project_id) {
+          const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, task.project_id, 'developer')
+          if (!hasAccess) {
+            throw new Error('Forbidden: You do not have developer access to this project')
+          }
+        }
+      }
+    }
+
     const execution = await pipelineExecutionQueries.createPipelineExecution(sql, body)
     return execution
   })
 
   const updatePipelineExecution = handler(updatePipelineExecutionConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const { id } = ctx.params
     const body = ctx.body
+
+    await verifyExecutionAccess(userId, id, 'developer')
+
     const execution = await pipelineExecutionQueries.updatePipelineExecution(sql, id, body)
     return execution
   })
 
   const saveExecutionApiUsage = handler(saveExecutionApiUsageConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
     const { executionId } = ctx.params
     const body = ctx.body
+
+    await verifyExecutionAccess(userId, executionId, 'developer')
 
     await apiUsageQueries.createApiUsageMetric(sql, {
       pipeline_execution_id: executionId,

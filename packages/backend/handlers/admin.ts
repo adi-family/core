@@ -1,11 +1,14 @@
 import type { Sql } from 'postgres'
 import { z } from 'zod'
-import { handler } from '@adi-family/http'
+import { handler, type HandlerContext } from '@adi-family/http'
 import { getUsageMetricsConfig, getWorkerReposConfig, refreshWorkerReposConfig } from '@adi/api-contracts/admin'
 import { findRecentUsageMetrics, findAggregatedUsageMetrics } from '@adi-simple/db/api-usage-metrics'
 import { findWorkerRepositoryStatus } from '@adi-simple/db/worker-repositories'
 import { CIRepositoryManager } from '@adi-simple/worker/ci-repository-manager'
 import { createLogger } from '@utils/logger'
+import * as userAccessQueries from '@db/user-access'
+import { verifyToken } from '@clerk/backend'
+import { CLERK_SECRET_KEY } from '../config'
 
 const logger = createLogger({ namespace: 'admin-handler' })
 
@@ -33,7 +36,45 @@ const _refreshResultSchema = z.object({
 type RefreshResult = z.infer<typeof _refreshResultSchema>
 
 export function createAdminHandlers(sql: Sql) {
-  const getUsageMetrics = handler(getUsageMetricsConfig, async ({ query }) => {
+  async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
+    const authHeader = ctx.headers.get('Authorization')
+    if (!authHeader) {
+      throw new Error('Unauthorized: No Authorization header')
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    if (!token) {
+      throw new Error('Unauthorized: Invalid token format')
+    }
+
+    if (!CLERK_SECRET_KEY) {
+      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
+    }
+
+    try {
+      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
+      if (!payload.sub) {
+        throw new Error('Unauthorized: Invalid token payload')
+      }
+      return payload.sub
+    } catch (error) {
+      logger.error('Token verification failed:', error)
+      throw new Error('Unauthorized: Token verification failed')
+    }
+  }
+
+  async function verifyAdminAccess(userId: string): Promise<void> {
+    const hasAdminAccess = await userAccessQueries.hasAdminAccess(sql, userId)
+    if (!hasAdminAccess) {
+      throw new Error('Forbidden: Admin access required. You must be an owner or admin of at least one project.')
+    }
+  }
+
+  const getUsageMetrics = handler(getUsageMetricsConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+    await verifyAdminAccess(userId)
+
+    const { query } = ctx
     const filters = {
       start_date: query?.start_date,
       end_date: query?.end_date,
@@ -54,12 +95,18 @@ export function createAdminHandlers(sql: Sql) {
     }
   })
 
-  const getWorkerRepos = handler(getWorkerReposConfig, async () => {
+  const getWorkerRepos = handler(getWorkerReposConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+    await verifyAdminAccess(userId)
+
     const repositories = await findWorkerRepositoryStatus(sql)
     return { repositories }
   })
 
-  const refreshWorkerRepos = handler(refreshWorkerReposConfig, async () => {
+  const refreshWorkerRepos = handler(refreshWorkerReposConfig, async (ctx) => {
+    const userId = await getUserId(ctx)
+    await verifyAdminAccess(userId)
+
     logger.info('Starting worker repository refresh...')
 
     const repositories = await sql<WorkerRepositoryRow[]>`
