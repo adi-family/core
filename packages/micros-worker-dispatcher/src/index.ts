@@ -5,6 +5,7 @@
 
 import { ResponseConsumer } from './response-consumer'
 import { createLogger } from '@utils/logger'
+import { setupGracefulShutdown } from '@backend/utils/graceful-shutdown'
 
 const logger = createLogger({ namespace: 'worker-dispatcher' })
 
@@ -22,15 +23,14 @@ async function main() {
 
     logger.info('Worker Dispatcher is running and consuming responses')
 
-    // Graceful shutdown
-    const shutdown = async (signal: string) => {
-      logger.info(`Received ${signal}, shutting down gracefully...`)
-      await consumer.close()
-      process.exit(0)
-    }
-
-    process.on('SIGTERM', () => shutdown('SIGTERM'))
-    process.on('SIGINT', () => shutdown('SIGINT'))
+    // Setup graceful shutdown
+    setupGracefulShutdown({
+      logger,
+      serviceName: 'Worker Dispatcher',
+      cleanup: async () => {
+        await consumer.close()
+      }
+    })
 
   } catch (error) {
     logger.error('Failed to start Worker Dispatcher:', error)
