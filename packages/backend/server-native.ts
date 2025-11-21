@@ -19,6 +19,7 @@ import { createFileSpaceHandlers } from './handlers/file-spaces'
 import { createOAuthHandlers } from './handlers/oauth'
 import { createLogger } from '@utils/logger'
 import { NotFoundException, BadRequestException, NotEnoughRightsException, AuthRequiredException } from '@utils/exceptions'
+import { ALLOWED_ORIGINS } from './config'
 
 const logger = createLogger({ namespace: 'native-server' })
 
@@ -125,10 +126,27 @@ const requestHandler = createHandler(allHandlers as any)
 
 // CORS and middleware wrapper
 const wrappedHandler = async (req: any, res: any) => {
-  // Handle CORS
-  const origin = req.headers.origin || 'http://localhost:4173'
-  res.setHeader('Access-Control-Allow-Origin', origin)
-  res.setHeader('Access-Control-Allow-Credentials', 'true')
+  // Handle CORS - validate origin against allowed list
+  const requestOrigin = req.headers.origin
+
+  // Check if origin is in allowed list
+  if (requestOrigin && ALLOWED_ORIGINS.includes(requestOrigin)) {
+    res.setHeader('Access-Control-Allow-Origin', requestOrigin)
+    res.setHeader('Access-Control-Allow-Credentials', 'true')
+  } else if (!requestOrigin && req.headers.host) {
+    // Allow same-origin requests (no origin header)
+    // This is normal for requests from the same origin
+  } else if (requestOrigin) {
+    // Origin not allowed - reject the request
+    logger.warn(`CORS: Rejected origin ${requestOrigin}. Allowed origins:`, ALLOWED_ORIGINS)
+    res.writeHead(403, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify({
+      error: 'Forbidden',
+      message: 'Origin not allowed by CORS policy'
+    }))
+    return
+  }
+
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization')
   res.setHeader('Access-Control-Expose-Headers', 'Content-Length')
