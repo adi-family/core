@@ -1,7 +1,8 @@
 import type { Sql } from 'postgres'
 import type { ApiKey, ApiKeyWithSecret, CreateApiKeyInput, UpdateApiKeyInput } from '@types'
 import { randomBytes, createHash } from 'crypto'
-import { get, findOneById } from './utils'
+import { get, findOneById, deleteById } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 /**
  * Generate a secure API key with prefix
@@ -193,11 +194,7 @@ export const updateApiKeyLastUsed = async (sql: Sql, keyHash: string): Promise<v
  * Delete an API key (hard delete)
  */
 export const deleteApiKey = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM api_keys WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('API key not found')
-  }
+  return deleteById(sql, 'api_keys', id, 'API key')
 }
 
 /**

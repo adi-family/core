@@ -1,6 +1,6 @@
 import type { Sql } from 'postgres'
 import type { WorkerRepository, CreateWorkerRepositoryInput, UpdateWorkerRepositoryInput } from '@types'
-import { filterPresentColumns, get, findOneById } from './utils'
+import { filterPresentColumns, get, findOneById, deleteById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
 
 export const findAllWorkerRepositories = async (sql: Sql): Promise<WorkerRepository[]> => {
@@ -50,11 +50,7 @@ export const updateWorkerRepository = async (sql: Sql, id: string, input: Update
 }
 
 export const deleteWorkerRepository = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM worker_repositories WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Worker repository not found')
-  }
+  return deleteById(sql, 'worker_repositories', id, 'Worker repository')
 }
 
 interface WorkerRepoWithProject {

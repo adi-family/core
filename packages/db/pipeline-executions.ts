@@ -1,6 +1,7 @@
 import type { Sql } from 'postgres'
 import type { PipelineExecution, CreatePipelineExecutionInput, UpdatePipelineExecutionInput } from '@types'
-import { get, findOneById } from './utils'
+import { get, findOneById, deleteById } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 export const findAllPipelineExecutions = async (sql: Sql): Promise<PipelineExecution[]> => {
   return get(sql<PipelineExecution[]>`SELECT * FROM pipeline_executions ORDER BY created_at DESC`)
@@ -89,9 +90,5 @@ export const updatePipelineExecution = async (sql: Sql, id: string, input: Updat
 }
 
 export const deletePipelineExecution = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM pipeline_executions WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Pipeline execution not found')
-  }
+  return deleteById(sql, 'pipeline_executions', id, 'Pipeline execution')
 }

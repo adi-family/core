@@ -85,9 +85,5 @@ export const upsertSecret = async (sql: Sql, input: UpsertSecretInput): Promise<
 }
 
 export const deleteSecret = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM secrets WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Secret not found')
-  }
+  return deleteById(sql, 'secrets', id, 'Secret')
 }

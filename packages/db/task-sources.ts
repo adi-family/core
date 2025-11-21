@@ -1,6 +1,7 @@
 import type { Sql } from 'postgres'
 import type { TaskSource, CreateTaskSourceInput, UpdateTaskSourceInput } from '@types'
-import { filterPresentColumns, get, findOneById } from './utils'
+import { filterPresentColumns, get, findOneById, deleteById } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 export const findAllTaskSources = async (sql: Sql): Promise<TaskSource[]> => {
   return get(sql<TaskSource[]>`SELECT * FROM task_sources ORDER BY created_at DESC`)
@@ -95,11 +96,7 @@ export const updateTaskSource = async (sql: Sql, id: string, input: UpdateTaskSo
 }
 
 export const deleteTaskSource = async (sql: Sql, id: string): Promise<void> => {
-  const resultSet = await get(sql`DELETE FROM task_sources WHERE id = ${id}`)
-  const deleted = resultSet.count > 0
-  if (!deleted) {
-    throw new NotFoundException('Task source not found')
-  }
+  return deleteById(sql, 'task_sources', id, 'Task source')
 }
 
 /**
