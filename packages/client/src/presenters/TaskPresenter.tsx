@@ -44,7 +44,7 @@ export class TaskPresenter extends BasePresenter<Task> {
         render: (task: Task) => (
           <div>
             <div className="font-medium">{task.title}</div>
-            <div className="text-xs font-mono text-gray-400">ID: {this.truncateId(task.id)}</div>
+            <div className="text-xs font-mono text-neutral-400">ID: {this.truncateId(task.id)}</div>
           </div>
         ),
         sortable: true,

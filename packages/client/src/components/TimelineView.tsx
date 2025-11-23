@@ -116,14 +116,14 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
 
   // Get task color based on status and metrics
   const getTaskColor = (task: TimelineTask) => {
-    if (task.ai_implementation_status === 'completed') return 'bg-green-600'
-    if (task.ai_implementation_status === 'implementing') return 'bg-yellow-600'
+    if (task.ai_implementation_status === 'completed') return 'bg-neutral-500'
+    if (task.ai_implementation_status === 'implementing') return 'bg-neutral-600'
 
     const evalResult = task.ai_evaluation_simple_result
     if (evalResult?.estimated_impact === 'high') return 'bg-neutral-600'
-    if (evalResult?.estimated_impact === 'medium') return 'bg-purple-600'
+    if (evalResult?.estimated_impact === 'medium') return 'bg-neutral-700'
 
-    return 'bg-gray-600'
+    return 'bg-neutral-700'
   }
 
   return (
@@ -163,7 +163,7 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
 
       {timelineTasks.length === 0 ? (
         <div className="flex items-center justify-center h-64">
-          <p className="text-gray-500">No tasks to display</p>
+          <p className="text-neutral-500">No tasks to display</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -172,7 +172,7 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
             {timeSlots.map((slot) => (
               <div
                 key={index}
-                className="flex-1 text-center text-xs font-medium text-gray-400"
+                className="flex-1 text-center text-xs font-medium text-neutral-400"
               >
                 {slot.label}
               </div>
@@ -222,12 +222,12 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
                         <h4 className="font-semibold text-white mb-2">{task.title}</h4>
 
                         {task.description && (
-                          <p className="text-sm text-gray-400 mb-2 line-clamp-3">
+                          <p className="text-sm text-neutral-400 mb-2 line-clamp-3">
                             {task.description}
                           </p>
                         )}
 
-                        <div className="text-xs text-gray-500 space-y-1">
+                        <div className="text-xs text-neutral-500 space-y-1">
                           <div>Start: {task.startDate.toLocaleDateString()}</div>
                           <div>End: {task.endDate.toLocaleDateString()}</div>
 
@@ -248,26 +248,26 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
 
           {/* Legend */}
           <div className="flex items-center gap-6 pt-6 border-t border-neutral-700">
-            <div className="text-sm text-gray-400">Legend:</div>
+            <div className="text-sm text-neutral-400">Legend:</div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-green-600 rounded" />
-              <span className="text-xs text-gray-400">Completed</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-yellow-600 rounded" />
-              <span className="text-xs text-gray-400">In Progress</span>
+              <div className="w-4 h-4 bg-neutral-500 rounded" />
+              <span className="text-xs text-neutral-400">Completed</span>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-neutral-600 rounded" />
-              <span className="text-xs text-gray-400">High Impact</span>
+              <span className="text-xs text-neutral-400">In Progress</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-purple-600 rounded" />
-              <span className="text-xs text-gray-400">Medium Impact</span>
+              <div className="w-4 h-4 bg-neutral-600 rounded" />
+              <span className="text-xs text-neutral-400">High Impact</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-gray-600 rounded" />
-              <span className="text-xs text-gray-400">Not Evaluated</span>
+              <div className="w-4 h-4 bg-neutral-700 rounded" />
+              <span className="text-xs text-neutral-400">Medium Impact</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-4 h-4 bg-neutral-700 rounded" />
+              <span className="text-xs text-neutral-400">Not Evaluated</span>
             </div>
           </div>
 

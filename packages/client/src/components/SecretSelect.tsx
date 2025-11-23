@@ -65,7 +65,7 @@ export function SecretSelect({
         {label}
       </Label>
       {loading ? (
-        <div className="text-sm text-gray-600">Loading secrets...</div>
+        <div className="text-sm text-neutral-600">Loading secrets...</div>
       ) : (
         <Combobox
           id="secret_id"

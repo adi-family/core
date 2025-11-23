@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react"
 import { useSnapshot } from "valtio"
 import { AlertCircle } from "lucide-react"
 import { createAuthenticatedClient } from "@/lib/client"
-import { useGlobalShortcuts } from "@/hooks/useKeyboardShortcuts"
+import { HOTKEYS } from "@/consts/hotkeys"
 import { designTokens } from "@/theme/tokens"
 import { KeyboardShortcutsHelp } from "@/components/KeyboardShortcutsHelp"
+import { CommandCenter } from "@/components/CommandCenter"
 import { Sidebar } from "@/components/Sidebar"
 import {
   fetchProjects,
@@ -35,10 +36,14 @@ export function Layout() {
     })
   }
 
-  // Keyboard shortcut to toggle sidebar (Ctrl+[)
+  // Keyboard shortcut to toggle sidebar
   useEffect(() => {
+    const hotkey = HOTKEYS.ToggleSidebar
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === '[' && (e.ctrlKey || e.metaKey)) {
+      const modifierMatch = hotkey.ctrlOrCmd ? (e.ctrlKey || e.metaKey) : true
+      const shiftMatch = hotkey.shift ? e.shiftKey : !e.shiftKey
+
+      if (e.key === hotkey.key && modifierMatch && shiftMatch) {
         e.preventDefault()
         toggleSidebar()
       }
@@ -46,9 +51,6 @@ export function Layout() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
-
-  // Enable global keyboard shortcuts
-  useGlobalShortcuts()
 
   useEffect(() => {
     const fetchData = async () => {
@@ -66,13 +68,13 @@ export function Layout() {
     <div className={`min-h-screen ${designTokens.colors.bg.primary} flex flex-col`}>
       {/* Global Alerts - Only shown when present */}
       {alerts.length > 0 && (
-        <div className="bg-amber-500/10 border-b border-amber-500/30">
+        <div className="bg-neutral-500/10 border-b border-neutral-500/30">
           {alerts.map((alert, index) => (
             <div key={index} className={`${designTokens.spacing.pageContainer} py-4`}>
               <div className="flex items-start gap-3">
-                <AlertCircle className={`${designTokens.icons.standard} text-amber-400 flex-shrink-0 mt-0.5`} />
+                <AlertCircle className={`${designTokens.icons.standard} text-neutral-400 flex-shrink-0 mt-0.5`} />
                 <div className="flex-1">
-                  <p className={`${designTokens.text.body} text-amber-100 font-medium mb-2`}>
+                  <p className={`${designTokens.text.body} text-neutral-100 font-medium mb-2`}>
                     {alert.message}
                   </p>
                   <div className={`flex flex-wrap ${designTokens.spacing.listItem}`}>
@@ -86,10 +88,10 @@ export function Layout() {
                         <Link
                           key={project.id}
                           to={`/projects/${project.id}?tab=ai-providers`}
-                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-amber-500/20 border border-amber-500/40 rounded-lg text-[13px] text-amber-100 hover:bg-amber-500/30 transition-colors"
+                          className="inline-flex items-center gap-2 px-3 py-1.5 bg-neutral-500/20 border border-neutral-500/40 rounded-lg text-[13px] text-neutral-100 hover:bg-neutral-500/30 transition-colors"
                         >
                           <span className="font-medium">{project.name}</span>
-                          <span className="text-amber-300">→</span>
+                          <span className="text-neutral-300">→</span>
                           <span className={designTokens.text.caption}>
                             Missing: {providerNames.join(', ')}
                           </span>
@@ -121,6 +123,12 @@ export function Layout() {
 
       {/* Global Keyboard Shortcuts Help */}
       <KeyboardShortcutsHelp />
+
+      {/* Command Center */}
+      <CommandCenter
+        isSidebarCollapsed={isSidebarCollapsed}
+        toggleSidebar={toggleSidebar}
+      />
     </div>
   )
 }

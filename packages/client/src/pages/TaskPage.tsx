@@ -127,13 +127,13 @@ export function TaskPage() {
 
   const getStepColor = (status: string) => {
     const statusLower = status.toLowerCase()
-    if (statusLower === "completed" || statusLower === "success") return "text-green-400"
-    if (statusLower === "failed" || statusLower === "error") return "text-red-400"
+    if (statusLower === "completed" || statusLower === "success") return "text-neutral-300"
+    if (statusLower === "failed" || statusLower === "error") return "text-neutral-500"
     if (statusLower.includes("ing") || statusLower === "running") return "text-neutral-400"
-    if (statusLower === "queued") return "text-yellow-400"
-    if (statusLower === "pending") return "text-orange-400"
-    if (statusLower === "not_started") return "text-gray-500"
-    return "text-gray-400"
+    if (statusLower === "queued") return "text-neutral-300"
+    if (statusLower === "pending") return "text-neutral-400"
+    if (statusLower === "not_started") return "text-neutral-500"
+    return "text-neutral-400"
   }
 
   const handleRetrySync = async () => {
@@ -269,7 +269,7 @@ export function TaskPage() {
       <AnimatedPageContainer>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-center py-4 text-gray-300">Loading task...</div>
+            <div className="text-center py-4 text-neutral-300">Loading task...</div>
           </CardContent>
         </Card>
       </AnimatedPageContainer>
@@ -281,7 +281,7 @@ export function TaskPage() {
       <AnimatedPageContainer>
         <Card>
           <CardContent className="pt-6">
-            <div className="text-center py-4 text-red-400">{error || "Task not found"}</div>
+            <div className="text-center py-4 text-neutral-500">{error || "Task not found"}</div>
             <div className="text-center mt-4">
               <Button onClick={() => navigateTo("/tasks")} variant="outline">
                 <ArrowLeft className="h-4 w-4 mr-2" />
@@ -462,7 +462,7 @@ export function TaskPage() {
 
             {task.ai_evaluation_simple_verdict && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+                <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide mb-2">
                   Simple Evaluation Result
                 </h3>
                 <Badge
@@ -476,7 +476,7 @@ export function TaskPage() {
 
             {task.ai_evaluation_advanced_verdict && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+                <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide mb-2">
                   Advanced Evaluation Result
                 </h3>
                 <Badge
@@ -490,10 +490,10 @@ export function TaskPage() {
 
             {taskSource && (
               <div>
-                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+                <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide mb-2">
                   Task Source
                 </h3>
-                <p className="text-gray-100">{taskSource.name}</p>
+                <p className="text-neutral-100">{taskSource.name}</p>
                 <Badge variant="orange" className="text-xs mt-1">
                   {taskSource.type}
                 </Badge>
@@ -504,26 +504,26 @@ export function TaskPage() {
           {/* Source Issue Information */}
           {task.source_gitlab_issue && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide mb-2">
                 GitLab Issue
               </h3>
               <div className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">Issue IID:</span>
-                  <span className="font-mono text-sm text-gray-100">{task.source_gitlab_issue.iid}</span>
+                  <span className="text-sm text-neutral-300">Issue IID:</span>
+                  <span className="font-mono text-sm text-neutral-100">{task.source_gitlab_issue.iid}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">Repository:</span>
-                  <span className="font-mono text-sm text-gray-100">{task.source_gitlab_issue.metadata.repo}</span>
+                  <span className="text-sm text-neutral-300">Repository:</span>
+                  <span className="font-mono text-sm text-neutral-100">{task.source_gitlab_issue.metadata.repo}</span>
                 </div>
                 {task.source_gitlab_issue.metadata.host && (
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">Host:</span>
+                    <span className="text-sm text-neutral-300">Host:</span>
                     <a
                       href={`${task.source_gitlab_issue.metadata.host}/${task.source_gitlab_issue.metadata.repo}/-/issues/${task.source_gitlab_issue.iid}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-teal-400 hover:text-teal-300 hover:underline flex items-center gap-1 text-sm"
+                      className="text-neutral-400 hover:text-neutral-300 hover:underline flex items-center gap-1 text-sm"
                     >
                       View on GitLab
                       <ExternalLink className="h-3 w-3" />
@@ -536,17 +536,17 @@ export function TaskPage() {
 
           {task.source_github_issue && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide mb-2">
                 GitHub Issue
               </h3>
               <div className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">Issue IID:</span>
-                  <span className="font-mono text-sm text-gray-100">{task.source_github_issue.iid}</span>
+                  <span className="text-sm text-neutral-300">Issue IID:</span>
+                  <span className="font-mono text-sm text-neutral-100">{task.source_github_issue.iid}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">Repository:</span>
-                  <span className="font-mono text-sm text-gray-100">{task.source_github_issue.metadata.repo}</span>
+                  <span className="text-sm text-neutral-300">Repository:</span>
+                  <span className="font-mono text-sm text-neutral-100">{task.source_github_issue.metadata.repo}</span>
                 </div>
               </div>
             </div>
@@ -554,17 +554,17 @@ export function TaskPage() {
 
           {task.source_jira_issue && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2">
+              <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide mb-2">
                 Jira Issue
               </h3>
               <div className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">Key:</span>
-                  <span className="font-mono text-sm text-gray-100">{task.source_jira_issue.metadata.key}</span>
+                  <span className="text-sm text-neutral-300">Key:</span>
+                  <span className="font-mono text-sm text-neutral-100">{task.source_jira_issue.metadata.key}</span>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-300">Project:</span>
-                  <span className="font-mono text-sm text-gray-100">{task.source_jira_issue.metadata.project_key}</span>
+                  <span className="text-sm text-neutral-300">Project:</span>
+                  <span className="font-mono text-sm text-neutral-100">{task.source_jira_issue.metadata.project_key}</span>
                 </div>
               </div>
             </div>
@@ -573,7 +573,7 @@ export function TaskPage() {
           {/* Merge Request Artifacts */}
           {mergeRequestArtifacts.length > 0 && (
             <div>
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-2 flex items-center gap-2">
+              <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide mb-2 flex items-center gap-2">
                 <GitMerge className="h-4 w-4" />
                 Merge Requests
               </h3>
@@ -583,14 +583,14 @@ export function TaskPage() {
                   return (
                     <div key={artifact.id} className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-sm font-medium text-gray-200">
+                        <span className="text-sm font-medium text-neutral-200">
                           {metadata?.file_space_name || 'Merge Request'}
                         </span>
                         <a
                           href={artifact.reference_url}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-teal-400 hover:text-teal-300 hover:underline flex items-center gap-1 text-sm"
+                          className="text-neutral-400 hover:text-neutral-300 hover:underline flex items-center gap-1 text-sm"
                         >
                           View MR
                           <ExternalLink className="h-3 w-3" />
@@ -598,25 +598,25 @@ export function TaskPage() {
                       </div>
                       {metadata?.branch && (
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-300">Branch:</span>
-                          <span className="font-mono text-sm text-gray-100">{metadata.branch}</span>
+                          <span className="text-sm text-neutral-300">Branch:</span>
+                          <span className="font-mono text-sm text-neutral-100">{metadata.branch}</span>
                         </div>
                       )}
                       {metadata?.mr_iid && (
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-300">MR IID:</span>
-                          <span className="font-mono text-sm text-gray-100">{metadata.mr_iid}</span>
+                          <span className="text-sm text-neutral-300">MR IID:</span>
+                          <span className="font-mono text-sm text-neutral-100">{metadata.mr_iid}</span>
                         </div>
                       )}
                       {metadata?.completed !== undefined && (
                         <div className="flex items-center justify-between">
-                          <span className="text-sm text-gray-300">Status:</span>
+                          <span className="text-sm text-neutral-300">Status:</span>
                           <Badge variant={metadata.completed ? 'green' : 'warning'} className="text-xs">
                             {metadata.completed ? 'Completed' : 'Needs Clarification'}
                           </Badge>
                         </div>
                       )}
-                      <div className="text-xs text-gray-400 pt-2 border-t border-white/10">
+                      <div className="text-xs text-neutral-400 pt-2 border-t border-white/10">
                         Created: {new Date(artifact.created_at).toLocaleString()}
                       </div>
                     </div>
@@ -633,28 +633,28 @@ export function TaskPage() {
 
             return (
               <div className="pt-4 border-t border-white/10 space-y-6">
-                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide flex items-center gap-2">
-                  <Zap className="h-4 w-4 text-yellow-400" />
+                <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide flex items-center gap-2">
+                  <Zap className="h-4 w-4 text-neutral-300" />
                   Quick Evaluation
                 </h3>
 
                 {/* Quick Win Score & Priority */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gradient-to-br from-yellow-500/10 to-orange-500/10 p-4 rounded-lg border border-yellow-500/30">
+                  <div className="bg-gradient-to-br from-neutral-500/10 to-neutral-600/10 p-4 rounded-lg border border-neutral-500/30">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-yellow-200 flex items-center gap-2">
+                      <span className="text-sm font-semibold text-neutral-200 flex items-center gap-2">
                         <Star className="h-4 w-4" />
                         Quick Win Score
                       </span>
-                      <span className="text-3xl font-bold text-yellow-400">{metrics.quick_win_score}</span>
+                      <span className="text-3xl font-bold text-neutral-300">{metrics.quick_win_score}</span>
                     </div>
-                    <div className="w-full h-2 bg-gray-700 rounded-full overflow-hidden">
+                    <div className="w-full h-2 bg-neutral-700 rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-yellow-400"
+                        className="h-full bg-neutral-300"
                         style={{ width: `${metrics.quick_win_score}%` }}
                       />
                     </div>
-                    <p className="text-xs text-gray-400 mt-2">
+                    <p className="text-xs text-neutral-400 mt-2">
                       {metrics.quick_win_score >= 75 ? 'Excellent candidate!' :
                        metrics.quick_win_score >= 50 ? 'Good candidate' :
                        metrics.quick_win_score >= 25 ? 'Moderate effort' : 'Complex task'}
@@ -663,7 +663,7 @@ export function TaskPage() {
 
                   <div className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10">
                     <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-gray-300 flex items-center gap-2">
+                      <span className="text-sm font-semibold text-neutral-300 flex items-center gap-2">
                         <TrendingUp className="h-4 w-4" />
                         Priority
                       </span>
@@ -680,7 +680,7 @@ export function TaskPage() {
                          metrics.priority_quadrant === 'fill_in' ? 'Fill In' : 'Low Priority'}
                       </Badge>
                     </div>
-                    <div className="space-y-2 text-sm text-gray-300">
+                    <div className="space-y-2 text-sm text-neutral-300">
                       <div className="flex justify-between">
                         <span>Impact:</span>
                         <span className="font-medium capitalize">{result.estimated_impact}</span>
@@ -725,21 +725,21 @@ export function TaskPage() {
                 <div className="bg-white/5 backdrop-blur-sm p-4 rounded-md space-y-3">
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div>
-                      <span className="text-xs text-gray-400">Task Type</span>
-                      <p className="text-sm font-medium text-gray-100 capitalize">{result.task_type.replace('_', ' ')}</p>
+                      <span className="text-xs text-neutral-400">Task Type</span>
+                      <p className="text-sm font-medium text-neutral-100 capitalize">{result.task_type.replace('_', ' ')}</p>
                     </div>
                     <div>
-                      <span className="text-xs text-gray-400">Effort Estimate</span>
-                      <p className="text-sm font-medium text-gray-100 uppercase">{result.effort_estimate}</p>
+                      <span className="text-xs text-neutral-400">Effort Estimate</span>
+                      <p className="text-sm font-medium text-neutral-100 uppercase">{result.effort_estimate}</p>
                     </div>
                     <div>
-                      <span className="text-xs text-gray-400">Risk Level</span>
+                      <span className="text-xs text-neutral-400">Risk Level</span>
                       <Badge variant={result.risk_level === 'high' ? 'danger' : result.risk_level === 'medium' ? 'warning' : 'green'} className="text-xs">
                         {result.risk_level}
                       </Badge>
                     </div>
                     <div>
-                      <span className="text-xs text-gray-400">Confidence</span>
+                      <span className="text-xs text-neutral-400">Confidence</span>
                       <Badge
                         variant={
                           metrics.implementation_status.confidence === 'high' ? 'green' :
@@ -753,9 +753,9 @@ export function TaskPage() {
                   </div>
 
                   <div className="flex items-center justify-between pt-2 border-t border-white/10">
-                    <span className="text-sm text-gray-300">Clarity Score:</span>
+                    <span className="text-sm text-neutral-300">Clarity Score:</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+                      <div className="w-32 h-2 bg-neutral-700 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-neutral-400"
                           style={{ width: `${result.clarity_score}%` }}
@@ -766,11 +766,11 @@ export function TaskPage() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">Complexity Score:</span>
+                    <span className="text-sm text-neutral-300">Complexity Score:</span>
                     <div className="flex items-center gap-2">
-                      <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
+                      <div className="w-32 h-2 bg-neutral-700 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-purple-400"
+                          className="h-full bg-neutral-400"
                           style={{ width: `${result.complexity_score}%` }}
                         />
                       </div>
@@ -779,7 +779,7 @@ export function TaskPage() {
                   </div>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-sm text-gray-300">Has Acceptance Criteria:</span>
+                    <span className="text-sm text-neutral-300">Has Acceptance Criteria:</span>
                     <Badge variant={result.has_acceptance_criteria ? 'green' : 'gray'}>
                       {result.has_acceptance_criteria ? 'Yes' : 'No'}
                     </Badge>
@@ -788,14 +788,14 @@ export function TaskPage() {
 
                 {/* Blockers Summary */}
                 {result.blockers_summary && result.blockers_summary.length > 0 && (
-                  <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
-                    <h4 className="text-sm font-semibold text-red-200 mb-2 flex items-center gap-2">
+                  <div className="bg-neutral-700/10 p-4 rounded-lg border border-neutral-700/30">
+                    <h4 className="text-sm font-semibold text-neutral-200 mb-2 flex items-center gap-2">
                       <AlertTriangle className="h-4 w-4" />
                       Blockers
                     </h4>
                     <ul className="list-disc list-inside space-y-1">
                       {result.blockers_summary.map((blocker, idx) => (
-                        <li key={idx} className="text-sm text-red-300">{blocker}</li>
+                        <li key={idx} className="text-sm text-neutral-400">{blocker}</li>
                       ))}
                     </ul>
                   </div>
@@ -803,14 +803,14 @@ export function TaskPage() {
 
                 {/* Verification Summary */}
                 {result.verification_summary && result.verification_summary.length > 0 && (
-                  <div className="bg-purple-500/10 p-4 rounded-lg border border-purple-500/30">
-                    <h4 className="text-sm font-semibold text-purple-200 mb-2 flex items-center gap-2">
+                  <div className="bg-neutral-500/10 p-4 rounded-lg border border-neutral-500/30">
+                    <h4 className="text-sm font-semibold text-neutral-200 mb-2 flex items-center gap-2">
                       <Eye className="h-4 w-4" />
                       Post-Implementation Verification Needed
                     </h4>
                     <ul className="list-disc list-inside space-y-1">
                       {result.verification_summary.map((verification, idx) => (
-                        <li key={idx} className="text-sm text-purple-300">{verification}</li>
+                        <li key={idx} className="text-sm text-neutral-400">{verification}</li>
                       ))}
                     </ul>
                   </div>
@@ -818,14 +818,14 @@ export function TaskPage() {
 
                 {/* Risk Summary */}
                 {result.risk_summary && result.risk_summary.length > 0 && (
-                  <div className="bg-orange-500/10 p-4 rounded-lg border border-orange-500/30">
-                    <h4 className="text-sm font-semibold text-orange-200 mb-2 flex items-center gap-2">
+                  <div className="bg-neutral-600/10 p-4 rounded-lg border border-neutral-600/30">
+                    <h4 className="text-sm font-semibold text-neutral-200 mb-2 flex items-center gap-2">
                       <Shield className="h-4 w-4" />
                       Implementation Risks
                     </h4>
                     <ul className="list-disc list-inside space-y-1">
                       {result.risk_summary.map((risk, idx) => (
-                        <li key={idx} className="text-sm text-orange-300">{risk}</li>
+                        <li key={idx} className="text-sm text-neutral-400">{risk}</li>
                       ))}
                     </ul>
                   </div>
@@ -844,9 +844,9 @@ export function TaskPage() {
                 )}
 
                 {result.auto_reject_reason && (
-                  <div className="bg-red-500/10 p-4 rounded-lg border border-red-500/30">
-                    <span className="text-sm font-semibold text-red-200 block mb-2">Rejection Reason:</span>
-                    <p className="text-sm text-red-300">{result.auto_reject_reason}</p>
+                  <div className="bg-neutral-700/10 p-4 rounded-lg border border-neutral-700/30">
+                    <span className="text-sm font-semibold text-neutral-200 block mb-2">Rejection Reason:</span>
+                    <p className="text-sm text-neutral-400">{result.auto_reject_reason}</p>
                   </div>
                 )}
               </div>
@@ -855,20 +855,20 @@ export function TaskPage() {
 
           {/* Agentic Evaluation Results */}
           {task.ai_evaluation_agentic_result && (
-            <div className="pt-4 border-t border-gray-200 space-y-4">
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
+            <div className="pt-4 border-t border-neutral-200 space-y-4">
+              <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide">
                 Deep Evaluation
               </h3>
 
               {/* Confidence */}
               <div className="bg-white/5 backdrop-blur-sm p-4 rounded-md">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-semibold text-gray-300">Confidence:</span>
+                  <span className="text-sm font-semibold text-neutral-300">Confidence:</span>
                   <span className="text-lg font-bold">{task.ai_evaluation_agentic_result.confidence || 0}%</span>
                 </div>
-                <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-green-500"
+                    className="h-full bg-neutral-500"
                     style={{ width: `${task.ai_evaluation_agentic_result.confidence || 0}%` }}
                   />
                 </div>
@@ -876,11 +876,11 @@ export function TaskPage() {
 
               {/* Blockers */}
               {task.ai_evaluation_agentic_result.blockers && task.ai_evaluation_agentic_result.blockers.length > 0 && (
-                <div className="bg-red-500/10 p-4 rounded-md border border-red-500/30">
-                  <h4 className="text-sm font-semibold text-red-200 mb-2">Blockers</h4>
+                <div className="bg-neutral-700/10 p-4 rounded-md border border-neutral-700/30">
+                  <h4 className="text-sm font-semibold text-neutral-200 mb-2">Blockers</h4>
                   <ul className="list-disc list-inside space-y-1">
                     {task.ai_evaluation_agentic_result.blockers.map((blocker, idx) => (
-                      <li key={idx} className="text-sm text-red-300">{blocker}</li>
+                      <li key={idx} className="text-sm text-neutral-400">{blocker}</li>
                     ))}
                   </ul>
                 </div>
@@ -888,11 +888,11 @@ export function TaskPage() {
 
               {/* Missing Information */}
               {task.ai_evaluation_agentic_result.missing_information && task.ai_evaluation_agentic_result.missing_information.length > 0 && (
-                <div className="bg-yellow-500/10 p-4 rounded-md border border-yellow-500/30">
-                  <h4 className="text-sm font-semibold text-yellow-200 mb-2">Missing Information</h4>
+                <div className="bg-neutral-500/10 p-4 rounded-md border border-neutral-500/30">
+                  <h4 className="text-sm font-semibold text-neutral-200 mb-2">Missing Information</h4>
                   <ul className="list-disc list-inside space-y-1">
                     {task.ai_evaluation_agentic_result.missing_information.map((info, idx) => (
-                      <li key={idx} className="text-sm text-yellow-300">{info}</li>
+                      <li key={idx} className="text-sm text-neutral-300">{info}</li>
                     ))}
                   </ul>
                 </div>
@@ -900,11 +900,11 @@ export function TaskPage() {
 
               {/* Risks */}
               {task.ai_evaluation_agentic_result.risks && task.ai_evaluation_agentic_result.risks.length > 0 && (
-                <div className="bg-orange-500/10 p-4 rounded-md border border-orange-500/30">
-                  <h4 className="text-sm font-semibold text-orange-200 mb-2">Implementation Risks</h4>
+                <div className="bg-neutral-600/10 p-4 rounded-md border border-neutral-600/30">
+                  <h4 className="text-sm font-semibold text-neutral-200 mb-2">Implementation Risks</h4>
                   <ul className="list-disc list-inside space-y-1">
                     {task.ai_evaluation_agentic_result.risks.map((risk, idx) => (
-                      <li key={idx} className="text-sm text-orange-300">{risk}</li>
+                      <li key={idx} className="text-sm text-neutral-400">{risk}</li>
                     ))}
                   </ul>
                 </div>
@@ -953,8 +953,8 @@ export function TaskPage() {
               {/* Agent Report */}
               {task.ai_evaluation_agentic_result.report && (
                 <div className="bg-white/5 backdrop-blur-sm p-4 rounded-md">
-                  <h4 className="text-sm font-semibold text-gray-300 mb-2">Agent Context Report</h4>
-                  <pre className="whitespace-pre-wrap text-xs text-gray-200 font-mono">
+                  <h4 className="text-sm font-semibold text-neutral-300 mb-2">Agent Context Report</h4>
+                  <pre className="whitespace-pre-wrap text-xs text-neutral-200 font-mono">
                     {task.ai_evaluation_agentic_result.report}
                   </pre>
                 </div>
@@ -965,11 +965,11 @@ export function TaskPage() {
           {/* Legacy Evaluation Report */}
           {evaluationReport && !task.ai_evaluation_agentic_result && (
             <div className="pt-4 border-t border-white/10">
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">
+              <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide mb-3">
                 AI Evaluation Report
               </h3>
               <div className="bg-white/5 backdrop-blur-sm p-4 rounded-md">
-                <pre className="whitespace-pre-wrap text-sm text-gray-100 font-sans">
+                <pre className="whitespace-pre-wrap text-sm text-neutral-100 font-sans">
                   {evaluationReport}
                 </pre>
               </div>
@@ -979,7 +979,7 @@ export function TaskPage() {
           {/* Implementation Progress */}
           {task.ai_implementation_session_id && (task.ai_implementation_status === 'implementing' || task.ai_implementation_status === 'queued' || task.ai_implementation_status === 'completed' || task.ai_implementation_status === 'failed') && (
             <div className="pt-4 border-t border-white/10">
-              <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide mb-3">
+              <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide mb-3">
                 Implementation Progress
               </h3>
               <ImplementationProgress task={task} onComplete={() => {
@@ -992,21 +992,21 @@ export function TaskPage() {
           {/* Timestamps */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/10">
             <div className="flex items-start gap-3">
-              <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
+              <Calendar className="h-5 w-5 text-neutral-500 mt-0.5" />
               <div>
-                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide">
                   Created
                 </h3>
-                <p className="text-sm text-gray-200">{formatDate(task.created_at)}</p>
+                <p className="text-sm text-neutral-200">{formatDate(task.created_at)}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
-              <Calendar className="h-5 w-5 text-gray-500 mt-0.5" />
+              <Calendar className="h-5 w-5 text-neutral-500 mt-0.5" />
               <div>
-                <h3 className="text-sm font-semibold text-gray-300 uppercase tracking-wide">
+                <h3 className="text-sm font-semibold text-neutral-300 uppercase tracking-wide">
                   Updated
                 </h3>
-                <p className="text-sm text-gray-200">{formatDate(task.updated_at)}</p>
+                <p className="text-sm text-neutral-200">{formatDate(task.updated_at)}</p>
               </div>
             </div>
           </div>

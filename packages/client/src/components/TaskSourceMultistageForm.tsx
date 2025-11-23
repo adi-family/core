@@ -10,7 +10,6 @@ import {
 } from '@adi-simple/ui/card'
 import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
-import { Button } from '@adi-simple/ui/button'
 import { ProjectSelect } from '@adi-simple/ui/project-select'
 import { SecretSelect } from "@/components/SecretSelect"
 import { GitlabTaskSourceConfig } from "@/components/GitlabTaskSourceConfig"
@@ -20,8 +19,9 @@ import { GitHubIcon } from '@adi-simple/ui/github-icon'
 import { JiraIcon } from '@adi-simple/ui/jira-icon'
 import { createAuthenticatedClient } from "@/lib/client"
 import type { CreateTaskSourceInput } from "../../../types"
-import { ChevronRight, ChevronLeft, Check, ArrowRight } from "lucide-react"
+import { ChevronRight, ChevronLeft, Check } from "lucide-react"
 import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
+import { Button, LargeCardSelectButton } from './buttons'
 
 type TaskSourceType = 'gitlab_issues' | 'jira' | 'github_issues'
 
@@ -233,13 +233,13 @@ export function TaskSourceMultistageForm() {
       <Card className="border-neutral-700/50 bg-neutral-800/50 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300">
         <CardContent className="pt-6">
           <div className="text-center py-8">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mb-4">
+            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-neutral-400 to-neutral-500 flex items-center justify-center mb-4">
               <Check className="w-10 h-10 text-white" />
             </div>
-            <div className="text-lg font-medium mb-2 text-green-400 uppercase tracking-wide">
+            <div className="text-lg font-medium mb-2 text-neutral-300 uppercase tracking-wide">
               TASK SOURCE CREATED SUCCESSFULLY
             </div>
-            <p className="text-gray-400 text-xs uppercase tracking-wide">
+            <p className="text-neutral-400 text-xs uppercase tracking-wide">
               Redirecting to task sources list...
             </p>
           </div>
@@ -251,10 +251,10 @@ export function TaskSourceMultistageForm() {
   return (
     <Card className="border-neutral-700/50 bg-neutral-800/50 backdrop-blur-sm shadow-md">
       <CardHeader>
-        <CardTitle className="text-xl uppercase tracking-wide text-gray-100">
+        <CardTitle className="text-xl uppercase tracking-wide text-neutral-100">
           CREATE TASK SOURCE
         </CardTitle>
-        <CardDescription className="text-xs uppercase tracking-wide text-gray-400">
+        <CardDescription className="text-xs uppercase tracking-wide text-neutral-400">
           Configure a new issue tracking integration
         </CardDescription>
       </CardHeader>
@@ -270,8 +270,8 @@ export function TaskSourceMultistageForm() {
                         currentStep === step.id
                           ? "border-neutral-500 bg-neutral-500 text-white shadow-md scale-110"
                           : currentStep > step.id
-                          ? "border-green-500 bg-green-500 text-white"
-                          : "border-neutral-600 bg-neutral-700 text-gray-400"
+                          ? "border-neutral-400 bg-neutral-400 text-white"
+                          : "border-neutral-600 bg-neutral-700 text-neutral-400"
                       }`}
                     >
                       {currentStep > step.id ? (
@@ -286,19 +286,19 @@ export function TaskSourceMultistageForm() {
                           currentStep === step.id
                             ? "text-neutral-500"
                             : currentStep > step.id
-                            ? "text-green-500"
-                            : "text-gray-400"
+                            ? "text-neutral-300"
+                            : "text-neutral-400"
                         }`}
                       >
                         {step.title}
                       </div>
-                      <div className="text-xs text-gray-400">{step.description}</div>
+                      <div className="text-xs text-neutral-400">{step.description}</div>
                     </div>
                   </div>
                   {index < STEPS.length - 1 && (
                     <div
                       className={`flex-1 h-0.5 mx-2 mt-[-24px] transition-all duration-200 ${
-                        currentStep > step.id ? "bg-green-500" : "bg-neutral-600"
+                        currentStep > step.id ? "bg-neutral-400" : "bg-neutral-600"
                       }`}
                     />
                   )}
@@ -309,7 +309,7 @@ export function TaskSourceMultistageForm() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg backdrop-blur-sm">
+              <div className="bg-neutral-700/10 border border-neutral-700/30 text-neutral-400 px-4 py-3 rounded-lg backdrop-blur-sm">
                 {error}
               </div>
             )}
@@ -335,108 +335,38 @@ export function TaskSourceMultistageForm() {
             {currentStep === 2 && (
               <div className="space-y-8 animate-fadeIn">
                 <div className="text-center space-y-2">
-                  <h3 className="text-2xl font-bold text-gray-100">Choose Your Integration</h3>
-                  <p className="text-sm text-gray-400">Select a platform to sync your tasks and issues</p>
+                  <h3 className="text-2xl font-bold text-neutral-100">Choose Your Integration</h3>
+                  <p className="text-sm text-neutral-400">Select a platform to sync your tasks and issues</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* GitLab Card */}
-                  <button
-                    type="button"
+                  <LargeCardSelectButton
+                    icon={GitLabIcon}
+                    title="GitLab"
+                    description="Sync issues and merge requests from GitLab repositories"
                     onClick={() => {
                       handleInputChange("type", "gitlab_issues")
                       handleNext()
                     }}
-                    className="group relative overflow-hidden rounded-xl border-2 border-orange-500/30 bg-gradient-to-br from-neutral-800/90 to-neutral-900/90 p-8 transition-all duration-300 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/20 cursor-pointer"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  />
 
-                    <div className="relative flex flex-col items-center space-y-6">
-                      {/* Logo */}
-                      <div className="w-20 h-20 rounded-2xl bg-orange-500/10 flex items-center justify-center group-hover:bg-orange-500/20 transition-colors duration-300">
-                        <GitLabIcon className="w-12 h-12 text-orange-500" />
-                      </div>
-
-                      {/* Content */}
-                      <div className="space-y-3 text-center">
-                        <h4 className="text-2xl font-bold text-orange-400 group-hover:text-orange-300 transition-colors">GitLab</h4>
-                        <p className="text-sm text-gray-300 leading-relaxed">
-                          Sync issues and merge requests from GitLab repositories
-                        </p>
-                      </div>
-
-                      {/* Action hint */}
-                      <div className="flex items-center gap-2 text-xs text-orange-400/80 group-hover:text-orange-300 transition-colors">
-                        <span className="uppercase tracking-wider font-medium">Configure</span>
-                        <ArrowRight className="w-4 h-4 group-hover:tranneutral-x-1 transition-transform" />
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* GitHub Card (Disabled) */}
-                  <button
-                    type="button"
+                  <LargeCardSelectButton
+                    icon={GitHubIcon}
+                    title="GitHub"
+                    description="Sync issues and pull requests from GitHub repositories"
+                    badge="Beta"
                     disabled
-                    className="relative overflow-hidden rounded-xl border-2 border-neutral-700/50 bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 p-8 opacity-50 cursor-not-allowed"
-                  >
-                    <div className="relative flex flex-col items-center space-y-6">
-                      {/* Logo */}
-                      <div className="w-20 h-20 rounded-2xl bg-neutral-700/30 flex items-center justify-center">
-                        <GitHubIcon className="w-12 h-12 text-gray-500" />
-                      </div>
+                  />
 
-                      {/* Content */}
-                      <div className="space-y-3 text-center">
-                        <div className="flex items-center justify-center gap-2">
-                          <h4 className="text-2xl font-bold text-gray-500">GitHub</h4>
-                          <span className="text-xs font-semibold px-2.5 py-1 bg-amber-500/20 text-amber-400 rounded-full uppercase tracking-wide">
-                            Beta
-                          </span>
-                        </div>
-                        <p className="text-sm text-gray-500 leading-relaxed">
-                          Sync issues and pull requests from GitHub repositories
-                        </p>
-                      </div>
-
-                      {/* Disabled hint */}
-                      <div className="text-xs text-gray-500 uppercase tracking-wider font-medium">
-                        Coming Soon
-                      </div>
-                    </div>
-                  </button>
-
-                  {/* Jira Card */}
-                  <button
-                    type="button"
+                  <LargeCardSelectButton
+                    icon={JiraIcon}
+                    title="Jira"
+                    description="Sync tickets and epics from Jira projects"
                     onClick={() => {
                       handleInputChange("type", "jira")
                       handleNext()
                     }}
-                    className="group relative overflow-hidden rounded-xl border-2 border-neutral-500/30 bg-gradient-to-br from-neutral-800/90 to-neutral-900/90 p-8 transition-all duration-300 hover:border-neutral-500 hover:shadow-2xl hover:shadow-neutral-500/20 cursor-pointer"
-                  >
-                    <div className="absolute inset-0 bg-gradient-to-br from-neutral-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                    <div className="relative flex flex-col items-center space-y-6">
-                      {/* Logo */}
-                      <div className="w-20 h-20 rounded-2xl bg-neutral-500/10 flex items-center justify-center group-hover:bg-neutral-500/20 transition-colors duration-300">
-                        <JiraIcon className="w-12 h-12 text-neutral-500" />
-                      </div>
-
-                      {/* Content */}
-                      <div className="space-y-3 text-center">
-                        <h4 className="text-2xl font-bold text-neutral-400 group-hover:text-neutral-300 transition-colors">Jira</h4>
-                        <p className="text-sm text-gray-300 leading-relaxed">
-                          Sync tickets and epics from Jira projects
-                        </p>
-                      </div>
-
-                      {/* Action hint */}
-                      <div className="flex items-center gap-2 text-xs text-neutral-400/80 group-hover:text-neutral-300 transition-colors">
-                        <span className="uppercase tracking-wider font-medium">Configure</span>
-                        <ArrowRight className="w-4 h-4 group-hover:tranneutral-x-1 transition-transform" />
-                      </div>
-                    </div>
-                  </button>
+                  />
                 </div>
               </div>
             )}
@@ -456,10 +386,10 @@ export function TaskSourceMultistageForm() {
                 {/* GitHub Issues Configuration */}
                 {formData.type === "github_issues" && (
                   <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-700/30 backdrop-blur-sm">
-                    <h3 className="text-xs uppercase tracking-wide font-medium text-gray-200">GITHUB CONFIGURATION</h3>
+                    <h3 className="text-xs uppercase tracking-wide font-medium text-neutral-200">GITHUB CONFIGURATION</h3>
 
                     <div className="space-y-2">
-                      <Label htmlFor="github_repo" className="text-xs uppercase tracking-wide text-gray-200">
+                      <Label htmlFor="github_repo" className="text-xs uppercase tracking-wide text-neutral-200">
                         REPOSITORY
                       </Label>
                       <Input
@@ -473,7 +403,7 @@ export function TaskSourceMultistageForm() {
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="github_host" className="text-xs uppercase tracking-wide text-gray-200">
+                      <Label htmlFor="github_host" className="text-xs uppercase tracking-wide text-neutral-200">
                         HOST (OPTIONAL)
                       </Label>
                       <Input
@@ -500,10 +430,10 @@ export function TaskSourceMultistageForm() {
                 {/* Jira Configuration */}
                 {formData.type === "jira" && (
                   <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-700/30 backdrop-blur-sm">
-                    <h3 className="text-xs uppercase tracking-wide font-medium text-gray-200">JIRA CONFIGURATION</h3>
+                    <h3 className="text-xs uppercase tracking-wide font-medium text-neutral-200">JIRA CONFIGURATION</h3>
 
                     <div className="space-y-2">
-                      <Label htmlFor="jira_host" className="text-xs uppercase tracking-wide text-gray-200">
+                      <Label htmlFor="jira_host" className="text-xs uppercase tracking-wide text-neutral-200">
                         HOST {jiraConfig.cloud_id && "(AUTO-FILLED FROM OAUTH)"}
                       </Label>
                       <Input
@@ -517,7 +447,7 @@ export function TaskSourceMultistageForm() {
                         className={jiraConfig.cloud_id ? "bg-neutral-700/50 cursor-not-allowed" : ""}
                       />
                       {jiraConfig.cloud_id && (
-                        <p className="text-xs text-green-400">
+                        <p className="text-xs text-neutral-400">
                           ✓ Host auto-filled from selected Jira site via OAuth
                         </p>
                       )}
@@ -545,7 +475,7 @@ export function TaskSourceMultistageForm() {
                     />
 
                     <div className="space-y-2">
-                      <Label htmlFor="jira_jql_filter" className="text-xs uppercase tracking-wide text-gray-200">
+                      <Label htmlFor="jira_jql_filter" className="text-xs uppercase tracking-wide text-neutral-200">
                         JQL FILTER (OPTIONAL)
                       </Label>
                       <Input
@@ -555,7 +485,7 @@ export function TaskSourceMultistageForm() {
                         onChange={(e) => handleJiraConfigChange("jql_filter", e.target.value)}
                         placeholder="e.g., project = MYPROJ AND resolution = Unresolved"
                       />
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-neutral-400">
                         Custom JQL query. Leave empty to use default: "resolution = Unresolved"
                       </p>
                     </div>
@@ -564,7 +494,7 @@ export function TaskSourceMultistageForm() {
 
                 {/* Auto-evaluate setting - common for all source types */}
                 <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-700/30 backdrop-blur-sm rounded-lg">
-                  <h3 className="text-xs uppercase tracking-wide font-medium text-gray-200">EVALUATION SETTINGS</h3>
+                  <h3 className="text-xs uppercase tracking-wide font-medium text-neutral-200">EVALUATION SETTINGS</h3>
 
                   <div className="flex items-start space-x-3">
                     <input
@@ -572,13 +502,13 @@ export function TaskSourceMultistageForm() {
                       id="auto_evaluate"
                       checked={formData.auto_evaluate}
                       onChange={(e) => handleInputChange("auto_evaluate", e.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-gray-600 bg-neutral-700 text-neutral-500 focus:ring-neutral-500 focus:ring-offset-neutral-800"
+                      className="mt-1 h-4 w-4 rounded border-neutral-600 bg-neutral-700 text-neutral-500 focus:ring-neutral-500 focus:ring-offset-neutral-800"
                     />
                     <div className="flex-1">
-                      <Label htmlFor="auto_evaluate" className="text-sm font-medium text-gray-200 cursor-pointer">
+                      <Label htmlFor="auto_evaluate" className="text-sm font-medium text-neutral-200 cursor-pointer">
                         Automatically evaluate new tasks with AI
                       </Label>
-                      <p className="text-xs text-gray-400 mt-1">
+                      <p className="text-xs text-neutral-400 mt-1">
                         When enabled, tasks synced from this source will automatically be queued for AI evaluation.
                         Disable this to manually control evaluation and reduce AI costs for high-volume sources.
                       </p>
@@ -606,7 +536,7 @@ export function TaskSourceMultistageForm() {
                   type="button"
                   onClick={() => handleNext()}
                   disabled={!canProceedFromStep(currentStep)}
-                  className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+                  className="bg-neutral-600 hover:bg-neutral-500 text-white uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
                 >
                   NEXT
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -615,7 +545,7 @@ export function TaskSourceMultistageForm() {
                 <Button
                   type="submit"
                   disabled={loading || !canProceedFromStep(currentStep)}
-                  className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+                  className="bg-neutral-600 hover:bg-neutral-500 text-white uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
                 >
                   {loading ? "CREATING..." : "CREATE TASK SOURCE"}
                   <Check className="w-4 h-4 ml-1" />

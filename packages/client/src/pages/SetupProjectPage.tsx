@@ -87,8 +87,8 @@ export function SetupProjectPage() {
       <AnimatedPageContainer>
         <PageCard title="Success" description="Your project has been created">
           <div className="text-center py-8">
-            <div className="text-green-400 font-medium text-lg">
-              ✓ Project created successfully
+            <div className="text-neutral-300 font-medium text-lg">
+              Project created successfully
             </div>
           </div>
         </PageCard>
@@ -104,13 +104,13 @@ export function SetupProjectPage() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
-              <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-lg backdrop-blur-sm">
+              <div className="bg-neutral-700/10 border border-neutral-700/30 text-neutral-500 px-4 py-3 rounded-lg backdrop-blur-sm">
                 {error}
               </div>
             )}
 
             <div>
-              <label htmlFor="name" className="block text-sm font-medium mb-2 text-gray-200">
+              <label htmlFor="name" className="block text-sm font-medium mb-2 text-neutral-200">
                 Name
               </label>
               <Input
@@ -132,12 +132,12 @@ export function SetupProjectPage() {
                   disabled={!expertMode}
                   className="w-4 h-4 rounded border-neutral-600 bg-neutral-700 text-neutral-500 focus:ring-neutral-500 focus:ring-offset-neutral-900 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                <label htmlFor="configureExecutor" className={`text-sm font-medium ${expertMode ? 'cursor-pointer' : 'cursor-not-allowed'} text-gray-200`}>
+                <label htmlFor="configureExecutor" className={`text-sm font-medium ${expertMode ? 'cursor-pointer' : 'cursor-not-allowed'} text-neutral-200`}>
                   Custom pipeline executor
                 </label>
               </div>
               {!expertMode && (
-                <p className="text-xs text-gray-500 ml-6 mb-2">
+                <p className="text-xs text-neutral-500 ml-6 mb-2">
                   Available only in expert mode
                 </p>
               )}
@@ -146,7 +146,7 @@ export function SetupProjectPage() {
                 <div className="ml-6 space-y-3 border-l-2 border-neutral-500/30 pl-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
-                      <label htmlFor="executorHost" className="block text-sm font-medium text-gray-200">
+                      <label htmlFor="executorHost" className="block text-sm font-medium text-neutral-200">
                         Host
                       </label>
                       {!executorHostUnlocked && (

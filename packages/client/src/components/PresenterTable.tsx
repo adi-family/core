@@ -27,12 +27,12 @@ export function PresenterTable<T, P extends BasePresenter<T>>({
   buildPresenter,
 }: PresenterTableProps<T, P>) {
   if (loading) {
-    return <div className="text-center py-8 text-sm uppercase tracking-wide text-gray-400">Loading...</div>
+    return <div className="text-center py-8 text-sm uppercase tracking-wide text-neutral-400">Loading...</div>
   }
 
   if (items.length === 0) {
     return (
-      <div className="text-center py-8 text-sm uppercase tracking-wide text-gray-400">
+      <div className="text-center py-8 text-sm uppercase tracking-wide text-neutral-400">
         {emptyMessage}
       </div>
     )

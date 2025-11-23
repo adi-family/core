@@ -97,17 +97,17 @@ export function CreateTaskDialog({ isOpen, onClose, onSuccess }: CreateTaskDialo
               Create a manual task to track work outside of your task sources
             </CardDescription>
           </CardHeader>
-          <CardContent className={`${designTokens.spacing.cardPadding} text-gray-100`}>
+          <CardContent className={`${designTokens.spacing.cardPadding} text-neutral-100`}>
             <form onSubmit={handleSubmit} className="space-y-6">
               <div>
-                <Label htmlFor="project" className="block mb-2 text-sm font-medium text-gray-200">
-                  Project <span className="text-red-400">*</span>
+                <Label htmlFor="project" className="block mb-2 text-sm font-medium text-neutral-200">
+                  Project <span className="text-neutral-500">*</span>
                 </Label>
                 <select
                   id="project"
                   value={projectId}
                   onChange={(e) => setProjectId(e.target.value)}
-                  className="w-full px-4 py-2 bg-neutral-700/50 border border-neutral-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-neutral-700/50 border border-neutral-600 rounded-lg text-neutral-100 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                   disabled={loading}
                   required
                 >
@@ -121,8 +121,8 @@ export function CreateTaskDialog({ isOpen, onClose, onSuccess }: CreateTaskDialo
               </div>
 
               <div>
-                <Label htmlFor="title" className="block mb-2 text-sm font-medium text-gray-200">
-                  Title <span className="text-red-400">*</span>
+                <Label htmlFor="title" className="block mb-2 text-sm font-medium text-neutral-200">
+                  Title <span className="text-neutral-500">*</span>
                 </Label>
                 <Input
                   id="title"
@@ -137,7 +137,7 @@ export function CreateTaskDialog({ isOpen, onClose, onSuccess }: CreateTaskDialo
               </div>
 
               <div>
-                <Label htmlFor="description" className="block mb-2 text-sm font-medium text-gray-200">
+                <Label htmlFor="description" className="block mb-2 text-sm font-medium text-neutral-200">
                   Description
                 </Label>
                 <textarea
@@ -147,7 +147,7 @@ export function CreateTaskDialog({ isOpen, onClose, onSuccess }: CreateTaskDialo
                   placeholder="Enter task description (optional)"
                   disabled={loading}
                   rows={5}
-                  className="w-full px-4 py-2 bg-neutral-700/50 border border-neutral-600 rounded-lg text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-transparent resize-vertical"
+                  className="w-full px-4 py-2 bg-neutral-700/50 border border-neutral-600 rounded-lg text-neutral-100 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-transparent resize-vertical"
                 />
               </div>
 

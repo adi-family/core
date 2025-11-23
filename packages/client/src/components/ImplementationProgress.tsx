@@ -9,7 +9,7 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
   if (!task.ai_implementation_session_id) {
     return (
       <div className="bg-neutral-800/40 backdrop-blur-sm rounded-lg border border-neutral-700/50 p-6 text-center">
-        <p className="text-gray-400">No implementation in progress</p>
+        <p className="text-neutral-400">No implementation in progress</p>
       </div>
     )
   }
@@ -23,7 +23,7 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
             <h3 className="text-lg font-semibold text-white mb-1">
               AI Implementation Progress
             </h3>
-            <p className="text-sm text-gray-300">
+            <p className="text-sm text-neutral-300">
               Status: <span className="font-medium">{task.ai_implementation_status}</span>
             </p>
           </div>
@@ -37,15 +37,15 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
 
           {task.ai_implementation_status === 'completed' && (
             <div className="flex items-center gap-2">
-              <CheckCircle className="h-6 w-6 text-green-400" />
-              <span className="text-sm text-green-300">Completed</span>
+              <CheckCircle className="h-6 w-6 text-neutral-300" />
+              <span className="text-sm text-neutral-300">Completed</span>
             </div>
           )}
 
           {task.ai_implementation_status === 'failed' && (
             <div className="flex items-center gap-2">
-              <XCircle className="h-6 w-6 text-red-400" />
-              <span className="text-sm text-red-300">Failed</span>
+              <XCircle className="h-6 w-6 text-neutral-500" />
+              <span className="text-sm text-neutral-500">Failed</span>
             </div>
           )}
         </div>
@@ -59,7 +59,7 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
               {/* Status indicator */}
               <div className="flex-shrink-0 mt-1">
                 {phase.status === 'completed' && (
-                  <div className="w-6 h-6 bg-green-600 rounded-full flex items-center justify-center">
+                  <div className="w-6 h-6 bg-neutral-500 rounded-full flex items-center justify-center">
                     <span className="text-white text-xs">✓</span>
                   </div>
                 )}
@@ -69,26 +69,26 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
                   </div>
                 )}
                 {phase.status === 'failed' && (
-                  <div className="w-6 h-6 bg-red-600 rounded-full flex items-center justify-center">
+                  <div className="w-6 h-6 bg-neutral-700 rounded-full flex items-center justify-center">
                     <span className="text-white text-xs">✗</span>
                   </div>
                 )}
                 {phase.status === 'pending' && (
-                  <div className="w-6 h-6 bg-gray-600 rounded-full" />
+                  <div className="w-6 h-6 bg-neutral-600 rounded-full" />
                 )}
               </div>
 
               {/* Phase info */}
               <div className="flex-1">
                 <h4 className={`font-medium ${phase.status === 'active' ? 'text-neutral-300' :
-                  phase.status === 'completed' ? 'text-green-300' :
-                    phase.status === 'failed' ? 'text-red-300' :
-                      'text-gray-400'
+                  phase.status === 'completed' ? 'text-neutral-300' :
+                    phase.status === 'failed' ? 'text-neutral-500' :
+                      'text-neutral-400'
                   }`}>
                   {phase.name}
                 </h4>
                 {phase.description && (
-                  <p className="text-sm text-gray-500 mt-0.5">{phase.description}</p>
+                  <p className="text-sm text-neutral-500 mt-0.5">{phase.description}</p>
                 )}
               </div>
 

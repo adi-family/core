@@ -7,9 +7,9 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* App root background - dark premium aesthetic */
+/* App root background - dark grayscale */
 body {
-  background: linear-gradient(135deg, rgb(2, 6, 23) 0%, rgb(15, 23, 42) 50%, rgb(30, 41, 59) 100%);
+  background: #0a0a0a;
   min-height: 100vh;
 }
 
@@ -47,10 +47,10 @@ body {
 
 @keyframes glow {
   0%, 100% {
-    box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
   }
   50% {
-    box-shadow: 0 0 30px rgba(59, 130, 246, 0.5);
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
   }
 }
 
@@ -67,34 +67,34 @@ body {
 }
 
 @theme {
-  /* Apple-inspired fluid color system */
-  --color-brand-50: #f9fafb;
-  --color-brand-100: #f3f4f6;
-  --color-brand-200: #e5e7eb;
-  --color-brand-300: #d1d5db;
-  --color-brand-400: #9ca3af;
-  --color-brand-500: #6b7280;
-  --color-brand-600: #4b5563;
-  --color-brand-700: #374151;
-  --color-brand-800: #1f2937;
-  --color-brand-900: #111827;
-  --color-brand-950: #030712;
+  /* Grayscale color system */
+  --color-brand-50: #fafafa;
+  --color-brand-100: #f5f5f5;
+  --color-brand-200: #e5e5e5;
+  --color-brand-300: #d4d4d4;
+  --color-brand-400: #a3a3a3;
+  --color-brand-500: #737373;
+  --color-brand-600: #525252;
+  --color-brand-700: #404040;
+  --color-brand-800: #262626;
+  --color-brand-900: #171717;
+  --color-brand-950: #0a0a0a;
 
-  /* Vibrant accent colors with depth */
-  --color-accent-blue: #007AFF;
-  --color-accent-blue-dark: #0051D5;
-  --color-accent-green: #34C759;
-  --color-accent-yellow: #FFD60A;
-  --color-accent-red: #FF3B30;
-  --color-accent-purple: #BF5AF2;
-  --color-accent-teal: #0d9488;
-  --color-accent-cyan: #0891b2;
+  /* All accent colors - grayscale */
+  --color-accent-blue: #737373;
+  --color-accent-blue-dark: #525252;
+  --color-accent-green: #a3a3a3;
+  --color-accent-yellow: #d4d4d4;
+  --color-accent-red: #404040;
+  --color-accent-purple: #525252;
+  --color-accent-teal: #737373;
+  --color-accent-cyan: #737373;
 
-  /* Semantic colors with vibrancy */
-  --color-success: #34C759;
-  --color-warning: #FFD60A;
-  --color-danger: #FF3B30;
-  --color-info: #007AFF;
+  /* Semantic colors - grayscale */
+  --color-success: #ffffff;
+  --color-warning: #a3a3a3;
+  --color-danger: #404040;
+  --color-info: #737373;
 
   /* Custom spacing */
   --spacing-18: 4.5rem;
@@ -117,7 +117,7 @@ body {
   --radius-3xl: 0;
   --radius-4xl: 0;
 
-  /* Fluid depth shadows - Apple style */
+  /* Fluid depth shadows */
   --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.04);
   --shadow-sm: 0 2px 8px 0 rgb(0 0 0 / 0.08), 0 1px 2px 0 rgb(0 0 0 / 0.04);
   --shadow-md: 0 4px 16px 0 rgb(0 0 0 / 0.10), 0 2px 4px 0 rgb(0 0 0 / 0.06);

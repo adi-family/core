@@ -242,12 +242,12 @@ export function TasksPage() {
             </button>
             {!loading && (
               <div className={`${designTokens.colors.bg.tertiary} px-4 py-2 rounded-lg ${designTokens.borders.default}`}>
-                <div className="text-xs text-gray-200 mb-0.5">Total Tasks</div>
+                <div className="text-xs text-neutral-200 mb-0.5">Total Tasks</div>
                 <div className="text-2xl font-bold text-white">
                   {totalCount > 0 ? totalCount : filteredTasks.length}
                 </div>
                 {filteredTasks.length < totalCount && (
-                  <div className="text-xs text-gray-300 mt-1">
+                  <div className="text-xs text-neutral-300 mt-1">
                     Showing {filteredTasks.length}
                   </div>
                 )}
@@ -255,7 +255,7 @@ export function TasksPage() {
             )}
           </div>
         </CardHeader>
-        <CardContent className={`${designTokens.spacing.cardPadding} text-gray-100`}>
+        <CardContent className={`${designTokens.spacing.cardPadding} text-neutral-100`}>
           <div className="mb-6 space-y-4">
             <div>
               <Label htmlFor="searchInput" className="block mb-2">
@@ -326,11 +326,11 @@ export function TasksPage() {
 
           {loading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="text-gray-500">Loading tasks...</div>
+              <div className="text-neutral-500">Loading tasks...</div>
             </div>
           ) : filteredTasks.length === 0 ? (
             <div className="flex justify-center items-center py-12">
-              <div className="text-gray-500">No tasks found</div>
+              <div className="text-neutral-500">No tasks found</div>
             </div>
           ) : (
             <Tabs defaultValue="backlog" className="w-full">
@@ -362,7 +362,7 @@ export function TasksPage() {
                 {/* Infinite scroll loading indicator and observer target */}
                 {loadingMore && (
                   <div className="flex justify-center items-center py-8">
-                    <div className="text-gray-400">Loading more tasks...</div>
+                    <div className="text-neutral-400">Loading more tasks...</div>
                   </div>
                 )}
 
@@ -371,7 +371,7 @@ export function TasksPage() {
 
                 {!hasMore && filteredTasks.length > 0 && (
                   <div className="flex justify-center items-center py-8">
-                    <div className="text-gray-500 text-sm">No more tasks to load</div>
+                    <div className="text-neutral-500 text-sm">No more tasks to load</div>
                   </div>
                 )}
               </TabsContent>

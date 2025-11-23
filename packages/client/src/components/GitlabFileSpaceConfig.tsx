@@ -24,18 +24,18 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
 
   return (
     <div className="space-y-4 p-4 rounded-xl border border-neutral-700/60 bg-neutral-900/30 backdrop-blur-sm">
-      <h3 className="text-xs uppercase tracking-wide font-medium text-gray-300">GITLAB FILE SPACE CONFIGURATION</h3>
+      <h3 className="text-xs uppercase tracking-wide font-medium text-neutral-300">GITLAB FILE SPACE CONFIGURATION</h3>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide text-gray-300">
+          <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide text-neutral-300">
             GITLAB HOST
           </Label>
           {!hostUnlocked && (
             <button
               type="button"
               onClick={() => setHostUnlocked(true)}
-              className="text-xs text-neutral-500 hover:text-neutral-600 hover:underline"
+              className="text-xs text-neutral-400 hover:text-neutral-300 hover:underline"
             >
               Customize GitLab URL
             </button>
@@ -50,7 +50,7 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
             onChange("host", e.target.value)
           }}
           disabled={!hostUnlocked}
-          className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500 disabled:opacity-60 disabled:cursor-not-allowed"
           placeholder={DEFAULT_HOSTS.gitlab}
         />
       </div>
@@ -87,7 +87,7 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
 
       {!config.access_token_secret_id && gitlabHost === DEFAULT_HOSTS.gitlab && (
         <div className="space-y-2">
-          <Label htmlFor="gitlab_repo" className="text-xs uppercase tracking-wide text-gray-300">
+          <Label htmlFor="gitlab_repo" className="text-xs uppercase tracking-wide text-neutral-300">
             REPOSITORY (format: owner/repo)
           </Label>
           <Input
@@ -95,7 +95,7 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
             type="text"
             value={config.repo}
             onChange={(e) => onChange("repo", e.target.value)}
-            className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
+            className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500"
             placeholder="e.g., myorg/myrepo"
             required
           />
@@ -104,7 +104,7 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
 
       {!config.access_token_secret_id && gitlabHost !== DEFAULT_HOSTS.gitlab && (
         <div className="space-y-2">
-          <Label htmlFor="gitlab_repo" className="text-xs uppercase tracking-wide text-gray-300">
+          <Label htmlFor="gitlab_repo" className="text-xs uppercase tracking-wide text-neutral-300">
             REPOSITORY (format: owner/repo)
           </Label>
           <Input
@@ -112,7 +112,7 @@ export function GitlabFileSpaceConfig({ projectId, config, onChange }: GitlabFil
             type="text"
             value={config.repo}
             onChange={(e) => onChange("repo", e.target.value)}
-            className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
+            className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500"
             placeholder="e.g., myorg/myrepo"
             required
           />

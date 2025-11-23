@@ -17,7 +17,7 @@ export class PipelineExecutionPresenter extends BasePresenter<PipelineExecution>
         key: 'id',
         label: 'ID',
         render: (exec: PipelineExecution) => (
-          <span className="font-mono text-xs text-gray-600">
+          <span className="font-mono text-xs text-neutral-600">
             {this.truncateId(exec.id)}
           </span>
         ),
@@ -26,7 +26,7 @@ export class PipelineExecutionPresenter extends BasePresenter<PipelineExecution>
         key: 'session_id',
         label: 'Session',
         render: (exec: PipelineExecution) => (
-          <span className="font-mono text-xs text-gray-600">
+          <span className="font-mono text-xs text-neutral-600">
             {this.truncateId(exec.session_id)}
           </span>
         ),
@@ -36,9 +36,9 @@ export class PipelineExecutionPresenter extends BasePresenter<PipelineExecution>
         label: 'Pipeline ID',
         render: (exec: PipelineExecution) =>
           exec.pipeline_id ? (
-            <span className="font-mono text-xs text-gray-600">{exec.pipeline_id}</span>
+            <span className="font-mono text-xs text-neutral-600">{exec.pipeline_id}</span>
           ) : (
-            <span className="text-xs text-gray-400">-</span>
+            <span className="text-xs text-neutral-400">-</span>
           ),
       },
       {
@@ -63,7 +63,7 @@ export class PipelineExecutionPresenter extends BasePresenter<PipelineExecution>
         key: 'last_status_update',
         label: 'Last Update',
         render: (exec: PipelineExecution) => (
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-neutral-600">
             {this.formatDate(exec.last_status_update)}
           </span>
         ),
@@ -72,7 +72,7 @@ export class PipelineExecutionPresenter extends BasePresenter<PipelineExecution>
         key: 'created_at',
         label: 'Created',
         render: (exec: PipelineExecution) => (
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-neutral-600">
             {this.formatDate(exec.created_at)}
           </span>
         ),

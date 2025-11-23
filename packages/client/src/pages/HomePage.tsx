@@ -212,11 +212,11 @@ export function HomePage() {
                     <div className={`${designTokens.text.caption} mt-1`}>Total Tasks</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-semibold text-green-400">{projectStats.completed_tasks}</div>
+                    <div className="text-2xl font-semibold text-neutral-300">{projectStats.completed_tasks}</div>
                     <div className={`${designTokens.text.caption} mt-1`}>Completed</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-semibold text-yellow-400">{projectStats.pending_tasks}</div>
+                    <div className="text-2xl font-semibold text-neutral-300">{projectStats.pending_tasks}</div>
                     <div className={`${designTokens.text.caption} mt-1`}>Pending</div>
                   </div>
                 </div>

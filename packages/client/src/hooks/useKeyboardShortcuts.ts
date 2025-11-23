@@ -1,5 +1,4 @@
 import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 
 interface ShortcutConfig {
   key: string
@@ -33,42 +32,4 @@ export function useKeyboardShortcuts(shortcuts: ShortcutConfig[]) {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [shortcuts])
-}
-
-// Global shortcuts that work everywhere
-export function useGlobalShortcuts() {
-  const navigate = useNavigate()
-
-  useKeyboardShortcuts([
-    {
-      key: 's',
-      ctrlOrCmd: true,
-      action: () => navigate('/ship'),
-      description: 'Go to Ship Mode'
-    },
-    {
-      key: 'r',
-      ctrlOrCmd: true,
-      action: () => navigate('/review'),
-      description: 'Go to Review Mode'
-    },
-    {
-      key: 'b',
-      ctrlOrCmd: true,
-      action: () => navigate('/build'),
-      description: 'Go to Build Mode'
-    },
-    {
-      key: 'h',
-      ctrlOrCmd: true,
-      action: () => navigate('/'),
-      description: 'Go to Command Center'
-    },
-    {
-      key: 'i',
-      ctrlOrCmd: true,
-      action: () => navigate('/insights'),
-      description: 'Go to Insights'
-    },
-  ])
 }

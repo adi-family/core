@@ -71,16 +71,16 @@ export function WorkerCachePage() {
 
   return (
     <div className="mx-auto">
-      <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
+      <Card className="border-neutral-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
         <CardHeader className="bg-gradient-to-r from-neutral-600 to-neutral-500 text-white">
           <CardTitle className="text-2xl uppercase tracking-wide">Worker Cache</CardTitle>
-          <CardDescription className="text-gray-300">View worker processing status and locks</CardDescription>
+          <CardDescription className="text-neutral-300">View worker processing status and locks</CardDescription>
         </CardHeader>
         <CardContent className="p-6">
           {loading ? (
-            <div className="text-center py-8 text-sm uppercase tracking-wide text-gray-500">Loading...</div>
+            <div className="text-center py-8 text-sm uppercase tracking-wide text-neutral-500">Loading...</div>
           ) : cache.length === 0 ? (
-            <div className="text-center py-8 text-sm uppercase tracking-wide text-gray-500">
+            <div className="text-center py-8 text-sm uppercase tracking-wide text-neutral-500">
               No cache entries found
             </div>
           ) : (

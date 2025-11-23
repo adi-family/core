@@ -17,7 +17,7 @@ export class PipelineArtifactPresenter extends BasePresenter<PipelineArtifact> {
         key: 'id',
         label: 'ID',
         render: (artifact: PipelineArtifact) => (
-          <span className="font-mono text-xs text-gray-600">
+          <span className="font-mono text-xs text-neutral-600">
             {this.truncateId(artifact.id)}
           </span>
         ),
@@ -52,7 +52,7 @@ export class PipelineArtifactPresenter extends BasePresenter<PipelineArtifact> {
               View →
             </a>
           ) : (
-            <span className="text-xs text-gray-400">-</span>
+            <span className="text-xs text-neutral-400">-</span>
           ),
       },
       {
@@ -61,7 +61,7 @@ export class PipelineArtifactPresenter extends BasePresenter<PipelineArtifact> {
         render: (artifact: PipelineArtifact) => {
           const metadata = artifact.metadata as Record<string, unknown> | null
           if (!metadata) {
-            return <span className="text-xs text-gray-400">-</span>
+            return <span className="text-xs text-neutral-400">-</span>
           }
 
           const title = metadata.title ? String(metadata.title) : null
@@ -71,7 +71,7 @@ export class PipelineArtifactPresenter extends BasePresenter<PipelineArtifact> {
           return (
             <div className="flex flex-col gap-1">
               {title && (
-                <div className="text-xs text-gray-700 font-medium">
+                <div className="text-xs text-neutral-700 font-medium">
                   {title}
                 </div>
               )}
@@ -95,7 +95,7 @@ export class PipelineArtifactPresenter extends BasePresenter<PipelineArtifact> {
         key: 'created_at',
         label: 'Created',
         render: (artifact: PipelineArtifact) => (
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-neutral-600">
             {this.formatDate(artifact.created_at)}
           </span>
         ),

@@ -29,12 +29,12 @@ export function TaskSourceRow({
 }: TaskSourceRowProps) {
   const getStatusColor = (status: string) => {
     const statusLower = status.toLowerCase()
-    if (statusLower === 'completed' || statusLower === 'success') return 'text-green-400'
-    if (statusLower === 'failed' || statusLower === 'error') return 'text-red-400'
+    if (statusLower === 'completed' || statusLower === 'success') return 'text-neutral-300'
+    if (statusLower === 'failed' || statusLower === 'error') return 'text-neutral-500'
     if (statusLower === 'syncing' || statusLower === 'running') return 'text-neutral-400'
-    if (statusLower === 'queued') return 'text-yellow-400'
-    if (statusLower === 'pending') return 'text-gray-400'
-    return 'text-gray-400'
+    if (statusLower === 'queued') return 'text-neutral-400'
+    if (statusLower === 'pending') return 'text-neutral-400'
+    return 'text-neutral-400'
   }
 
   const getTypeIcon = (type: string) => {
@@ -123,20 +123,20 @@ export function TaskSourceRow({
       {/* Status Bar at Top */}
       <div className="flex flex-wrap gap-4 bg-neutral-900/40 px-4 py-2.5 border-b border-neutral-700/30">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Status:</span>
-          <span className={`text-xs font-medium ${taskSource.enabled ? 'text-green-400' : 'text-gray-400'}`}>
+          <span className="text-xs text-neutral-500">Status:</span>
+          <span className={`text-xs font-medium ${taskSource.enabled ? 'text-neutral-300' : 'text-neutral-400'}`}>
             {taskSource.enabled ? 'Enabled' : 'Disabled'}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Sync:</span>
+          <span className="text-xs text-neutral-500">Sync:</span>
           <span className={`text-xs font-medium ${getStatusColor(taskSource.sync_status)}`}>
             {taskSource.sync_status}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Last Synced:</span>
-          <span className="text-xs font-medium text-gray-300">
+          <span className="text-xs text-neutral-500">Last Synced:</span>
+          <span className="text-xs font-medium text-neutral-300">
             {formatLastSynced(taskSource.last_synced_at)}
           </span>
         </div>
@@ -153,7 +153,7 @@ export function TaskSourceRow({
                 {taskSource.name}
               </h3>
             </div>
-            <p className="text-xs font-mono text-gray-400">
+            <p className="text-xs font-mono text-neutral-400">
               ID: {taskSource.id.substring(0, 8)}...
             </p>
           </div>
@@ -173,12 +173,12 @@ export function TaskSourceRow({
         {/* Project and Type Info */}
         <div className="flex items-center gap-3 mb-3 text-sm">
           {project && (
-            <div className="flex items-center gap-1.5 text-gray-300">
-              <Folder className="h-3.5 w-3.5 text-gray-400" />
+            <div className="flex items-center gap-1.5 text-neutral-300">
+              <Folder className="h-3.5 w-3.5 text-neutral-400" />
               <span>{typeof project.name === 'string' ? project.name : 'Unknown Project'}</span>
             </div>
           )}
-          <div className="text-gray-400">
+          <div className="text-neutral-400">
             {getTypeDisplayName(taskSource.type)}
           </div>
         </div>
@@ -186,7 +186,7 @@ export function TaskSourceRow({
         {/* Repository/Project Info */}
         {repoOrProject && (
           <div className="flex items-center gap-2 text-sm mb-2">
-            <span className="text-gray-500">
+            <span className="text-neutral-500">
               {taskSource.type === 'jira' ? 'Project:' : 'Repository:'}
             </span>
             {externalUrl ? (
@@ -200,7 +200,7 @@ export function TaskSourceRow({
                 <ExternalLink className="h-3 w-3" />
               </a>
             ) : (
-              <span className="text-gray-300 font-mono text-xs">{repoOrProject}</span>
+              <span className="text-neutral-300 font-mono text-xs">{repoOrProject}</span>
             )}
           </div>
         )}
@@ -208,12 +208,12 @@ export function TaskSourceRow({
         {/* Labels */}
         {labels.length > 0 && (
           <div className="flex items-start gap-2 text-sm">
-            <span className="text-gray-500">Labels:</span>
+            <span className="text-neutral-500">Labels:</span>
             <div className="flex flex-wrap gap-1.5">
               {labels.map((label, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center px-2 py-0.5 rounded-md bg-neutral-700/50 border border-neutral-600/50 text-xs text-gray-300"
+                  className="inline-flex items-center px-2 py-0.5 rounded-md bg-neutral-700/50 border border-neutral-600/50 text-xs text-neutral-300"
                 >
                   {label}
                 </span>
@@ -225,8 +225,8 @@ export function TaskSourceRow({
         {/* JQL Filter for Jira */}
         {taskSource.type === 'jira' && taskSource.config.jql_filter && (
           <div className="flex items-start gap-2 text-sm mt-2">
-            <span className="text-gray-500">JQL:</span>
-            <span className="text-gray-300 font-mono text-xs">
+            <span className="text-neutral-500">JQL:</span>
+            <span className="text-neutral-300 font-mono text-xs">
               {taskSource.config.jql_filter}
             </span>
           </div>

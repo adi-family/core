@@ -327,7 +327,7 @@ function ReviewCard({ task, onEvaluate, onReject, onDiscuss, isEvaluating }: Rev
           </button>
           <button
             onClick={onReject}
-            className={`${designTokens.buttons.ghost} flex items-center gap-2 hover:text-red-400`}
+            className={`${designTokens.buttons.ghost} flex items-center gap-2 hover:text-neutral-500`}
           >
             <X className="h-4 w-4" />
             Archive

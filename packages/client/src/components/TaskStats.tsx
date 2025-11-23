@@ -35,13 +35,13 @@ interface StatsData {
 }
 
 const COLORS = {
-  primary: '#3b82f6',
-  success: '#10b981',
-  warning: '#f59e0b',
-  danger: '#ef4444',
-  purple: '#8b5cf6',
-  pink: '#ec4899',
-  teal: '#14b8a6',
+  primary: '#737373',
+  success: '#a3a3a3',
+  warning: '#a3a3a3',
+  danger: '#404040',
+  purple: '#525252',
+  pink: '#525252',
+  teal: '#525252',
   indigo: '#64748b',
   cyan: '#64748b',
 }
@@ -78,7 +78,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
   if (loading) {
     return (
       <div className="flex justify-center items-center py-12">
-        <div className="text-gray-400">Loading statistics...</div>
+        <div className="text-neutral-400">Loading statistics...</div>
       </div>
     )
   }
@@ -93,7 +93,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Total Tasks</CardTitle>
+            <CardTitle className="text-sm font-medium text-neutral-400">Total Tasks</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-white">{stats.total}</div>
@@ -102,11 +102,11 @@ export function TaskStats({ filters }: TaskStatsProps) {
 
         <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Evaluated</CardTitle>
+            <CardTitle className="text-sm font-medium text-neutral-400">Evaluated</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-green-400">{stats.evaluated}</div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-3xl font-bold text-neutral-300">{stats.evaluated}</div>
+            <div className="text-xs text-neutral-500 mt-1">
               {stats.total > 0 ? Math.round((stats.evaluated / stats.total) * 100) : 0}%
             </div>
           </CardContent>
@@ -114,11 +114,11 @@ export function TaskStats({ filters }: TaskStatsProps) {
 
         <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Implemented</CardTitle>
+            <CardTitle className="text-sm font-medium text-neutral-400">Implemented</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-neutral-400">{stats.implemented}</div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-neutral-500 mt-1">
               {stats.total > 0 ? Math.round((stats.implemented / stats.total) * 100) : 0}%
             </div>
           </CardContent>
@@ -126,11 +126,11 @@ export function TaskStats({ filters }: TaskStatsProps) {
 
         <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">In Progress</CardTitle>
+            <CardTitle className="text-sm font-medium text-neutral-400">In Progress</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-yellow-400">{stats.inProgress}</div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-3xl font-bold text-neutral-300">{stats.inProgress}</div>
+            <div className="text-xs text-neutral-500 mt-1">
               {stats.total > 0 ? Math.round((stats.inProgress / stats.total) * 100) : 0}%
             </div>
           </CardContent>
@@ -138,11 +138,11 @@ export function TaskStats({ filters }: TaskStatsProps) {
 
         <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-gray-400">Avg Complexity</CardTitle>
+            <CardTitle className="text-sm font-medium text-neutral-400">Avg Complexity</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-purple-400">{stats.avgComplexity}</div>
-            <div className="text-xs text-gray-500 mt-1">out of 10</div>
+            <div className="text-3xl font-bold text-neutral-400">{stats.avgComplexity}</div>
+            <div className="text-xs text-neutral-500 mt-1">out of 10</div>
           </CardContent>
         </Card>
       </div>
@@ -154,7 +154,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
           <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50 lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-lg text-white">Priority Matrix: Impact vs Effort</CardTitle>
-              <p className="text-sm text-gray-400 mt-1">Quick Wins (High Impact, Low Effort) are in the top-left</p>
+              <p className="text-sm text-neutral-400 mt-1">Quick Wins (High Impact, Low Effort) are in the top-left</p>
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={400}>
@@ -210,7 +210,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
                       return label
                     }}
                   />
-                  <Scatter name="Tasks" data={stats.quadrantData} fill="#3b82f6">
+                  <Scatter name="Tasks" data={stats.quadrantData} fill="#737373">
                     {stats.quadrantData.map((entry, index) => {
                       // Color based on quadrant
                       let fillColor = COLORS.primary
@@ -244,19 +244,19 @@ export function TaskStats({ filters }: TaskStatsProps) {
               <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2 text-xs">
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.success }}></div>
-                  <span className="text-gray-300">Quick Wins</span>
+                  <span className="text-neutral-300">Quick Wins</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.warning }}></div>
-                  <span className="text-gray-300">Major Projects</span>
+                  <span className="text-neutral-300">Major Projects</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.indigo }}></div>
-                  <span className="text-gray-300">Fill Ins</span>
+                  <span className="text-neutral-300">Fill Ins</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS.danger }}></div>
-                  <span className="text-gray-300">Time Wasters</span>
+                  <span className="text-neutral-300">Time Wasters</span>
                 </div>
               </div>
             </CardContent>

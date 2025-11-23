@@ -257,7 +257,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     return (
       <div className="space-y-4 p-6 border border-neutral-700/50 bg-neutral-900/30 backdrop-blur-sm rounded">
         <div className="space-y-2">
-          <Label className="text-xs uppercase tracking-wide text-gray-300">Provider Type</Label>
+          <Label className="text-xs uppercase tracking-wide text-neutral-300">Provider Type</Label>
           <select
             value={snap.formData.type}
             onChange={(e) => {
@@ -266,7 +266,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                 store.formData.type = value
               }
             }}
-            className="w-full px-3 py-2 border border-neutral-600 rounded-md bg-neutral-800/50 text-gray-100"
+            className="w-full px-3 py-2 border border-neutral-600 rounded-md bg-neutral-800/50 text-neutral-100"
           >
             {typeOptions.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -302,13 +302,13 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         {/* Endpoint URL for self-hosted, azure, vertex */}
         {(snap.formData.type === 'self-hosted' || snap.formData.type === 'azure') && (
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-gray-300">Endpoint URL *</Label>
+            <Label className="text-xs uppercase tracking-wide text-neutral-300">Endpoint URL *</Label>
             <Input
               type="url"
               value={snap.formData.endpoint_url || ''}
               onChange={(e) => { store.formData.endpoint_url = e.target.value }}
               placeholder={snap.formData.type === 'azure' ? 'https://myresource.openai.azure.com' : 'https://...'}
-              className="bg-neutral-800/50 border-neutral-600 text-gray-100"
+              className="bg-neutral-800/50 border-neutral-600 text-neutral-100"
               required
             />
           </div>
@@ -318,22 +318,22 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         {snap.formData.type === 'azure' && snap.selectedProvider === 'openai' && (
           <>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-gray-300">Deployment Name *</Label>
+              <Label className="text-xs uppercase tracking-wide text-neutral-300">Deployment Name *</Label>
               <Input
                 value={snap.formData.deployment_name || ''}
                 onChange={(e) => { store.formData.deployment_name = e.target.value }}
                 placeholder="gpt-4"
-                className="bg-neutral-800/50 border-neutral-600 text-gray-100"
+                className="bg-neutral-800/50 border-neutral-600 text-neutral-100"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-gray-300">API Version *</Label>
+              <Label className="text-xs uppercase tracking-wide text-neutral-300">API Version *</Label>
               <Input
                 value={snap.formData.api_version || ''}
                 onChange={(e) => { store.formData.api_version = e.target.value }}
                 placeholder="2024-02-15-preview"
-                className="bg-neutral-800/50 border-neutral-600 text-gray-100"
+                className="bg-neutral-800/50 border-neutral-600 text-neutral-100"
                 required
               />
             </div>
@@ -344,22 +344,22 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         {snap.formData.type === 'vertex' && snap.selectedProvider === 'google' && (
           <>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-gray-300">Project ID *</Label>
+              <Label className="text-xs uppercase tracking-wide text-neutral-300">Project ID *</Label>
               <Input
                 value={snap.formData.project_id || ''}
                 onChange={(e) => { store.formData.project_id = e.target.value }}
                 placeholder="my-project"
-                className="bg-neutral-800/50 border-neutral-600 text-gray-100"
+                className="bg-neutral-800/50 border-neutral-600 text-neutral-100"
                 required
               />
             </div>
             <div className="space-y-2">
-              <Label className="text-xs uppercase tracking-wide text-gray-300">Location *</Label>
+              <Label className="text-xs uppercase tracking-wide text-neutral-300">Location *</Label>
               <Input
                 value={snap.formData.location || ''}
                 onChange={(e) => { store.formData.location = e.target.value }}
                 placeholder="us-central1"
-                className="bg-neutral-800/50 border-neutral-600 text-gray-100"
+                className="bg-neutral-800/50 border-neutral-600 text-neutral-100"
                 required
               />
             </div>
@@ -369,19 +369,19 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         {/* OpenAI Cloud organization ID */}
         {snap.formData.type === 'cloud' && snap.selectedProvider === 'openai' && (
           <div className="space-y-2">
-            <Label className="text-xs uppercase tracking-wide text-gray-300">Organization ID (Optional)</Label>
+            <Label className="text-xs uppercase tracking-wide text-neutral-300">Organization ID (Optional)</Label>
             <Input
               value={snap.formData.organization_id || ''}
               onChange={(e) => { store.formData.organization_id = e.target.value }}
               placeholder="org-..."
-              className="bg-neutral-800/50 border-neutral-600 text-gray-100"
+              className="bg-neutral-800/50 border-neutral-600 text-neutral-100"
             />
           </div>
         )}
 
         {/* Error Display */}
         {snap.ui.error && (
-          <div className="bg-red-500/10 text-red-300 px-4 py-3 border border-red-500/30 rounded flex items-center gap-2">
+          <div className="bg-neutral-700/10 text-neutral-300 px-4 py-3 border border-neutral-700/30 rounded flex items-center gap-2">
             <AlertCircle className="w-4 h-4" />
             {snap.ui.error}
           </div>
@@ -419,7 +419,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
   if (snap.ui.loading) {
     return (
       <div className="text-center py-8">
-        <Loader2 className="w-8 h-8 animate-spin mx-auto text-gray-400" />
+        <Loader2 className="w-8 h-8 animate-spin mx-auto text-neutral-400" />
       </div>
     )
   }
@@ -427,10 +427,10 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
   return (
     <div className="space-y-6">
       <div className="border-b border-neutral-700/50 pb-4">
-        <h3 className="text-lg uppercase tracking-wide text-gray-100">
+        <h3 className="text-lg uppercase tracking-wide text-neutral-100">
           AI Provider Configuration
         </h3>
-        <p className="text-xs text-gray-400 uppercase tracking-wide mt-1">
+        <p className="text-xs text-neutral-400 uppercase tracking-wide mt-1">
           Configure AI provider API keys and settings for pipeline execution
         </p>
       </div>
@@ -451,7 +451,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                   : snap.selectedProvider === provider
                   ? 'border-neutral-500 bg-neutral-500/10 cursor-pointer'
                   : isConfigured
-                  ? 'border-green-500/40 bg-green-500/10 hover:border-green-400 cursor-pointer'
+                  ? 'border-neutral-400/40 bg-neutral-400/10 hover:border-neutral-300 cursor-pointer'
                   : 'border-neutral-700/50 bg-neutral-800/20 hover:border-neutral-600 cursor-pointer'
               }`}
               onClick={() => isSupported && handleProviderSelect(provider)}
@@ -461,43 +461,43 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                   <div className="flex-shrink-0">
                     {getProviderLogo(provider)}
                   </div>
-                  <h4 className="font-medium uppercase tracking-wide text-gray-100">
+                  <h4 className="font-medium uppercase tracking-wide text-neutral-100">
                     {provider === 'anthropic' ? 'Anthropic' : provider === 'openai' ? 'OpenAI' : 'Google'}
                   </h4>
                 </div>
                 {!isSupported ? (
-                  <span className="text-xs font-medium px-2 py-1 bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded uppercase tracking-wide">
+                  <span className="text-xs font-medium px-2 py-1 bg-neutral-400/20 text-neutral-300 border border-neutral-400/30 rounded uppercase tracking-wide">
                     Private Beta
                   </span>
                 ) : isConfigured ? (
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-green-400" />
+                    <CheckCircle2 className="w-5 h-5 text-neutral-300" />
                     <button
                       onClick={(e) => {
                         e.stopPropagation()
                         handleDelete(provider)
                       }}
-                      className="text-red-400 hover:text-red-300 transition-colors"
+                      className="text-neutral-500 hover:text-neutral-400 transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
                 ) : (
-                  <AlertCircle className="w-5 h-5 text-gray-400" />
+                  <AlertCircle className="w-5 h-5 text-neutral-400" />
                 )}
               </div>
-              <div className="text-sm text-gray-300">
+              <div className="text-sm text-neutral-300">
                 {!isSupported ? (
-                  <div className="text-xs text-gray-400">
+                  <div className="text-xs text-neutral-400">
                     Available only in private beta
                   </div>
                 ) : isConfigured ? (
                   <>
                     <div className="capitalize">{config.type}</div>
-                    {config.model && <div className="text-xs text-gray-400">{config.model}</div>}
+                    {config.model && <div className="text-xs text-neutral-400">{config.model}</div>}
                   </>
                 ) : (
-                  <div className="text-gray-400">Not configured</div>
+                  <div className="text-neutral-400">Not configured</div>
                 )}
               </div>
             </div>
@@ -510,7 +510,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
         <div className="mt-6">
           <div className="flex items-center gap-3 mb-4">
             {getProviderLogo(snap.selectedProvider)}
-            <h4 className="text-md font-medium uppercase tracking-wide text-gray-100">
+            <h4 className="text-md font-medium uppercase tracking-wide text-neutral-100">
               Configure {snap.selectedProvider === 'anthropic' ? 'Anthropic' : snap.selectedProvider === 'openai' ? 'OpenAI' : 'Google'}
             </h4>
           </div>

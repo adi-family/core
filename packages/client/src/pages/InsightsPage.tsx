@@ -139,7 +139,7 @@ export function InsightsPage() {
           ← Back to Command Center
         </Link>
         <div className="flex items-center gap-3 mb-2">
-          <Activity className="h-8 w-8 text-purple-400" />
+          <Activity className="h-8 w-8 text-neutral-400" />
           <h1 className={designTokens.text.mode}>Insights</h1>
         </div>
         <p className={`${designTokens.text.bodySecondary}`}>
@@ -159,7 +159,7 @@ export function InsightsPage() {
                 {velocityChange > 0 ? (
                   <TrendingUp className={`h-4 w-4 ${designTokens.colors.text.ship}`} />
                 ) : (
-                  <TrendingDown className="h-4 w-4 text-red-400" />
+                  <TrendingDown className="h-4 w-4 text-neutral-500" />
                 )}
               </div>
               <div className={`${designTokens.text.metric} ${designTokens.colors.text.ship}`}>
@@ -192,9 +192,9 @@ export function InsightsPage() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <div className={designTokens.text.metricLabel}>Time Saved</div>
-                <Clock className="h-4 w-4 text-amber-400" />
+                <Clock className="h-4 w-4 text-neutral-300" />
               </div>
-              <div className={`${designTokens.text.metric} text-amber-400`}>
+              <div className={`${designTokens.text.metric} text-neutral-300`}>
                 {thisWeek.timeSaved.toFixed(1)}h
               </div>
               <div className={`${designTokens.text.caption} mt-1`}>
@@ -208,9 +208,9 @@ export function InsightsPage() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <div className={designTokens.text.metricLabel}>Success Rate</div>
-                <Target className="h-4 w-4 text-purple-400" />
+                <Target className="h-4 w-4 text-neutral-400" />
               </div>
-              <div className={`${designTokens.text.metric} text-purple-400`}>
+              <div className={`${designTokens.text.metric} text-neutral-400`}>
                 {thisWeek.successRate}%
               </div>
               <div className={`${designTokens.text.caption} mt-1`}>
@@ -257,7 +257,7 @@ export function InsightsPage() {
       {/* Biggest Wins */}
       <div>
         <div className="flex items-center gap-2 mb-4">
-          <Award className="h-5 w-5 text-yellow-400" />
+          <Award className="h-5 w-5 text-neutral-300" />
           <h2 className={designTokens.text.h2}>Biggest Wins This Week</h2>
         </div>
 
@@ -292,7 +292,7 @@ export function InsightsPage() {
                       </div>
                     </div>
                   </div>
-                  <Award className="h-6 w-6 text-yellow-400" />
+                  <Award className="h-6 w-6 text-neutral-300" />
                 </div>
               </div>
             ))

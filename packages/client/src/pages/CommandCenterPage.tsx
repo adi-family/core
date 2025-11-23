@@ -5,7 +5,6 @@ import { Link } from "react-router-dom"
 import { createAuthenticatedClient } from "@/lib/client"
 import { designTokens } from "@/theme/tokens"
 import { useProject } from "@/contexts/ProjectContext"
-import { formatShortcut } from "@/utils/platform"
 import { Rocket, Search, Zap, TrendingUp, Activity, AlertCircle, Command } from "lucide-react"
 import {
   tasksStore,
@@ -124,74 +123,42 @@ export function CommandCenterPage() {
       </div>
 
       {/* Mode Selection */}
-      <div className={`${designTokens.cards.glass} p-8 mb-8`}>
-        <div className="space-y-3">
+      <div className="grid grid-cols-3 gap-4 mb-8">
           <Link to="/ship" className="group block">
             <div className={`${designTokens.cards.interactive} p-5 group-hover:${designTokens.colors.border.ship}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Rocket className={`h-6 w-6 ${designTokens.colors.text.ship}`} />
-                  <div>
-                    <h2 className={`${designTokens.text.h2} ${designTokens.colors.text.ship}`}>Ship Mode</h2>
-                    <p className={`${designTokens.text.bodySecondary} mt-1`}>
-                      Execute tested tasks and deploy improvements
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <kbd className={`${designTokens.kbd} opacity-60 group-hover:opacity-100 transition-opacity`}>
-                    {formatShortcut('S', { ctrl: true })}
-                  </kbd>
-                  <span className={`${designTokens.text.action} ${designTokens.colors.text.ship}`}>→</span>
-                </div>
-              </div>
+              <h2 className={`${designTokens.text.h2} ${designTokens.colors.text.ship} flex items-center gap-2 mb-2`}>
+                <Rocket className="h-5 w-5" />
+                Ship Mode
+              </h2>
+              <p className={designTokens.text.bodySecondary}>
+                Execute tested tasks and deploy improvements
+              </p>
             </div>
           </Link>
 
           <Link to="/review" className="group block">
             <div className={`${designTokens.cards.interactive} p-5 group-hover:${designTokens.colors.border.review}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Search className={`h-6 w-6 ${designTokens.colors.text.review}`} />
-                  <div>
-                    <h2 className={`${designTokens.text.h2} ${designTokens.colors.text.review}`}>Review Mode</h2>
-                    <p className={`${designTokens.text.bodySecondary} mt-1`}>
-                      Analyze code, evaluate priorities, make decisions
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <kbd className={`${designTokens.kbd} opacity-60 group-hover:opacity-100 transition-opacity`}>
-                    {formatShortcut('R', { ctrl: true })}
-                  </kbd>
-                  <span className={`${designTokens.text.action} ${designTokens.colors.text.review}`}>→</span>
-                </div>
-              </div>
+              <h2 className={`${designTokens.text.h2} ${designTokens.colors.text.review} flex items-center gap-2 mb-2`}>
+                <Search className="h-5 w-5" />
+                Review Mode
+              </h2>
+              <p className={designTokens.text.bodySecondary}>
+                Analyze code, evaluate priorities, make decisions
+              </p>
             </div>
           </Link>
 
           <Link to="/build" className="group block">
             <div className={`${designTokens.cards.interactive} p-5 group-hover:${designTokens.colors.border.build}`}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <Zap className={`h-6 w-6 ${designTokens.colors.text.build}`} />
-                  <div>
-                    <h2 className={`${designTokens.text.h2} ${designTokens.colors.text.build}`}>Build Mode</h2>
-                    <p className={`${designTokens.text.bodySecondary} mt-1`}>
-                      Focus on complex features requiring expertise
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <kbd className={`${designTokens.kbd} opacity-60 group-hover:opacity-100 transition-opacity`}>
-                    {formatShortcut('B', { ctrl: true })}
-                  </kbd>
-                  <span className={`${designTokens.text.action} ${designTokens.colors.text.build}`}>→</span>
-                </div>
-              </div>
+              <h2 className={`${designTokens.text.h2} ${designTokens.colors.text.build} flex items-center gap-2 mb-2`}>
+                <Zap className="h-5 w-5" />
+                Build Mode
+              </h2>
+              <p className={designTokens.text.bodySecondary}>
+                Focus on complex features requiring expertise
+              </p>
             </div>
           </Link>
-        </div>
       </div>
 
       {/* Ready to Ship */}
@@ -290,7 +257,7 @@ export function CommandCenterPage() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h2 className={`${designTokens.text.h2} flex items-center gap-2`}>
-            <Activity className="h-5 w-5 text-gray-400" />
+            <Activity className="h-5 w-5 text-neutral-400" />
             System Status
           </h2>
         </div>
@@ -312,7 +279,7 @@ export function CommandCenterPage() {
               </div>
               <div>
                 <div className={designTokens.text.metricLabel}>Total Pipeline</div>
-                <div className={`${designTokens.text.metric} text-gray-300`}>
+                <div className={`${designTokens.text.metric} text-neutral-300`}>
                   {projectTasks.length}
                 </div>
               </div>

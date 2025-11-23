@@ -108,31 +108,31 @@ export function OAuthCallbackPage() {
   }, [searchParams])
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-neutral-50">
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
         {status === 'processing' && (
           <>
             <Loader2 className="h-16 w-16 animate-spin text-neutral-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Processing...</h2>
-            <p className="text-gray-600">{message}</p>
+            <h2 className="text-2xl font-semibold text-neutral-900 mb-2">Processing...</h2>
+            <p className="text-neutral-600">{message}</p>
           </>
         )}
 
         {status === 'success' && (
           <>
-            <CheckCircle2 className="h-16 w-16 text-green-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Success!</h2>
-            <p className="text-gray-600">{message}</p>
-            <p className="text-sm text-gray-500 mt-4">This window will close automatically...</p>
+            <CheckCircle2 className="h-16 w-16 text-neutral-200 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-neutral-900 mb-2">Success!</h2>
+            <p className="text-neutral-600">{message}</p>
+            <p className="text-sm text-neutral-500 mt-4">This window will close automatically...</p>
           </>
         )}
 
         {status === 'error' && (
           <>
-            <XCircle className="h-16 w-16 text-red-600 mx-auto mb-4" />
-            <h2 className="text-2xl font-semibold text-gray-900 mb-2">Error</h2>
-            <p className="text-gray-600">{message}</p>
-            <p className="text-sm text-gray-500 mt-4">This window will close automatically...</p>
+            <XCircle className="h-16 w-16 text-neutral-700 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-neutral-900 mb-2">Error</h2>
+            <p className="text-neutral-600">{message}</p>
+            <p className="text-sm text-neutral-500 mt-4">This window will close automatically...</p>
           </>
         )}
       </div>

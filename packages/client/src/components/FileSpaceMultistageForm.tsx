@@ -10,7 +10,6 @@ import {
 } from '@adi-simple/ui/card'
 import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
-import { Button } from '@adi-simple/ui/button'
 import { ProjectSelect } from '@adi-simple/ui/project-select'
 import { GitLabIcon } from '@adi-simple/ui/gitlab-icon'
 import { GitHubIcon } from '@adi-simple/ui/github-icon'
@@ -21,6 +20,7 @@ import type { CreateFileSpaceInput, GitlabFileSpaceConfig as GitlabFileSpaceConf
 import { ChevronRight, ChevronLeft, Check } from "lucide-react"
 import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 import { createFileSpaceConfig } from '@adi/api-contracts/file-spaces'
+import { Button, CardSelectButton, TextLinkButton } from './buttons'
 
 type FileSpaceType = 'gitlab' | 'github'
 
@@ -214,19 +214,19 @@ export function FileSpaceMultistageForm() {
   if (success) {
     return (
       <div className="mx-auto p-6 max-w-7xl">
-        <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50 shadow-2xl hover:shadow-green-500/10 hover:border-neutral-600/60 transition-all duration-300 rounded-2xl">
+        <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50 shadow-2xl hover:shadow-neutral-500/10 hover:border-neutral-600/60 transition-all duration-300 rounded-2xl">
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-4">
+              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-neutral-400 to-neutral-500 rounded-xl flex items-center justify-center mb-4">
                 <Check className="w-10 h-10 text-white" />
               </div>
-              <div className="text-lg font-medium mb-2 text-green-400 uppercase tracking-wide">
+              <div className="text-lg font-medium mb-2 text-neutral-300 uppercase tracking-wide">
                 {selectedRepositories.length > 1
                   ? `${selectedRepositories.length} FILE SPACES CREATED SUCCESSFULLY`
                   : 'FILE SPACE CREATED SUCCESSFULLY'
                 }
               </div>
-              <p className="text-gray-400 text-xs uppercase tracking-wide">
+              <p className="text-neutral-400 text-xs uppercase tracking-wide">
                 Redirecting to file spaces list...
               </p>
             </div>
@@ -243,7 +243,7 @@ export function FileSpaceMultistageForm() {
           <CardTitle className="text-xl uppercase tracking-wide text-white">
             CREATE FILE SPACE
           </CardTitle>
-          <CardDescription className="text-xs uppercase tracking-wide text-gray-200">
+          <CardDescription className="text-xs uppercase tracking-wide text-neutral-200">
             Configure a new repository file space
           </CardDescription>
         </CardHeader>
@@ -259,8 +259,8 @@ export function FileSpaceMultistageForm() {
                         currentStep === step.id
                           ? "border-neutral-500 bg-neutral-500 text-white shadow-md scale-110"
                           : currentStep > step.id
-                          ? "border-green-500 bg-green-500 text-white"
-                          : "border-neutral-600 bg-neutral-800 text-gray-400"
+                          ? "border-neutral-400 bg-neutral-400 text-white"
+                          : "border-neutral-600 bg-neutral-800 text-neutral-400"
                       }`}
                     >
                       {currentStep > step.id ? (
@@ -275,19 +275,19 @@ export function FileSpaceMultistageForm() {
                           currentStep === step.id
                             ? "text-neutral-500"
                             : currentStep > step.id
-                            ? "text-green-500"
-                            : "text-gray-400"
+                            ? "text-neutral-300"
+                            : "text-neutral-400"
                         }`}
                       >
                         {step.title}
                       </div>
-                      <div className="text-xs text-gray-400">{step.description}</div>
+                      <div className="text-xs text-neutral-400">{step.description}</div>
                     </div>
                   </div>
                   {index < STEPS.length - 1 && (
                     <div
                       className={`flex-1 h-0.5 mx-2 mt-[-24px] transition-all duration-200 ${
-                        currentStep > step.id ? "bg-green-500" : "bg-neutral-700"
+                        currentStep > step.id ? "bg-neutral-400" : "bg-neutral-700"
                       }`}
                     />
                   )}
@@ -298,7 +298,7 @@ export function FileSpaceMultistageForm() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
-              <div className="bg-red-900/20 text-red-400 px-4 py-3 rounded-lg border border-red-700/50 backdrop-blur-sm text-sm">
+              <div className="bg-neutral-900/20 text-neutral-400 px-4 py-3 rounded-lg border border-neutral-700/50 backdrop-blur-sm text-sm">
                 {error}
               </div>
             )}
@@ -326,93 +326,32 @@ export function FileSpaceMultistageForm() {
             {currentStep === 2 && (
               <div className="space-y-6 animate-fadeIn">
                 <div className="space-y-1 mb-4">
-                  <div className="text-xs uppercase tracking-wide text-gray-300 font-medium">REPOSITORY TYPE</div>
-                  <p className="text-xs text-gray-400">Select your repository provider</p>
+                  <div className="text-xs uppercase tracking-wide text-neutral-300 font-medium">REPOSITORY TYPE</div>
+                  <p className="text-xs text-neutral-400">Select your repository provider</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <button
-                    type="button"
+                  <CardSelectButton
+                    icon={formData.type === "gitlab" ? Check : GitLabIcon}
+                    title="GitLab"
+                    description="Connect your GitLab repositories"
+                    selected={formData.type === "gitlab"}
                     onClick={() => {
                       handleInputChange("type", "gitlab")
-                      // Auto-advance to next step after selecting type
                       setTimeout(() => {
                         setCurrentStep(3)
                         setError(null)
                       }, 300)
                     }}
-                    className={`
-                      group relative overflow-hidden rounded-lg border-2 p-6 text-left transition-all duration-200
-                      ${formData.type === "gitlab"
-                        ? 'border-orange-500 bg-orange-500/20 shadow-lg shadow-orange-500/20'
-                        : 'border-neutral-700/50 bg-neutral-800/50 hover:border-orange-500/50 hover:bg-neutral-700/50 hover:shadow-md'
-                      }
-                    `}
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* Icon */}
-                      <div className={`
-                        flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors
-                        ${formData.type === "gitlab"
-                          ? 'bg-orange-500/30 text-orange-400'
-                          : 'bg-neutral-700/50 text-gray-400 group-hover:bg-orange-500/20 group-hover:text-orange-400'
-                        }
-                      `}>
-                        {formData.type === "gitlab" ? (
-                          <Check className="w-6 h-6" />
-                        ) : (
-                          <GitLabIcon className="w-6 h-6" />
-                        )}
-                      </div>
+                  />
 
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className={`
-                          text-lg font-medium uppercase tracking-wide mb-1 transition-colors
-                          ${formData.type === "gitlab"
-                            ? 'text-orange-300'
-                            : 'text-gray-200 group-hover:text-gray-100'
-                          }
-                        `}>
-                          GitLab
-                        </div>
-                        <div className="text-xs text-gray-400">
-                          Connect your GitLab repositories
-                        </div>
-                      </div>
-                    </div>
-                  </button>
-
-                  <button
-                    type="button"
-                    className="
-                      group relative overflow-hidden rounded-lg border-2 p-6 text-left transition-all duration-200
-                      border-neutral-700/50 bg-neutral-800/30 opacity-60 cursor-not-allowed
-                    "
+                  <CardSelectButton
+                    icon={GitHubIcon}
+                    title="GitHub"
+                    description="Available in future release"
+                    badge="Soon"
                     disabled
-                  >
-                    <div className="flex items-start gap-4">
-                      {/* Icon */}
-                      <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center bg-neutral-700/50 text-gray-500">
-                        <GitHubIcon className="w-6 h-6" />
-                      </div>
-
-                      {/* Content */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="text-lg font-medium uppercase tracking-wide text-gray-400">
-                            GitHub
-                          </div>
-                          <span className="text-xs font-medium px-2 py-1 bg-amber-600/20 text-amber-400 rounded uppercase tracking-wide border border-amber-600/30">
-                            Soon
-                          </span>
-                        </div>
-                        <div className="text-xs text-gray-500">
-                          Available in future release
-                        </div>
-                      </div>
-                    </div>
-                  </button>
+                  />
                 </div>
               </div>
             )}
@@ -423,21 +362,17 @@ export function FileSpaceMultistageForm() {
                 {/* GitLab Configuration */}
                 {formData.type === "gitlab" && (
                   <div className="space-y-4 p-4 rounded-xl border border-neutral-700/60 bg-neutral-900/30 backdrop-blur-sm">
-                    <h3 className="text-xs uppercase tracking-wide font-medium text-gray-300">GITLAB FILE SPACE CONFIGURATION</h3>
+                    <h3 className="text-xs uppercase tracking-wide font-medium text-neutral-300">GITLAB FILE SPACE CONFIGURATION</h3>
 
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide text-gray-300">
+                        <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide text-neutral-300">
                           GITLAB HOST
                         </Label>
                         {gitlabConfig.host === DEFAULT_HOSTS.gitlab && (
-                          <button
-                            type="button"
-                            onClick={() => handleGitlabConfigChange("host", "")}
-                            className="text-xs text-neutral-400 hover:text-neutral-300 hover:underline"
-                          >
+                          <TextLinkButton onClick={() => handleGitlabConfigChange("host", "")}>
                             Customize GitLab URL
-                          </button>
+                          </TextLinkButton>
                         )}
                       </div>
                       <Input
@@ -446,7 +381,7 @@ export function FileSpaceMultistageForm() {
                         value={gitlabConfig.host}
                         onChange={(e) => handleGitlabConfigChange("host", e.target.value)}
                         disabled={gitlabConfig.host === DEFAULT_HOSTS.gitlab}
-                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500 disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder={DEFAULT_HOSTS.gitlab}
                       />
                     </div>
@@ -478,7 +413,7 @@ export function FileSpaceMultistageForm() {
 
                     {!gitlabConfig.access_token_secret_id && (
                       <div className="space-y-2">
-                        <Label htmlFor="gitlab_repo" className="text-xs uppercase tracking-wide text-gray-300">
+                        <Label htmlFor="gitlab_repo" className="text-xs uppercase tracking-wide text-neutral-300">
                           REPOSITORY (format: owner/repo)
                         </Label>
                         <Input
@@ -486,7 +421,7 @@ export function FileSpaceMultistageForm() {
                           type="text"
                           value={selectedRepositories[0] || ""}
                           onChange={(e) => setSelectedRepositories(e.target.value ? [e.target.value] : [])}
-                          className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
+                          className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500"
                           placeholder="e.g., myorg/myrepo"
                           required
                         />
@@ -494,7 +429,7 @@ export function FileSpaceMultistageForm() {
                     )}
 
                     <div className="space-y-2">
-                      <Label htmlFor="default_branch" className="text-xs uppercase tracking-wide text-gray-300">
+                      <Label htmlFor="default_branch" className="text-xs uppercase tracking-wide text-neutral-300">
                         DEFAULT BRANCH FOR MERGE REQUESTS (OPTIONAL)
                       </Label>
                       <Input
@@ -502,10 +437,10 @@ export function FileSpaceMultistageForm() {
                         type="text"
                         value={formData.default_branch}
                         onChange={(e) => handleInputChange("default_branch", e.target.value)}
-                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
+                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500"
                         placeholder="e.g., main, master, develop (leave empty for repo default)"
                       />
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-neutral-400">
                         If not set, the repository's default branch will be used
                       </p>
                     </div>
@@ -515,10 +450,10 @@ export function FileSpaceMultistageForm() {
                 {/* GitHub Configuration */}
                 {formData.type === "github" && (
                   <div className="space-y-4 p-4 rounded-xl border border-neutral-700/60 bg-neutral-900/30 backdrop-blur-sm">
-                    <h3 className="text-xs uppercase tracking-wide font-medium text-gray-300">GITHUB CONFIGURATION</h3>
+                    <h3 className="text-xs uppercase tracking-wide font-medium text-neutral-300">GITHUB CONFIGURATION</h3>
 
                     <div className="space-y-2">
-                      <Label htmlFor="github_repo" className="text-xs uppercase tracking-wide text-gray-300">
+                      <Label htmlFor="github_repo" className="text-xs uppercase tracking-wide text-neutral-300">
                         REPOSITORY
                       </Label>
                       <Input
@@ -526,14 +461,14 @@ export function FileSpaceMultistageForm() {
                         type="text"
                         value={githubConfig.repo}
                         onChange={(e) => handleGithubConfigChange("repo", e.target.value)}
-                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
+                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500"
                         required
                         placeholder="e.g., owner/repo"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="github_host" className="text-xs uppercase tracking-wide text-gray-300">
+                      <Label htmlFor="github_host" className="text-xs uppercase tracking-wide text-neutral-300">
                         HOST (OPTIONAL)
                       </Label>
                       <Input
@@ -541,13 +476,13 @@ export function FileSpaceMultistageForm() {
                         type="text"
                         value={githubConfig.host || ""}
                         onChange={(e) => handleGithubConfigChange("host", e.target.value)}
-                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
+                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500"
                         placeholder="https://github.com"
                       />
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="default_branch" className="text-xs uppercase tracking-wide text-gray-300">
+                      <Label htmlFor="default_branch" className="text-xs uppercase tracking-wide text-neutral-300">
                         DEFAULT BRANCH FOR MERGE REQUESTS (OPTIONAL)
                       </Label>
                       <Input
@@ -555,10 +490,10 @@ export function FileSpaceMultistageForm() {
                         type="text"
                         value={formData.default_branch}
                         onChange={(e) => handleInputChange("default_branch", e.target.value)}
-                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
+                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-neutral-200 placeholder:text-neutral-500 focus:border-neutral-500 focus:ring-neutral-500"
                         placeholder="e.g., main, master, develop (leave empty for repo default)"
                       />
-                      <p className="text-xs text-gray-400">
+                      <p className="text-xs text-neutral-400">
                         If not set, the repository's default branch will be used
                       </p>
                     </div>
@@ -585,7 +520,7 @@ export function FileSpaceMultistageForm() {
                   type="button"
                   onClick={handleNext}
                   disabled={!canProceedFromStep(currentStep)}
-                  className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+                  className="bg-neutral-600 hover:bg-neutral-500 text-white uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
                 >
                   NEXT
                   <ChevronRight className="w-4 h-4 ml-1" />
@@ -594,7 +529,7 @@ export function FileSpaceMultistageForm() {
                 <Button
                   type="submit"
                   disabled={loading || !canProceedFromStep(currentStep)}
-                  className="uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
+                  className="bg-neutral-600 hover:bg-neutral-500 text-white uppercase tracking-wide shadow-sm active:scale-95 transition-all duration-200"
                 >
                   {loading
                     ? "CREATING..."

@@ -32,11 +32,11 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
 
   return (
     <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-900/30 backdrop-blur-sm rounded">
-      <h3 className="text-xs uppercase tracking-wide font-medium text-gray-300">GITLAB CONFIGURATION</h3>
+      <h3 className="text-xs uppercase tracking-wide font-medium text-neutral-300">GITLAB CONFIGURATION</h3>
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide text-gray-300">
+          <Label htmlFor="gitlab_host" className="text-xs uppercase tracking-wide text-neutral-300">
             GITLAB HOST
           </Label>
           {!hostUnlocked && (
@@ -58,7 +58,7 @@ export function GitlabTaskSourceConfig({ projectId, config, onChange }: GitlabTa
             onChange("host", e.target.value)
           }}
           disabled={!hostUnlocked}
-          className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-neutral-400 focus:ring-neutral-400 text-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
+          className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-neutral-400 focus:ring-neutral-400 text-neutral-100 disabled:opacity-60 disabled:cursor-not-allowed"
           placeholder={DEFAULT_HOSTS.gitlab}
         />
       </div>

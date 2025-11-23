@@ -24,11 +24,11 @@ interface ColumnConfig {
 }
 
 const columns: ColumnConfig[] = [
-  { id: 'backlog', title: 'Backlog', color: 'bg-gray-700', icon: <Inbox className="h-4 w-4" /> },
-  { id: 'ready', title: 'Ready', color: 'bg-neutral-700', icon: <CheckCircle className="h-4 w-4" /> },
-  { id: 'in-progress', title: 'In Progress', color: 'bg-yellow-700', icon: <Zap className="h-4 w-4" /> },
-  { id: 'review', title: 'Review', color: 'bg-purple-700', icon: <Eye className="h-4 w-4" /> },
-  { id: 'done', title: 'Done', color: 'bg-green-700', icon: <CheckCircle className="h-4 w-4" /> }
+  { id: 'backlog', title: 'Backlog', color: 'bg-neutral-700', icon: <Inbox className="h-4 w-4" /> },
+  { id: 'ready', title: 'Ready', color: 'bg-neutral-600', icon: <CheckCircle className="h-4 w-4" /> },
+  { id: 'in-progress', title: 'In Progress', color: 'bg-neutral-500', icon: <Zap className="h-4 w-4" /> },
+  { id: 'review', title: 'Review', color: 'bg-neutral-600', icon: <Eye className="h-4 w-4" /> },
+  { id: 'done', title: 'Done', color: 'bg-neutral-500', icon: <CheckCircle className="h-4 w-4" /> }
 ]
 
 export function KanbanBoard({ tasks, onRefresh }: KanbanBoardProps) {
@@ -123,16 +123,6 @@ export function KanbanBoard({ tasks, onRefresh }: KanbanBoardProps) {
     }
   }
 
-  const handleImplement = async (task: Task) => {
-    try {
-      await client.run(implementTaskConfig, { params: { id: task.id } })
-      toast.success('Implementation started')
-      onRefresh()
-    } catch {
-      toast.error('Failed to start implementation')
-    }
-  }
-
   return (
     <div className="space-y-3 pb-4">
       {columns.map(column => (
@@ -169,7 +159,6 @@ export function KanbanBoard({ tasks, onRefresh }: KanbanBoardProps) {
                     task={task}
                     onDragStart={() => handleDragStart(task)}
                     onEvaluate={() => handleEvaluate(task)}
-                    onImplement={() => handleImplement(task)}
                     onClick={() => navigateTo(`/tasks/${task.id}`)}
                   />
                 ))}
@@ -186,13 +175,11 @@ interface KanbanCardProps {
   task: Task
   onDragStart: () => void
   onEvaluate: () => void
-  onImplement: () => void
   onClick: () => void
 }
 
-function KanbanCard({ task, onDragStart, onEvaluate, onImplement, onClick }: KanbanCardProps) {
+function KanbanCard({ task, onDragStart, onEvaluate, onClick }: KanbanCardProps) {
   const evalResult = task.ai_evaluation_simple_result
-  const canImplement = task.ai_evaluation_simple_verdict === 'ready' || task.ai_evaluation_advanced_verdict === 'ready'
 
   return (
     <div
@@ -258,14 +245,6 @@ function KanbanCard({ task, onDragStart, onEvaluate, onImplement, onClick }: Kan
             Evaluate
           </button>
         ) : null}
-        {canImplement && (!task.ai_implementation_status || task.ai_implementation_status === 'pending') && (
-          <button
-            onClick={(e) => { e.stopPropagation(); onImplement() }}
-            className={`${designTokens.text.caption} bg-green-600 hover:bg-green-700 ${designTokens.colors.text.primary} px-2 py-1 rounded transition-colors`}
-          >
-            Implement
-          </button>
-        )}
       </div>
     </div>
   )

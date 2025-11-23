@@ -25,7 +25,7 @@ export function TabsContainer({ tabs, activeTab, onTabChange }: TabsContainerPro
             className={`pb-4 px-2 font-medium border-b-2 transition-all duration-200 uppercase tracking-wide text-sm ${
               activeTab === tab.id
                 ? 'border-neutral-400 text-neutral-300'
-                : 'border-transparent text-gray-400 hover:text-gray-200'
+                : 'border-transparent text-neutral-400 hover:text-neutral-200'
             }`}
           >
             {tab.label}
@@ -48,9 +48,9 @@ interface InfoPanelProps {
 export function InfoPanel({ title, children, variant = 'info' }: InfoPanelProps) {
   const variantClasses = {
     info: 'bg-neutral-500/10 border-neutral-500/30 text-neutral-100',
-    success: 'bg-green-500/10 border-green-500/30 text-green-100',
-    warning: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-100',
-    error: 'bg-red-500/10 border-red-500/30 text-red-100',
+    success: 'bg-neutral-400/10 border-neutral-400/30 text-neutral-100',
+    warning: 'bg-neutral-400/10 border-neutral-400/30 text-neutral-100',
+    error: 'bg-neutral-700/10 border-neutral-700/30 text-neutral-100',
   }
 
   return (
@@ -78,7 +78,7 @@ export function ContentCard({ title, description, children, actions }: ContentCa
         <div>
           <h2 className="text-xl font-semibold mb-1 text-white">{title}</h2>
           {description && (
-            <p className="text-sm text-gray-400">{description}</p>
+            <p className="text-sm text-neutral-400">{description}</p>
           )}
         </div>
         {actions && <div className="flex gap-2">{actions}</div>}

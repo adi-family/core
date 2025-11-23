@@ -54,13 +54,13 @@ export function FileSpaceRow({
       {/* Status Bar at Top */}
       <div className="flex flex-wrap gap-4 bg-neutral-900/40 px-4 py-2.5 border-b border-neutral-700/30">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Status:</span>
-          <span className={`text-xs font-medium ${fileSpace.enabled ? 'text-green-400' : 'text-gray-400'}`}>
+          <span className="text-xs text-neutral-500">Status:</span>
+          <span className={`text-xs font-medium ${fileSpace.enabled ? 'text-neutral-300' : 'text-neutral-400'}`}>
             {fileSpace.enabled ? 'Enabled' : 'Disabled'}
           </span>
         </div>
         <div className="flex items-center gap-1.5">
-          <span className="text-xs text-gray-500">Type:</span>
+          <span className="text-xs text-neutral-500">Type:</span>
           <span className="text-xs font-medium text-neutral-400 capitalize">
             {fileSpace.type}
           </span>
@@ -78,7 +78,7 @@ export function FileSpaceRow({
                 {fileSpace.name}
               </h3>
             </div>
-            <p className="text-xs font-mono text-gray-400">
+            <p className="text-xs font-mono text-neutral-400">
               ID: {fileSpace.id.substring(0, 8)}...
             </p>
           </div>
@@ -86,15 +86,15 @@ export function FileSpaceRow({
 
         {/* Project Info */}
         {project && (
-          <div className="flex items-center gap-1.5 text-sm mb-3 text-gray-300">
-            <Folder className="h-3.5 w-3.5 text-gray-400" />
+          <div className="flex items-center gap-1.5 text-sm mb-3 text-neutral-300">
+            <Folder className="h-3.5 w-3.5 text-neutral-400" />
             <span>{project.name}</span>
           </div>
         )}
 
         {/* Repository Info */}
         <div className="flex items-center gap-2 text-sm">
-          <span className="text-gray-500">Repository:</span>
+          <span className="text-neutral-500">Repository:</span>
           {repoUrl ? (
             <a
               href={repoUrl}
@@ -106,15 +106,15 @@ export function FileSpaceRow({
               <ExternalLink className="h-3 w-3" />
             </a>
           ) : (
-            <span className="text-gray-300 font-mono text-xs">{fileSpace.config.repo}</span>
+            <span className="text-neutral-300 font-mono text-xs">{fileSpace.config.repo}</span>
           )}
         </div>
 
         {/* Optional Host Info */}
         {fileSpace.config.host && (
           <div className="flex items-center gap-2 text-sm mt-2">
-            <span className="text-gray-500">Host:</span>
-            <span className="text-gray-300 font-mono text-xs">{fileSpace.config.host}</span>
+            <span className="text-neutral-500">Host:</span>
+            <span className="text-neutral-300 font-mono text-xs">{fileSpace.config.host}</span>
           </div>
         )}
       </div>

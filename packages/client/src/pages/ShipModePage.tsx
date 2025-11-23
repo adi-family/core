@@ -307,7 +307,7 @@ function TaskShipCard({ task, onShip, isShipping, isSelected, onToggleSelect }: 
 
   return (
     <div className={`${designTokens.cards.default} ${designTokens.interactions.cardHover} ${
-      isSelected ? 'ring-2 ring-green-500' : ''
+      isSelected ? 'ring-2 ring-neutral-500' : ''
     }`}>
       <div className="p-4 flex items-center justify-between">
         {onToggleSelect && (
@@ -315,7 +315,7 @@ function TaskShipCard({ task, onShip, isShipping, isSelected, onToggleSelect }: 
             type="checkbox"
             checked={isSelected}
             onChange={onToggleSelect}
-            className="mr-4 h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500"
+            className="mr-4 h-4 w-4 rounded border-neutral-300 text-neutral-600 focus:ring-neutral-500"
           />
         )}
         <div className="flex-1">

@@ -1,15 +1,7 @@
 import { useEffect, useState } from 'react'
 import { X, Keyboard } from 'lucide-react'
 import { designTokens } from '@/theme/tokens'
-import { formatShortcut } from '@/utils/platform'
-
-interface ShortcutGroup {
-  title: string
-  shortcuts: {
-    keys: string
-    description: string
-  }[]
-}
+import { HOTKEY_GROUPS, formatHotkey } from '@/consts/hotkeys'
 
 export function KeyboardShortcutsHelp() {
   const [isOpen, setIsOpen] = useState(false)
@@ -40,26 +32,7 @@ export function KeyboardShortcutsHelp() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [isOpen])
 
-  const shortcutGroups: ShortcutGroup[] = [
-    {
-      title: 'Navigation',
-      shortcuts: [
-        { keys: formatShortcut('H', { ctrl: true }), description: 'Command Center' },
-        { keys: formatShortcut('S', { ctrl: true }), description: 'Ship Mode' },
-        { keys: formatShortcut('R', { ctrl: true }), description: 'Review Mode' },
-        { keys: formatShortcut('B', { ctrl: true }), description: 'Build Mode' },
-        { keys: formatShortcut('I', { ctrl: true }), description: 'Insights' },
-      ],
-    },
-    {
-      title: 'Interface',
-      shortcuts: [
-        { keys: formatShortcut('[', { ctrl: true }), description: 'Toggle sidebar' },
-        { keys: '?', description: 'Show keyboard shortcuts' },
-        { keys: 'Esc', description: 'Close modals/dialogs' },
-      ],
-    },
-  ]
+  const shortcutGroups = HOTKEY_GROUPS
 
   if (!isOpen) return null
 
@@ -104,7 +77,7 @@ export function KeyboardShortcutsHelp() {
                     >
                       <span className={designTokens.text.body}>{shortcut.description}</span>
                       <kbd className={`${designTokens.kbd} px-3 py-1.5 text-[12px]`}>
-                        {shortcut.keys}
+                        {formatHotkey(shortcut)}
                       </kbd>
                     </div>
                   ))}
