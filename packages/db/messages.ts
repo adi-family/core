@@ -1,6 +1,6 @@
 import type { Sql } from 'postgres'
 import type { Message, CreateMessageInput } from '@types'
-import { get, findOneById } from './utils'
+import { get, findOneById, deleteById } from './utils'
 
 export const findAllMessages = async (sql: Sql): Promise<Message[]> => {
   return get(sql<Message[]>`SELECT * FROM messages ORDER BY created_at DESC`);

@@ -1,7 +1,6 @@
 import type { Sql } from 'postgres'
 import type { PipelineArtifact, CreatePipelineArtifactInput } from '@types'
 import { get, findOneById, deleteById } from './utils'
-import { NotFoundException } from '../utils/exceptions'
 
 export const findAllPipelineArtifacts = async (sql: Sql): Promise<PipelineArtifact[]> => {
   return get(sql<PipelineArtifact[]>`SELECT * FROM pipeline_artifacts ORDER BY created_at DESC`)

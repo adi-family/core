@@ -29,7 +29,7 @@ export async function findOneById<T>(
   if (!entity) {
     throw new NotFoundException(`${entityName} not found`)
   }
-  return entity
+  return entity as T
 }
 
 /**

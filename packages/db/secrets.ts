@@ -1,6 +1,6 @@
 import type { Sql } from 'postgres'
 import type { Secret, CreateSecretInput, UpdateSecretInput } from '@types'
-import { filterPresentColumns, get, findOneById } from './utils'
+import { filterPresentColumns, get, findOneById, deleteById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
 
 export const findAllSecrets = async (sql: Sql): Promise<Secret[]> => {

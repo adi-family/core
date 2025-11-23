@@ -1,6 +1,6 @@
 import type { Sql } from 'postgres'
 import type { Task, CreateTaskInput, UpdateTaskInput } from '@types'
-import { filterPresentColumns, get } from './utils'
+import { filterPresentColumns, get, findOneById, deleteById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
 
 export const findAllTasks = async (sql: Sql): Promise<Task[]> => {

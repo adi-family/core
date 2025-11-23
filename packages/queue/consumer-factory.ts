@@ -16,7 +16,7 @@ export interface Runner {
   stop: () => void | Promise<void>
 }
 
-export interface ConsumerConfig<T = any> {
+export interface ConsumerConfig<_T = any> {
   queueName: string
   queueConfig: QueueConfig
   prefetchCount: number

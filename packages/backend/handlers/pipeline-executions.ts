@@ -21,7 +21,7 @@ import * as userAccessQueries from '@db/user-access'
 import { getUserIdFromClerkToken } from '../utils/auth'
 import { createLogger } from '@utils/logger'
 
-const logger = createLogger({ namespace: 'pipeline-executions-handler' })
+const _logger = createLogger({ namespace: 'pipeline-executions-handler' })
 
 export function createPipelineExecutionHandlers(sql: Sql) {
   async function verifyExecutionAccess(userId: string, executionId: string, minRole: 'viewer' | 'developer' = 'viewer'): Promise<void> {
@@ -73,7 +73,7 @@ export function createPipelineExecutionHandlers(sql: Sql) {
         try {
           await verifyExecutionAccess(userId, artifact.pipeline_execution_id)
           filteredArtifacts.push(artifact)
-        } catch (error) {
+        } catch (_error) {
           // Skip artifacts the user doesn't have access to
         }
       }

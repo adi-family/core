@@ -7,7 +7,7 @@ import { createLogger } from '@utils/logger'
 import { CLERK_SECRET_KEY } from '../config'
 import type { Sql } from 'postgres'
 import * as userAccessQueries from '@db/user-access'
-import type { Role } from '@types'
+import type { Role } from '@db/user-access'
 
 const logger = createLogger({ namespace: 'auth-utils' })
 
@@ -70,7 +70,10 @@ export async function requireProjectAccess(
       'viewer': 'Forbidden: You do not have access to this project',
       'developer': 'Forbidden: You need developer role or higher to perform this action',
       'admin': 'Forbidden: You need admin role to perform this action',
-      'owner': 'Forbidden: You need owner role to perform this action'
+      'owner': 'Forbidden: You need owner role to perform this action',
+      'read': 'Forbidden: You need read access to perform this action',
+      'write': 'Forbidden: You need write access to perform this action',
+      'use': 'Forbidden: You need use access to perform this action'
     }
     throw new Error(roleMessages[minRole] || 'Forbidden: Access denied')
   }

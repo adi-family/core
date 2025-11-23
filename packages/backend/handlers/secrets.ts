@@ -170,7 +170,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateGitLabRawToken = handler(validateGitLabRawTokenConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
+    const _userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
 
     // Note: This endpoint validates a raw token before it's stored, so no project verification needed yet
     // The token will be associated with a project when it's saved via createSecret
@@ -306,7 +306,7 @@ export function createSecretHandlers(sql: Sql) {
   })
 
   const validateJiraRawToken = handler(validateJiraRawTokenConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
+    const _userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
 
     // Note: This endpoint validates a raw token before it's stored, so no project verification needed yet
 

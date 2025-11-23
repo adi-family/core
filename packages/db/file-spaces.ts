@@ -1,6 +1,7 @@
 import type { Sql } from 'postgres'
 import type { FileSpace, CreateFileSpaceInput, UpdateFileSpaceInput } from '@types'
 import { filterPresentColumns, get, findOneById, deleteById } from './utils'
+import { NotFoundException } from '../utils/exceptions'
 
 export const findAllFileSpaces = async (sql: Sql): Promise<FileSpace[]> => {
   return get(sql<FileSpace[]>`SELECT * FROM file_spaces ORDER BY created_at DESC`)

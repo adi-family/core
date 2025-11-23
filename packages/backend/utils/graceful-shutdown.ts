@@ -3,10 +3,10 @@
  * Handles SIGTERM and SIGINT signals with custom cleanup logic
  */
 
-import type { Logger } from '@utils/logger'
+import type { ILogger } from '@utils/logger'
 
 export interface ShutdownConfig {
-  logger: Logger
+  logger: ILogger
   serviceName: string
   cleanup: () => Promise<void>
 }

@@ -8,6 +8,7 @@
     "./publisher": "./publisher.ts",
     "./queues": "./queues.ts",
     "./types": "./types.ts",
+    "./consumer-factory": "./consumer-factory.ts",
     "./*": "./*"
   },
   "dependencies": {

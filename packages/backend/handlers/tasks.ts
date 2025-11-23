@@ -28,7 +28,7 @@ import { evaluateTaskAdvanced } from '@adi/micros-task-eval/service'
 import { requireProjectAccess, getUserIdFromClerkToken } from '../utils/auth'
 import { createLogger } from '@utils/logger'
 
-const logger = createLogger({ namespace: 'tasks-handler' })
+const _logger = createLogger({ namespace: 'tasks-handler' })
 
 export function createTaskHandlers(sql: Sql) {
   async function verifyTaskAccess(userId: string, taskId: string, minRole: 'viewer' | 'developer' | 'admin' = 'viewer'): Promise<void> {
