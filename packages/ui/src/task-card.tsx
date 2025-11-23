@@ -109,8 +109,8 @@ export function TaskCard({
   ]
 
   return (
-    <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur-xl shadow-2xl hover:shadow-blue-500/10 transition-all duration-200 hover:border-slate-600/60">
-      <CardHeader className="pb-3 bg-gradient-to-r from-slate-700/30 to-slate-800/30 border-b border-slate-700/50">
+    <Card className="border-neutral-700/50 bg-neutral-800/40 backdrop-blur-xl shadow-2xl hover:shadow-blue-500/10 transition-all duration-200 hover:border-neutral-600/60">
+      <CardHeader className="pb-3 bg-gradient-to-r from-neutral-700/30 to-neutral-800/30 border-b border-neutral-700/50">
         <div className="space-y-3">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
@@ -154,7 +154,7 @@ export function TaskCard({
                     )}
                   </div>
                   {index < steps.length - 1 && (
-                    <div className="h-px bg-slate-600 flex-shrink-0 w-4 mx-1" />
+                    <div className="h-px bg-neutral-600 flex-shrink-0 w-4 mx-1" />
                   )}
                 </div>
               )
@@ -190,7 +190,7 @@ export function TaskCard({
         </div>
 
         {/* Dates */}
-        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-700/50">
+        <div className="grid grid-cols-2 gap-3 pt-2 border-t border-neutral-700/50">
           <div className="flex items-start gap-2">
             <Calendar className="h-4 w-4 text-gray-500 mt-0.5 shrink-0" />
             <div className="min-w-0">

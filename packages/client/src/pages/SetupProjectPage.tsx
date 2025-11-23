@@ -122,7 +122,7 @@ export function SetupProjectPage() {
               />
             </div>
 
-            <div className="pt-4 mt-4 border-t border-slate-700/50">
+            <div className="pt-4 mt-4 border-t border-neutral-700/50">
               <div className="flex items-center gap-2 mb-1 pt-4">
                 <input
                   id="configureExecutor"
@@ -130,7 +130,7 @@ export function SetupProjectPage() {
                   checked={configureExecutor}
                   onChange={(e) => setConfigureExecutor(e.target.checked)}
                   disabled={!expertMode}
-                  className="w-4 h-4 rounded border-slate-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-4 h-4 rounded border-neutral-600 bg-neutral-700 text-neutral-500 focus:ring-neutral-500 focus:ring-offset-neutral-900 disabled:opacity-50 disabled:cursor-not-allowed"
                 />
                 <label htmlFor="configureExecutor" className={`text-sm font-medium ${expertMode ? 'cursor-pointer' : 'cursor-not-allowed'} text-gray-200`}>
                   Custom pipeline executor
@@ -143,7 +143,7 @@ export function SetupProjectPage() {
               )}
 
               {configureExecutor && (
-                <div className="ml-6 space-y-3 border-l-2 border-blue-500/30 pl-4">
+                <div className="ml-6 space-y-3 border-l-2 border-neutral-500/30 pl-4">
                   <div>
                     <div className="flex items-center justify-between mb-2">
                       <label htmlFor="executorHost" className="block text-sm font-medium text-gray-200">
@@ -153,7 +153,7 @@ export function SetupProjectPage() {
                         <button
                           type="button"
                           onClick={() => setExecutorHostUnlocked(true)}
-                          className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                          className="text-xs text-neutral-400 hover:text-neutral-300 hover:underline"
                         >
                           Customize GitLab URL
                         </button>
@@ -189,7 +189,7 @@ export function SetupProjectPage() {
               )}
             </div>
 
-            <div className="flex gap-2 pt-6 border-t border-slate-700/50 mt-6">
+            <div className="flex gap-2 pt-6 border-t border-neutral-700/50 mt-6">
               <Button
                 type="submit"
                 disabled={loading}

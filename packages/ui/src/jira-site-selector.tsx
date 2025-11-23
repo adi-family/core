@@ -74,7 +74,7 @@ export function JiraSiteSelector({
               className={`w-full p-3 border rounded-md text-left transition-colors ${
                 isSelected
                   ? 'border-blue-500/60 bg-blue-900/20'
-                  : 'border-slate-600 hover:border-slate-500 bg-slate-800/50'
+                  : 'border-neutral-600 hover:border-neutral-500 bg-neutral-800/50'
               }`}
             >
               <div className="flex items-start justify-between">

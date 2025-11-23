@@ -81,7 +81,7 @@ export function TaskRow({
     const statusLower = status.toLowerCase()
     if (statusLower === 'completed' || statusLower === 'success') return 'text-green-400'
     if (statusLower === 'failed' || statusLower === 'error') return 'text-red-400'
-    if (statusLower.includes('ing') || statusLower === 'running') return 'text-blue-400'
+    if (statusLower.includes('ing') || statusLower === 'running') return 'text-neutral-400'
     if (statusLower === 'queued') return 'text-yellow-400'
     if (statusLower === 'pending') return 'text-gray-400'
     return 'text-gray-400'
@@ -89,7 +89,7 @@ export function TaskRow({
 
   const getPriorityBadgeColor = (quadrant: string) => {
     if (quadrant === 'quick_win') return 'bg-green-500/20 text-green-300 border-green-500/50'
-    if (quadrant === 'major_project') return 'bg-blue-500/20 text-blue-300 border-blue-500/50'
+    if (quadrant === 'major_project') return 'bg-neutral-500/20 text-neutral-300 border-neutral-500/50'
     if (quadrant === 'fill_in') return 'bg-yellow-500/20 text-yellow-300 border-yellow-500/50'
     return 'bg-gray-500/20 text-gray-300 border-gray-500/50'
   }
@@ -123,13 +123,13 @@ export function TaskRow({
   }
 
   return (
-    <div className={`border backdrop-blur-xl hover:bg-slate-800/60 transition-all duration-200 rounded-lg overflow-hidden ${
+    <div className={`border backdrop-blur-xl hover:bg-neutral-800/60 transition-all duration-200 rounded-lg overflow-hidden ${
       isQuickWin
-        ? 'border-green-500/60 bg-gradient-to-r from-green-900/20 via-slate-800/40 to-slate-800/40 shadow-lg shadow-green-500/10'
-        : 'border-slate-700/50 bg-slate-800/40'
+        ? 'border-green-500/60 bg-gradient-to-r from-green-900/20 via-neutral-800/40 to-neutral-800/40 shadow-lg shadow-green-500/10'
+        : 'border-neutral-700/50 bg-neutral-800/40'
     }`}>
       {/* Status Bar at Top */}
-      <div className="flex flex-wrap gap-4 bg-slate-900/40 px-4 py-2.5 border-b border-slate-700/30">
+      <div className="flex flex-wrap gap-4 bg-neutral-900/40 px-4 py-2.5 border-b border-neutral-700/30">
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-gray-500">Simple Eval:</span>
           <span className={`text-xs font-medium ${getStatusColor(task.ai_evaluation_simple_status)}`}>
@@ -187,7 +187,7 @@ export function TaskRow({
 
       {/* Evaluation Badges */}
       {metrics && (
-        <div className="flex flex-wrap gap-2 bg-slate-900/20 px-4 py-2 border-b border-slate-700/30">
+        <div className="flex flex-wrap gap-2 bg-neutral-900/20 px-4 py-2 border-b border-neutral-700/30">
           {metrics.is_ai_blocked && (
             <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-red-500/20 text-red-300 border border-red-500/50 text-xs">
               <AlertTriangle className="h-3 w-3" />
@@ -201,7 +201,7 @@ export function TaskRow({
             </span>
           )}
           {!metrics.is_ai_blocked && !metrics.implementation_status.can_verify && (
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/50 text-xs">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-neutral-500/20 text-neutral-300 border border-neutral-500/50 text-xs">
               <Shield className="h-3 w-3" />
               Can't Test
             </span>
@@ -235,7 +235,7 @@ export function TaskRow({
           <div className="flex-1 min-w-0">
             <h3 className="text-base font-semibold text-white mb-1 truncate">
               {task.task_key && (
-                <span className="text-blue-400 font-mono mr-2">{task.task_key}</span>
+                <span className="text-neutral-400 font-mono mr-2">{task.task_key}</span>
               )}
               {task.title}
             </h3>
@@ -269,7 +269,7 @@ export function TaskRow({
         </p>
 
         {/* Action Buttons - Smart display based on task state */}
-        <div className="flex flex-wrap gap-2 pt-3 border-t border-slate-700/30">
+        <div className="flex flex-wrap gap-2 pt-3 border-t border-neutral-700/30">
           {/* Primary Action - Contextual based on state */}
           {(() => {
             const isEvaluated = task.ai_evaluation_simple_status === 'completed'
@@ -284,7 +284,7 @@ export function TaskRow({
                   variant="default"
                   size="sm"
                   onClick={() => onEvaluate(task)}
-                  className="bg-blue-600/90 hover:bg-blue-600 border-blue-500/50 shadow-sm shadow-blue-500/20"
+                  className="bg-neutral-600/90 hover:bg-neutral-600 border-neutral-500/50 shadow-sm shadow-neutral-500/20"
                 >
                   <Zap className="h-3.5 w-3.5 mr-1.5" />
                   Evaluate Task
@@ -314,7 +314,7 @@ export function TaskRow({
                   variant="outline"
                   size="sm"
                   disabled
-                  className="border-blue-500/50 text-blue-300 cursor-not-allowed"
+                  className="border-neutral-500/50 text-neutral-300 cursor-not-allowed"
                 >
                   <Zap className="h-3.5 w-3.5 mr-1.5 animate-pulse" />
                   Evaluating...
@@ -356,7 +356,7 @@ export function TaskRow({
             variant="outline"
             size="sm"
             onClick={() => onViewDetails(task)}
-            className="border-slate-600/50 hover:border-slate-500 hover:bg-slate-700/40"
+            className="border-neutral-600/50 hover:border-neutral-500 hover:bg-neutral-700/40"
           >
             <ExternalLink className="h-3.5 w-3.5 mr-1.5" />
             View Details

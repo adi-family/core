@@ -165,11 +165,11 @@ export function HomePage() {
           <div className="flex items-center justify-between">
             <div className={designTokens.text.label}>Platform Cost (Last 100 API calls)</div>
             {loading ? (
-              <div className="text-2xl font-semibold text-blue-400">Loading...</div>
+              <div className="text-2xl font-semibold text-neutral-400">Loading...</div>
             ) : (
               <div className="flex items-center gap-8">
                 <div className="text-center">
-                  <div className="text-2xl font-semibold text-blue-400">{formatCost(totals.totalCost)}</div>
+                  <div className="text-2xl font-semibold text-neutral-400">{formatCost(totals.totalCost)}</div>
                   <div className={`${designTokens.text.caption} mt-1`}>Total Cost</div>
                 </div>
                 <div className={`h-10 w-px ${designTokens.colors.bg.tertiary}`}></div>

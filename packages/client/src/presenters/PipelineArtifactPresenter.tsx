@@ -47,7 +47,7 @@ export class PipelineArtifactPresenter extends BasePresenter<PipelineArtifact> {
               href={artifact.reference_url}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:text-blue-700 uppercase tracking-wide font-medium transition-colors duration-200 hover:underline"
+              className="text-xs text-neutral-600 hover:text-neutral-700 uppercase tracking-wide font-medium transition-colors duration-200 hover:underline"
             >
               View →
             </a>

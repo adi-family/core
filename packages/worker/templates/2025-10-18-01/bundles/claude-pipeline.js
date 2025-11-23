@@ -161,7 +161,7 @@ import { promisify as promisify2 } from "util";
 import { exec as execCallback2 } from "child_process";
 import { basename, resolve } from "path";
 
-// templates/2025-10-18-01/worker-scripts/node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs
+// ../../node_modules/@anthropic-ai/claude-agent-sdk/sdk.mjs
 import { join as join3 } from "path";
 import { fileURLToPath } from "url";
 import { setMaxListeners } from "events";
@@ -173,6 +173,7 @@ import { join } from "path";
 import { homedir } from "os";
 import { dirname, join as join2 } from "path";
 import { cwd } from "process";
+import { realpathSync as realpathSync2 } from "fs";
 import { randomUUID } from "crypto";
 var __create = Object.create;
 var __getProtoOf = Object.getPrototypeOf;
@@ -6426,6 +6427,7 @@ class ProcessTransport {
         appendSystemPrompt,
         maxThinkingTokens,
         maxTurns,
+        maxBudgetUsd,
         model,
         fallbackModel,
         permissionMode,
@@ -6458,6 +6460,9 @@ class ProcessTransport {
       }
       if (maxTurns)
         args.push("--max-turns", maxTurns.toString());
+      if (maxBudgetUsd !== undefined) {
+        args.push("--max-budget-usd", maxBudgetUsd.toString());
+      }
       if (model)
         args.push("--model", model);
       if (env.DEBUG)
@@ -7281,30 +7286,33 @@ var maxOutputTokensValidator = {
   name: "CLAUDE_CODE_MAX_OUTPUT_TOKENS",
   default: 32000,
   validate: (value) => {
+    const MAX_OUTPUT_TOKENS = 64000;
+    const DEFAULT_MAX_OUTPUT_TOKENS = 32000;
     if (!value) {
-      return { effective: 32000, status: "valid" };
+      return { effective: DEFAULT_MAX_OUTPUT_TOKENS, status: "valid" };
     }
     const parsed = parseInt(value, 10);
     if (isNaN(parsed) || parsed <= 0) {
       return {
-        effective: 32000,
+        effective: DEFAULT_MAX_OUTPUT_TOKENS,
         status: "invalid",
-        message: `Invalid value "${value}" (using default: 32000)`
+        message: `Invalid value "${value}" (using default: ${DEFAULT_MAX_OUTPUT_TOKENS})`
       };
     }
-    if (parsed > 32000) {
+    if (parsed > MAX_OUTPUT_TOKENS) {
       return {
-        effective: 32000,
+        effective: MAX_OUTPUT_TOKENS,
         status: "capped",
-        message: `Capped from ${parsed} to 32000`
+        message: `Capped from ${parsed} to ${MAX_OUTPUT_TOKENS}`
       };
     }
     return { effective: parsed, status: "valid" };
   }
 };
 function getInitialState() {
+  const resolvedCwd = realpathSync2(cwd());
   return {
-    originalCwd: cwd(),
+    originalCwd: resolvedCwd,
     totalCostUSD: 0,
     totalAPIDuration: 0,
     totalAPIDurationWithoutRetries: 0,
@@ -7314,7 +7322,7 @@ function getInitialState() {
     totalLinesAdded: 0,
     totalLinesRemoved: 0,
     hasUnknownModelCost: false,
-    cwd: cwd(),
+    cwd: resolvedCwd,
     modelUsage: {},
     mainLoopModelOverride: undefined,
     maxRateLimitFallbackActive: false,
@@ -7443,12 +7451,14 @@ class Query {
   pendingMcpResponses = new Map;
   firstResultReceivedPromise;
   firstResultReceivedResolve;
+  streamCloseTimeout;
   constructor(transport, isSingleUserTurn, canUseTool, hooks, abortController, sdkMcpServers = new Map) {
     this.transport = transport;
     this.isSingleUserTurn = isSingleUserTurn;
     this.canUseTool = canUseTool;
     this.hooks = hooks;
     this.abortController = abortController;
+    this.streamCloseTimeout = parseInt(process.env.CLAUDE_CODE_STREAM_CLOSE_TIMEOUT || "") || 60000;
     for (const [name, server] of sdkMcpServers) {
       const sdkTransport = new SdkControlServerTransport((message) => this.sendMcpServerMessageToCli(name, message));
       this.sdkMcpTransports.set(name, sdkTransport);
@@ -7574,7 +7584,8 @@ class Query {
       }
       return this.canUseTool(request.request.tool_name, request.request.input, {
         signal,
-        suggestions: request.request.permission_suggestions
+        suggestions: request.request.permission_suggestions,
+        toolUseID: request.request.tool_use_id
       });
     } else if (request.request.subtype === "hook_callback") {
       const result = await this.handleHookCallbacks(request.request.callback_id, request.request.input, request.request.tool_use_id, signal);
@@ -7655,6 +7666,13 @@ class Query {
       max_thinking_tokens: maxThinkingTokens
     });
   }
+  async processPendingPermissionRequests(pendingPermissionRequests) {
+    for (const request of pendingPermissionRequests) {
+      if (request.request.subtype === "can_use_tool") {
+        this.handleControlRequest(request).catch(() => {});
+      }
+    }
+  }
   request(request) {
     const requestId = Math.random().toString(36).substring(2, 15);
     const sdkRequest = {
@@ -7668,6 +7686,9 @@ class Query {
           resolve(response);
         } else {
           reject(new Error(response.error));
+          if (response.pending_permission_requests) {
+            this.processPendingPermissionRequests(response.pending_permission_requests);
+          }
         }
       });
       Promise.resolve(this.transport.write(JSON.stringify(sdkRequest) + `
@@ -7705,9 +7726,9 @@ class Query {
       }
       logForDebugging(`[Query.streamInput] Finished processing ${messageCount} messages from input stream`);
       logForDebugging(`[Query.streamInput] About to check MCP servers. this.sdkMcpTransports.size = ${this.sdkMcpTransports.size}`);
-      if (this.sdkMcpTransports.size > 0 && this.firstResultReceivedPromise) {
+      const hasHooks = this.hooks && Object.keys(this.hooks).length > 0;
+      if ((this.sdkMcpTransports.size > 0 || hasHooks) && this.firstResultReceivedPromise) {
         logForDebugging(`[Query.streamInput] Entering Promise.race to wait for result`);
-        const STREAM_CLOSE_TIMEOUT = 1e4;
         let timeoutId;
         await Promise.race([
           this.firstResultReceivedPromise.then(() => {
@@ -7720,7 +7741,7 @@ class Query {
             timeoutId = setTimeout(() => {
               logForDebugging(`[Query.streamInput] Timed out waiting for first result, closing input stream`);
               resolve();
-            }, STREAM_CLOSE_TIMEOUT);
+            }, this.streamCloseTimeout);
           })
         ]);
         if (timeoutId) {
@@ -7760,11 +7781,7 @@ class Query {
     const messageId = "id" in mcpRequest.message ? mcpRequest.message.id : null;
     const key = `${serverName}:${messageId}`;
     return new Promise((resolve, reject) => {
-      let timeoutId = null;
       const cleanup = () => {
-        if (timeoutId) {
-          clearTimeout(timeoutId);
-        }
         this.pendingMcpResponses.delete(key);
       };
       const resolveAndCleanup = (response) => {
@@ -7786,12 +7803,6 @@ class Query {
         reject(new Error("No message handler registered"));
         return;
       }
-      timeoutId = setTimeout(() => {
-        if (this.pendingMcpResponses.has(key)) {
-          cleanup();
-          reject(new Error("Request timeout"));
-        }
-      }, 30000);
     });
   }
 }
@@ -12359,7 +12370,7 @@ function query({
     const dirname2 = join3(filename, "..");
     pathToClaudeCodeExecutable = join3(dirname2, "cli.js");
   }
-  process.env.CLAUDE_AGENT_SDK_VERSION = "0.1.27";
+  process.env.CLAUDE_AGENT_SDK_VERSION = "0.1.30";
   const {
     abortController = createAbortController(),
     additionalDirectories = [],
@@ -12379,6 +12390,7 @@ function query({
     includePartialMessages,
     maxThinkingTokens,
     maxTurns,
+    maxBudgetUsd,
     mcpServers,
     model,
     permissionMode = "default",
@@ -12432,6 +12444,7 @@ function query({
     appendSystemPrompt,
     maxThinkingTokens,
     maxTurns,
+    maxBudgetUsd,
     model,
     fallbackModel,
     permissionMode,

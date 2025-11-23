@@ -107,7 +107,7 @@ export function CreateTaskDialog({ isOpen, onClose, onSuccess }: CreateTaskDialo
                   id="project"
                   value={projectId}
                   onChange={(e) => setProjectId(e.target.value)}
-                  className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-2 bg-neutral-700/50 border border-neutral-600 rounded-lg text-gray-100 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-transparent"
                   disabled={loading}
                   required
                 >
@@ -147,7 +147,7 @@ export function CreateTaskDialog({ isOpen, onClose, onSuccess }: CreateTaskDialo
                   placeholder="Enter task description (optional)"
                   disabled={loading}
                   rows={5}
-                  className="w-full px-4 py-2 bg-slate-700/50 border border-slate-600 rounded-lg text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                  className="w-full px-4 py-2 bg-neutral-700/50 border border-neutral-600 rounded-lg text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-neutral-500 focus:border-transparent resize-vertical"
                 />
               </div>
 
@@ -156,14 +156,14 @@ export function CreateTaskDialog({ isOpen, onClose, onSuccess }: CreateTaskDialo
                   type="button"
                   onClick={handleClose}
                   disabled={loading}
-                  className="px-6 py-2 bg-slate-600 hover:bg-slate-700 text-white rounded-lg transition-colors"
+                  className="px-6 py-2 bg-neutral-600 hover:bg-neutral-700 text-white rounded-lg transition-colors"
                 >
                   Cancel
                 </Button>
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-6 py-2 bg-neutral-600 hover:bg-neutral-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? "Creating..." : "Create Task"}
                 </Button>

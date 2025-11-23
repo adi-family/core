@@ -214,7 +214,7 @@ export function FileSpaceMultistageForm() {
   if (success) {
     return (
       <div className="mx-auto p-6 max-w-7xl">
-        <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 shadow-2xl hover:shadow-green-500/10 hover:border-slate-600/60 transition-all duration-300 rounded-2xl">
+        <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50 shadow-2xl hover:shadow-green-500/10 hover:border-neutral-600/60 transition-all duration-300 rounded-2xl">
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mb-4">
@@ -238,8 +238,8 @@ export function FileSpaceMultistageForm() {
 
   return (
     <div className="mx-auto p-6 max-w-7xl">
-      <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 shadow-2xl rounded-2xl">
-        <CardHeader className="bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-t-2xl">
+      <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50 shadow-2xl rounded-2xl">
+        <CardHeader className="bg-gradient-to-r from-neutral-600 to-neutral-500 text-white rounded-t-2xl">
           <CardTitle className="text-xl uppercase tracking-wide text-white">
             CREATE FILE SPACE
           </CardTitle>
@@ -257,10 +257,10 @@ export function FileSpaceMultistageForm() {
                     <div
                       className={`w-10 h-10 flex items-center justify-center border-2 transition-all duration-200 ${
                         currentStep === step.id
-                          ? "border-blue-500 bg-blue-500 text-white shadow-md scale-110"
+                          ? "border-neutral-500 bg-neutral-500 text-white shadow-md scale-110"
                           : currentStep > step.id
                           ? "border-green-500 bg-green-500 text-white"
-                          : "border-slate-600 bg-slate-800 text-gray-400"
+                          : "border-neutral-600 bg-neutral-800 text-gray-400"
                       }`}
                     >
                       {currentStep > step.id ? (
@@ -273,7 +273,7 @@ export function FileSpaceMultistageForm() {
                       <div
                         className={`text-xs uppercase tracking-wide font-medium ${
                           currentStep === step.id
-                            ? "text-blue-500"
+                            ? "text-neutral-500"
                             : currentStep > step.id
                             ? "text-green-500"
                             : "text-gray-400"
@@ -287,7 +287,7 @@ export function FileSpaceMultistageForm() {
                   {index < STEPS.length - 1 && (
                     <div
                       className={`flex-1 h-0.5 mx-2 mt-[-24px] transition-all duration-200 ${
-                        currentStep > step.id ? "bg-green-500" : "bg-slate-700"
+                        currentStep > step.id ? "bg-green-500" : "bg-neutral-700"
                       }`}
                     />
                   )}
@@ -345,7 +345,7 @@ export function FileSpaceMultistageForm() {
                       group relative overflow-hidden rounded-lg border-2 p-6 text-left transition-all duration-200
                       ${formData.type === "gitlab"
                         ? 'border-orange-500 bg-orange-500/20 shadow-lg shadow-orange-500/20'
-                        : 'border-slate-700/50 bg-slate-800/50 hover:border-orange-500/50 hover:bg-slate-700/50 hover:shadow-md'
+                        : 'border-neutral-700/50 bg-neutral-800/50 hover:border-orange-500/50 hover:bg-neutral-700/50 hover:shadow-md'
                       }
                     `}
                   >
@@ -355,7 +355,7 @@ export function FileSpaceMultistageForm() {
                         flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center transition-colors
                         ${formData.type === "gitlab"
                           ? 'bg-orange-500/30 text-orange-400'
-                          : 'bg-slate-700/50 text-gray-400 group-hover:bg-orange-500/20 group-hover:text-orange-400'
+                          : 'bg-neutral-700/50 text-gray-400 group-hover:bg-orange-500/20 group-hover:text-orange-400'
                         }
                       `}>
                         {formData.type === "gitlab" ? (
@@ -387,13 +387,13 @@ export function FileSpaceMultistageForm() {
                     type="button"
                     className="
                       group relative overflow-hidden rounded-lg border-2 p-6 text-left transition-all duration-200
-                      border-slate-700/50 bg-slate-800/30 opacity-60 cursor-not-allowed
+                      border-neutral-700/50 bg-neutral-800/30 opacity-60 cursor-not-allowed
                     "
                     disabled
                   >
                     <div className="flex items-start gap-4">
                       {/* Icon */}
-                      <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center bg-slate-700/50 text-gray-500">
+                      <div className="flex-shrink-0 w-12 h-12 rounded-lg flex items-center justify-center bg-neutral-700/50 text-gray-500">
                         <GitHubIcon className="w-6 h-6" />
                       </div>
 
@@ -422,7 +422,7 @@ export function FileSpaceMultistageForm() {
               <div className="space-y-6 animate-fadeIn">
                 {/* GitLab Configuration */}
                 {formData.type === "gitlab" && (
-                  <div className="space-y-4 p-4 rounded-xl border border-slate-700/60 bg-slate-900/30 backdrop-blur-sm">
+                  <div className="space-y-4 p-4 rounded-xl border border-neutral-700/60 bg-neutral-900/30 backdrop-blur-sm">
                     <h3 className="text-xs uppercase tracking-wide font-medium text-gray-300">GITLAB FILE SPACE CONFIGURATION</h3>
 
                     <div className="space-y-2">
@@ -434,7 +434,7 @@ export function FileSpaceMultistageForm() {
                           <button
                             type="button"
                             onClick={() => handleGitlabConfigChange("host", "")}
-                            className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                            className="text-xs text-neutral-400 hover:text-neutral-300 hover:underline"
                           >
                             Customize GitLab URL
                           </button>
@@ -446,7 +446,7 @@ export function FileSpaceMultistageForm() {
                         value={gitlabConfig.host}
                         onChange={(e) => handleGitlabConfigChange("host", e.target.value)}
                         disabled={gitlabConfig.host === DEFAULT_HOSTS.gitlab}
-                        className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500 disabled:opacity-60 disabled:cursor-not-allowed"
+                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500 disabled:opacity-60 disabled:cursor-not-allowed"
                         placeholder={DEFAULT_HOSTS.gitlab}
                       />
                     </div>
@@ -486,7 +486,7 @@ export function FileSpaceMultistageForm() {
                           type="text"
                           value={selectedRepositories[0] || ""}
                           onChange={(e) => setSelectedRepositories(e.target.value ? [e.target.value] : [])}
-                          className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                          className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
                           placeholder="e.g., myorg/myrepo"
                           required
                         />
@@ -502,7 +502,7 @@ export function FileSpaceMultistageForm() {
                         type="text"
                         value={formData.default_branch}
                         onChange={(e) => handleInputChange("default_branch", e.target.value)}
-                        className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
                         placeholder="e.g., main, master, develop (leave empty for repo default)"
                       />
                       <p className="text-xs text-gray-400">
@@ -514,7 +514,7 @@ export function FileSpaceMultistageForm() {
 
                 {/* GitHub Configuration */}
                 {formData.type === "github" && (
-                  <div className="space-y-4 p-4 rounded-xl border border-slate-700/60 bg-slate-900/30 backdrop-blur-sm">
+                  <div className="space-y-4 p-4 rounded-xl border border-neutral-700/60 bg-neutral-900/30 backdrop-blur-sm">
                     <h3 className="text-xs uppercase tracking-wide font-medium text-gray-300">GITHUB CONFIGURATION</h3>
 
                     <div className="space-y-2">
@@ -526,7 +526,7 @@ export function FileSpaceMultistageForm() {
                         type="text"
                         value={githubConfig.repo}
                         onChange={(e) => handleGithubConfigChange("repo", e.target.value)}
-                        className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
                         required
                         placeholder="e.g., owner/repo"
                       />
@@ -541,7 +541,7 @@ export function FileSpaceMultistageForm() {
                         type="text"
                         value={githubConfig.host || ""}
                         onChange={(e) => handleGithubConfigChange("host", e.target.value)}
-                        className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
                         placeholder="https://github.com"
                       />
                     </div>
@@ -555,7 +555,7 @@ export function FileSpaceMultistageForm() {
                         type="text"
                         value={formData.default_branch}
                         onChange={(e) => handleInputChange("default_branch", e.target.value)}
-                        className="bg-slate-900/50 backdrop-blur-sm border-slate-700 text-gray-200 placeholder:text-gray-500 focus:border-blue-500 focus:ring-blue-500"
+                        className="bg-neutral-900/50 backdrop-blur-sm border-neutral-700 text-gray-200 placeholder:text-gray-500 focus:border-neutral-500 focus:ring-neutral-500"
                         placeholder="e.g., main, master, develop (leave empty for repo default)"
                       />
                       <p className="text-xs text-gray-400">
@@ -568,7 +568,7 @@ export function FileSpaceMultistageForm() {
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex gap-2 pt-4 border-t border-slate-700">
+            <div className="flex gap-2 pt-4 border-t border-neutral-700">
               <Button
                 type="button"
                 onClick={handleBack}

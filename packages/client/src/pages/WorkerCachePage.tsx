@@ -72,7 +72,7 @@ export function WorkerCachePage() {
   return (
     <div className="mx-auto">
       <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
-        <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
+        <CardHeader className="bg-gradient-to-r from-neutral-600 to-neutral-500 text-white">
           <CardTitle className="text-2xl uppercase tracking-wide">Worker Cache</CardTitle>
           <CardDescription className="text-gray-300">View worker processing status and locks</CardDescription>
         </CardHeader>

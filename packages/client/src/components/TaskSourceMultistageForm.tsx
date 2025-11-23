@@ -230,7 +230,7 @@ export function TaskSourceMultistageForm() {
 
   if (success) {
     return (
-      <Card className="border-slate-700/50 bg-slate-800/50 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300">
+      <Card className="border-neutral-700/50 bg-neutral-800/50 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300">
         <CardContent className="pt-6">
           <div className="text-center py-8">
             <div className="mx-auto w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 flex items-center justify-center mb-4">
@@ -249,7 +249,7 @@ export function TaskSourceMultistageForm() {
   }
 
   return (
-    <Card className="border-slate-700/50 bg-slate-800/50 backdrop-blur-sm shadow-md">
+    <Card className="border-neutral-700/50 bg-neutral-800/50 backdrop-blur-sm shadow-md">
       <CardHeader>
         <CardTitle className="text-xl uppercase tracking-wide text-gray-100">
           CREATE TASK SOURCE
@@ -268,10 +268,10 @@ export function TaskSourceMultistageForm() {
                     <div
                       className={`w-10 h-10 flex items-center justify-center border-2 transition-all duration-200 ${
                         currentStep === step.id
-                          ? "border-blue-500 bg-blue-500 text-white shadow-md scale-110"
+                          ? "border-neutral-500 bg-neutral-500 text-white shadow-md scale-110"
                           : currentStep > step.id
                           ? "border-green-500 bg-green-500 text-white"
-                          : "border-slate-600 bg-slate-700 text-gray-400"
+                          : "border-neutral-600 bg-neutral-700 text-gray-400"
                       }`}
                     >
                       {currentStep > step.id ? (
@@ -284,7 +284,7 @@ export function TaskSourceMultistageForm() {
                       <div
                         className={`text-xs uppercase tracking-wide font-medium ${
                           currentStep === step.id
-                            ? "text-blue-500"
+                            ? "text-neutral-500"
                             : currentStep > step.id
                             ? "text-green-500"
                             : "text-gray-400"
@@ -298,7 +298,7 @@ export function TaskSourceMultistageForm() {
                   {index < STEPS.length - 1 && (
                     <div
                       className={`flex-1 h-0.5 mx-2 mt-[-24px] transition-all duration-200 ${
-                        currentStep > step.id ? "bg-green-500" : "bg-slate-600"
+                        currentStep > step.id ? "bg-green-500" : "bg-neutral-600"
                       }`}
                     />
                   )}
@@ -347,7 +347,7 @@ export function TaskSourceMultistageForm() {
                       handleInputChange("type", "gitlab_issues")
                       handleNext()
                     }}
-                    className="group relative overflow-hidden rounded-xl border-2 border-orange-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-8 transition-all duration-300 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/20 cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl border-2 border-orange-500/30 bg-gradient-to-br from-neutral-800/90 to-neutral-900/90 p-8 transition-all duration-300 hover:border-orange-500 hover:shadow-2xl hover:shadow-orange-500/20 cursor-pointer"
                   >
                     <div className="absolute inset-0 bg-gradient-to-br from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
@@ -368,7 +368,7 @@ export function TaskSourceMultistageForm() {
                       {/* Action hint */}
                       <div className="flex items-center gap-2 text-xs text-orange-400/80 group-hover:text-orange-300 transition-colors">
                         <span className="uppercase tracking-wider font-medium">Configure</span>
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="w-4 h-4 group-hover:tranneutral-x-1 transition-transform" />
                       </div>
                     </div>
                   </button>
@@ -377,11 +377,11 @@ export function TaskSourceMultistageForm() {
                   <button
                     type="button"
                     disabled
-                    className="relative overflow-hidden rounded-xl border-2 border-slate-700/50 bg-gradient-to-br from-slate-800/50 to-slate-900/50 p-8 opacity-50 cursor-not-allowed"
+                    className="relative overflow-hidden rounded-xl border-2 border-neutral-700/50 bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 p-8 opacity-50 cursor-not-allowed"
                   >
                     <div className="relative flex flex-col items-center space-y-6">
                       {/* Logo */}
-                      <div className="w-20 h-20 rounded-2xl bg-slate-700/30 flex items-center justify-center">
+                      <div className="w-20 h-20 rounded-2xl bg-neutral-700/30 flex items-center justify-center">
                         <GitHubIcon className="w-12 h-12 text-gray-500" />
                       </div>
 
@@ -412,28 +412,28 @@ export function TaskSourceMultistageForm() {
                       handleInputChange("type", "jira")
                       handleNext()
                     }}
-                    className="group relative overflow-hidden rounded-xl border-2 border-blue-500/30 bg-gradient-to-br from-slate-800/90 to-slate-900/90 p-8 transition-all duration-300 hover:border-blue-500 hover:shadow-2xl hover:shadow-blue-500/20 cursor-pointer"
+                    className="group relative overflow-hidden rounded-xl border-2 border-neutral-500/30 bg-gradient-to-br from-neutral-800/90 to-neutral-900/90 p-8 transition-all duration-300 hover:border-neutral-500 hover:shadow-2xl hover:shadow-neutral-500/20 cursor-pointer"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-neutral-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
                     <div className="relative flex flex-col items-center space-y-6">
                       {/* Logo */}
-                      <div className="w-20 h-20 rounded-2xl bg-blue-500/10 flex items-center justify-center group-hover:bg-blue-500/20 transition-colors duration-300">
-                        <JiraIcon className="w-12 h-12 text-blue-500" />
+                      <div className="w-20 h-20 rounded-2xl bg-neutral-500/10 flex items-center justify-center group-hover:bg-neutral-500/20 transition-colors duration-300">
+                        <JiraIcon className="w-12 h-12 text-neutral-500" />
                       </div>
 
                       {/* Content */}
                       <div className="space-y-3 text-center">
-                        <h4 className="text-2xl font-bold text-blue-400 group-hover:text-blue-300 transition-colors">Jira</h4>
+                        <h4 className="text-2xl font-bold text-neutral-400 group-hover:text-neutral-300 transition-colors">Jira</h4>
                         <p className="text-sm text-gray-300 leading-relaxed">
                           Sync tickets and epics from Jira projects
                         </p>
                       </div>
 
                       {/* Action hint */}
-                      <div className="flex items-center gap-2 text-xs text-blue-400/80 group-hover:text-blue-300 transition-colors">
+                      <div className="flex items-center gap-2 text-xs text-neutral-400/80 group-hover:text-neutral-300 transition-colors">
                         <span className="uppercase tracking-wider font-medium">Configure</span>
-                        <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        <ArrowRight className="w-4 h-4 group-hover:tranneutral-x-1 transition-transform" />
                       </div>
                     </div>
                   </button>
@@ -455,7 +455,7 @@ export function TaskSourceMultistageForm() {
 
                 {/* GitHub Issues Configuration */}
                 {formData.type === "github_issues" && (
-                  <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-700/30 backdrop-blur-sm">
+                  <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-700/30 backdrop-blur-sm">
                     <h3 className="text-xs uppercase tracking-wide font-medium text-gray-200">GITHUB CONFIGURATION</h3>
 
                     <div className="space-y-2">
@@ -499,7 +499,7 @@ export function TaskSourceMultistageForm() {
 
                 {/* Jira Configuration */}
                 {formData.type === "jira" && (
-                  <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-700/30 backdrop-blur-sm">
+                  <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-700/30 backdrop-blur-sm">
                     <h3 className="text-xs uppercase tracking-wide font-medium text-gray-200">JIRA CONFIGURATION</h3>
 
                     <div className="space-y-2">
@@ -514,7 +514,7 @@ export function TaskSourceMultistageForm() {
                         required
                         placeholder="e.g., https://your-domain.atlassian.net"
                         readOnly={!!jiraConfig.cloud_id}
-                        className={jiraConfig.cloud_id ? "bg-slate-700/50 cursor-not-allowed" : ""}
+                        className={jiraConfig.cloud_id ? "bg-neutral-700/50 cursor-not-allowed" : ""}
                       />
                       {jiraConfig.cloud_id && (
                         <p className="text-xs text-green-400">
@@ -563,7 +563,7 @@ export function TaskSourceMultistageForm() {
                 )}
 
                 {/* Auto-evaluate setting - common for all source types */}
-                <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-700/30 backdrop-blur-sm rounded-lg">
+                <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-700/30 backdrop-blur-sm rounded-lg">
                   <h3 className="text-xs uppercase tracking-wide font-medium text-gray-200">EVALUATION SETTINGS</h3>
 
                   <div className="flex items-start space-x-3">
@@ -572,7 +572,7 @@ export function TaskSourceMultistageForm() {
                       id="auto_evaluate"
                       checked={formData.auto_evaluate}
                       onChange={(e) => handleInputChange("auto_evaluate", e.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-gray-600 bg-slate-700 text-blue-500 focus:ring-blue-500 focus:ring-offset-slate-800"
+                      className="mt-1 h-4 w-4 rounded border-gray-600 bg-neutral-700 text-neutral-500 focus:ring-neutral-500 focus:ring-offset-neutral-800"
                     />
                     <div className="flex-1">
                       <Label htmlFor="auto_evaluate" className="text-sm font-medium text-gray-200 cursor-pointer">
@@ -589,7 +589,7 @@ export function TaskSourceMultistageForm() {
             )}
 
             {/* Navigation Buttons */}
-            <div className="flex gap-2 pt-4 border-t border-slate-700/50">
+            <div className="flex gap-2 pt-4 border-t border-neutral-700/50">
               <Button
                 type="button"
                 onClick={handleBack}

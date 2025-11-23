@@ -120,7 +120,7 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
     if (task.ai_implementation_status === 'implementing') return 'bg-yellow-600'
 
     const evalResult = task.ai_evaluation_simple_result
-    if (evalResult?.estimated_impact === 'high') return 'bg-blue-600'
+    if (evalResult?.estimated_impact === 'high') return 'bg-neutral-600'
     if (evalResult?.estimated_impact === 'medium') return 'bg-purple-600'
 
     return 'bg-gray-600'
@@ -168,7 +168,7 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
       ) : (
         <div className="space-y-4">
           {/* Time slots header */}
-          <div className="flex border-b border-slate-700 pb-2">
+          <div className="flex border-b border-neutral-700 pb-2">
             {timeSlots.map((slot) => (
               <div
                 key={index}
@@ -186,7 +186,7 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
               {timeSlots.map((_) => (
                 <div
                   key={index}
-                  className="flex-1 border-r border-slate-700/30 last:border-r-0"
+                  className="flex-1 border-r border-neutral-700/30 last:border-r-0"
                 />
               ))}
             </div>
@@ -218,7 +218,7 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
                       </div>
 
                       {/* Hover details */}
-                      <div className="absolute left-0 top-full mt-2 bg-slate-900 border border-slate-700 rounded-lg p-3 shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 min-w-[300px]">
+                      <div className="absolute left-0 top-full mt-2 bg-neutral-900 border border-neutral-700 rounded-lg p-3 shadow-xl opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity z-10 min-w-[300px]">
                         <h4 className="font-semibold text-white mb-2">{task.title}</h4>
 
                         {task.description && (
@@ -247,7 +247,7 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
           </div>
 
           {/* Legend */}
-          <div className="flex items-center gap-6 pt-6 border-t border-slate-700">
+          <div className="flex items-center gap-6 pt-6 border-t border-neutral-700">
             <div className="text-sm text-gray-400">Legend:</div>
             <div className="flex items-center gap-2">
               <div className="w-4 h-4 bg-green-600 rounded" />
@@ -258,7 +258,7 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
               <span className="text-xs text-gray-400">In Progress</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-4 h-4 bg-blue-600 rounded" />
+              <div className="w-4 h-4 bg-neutral-600 rounded" />
               <span className="text-xs text-gray-400">High Impact</span>
             </div>
             <div className="flex items-center gap-2">
@@ -272,12 +272,12 @@ export function TimelineView({ tasks, _onRefresh }: TimelineViewProps) {
           </div>
 
           {/* Predictive scheduling hint */}
-          <div className="bg-blue-900/20 border border-blue-700/30 rounded-lg p-4 mt-6">
+          <div className="bg-neutral-900/20 border border-neutral-700/30 rounded-lg p-4 mt-6">
             <div className="flex items-start gap-3">
-              <Bot className="h-8 w-8 text-blue-400" />
+              <Bot className="h-8 w-8 text-neutral-400" />
               <div>
-                <h4 className="text-sm font-semibold text-blue-300 mb-1">AI Scheduling</h4>
-                <p className="text-xs text-blue-200/80">
+                <h4 className="text-sm font-semibold text-neutral-300 mb-1">AI Scheduling</h4>
+                <p className="text-xs text-neutral-200/80">
                   Tasks are automatically scheduled based on complexity, dependencies, and estimated effort.
                   Drag tasks to adjust timeline or let AI optimize the schedule.
                 </p>

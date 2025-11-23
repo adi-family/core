@@ -255,7 +255,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     const typeOptions = getProviderTypeOptions(snap.selectedProvider)
 
     return (
-      <div className="space-y-4 p-6 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+      <div className="space-y-4 p-6 border border-neutral-700/50 bg-neutral-900/30 backdrop-blur-sm rounded">
         <div className="space-y-2">
           <Label className="text-xs uppercase tracking-wide text-gray-300">Provider Type</Label>
           <select
@@ -266,7 +266,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                 store.formData.type = value
               }
             }}
-            className="w-full px-3 py-2 border border-slate-600 rounded-md bg-slate-800/50 text-gray-100"
+            className="w-full px-3 py-2 border border-neutral-600 rounded-md bg-neutral-800/50 text-gray-100"
           >
             {typeOptions.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -290,7 +290,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                 href={getApiKeyUrl(snap.selectedProvider, snap.formData.type)!}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 hover:underline font-medium"
+                className="text-neutral-400 hover:text-neutral-300 hover:underline font-medium"
               >
                 Create a new API key
               </a>
@@ -308,7 +308,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
               value={snap.formData.endpoint_url || ''}
               onChange={(e) => { store.formData.endpoint_url = e.target.value }}
               placeholder={snap.formData.type === 'azure' ? 'https://myresource.openai.azure.com' : 'https://...'}
-              className="bg-slate-800/50 border-slate-600 text-gray-100"
+              className="bg-neutral-800/50 border-neutral-600 text-gray-100"
               required
             />
           </div>
@@ -323,7 +323,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                 value={snap.formData.deployment_name || ''}
                 onChange={(e) => { store.formData.deployment_name = e.target.value }}
                 placeholder="gpt-4"
-                className="bg-slate-800/50 border-slate-600 text-gray-100"
+                className="bg-neutral-800/50 border-neutral-600 text-gray-100"
                 required
               />
             </div>
@@ -333,7 +333,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                 value={snap.formData.api_version || ''}
                 onChange={(e) => { store.formData.api_version = e.target.value }}
                 placeholder="2024-02-15-preview"
-                className="bg-slate-800/50 border-slate-600 text-gray-100"
+                className="bg-neutral-800/50 border-neutral-600 text-gray-100"
                 required
               />
             </div>
@@ -349,7 +349,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                 value={snap.formData.project_id || ''}
                 onChange={(e) => { store.formData.project_id = e.target.value }}
                 placeholder="my-project"
-                className="bg-slate-800/50 border-slate-600 text-gray-100"
+                className="bg-neutral-800/50 border-neutral-600 text-gray-100"
                 required
               />
             </div>
@@ -359,7 +359,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
                 value={snap.formData.location || ''}
                 onChange={(e) => { store.formData.location = e.target.value }}
                 placeholder="us-central1"
-                className="bg-slate-800/50 border-slate-600 text-gray-100"
+                className="bg-neutral-800/50 border-neutral-600 text-gray-100"
                 required
               />
             </div>
@@ -374,7 +374,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
               value={snap.formData.organization_id || ''}
               onChange={(e) => { store.formData.organization_id = e.target.value }}
               placeholder="org-..."
-              className="bg-slate-800/50 border-slate-600 text-gray-100"
+              className="bg-neutral-800/50 border-neutral-600 text-gray-100"
             />
           </div>
         )}
@@ -426,7 +426,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-slate-700/50 pb-4">
+      <div className="border-b border-neutral-700/50 pb-4">
         <h3 className="text-lg uppercase tracking-wide text-gray-100">
           AI Provider Configuration
         </h3>
@@ -447,12 +447,12 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
               key={provider}
               className={`p-4 border-2 rounded-lg transition-all ${
                 !isSupported
-                  ? 'border-slate-700/50 bg-slate-800/20 opacity-60 cursor-not-allowed'
+                  ? 'border-neutral-700/50 bg-neutral-800/20 opacity-60 cursor-not-allowed'
                   : snap.selectedProvider === provider
-                  ? 'border-blue-500 bg-blue-500/10 cursor-pointer'
+                  ? 'border-neutral-500 bg-neutral-500/10 cursor-pointer'
                   : isConfigured
                   ? 'border-green-500/40 bg-green-500/10 hover:border-green-400 cursor-pointer'
-                  : 'border-slate-700/50 bg-slate-800/20 hover:border-slate-600 cursor-pointer'
+                  : 'border-neutral-700/50 bg-neutral-800/20 hover:border-neutral-600 cursor-pointer'
               }`}
               onClick={() => isSupported && handleProviderSelect(provider)}
             >

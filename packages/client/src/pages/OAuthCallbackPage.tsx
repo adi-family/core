@@ -112,7 +112,7 @@ export function OAuthCallbackPage() {
       <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
         {status === 'processing' && (
           <>
-            <Loader2 className="h-16 w-16 animate-spin text-blue-600 mx-auto mb-4" />
+            <Loader2 className="h-16 w-16 animate-spin text-neutral-600 mx-auto mb-4" />
             <h2 className="text-2xl font-semibold text-gray-900 mb-2">Processing...</h2>
             <p className="text-gray-600">{message}</p>
           </>

@@ -346,14 +346,14 @@ export function JiraSecretAutocomplete({
       {mode === "select" && (
         <div className="space-y-3">
           {selectedSecret ? (
-            <div className={`bg-slate-800/50 p-4 border rounded ${
+            <div className={`bg-neutral-800/50 p-4 border rounded ${
               selectedSecretValidating
-                ? "border-slate-600"
+                ? "border-neutral-600"
                 : selectedSecretValid === true
                 ? "border-green-500/40"
                 : selectedSecretValid === false
                 ? "border-red-500/40"
-                : "border-slate-600"
+                : "border-neutral-600"
             } space-y-3`}>
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4 flex-1">
@@ -364,9 +364,9 @@ export function JiraSecretAutocomplete({
                         <CheckCircle2 className="w-5 h-5 text-green-400" />
                         {/* Tooltip */}
                         {selectedSecretInfo && (
-                          <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-slate-900 border border-slate-700 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
+                          <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-neutral-900 border border-neutral-700 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
                             <div className="space-y-1">
-                              <div className="font-semibold border-b border-slate-700 pb-1 mb-2">Token Information</div>
+                              <div className="font-semibold border-b border-neutral-700 pb-1 mb-2">Token Information</div>
                               <div><span className="text-gray-400">User:</span> {selectedSecretInfo.username}</div>
                               {selectedSecretInfo.email && (
                                 <div><span className="text-gray-400">Email:</span> {selectedSecretInfo.email}</div>
@@ -432,10 +432,10 @@ export function JiraSecretAutocomplete({
                       }}
                       onFocus={handleSecretInputFocus}
                       onBlur={() => setTimeout(() => setShowSecretDropdown(false), 200)}
-                      className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
+                      className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
                       placeholder="Search existing secrets..."
                     />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="absolute right-3 top-1/2 -tranneutral-y-1/2">
                       <Search className="w-4 h-4 text-gray-400" />
                     </div>
 
@@ -443,7 +443,7 @@ export function JiraSecretAutocomplete({
                     {showSecretDropdown && (
                       <Portal>
                         <div
-                          className="absolute bg-slate-800 border border-slate-700 shadow-lg max-h-60 overflow-auto rounded"
+                          className="absolute bg-neutral-800 border border-neutral-700 shadow-lg max-h-60 overflow-auto rounded"
                           style={{
                             top: `${dropdownPosition.top}px`,
                             left: `${dropdownPosition.left}px`,
@@ -457,7 +457,7 @@ export function JiraSecretAutocomplete({
                               key={secret.id}
                               type="button"
                               onClick={() => handleSelectSecret(secret)}
-                              className="w-full px-4 py-3 text-left hover:bg-slate-700/50 transition-colors border-b border-slate-700 last:border-b-0"
+                              className="w-full px-4 py-3 text-left hover:bg-neutral-700/50 transition-colors border-b border-neutral-700 last:border-b-0"
                             >
                               <div className="font-medium text-sm text-gray-100">{secret.name}</div>
                               {(secret as any).description && (
@@ -623,10 +623,10 @@ export function JiraSecretAutocomplete({
 
       {/* Create Mode */}
       {mode === "create" && (
-        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+        <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-900/30 backdrop-blur-sm rounded">
           {/* OAuth option */}
           {enableOAuth && (
-            <div className="pb-4 border-b border-slate-700">
+            <div className="pb-4 border-b border-neutral-700">
               <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mb-3 space-y-4">
                 <p className="text-xs text-gray-300">
                   Recommended: Connect with Jira OAuth for easier setup
@@ -773,7 +773,7 @@ export function JiraSecretAutocomplete({
                 setTokenValid(null)
                 setError(null)
               }}
-              className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
+              className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
               placeholder="your-email@example.com"
             />
             <p className="text-xs text-gray-400">
@@ -795,19 +795,19 @@ export function JiraSecretAutocomplete({
                   setTokenValid(null)
                   setError(null)
                 }}
-                className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
+                className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
                 placeholder="Your Jira API token"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <div className="absolute right-3 top-1/2 -tranneutral-y-1/2">
                 {tokenValidating && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
                 {!tokenValidating && tokenValid === true && (
                   <div className="relative cursor-help">
                     <CheckCircle2 className="w-4 h-4 text-green-400" />
                     {/* Tooltip */}
                     {tokenInfo && (
-                      <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-slate-900 border border-slate-700 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
+                      <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-neutral-900 border border-neutral-700 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
                         <div className="space-y-1">
-                          <div className="font-semibold border-b border-slate-700 pb-1 mb-2">Token Information</div>
+                          <div className="font-semibold border-b border-neutral-700 pb-1 mb-2">Token Information</div>
                           <div><span className="text-gray-400">User:</span> {tokenInfo.username}</div>
                           {tokenInfo.email && (
                             <div><span className="text-gray-400">Email:</span> {tokenInfo.email}</div>
@@ -846,7 +846,7 @@ export function JiraSecretAutocomplete({
                 type="text"
                 value={secretName}
                 onChange={(e) => setSecretName(e.target.value)}
-                className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
+                className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
                 placeholder="Jira Token [username]"
               />
             </div>
@@ -896,8 +896,8 @@ export function JiraSecretAutocomplete({
 
       {/* Confirm Mode */}
       {mode === "confirm" && (
-        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
-          <div className="bg-slate-800/50 p-4 border border-slate-700 rounded space-y-3">
+        <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-900/30 backdrop-blur-sm rounded">
+          <div className="bg-neutral-800/50 p-4 border border-neutral-700 rounded space-y-3">
             <div>
               <div className="text-xs uppercase tracking-wide text-gray-400">SECRET NAME</div>
               <div className="font-medium text-gray-100">{secretName}</div>

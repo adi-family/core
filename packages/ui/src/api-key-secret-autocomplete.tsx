@@ -213,7 +213,7 @@ export function ApiKeySecretAutocomplete({
       {snap.mode === "select" && (
         <div className="space-y-3">
           {snap.selectedSecret ? (
-            <div className="bg-slate-800/50 p-4 border border-green-500/40 rounded space-y-3">
+            <div className="bg-neutral-800/50 p-4 border border-green-500/40 rounded space-y-3">
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4 flex-1">
                   <div className="mt-1">
@@ -258,10 +258,10 @@ export function ApiKeySecretAutocomplete({
                     }}
                     onFocus={handleSecretInputFocus}
                     onBlur={() => setTimeout(() => { store.autocomplete.showDropdown = false }, 200)}
-                    className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
+                    className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
                     placeholder="Search existing secrets..."
                   />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <div className="absolute right-3 top-1/2 -tranneutral-y-1/2">
                     <Search className="w-4 h-4 text-gray-400" />
                   </div>
 
@@ -269,7 +269,7 @@ export function ApiKeySecretAutocomplete({
                   {snap.autocomplete.showDropdown && (
                     <Portal>
                       <div
-                        className="absolute bg-slate-800 border border-slate-700 shadow-lg max-h-60 overflow-auto rounded z-50"
+                        className="absolute bg-neutral-800 border border-neutral-700 shadow-lg max-h-60 overflow-auto rounded z-50"
                         style={{
                           top: `${snap.autocomplete.dropdownPosition.top}px`,
                           left: `${snap.autocomplete.dropdownPosition.left}px`,
@@ -283,7 +283,7 @@ export function ApiKeySecretAutocomplete({
                               key={secret.id}
                               type="button"
                               onClick={() => handleSelectSecret(secret)}
-                              className="w-full px-4 py-3 text-left hover:bg-slate-700/50 transition-colors border-b border-slate-700 last:border-b-0"
+                              className="w-full px-4 py-3 text-left hover:bg-neutral-700/50 transition-colors border-b border-neutral-700 last:border-b-0"
                             >
                               <div className="font-medium text-sm text-gray-100">{secret.name}</div>
                               {(secret as any).description && (
@@ -320,7 +320,7 @@ export function ApiKeySecretAutocomplete({
 
       {/* Create Mode */}
       {snap.mode === "create" && (
-        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+        <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-900/30 backdrop-blur-sm rounded">
           <div className="space-y-2">
             <Label htmlFor="api_key" className="text-xs uppercase tracking-wide text-gray-300">
               {providerName} API KEY
@@ -333,7 +333,7 @@ export function ApiKeySecretAutocomplete({
                 store.createForm.apiKey = e.target.value
                 store.ui.error = null
               }}
-              className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
+              className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
               placeholder={placeholder}
             />
             {helpText && (
@@ -352,7 +352,7 @@ export function ApiKeySecretAutocomplete({
               type="text"
               value={snap.createForm.secretName}
               onChange={(e) => { store.createForm.secretName = e.target.value }}
-              className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
+              className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
               placeholder={`${providerName} API Key`}
             />
           </div>
@@ -387,8 +387,8 @@ export function ApiKeySecretAutocomplete({
 
       {/* Confirm Mode */}
       {snap.mode === "confirm" && (
-        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
-          <div className="bg-slate-800/50 p-4 border border-slate-700 rounded space-y-3">
+        <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-900/30 backdrop-blur-sm rounded">
+          <div className="bg-neutral-800/50 p-4 border border-neutral-700 rounded space-y-3">
             <div>
               <div className="text-xs uppercase tracking-wide text-gray-400">SECRET NAME</div>
               <div className="font-medium text-gray-100">{snap.createForm.secretName}</div>

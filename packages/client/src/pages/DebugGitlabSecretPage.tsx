@@ -24,7 +24,7 @@ export function DebugGitlabSecretPage() {
   return (
     <div className="mx-auto">
       <Card className="border-gray-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200 mb-6">
-        <CardHeader className="bg-gradient-to-r from-accent-teal to-accent-cyan text-white">
+        <CardHeader className="bg-gradient-to-r from-neutral-600 to-neutral-500 text-white">
           <CardTitle className="text-2xl uppercase tracking-wide">
             Debug: Gitlab Components
           </CardTitle>
@@ -38,8 +38,8 @@ export function DebugGitlabSecretPage() {
             <h3 className="text-xs uppercase tracking-wide font-medium">GITLAB SECRET AUTOCOMPLETE</h3>
 
             {/* Configuration for Secret Autocomplete */}
-            <div className="p-4 border border-blue-200/60 bg-blue-50/50 space-y-4">
-              <h4 className="text-xs uppercase tracking-wide font-medium text-blue-800">
+            <div className="p-4 border border-neutral-200/60 bg-neutral-50/50 space-y-4">
+              <h4 className="text-xs uppercase tracking-wide font-medium text-neutral-800">
                 COMPONENT CONFIGURATION
               </h4>
 
@@ -59,7 +59,7 @@ export function DebugGitlabSecretPage() {
                   type="text"
                   value={host}
                   onChange={(e) => setHost(e.target.value)}
-                  className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-neutral-500 focus:ring-neutral-500"
                   placeholder="https://gitlab.com"
                 />
               </div>
@@ -73,7 +73,7 @@ export function DebugGitlabSecretPage() {
                   type="text"
                   value={requiredScopes}
                   onChange={(e) => setRequiredScopes(e.target.value)}
-                  className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-blue-500 focus:ring-blue-500"
+                  className="bg-white/90 backdrop-blur-sm border-gray-300 focus:border-neutral-500 focus:ring-neutral-500"
                   placeholder="api, read_api"
                 />
               </div>
@@ -114,8 +114,8 @@ export function DebugGitlabSecretPage() {
             </h3>
 
             {/* Configuration for Repository Select */}
-            <div className="p-4 border border-blue-200/60 bg-blue-50/50 space-y-4">
-              <h4 className="text-xs uppercase tracking-wide font-medium text-blue-800">
+            <div className="p-4 border border-neutral-200/60 bg-neutral-50/50 space-y-4">
+              <h4 className="text-xs uppercase tracking-wide font-medium text-neutral-800">
                 COMPONENT CONFIGURATION
               </h4>
 

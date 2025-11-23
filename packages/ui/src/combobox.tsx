@@ -124,7 +124,7 @@ export function Combobox({
         placeholder={placeholder}
         required={required}
         className={cn(
-          "flex h-10 w-full rounded-lg border border-slate-600/50 bg-slate-700/40 backdrop-blur-sm px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:border-blue-500 hover:border-slate-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 shadow-sm focus-visible:shadow-lg",
+          "flex h-10 w-full rounded-lg border border-neutral-600/50 bg-neutral-700/40 backdrop-blur-sm px-3 py-2 text-sm text-gray-100 placeholder:text-gray-500 transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 focus-visible:border-blue-500 hover:border-neutral-500 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-50 shadow-sm focus-visible:shadow-lg",
           className
         )}
         autoComplete="off"
@@ -134,7 +134,7 @@ export function Combobox({
         <Portal>
           <div
             data-combobox-dropdown
-            className="absolute rounded-lg border border-slate-700/50 bg-slate-800/95 backdrop-blur-md shadow-xl max-h-60 overflow-auto"
+            className="absolute rounded-lg border border-neutral-700/50 bg-neutral-800/95 backdrop-blur-md shadow-xl max-h-60 overflow-auto"
             style={{
               top: `${dropdownPosition.top}px`,
               left: `${dropdownPosition.left}px`,
@@ -159,7 +159,7 @@ export function Combobox({
                       e.preventDefault()
                     }}
                     className={cn(
-                      "w-full px-3 py-2 text-left text-sm text-gray-200 transition-all duration-200 hover:bg-slate-700/80 flex items-center gap-2",
+                      "w-full px-3 py-2 text-left text-sm text-gray-200 transition-all duration-200 hover:bg-neutral-700/80 flex items-center gap-2",
                       option.value === value && "bg-blue-500/20 text-blue-400 font-medium"
                     )}
                   >

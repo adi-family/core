@@ -176,9 +176,9 @@ export function InsightsPage() {
             <div className="p-6">
               <div className="flex items-center justify-between mb-2">
                 <div className={designTokens.text.metricLabel}>Cost</div>
-                <DollarSign className="h-4 w-4 text-blue-400" />
+                <DollarSign className="h-4 w-4 text-neutral-400" />
               </div>
-              <div className={`${designTokens.text.metric} text-blue-400`}>
+              <div className={`${designTokens.text.metric} text-neutral-400`}>
                 ${thisWeek.cost.toFixed(2)}
               </div>
               <div className={`${designTokens.text.caption} mt-1`}>

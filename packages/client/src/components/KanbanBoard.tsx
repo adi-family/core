@@ -25,7 +25,7 @@ interface ColumnConfig {
 
 const columns: ColumnConfig[] = [
   { id: 'backlog', title: 'Backlog', color: 'bg-gray-700', icon: <Inbox className="h-4 w-4" /> },
-  { id: 'ready', title: 'Ready', color: 'bg-blue-700', icon: <CheckCircle className="h-4 w-4" /> },
+  { id: 'ready', title: 'Ready', color: 'bg-neutral-700', icon: <CheckCircle className="h-4 w-4" /> },
   { id: 'in-progress', title: 'In Progress', color: 'bg-yellow-700', icon: <Zap className="h-4 w-4" /> },
   { id: 'review', title: 'Review', color: 'bg-purple-700', icon: <Eye className="h-4 w-4" /> },
   { id: 'done', title: 'Done', color: 'bg-green-700', icon: <CheckCircle className="h-4 w-4" /> }

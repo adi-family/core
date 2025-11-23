@@ -412,14 +412,14 @@ export function GitlabSecretAutocomplete({
       {snap.mode === "select" && (
         <div className="space-y-3">
           {snap.selectedSecret ? (
-            <div className={`bg-slate-800/50 p-4 border rounded ${
+            <div className={`bg-neutral-800/50 p-4 border rounded ${
               snap.selectedValidation.validating
-                ? "border-slate-600"
+                ? "border-neutral-600"
                 : snap.selectedValidation.valid === true && snap.selectedValidation.scopesValid === true
                 ? "border-green-500/40"
                 : snap.selectedValidation.valid === false || snap.selectedValidation.scopesValid === false
                 ? "border-red-500/40"
-                : "border-slate-600"
+                : "border-neutral-600"
             } space-y-3`}>
               <div className="flex items-start justify-between">
                 <div className="flex items-start gap-4 flex-1">
@@ -430,9 +430,9 @@ export function GitlabSecretAutocomplete({
                         <CheckCircle2 className="w-5 h-5 text-green-400" />
                         {/* Tooltip */}
                         {snap.selectedValidation.info && (
-                          <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-slate-900 border border-slate-700 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
+                          <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-neutral-900 border border-neutral-700 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
                             <div className="space-y-1">
-                              <div className="font-semibold border-b border-slate-700 pb-1 mb-2">Token Information</div>
+                              <div className="font-semibold border-b border-neutral-700 pb-1 mb-2">Token Information</div>
                               <div><span className="text-gray-400">Name:</span> {snap.selectedValidation.info.name}</div>
                               <div><span className="text-gray-400">Scopes:</span> {snap.selectedValidation.scopes.join(", ")}</div>
                               {snap.selectedValidation.info.expiresAt && (
@@ -507,10 +507,10 @@ export function GitlabSecretAutocomplete({
                       }}
                       onFocus={handleSecretInputFocus}
                       onBlur={() => setTimeout(() => { store.autocomplete.showDropdown = false }, 200)}
-                      className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
+                      className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
                       placeholder="Search existing secrets..."
                     />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="absolute right-3 top-1/2 -tranneutral-y-1/2">
                       <Search className="w-4 h-4 text-gray-400" />
                     </div>
 
@@ -518,7 +518,7 @@ export function GitlabSecretAutocomplete({
                     {snap.autocomplete.showDropdown && (
                       <Portal>
                         <div
-                          className="absolute bg-slate-800 border border-slate-700 shadow-lg max-h-60 overflow-auto rounded"
+                          className="absolute bg-neutral-800 border border-neutral-700 shadow-lg max-h-60 overflow-auto rounded"
                           style={{
                             top: `${snap.autocomplete.dropdownPosition.top}px`,
                             left: `${snap.autocomplete.dropdownPosition.left}px`,
@@ -532,7 +532,7 @@ export function GitlabSecretAutocomplete({
                               key={secret.id}
                               type="button"
                               onClick={() => handleSelectSecret(secret)}
-                              className="w-full px-4 py-3 text-left hover:bg-slate-700/50 transition-colors border-b border-slate-700 last:border-b-0"
+                              className="w-full px-4 py-3 text-left hover:bg-neutral-700/50 transition-colors border-b border-neutral-700 last:border-b-0"
                             >
                               <div className="font-medium text-sm text-gray-100">{secret.name}</div>
                               {(secret as any).description && (
@@ -606,10 +606,10 @@ export function GitlabSecretAutocomplete({
 
       {/* Create Mode */}
       {snap.mode === "create" && (
-        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+        <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-900/30 backdrop-blur-sm rounded">
           {/* OAuth option for gitlab.com */}
           {enableOAuth && host === 'https://gitlab.com' && (
-            <div className="pb-4 border-b border-slate-700">
+            <div className="pb-4 border-b border-neutral-700">
               <div className="bg-blue-500/10 border border-blue-500/30 rounded p-3 mb-3">
                 <p className="text-xs text-gray-300 mb-3">
                   Recommended: Connect with GitLab OAuth for easier setup
@@ -663,19 +663,19 @@ export function GitlabSecretAutocomplete({
                   store.createForm.tokenValid = null
                   store.ui.error = null
                 }}
-                className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
+                className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
                 placeholder="glpat-xxxxxxxxxxxxxxxxxxxx"
               />
-              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <div className="absolute right-3 top-1/2 -tranneutral-y-1/2">
                 {snap.createForm.tokenValidating && <Loader2 className="w-4 h-4 animate-spin text-gray-400" />}
                 {!snap.createForm.tokenValidating && snap.createForm.tokenValid === true && snap.createForm.scopesValid === true && (
                   <div className="relative cursor-help">
                     <CheckCircle2 className="w-4 h-4 text-green-400" />
                     {/* Tooltip */}
                     {snap.createForm.tokenInfo && (
-                      <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-slate-900 border border-slate-700 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
+                      <div className="fixed mt-2 hidden group-hover:block w-64 p-3 bg-neutral-900 border border-neutral-700 text-white text-xs rounded shadow-xl" style={{ zIndex: 9999 }}>
                         <div className="space-y-1">
-                          <div className="font-semibold border-b border-slate-700 pb-1 mb-2">Token Information</div>
+                          <div className="font-semibold border-b border-neutral-700 pb-1 mb-2">Token Information</div>
                           <div><span className="text-gray-400">Name:</span> {snap.createForm.tokenInfo.name}</div>
                           <div><span className="text-gray-400">Scopes:</span> {snap.createForm.tokenScopes.join(", ")}</div>
                           {snap.createForm.tokenInfo.expiresAt && (
@@ -703,7 +703,7 @@ export function GitlabSecretAutocomplete({
               >
                 Create a new GitLab token
               </a>{" "}
-              with scopes: {requiredScopes.map(s => <code key={s} className="bg-slate-700/50 px-1 mx-0.5 text-gray-200">{s}</code>)}
+              with scopes: {requiredScopes.map(s => <code key={s} className="bg-neutral-700/50 px-1 mx-0.5 text-gray-200">{s}</code>)}
             </p>
           </div>
 
@@ -718,7 +718,7 @@ export function GitlabSecretAutocomplete({
                 type="text"
                 value={snap.createForm.secretName}
                 onChange={(e) => { store.createForm.secretName = e.target.value }}
-                className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
+                className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100"
                 placeholder="GitLab Token [username]"
               />
             </div>
@@ -767,8 +767,8 @@ export function GitlabSecretAutocomplete({
 
       {/* Confirm Mode */}
       {snap.mode === "confirm" && (
-        <div className="space-y-4 p-4 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
-          <div className="bg-slate-800/50 p-4 border border-slate-700 rounded space-y-3">
+        <div className="space-y-4 p-4 border border-neutral-700/50 bg-neutral-900/30 backdrop-blur-sm rounded">
+          <div className="bg-neutral-800/50 p-4 border border-neutral-700 rounded space-y-3">
             <div>
               <div className="text-xs uppercase tracking-wide text-gray-400">SECRET NAME</div>
               <div className="font-medium text-gray-100">{snap.createForm.secretName}</div>

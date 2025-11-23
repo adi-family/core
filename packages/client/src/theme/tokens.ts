@@ -69,7 +69,7 @@ export const designTokens = {
       success: 'bg-green-500',
       warning: 'bg-yellow-500',
       error: 'bg-red-500',
-      info: 'bg-blue-500',
+      info: 'bg-neutral-500',
       pending: 'bg-gray-500',
     },
     // Impact levels
@@ -80,9 +80,9 @@ export const designTokens = {
         border: 'border-[#8b5cf6]',
       },
       medium: {
-        bg: 'bg-[#3b82f6]',
-        text: 'text-[#3b82f6]',
-        border: 'border-[#3b82f6]',
+        bg: 'bg-[#64748b]',
+        text: 'text-[#64748b]',
+        border: 'border-[#64748b]',
       },
       low: {
         bg: 'bg-[#6b7280]',

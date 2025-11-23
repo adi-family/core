@@ -89,7 +89,7 @@ export function ProjectSelect({
                   group relative overflow-hidden rounded-lg border-2 p-4 text-left transition-all duration-200
                   ${isSelected
                     ? 'border-blue-500 bg-blue-500/20 shadow-lg shadow-blue-500/20'
-                    : 'border-slate-700/50 bg-slate-800/50 hover:border-blue-500/50 hover:bg-slate-700/50 hover:shadow-md'
+                    : 'border-neutral-700/50 bg-neutral-800/50 hover:border-blue-500/50 hover:bg-neutral-700/50 hover:shadow-md'
                   }
                 `}
               >
@@ -99,7 +99,7 @@ export function ProjectSelect({
                     flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors
                     ${isSelected
                       ? 'bg-blue-500/30 text-blue-400'
-                      : 'bg-slate-700/50 text-gray-400 group-hover:bg-blue-500/20 group-hover:text-blue-400'
+                      : 'bg-neutral-700/50 text-gray-400 group-hover:bg-blue-500/20 group-hover:text-blue-400'
                     }
                   `}>
                     {isSelected ? (

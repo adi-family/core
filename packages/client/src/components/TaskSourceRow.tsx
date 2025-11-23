@@ -31,7 +31,7 @@ export function TaskSourceRow({
     const statusLower = status.toLowerCase()
     if (statusLower === 'completed' || statusLower === 'success') return 'text-green-400'
     if (statusLower === 'failed' || statusLower === 'error') return 'text-red-400'
-    if (statusLower === 'syncing' || statusLower === 'running') return 'text-blue-400'
+    if (statusLower === 'syncing' || statusLower === 'running') return 'text-neutral-400'
     if (statusLower === 'queued') return 'text-yellow-400'
     if (statusLower === 'pending') return 'text-gray-400'
     return 'text-gray-400'
@@ -119,9 +119,9 @@ export function TaskSourceRow({
   }
 
   return (
-    <div className="border border-slate-700/50 bg-slate-800/40 backdrop-blur-xl hover:bg-slate-800/60 transition-all duration-200 rounded-lg overflow-hidden">
+    <div className="border border-neutral-700/50 bg-neutral-800/40 backdrop-blur-xl hover:bg-neutral-800/60 transition-all duration-200 rounded-lg overflow-hidden">
       {/* Status Bar at Top */}
-      <div className="flex flex-wrap gap-4 bg-slate-900/40 px-4 py-2.5 border-b border-slate-700/30">
+      <div className="flex flex-wrap gap-4 bg-neutral-900/40 px-4 py-2.5 border-b border-neutral-700/30">
         <div className="flex items-center gap-1.5">
           <span className="text-xs text-gray-500">Status:</span>
           <span className={`text-xs font-medium ${taskSource.enabled ? 'text-green-400' : 'text-gray-400'}`}>
@@ -194,7 +194,7 @@ export function TaskSourceRow({
                 href={externalUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 hover:text-blue-300 transition-colors flex items-center gap-1 font-mono text-xs"
+                className="text-neutral-400 hover:text-neutral-300 transition-colors flex items-center gap-1 font-mono text-xs"
               >
                 {repoOrProject}
                 <ExternalLink className="h-3 w-3" />
@@ -213,7 +213,7 @@ export function TaskSourceRow({
               {labels.map((label, index) => (
                 <span
                   key={index}
-                  className="inline-flex items-center px-2 py-0.5 rounded-md bg-slate-700/50 border border-slate-600/50 text-xs text-gray-300"
+                  className="inline-flex items-center px-2 py-0.5 rounded-md bg-neutral-700/50 border border-neutral-600/50 text-xs text-gray-300"
                 >
                   {label}
                 </span>

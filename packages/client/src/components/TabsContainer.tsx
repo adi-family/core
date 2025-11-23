@@ -24,7 +24,7 @@ export function TabsContainer({ tabs, activeTab, onTabChange }: TabsContainerPro
             onClick={() => onTabChange(tab.id)}
             className={`pb-4 px-2 font-medium border-b-2 transition-all duration-200 uppercase tracking-wide text-sm ${
               activeTab === tab.id
-                ? 'border-blue-400 text-blue-300'
+                ? 'border-neutral-400 text-neutral-300'
                 : 'border-transparent text-gray-400 hover:text-gray-200'
             }`}
           >
@@ -47,7 +47,7 @@ interface InfoPanelProps {
  */
 export function InfoPanel({ title, children, variant = 'info' }: InfoPanelProps) {
   const variantClasses = {
-    info: 'bg-blue-500/10 border-blue-500/30 text-blue-100',
+    info: 'bg-neutral-500/10 border-neutral-500/30 text-neutral-100',
     success: 'bg-green-500/10 border-green-500/30 text-green-100',
     warning: 'bg-yellow-500/10 border-yellow-500/30 text-yellow-100',
     error: 'bg-red-500/10 border-red-500/30 text-red-100',

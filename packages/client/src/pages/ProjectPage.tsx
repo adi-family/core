@@ -61,7 +61,7 @@ export function ProjectPage() {
   if (loading) {
     return (
       <AnimatedPageContainer>
-        <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
+        <Card className="border-neutral-700/50 bg-neutral-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
           <CardContent className="pt-6">
             <div className="text-center py-8 text-gray-300">
               <div className="text-lg">Loading project...</div>
@@ -75,7 +75,7 @@ export function ProjectPage() {
   if (error) {
     return (
       <AnimatedPageContainer>
-        <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
+        <Card className="border-neutral-700/50 bg-neutral-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
           <CardContent className="pt-6">
             <div className="text-center py-8">
               <div className="text-red-400 text-lg mb-6">{error}</div>
@@ -96,7 +96,7 @@ export function ProjectPage() {
   if (!project) {
     return (
       <AnimatedPageContainer>
-        <Card className="border-slate-700/50 bg-slate-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
+        <Card className="border-neutral-700/50 bg-neutral-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
           <CardContent className="pt-6">
             <div className="text-center py-8 text-gray-300">
               <div className="text-lg">Project not found</div>
@@ -136,8 +136,8 @@ export function ProjectPage() {
         </p>
       </div>
 
-      <Card className={`border-slate-700/50 bg-slate-800/40 backdrop-blur-xl shadow-2xl hover:shadow-blue-500/10 ${designTokens.animations.hover} rounded-2xl`}>
-        <CardHeader className="bg-gradient-to-r from-teal-500 to-cyan-600 text-white rounded-t-2xl border-b border-white/10">
+      <Card className={`border-neutral-700/50 bg-neutral-800/40 backdrop-blur-xl shadow-2xl hover:shadow-neutral-500/10 ${designTokens.animations.hover} rounded-2xl`}>
+        <CardHeader className="bg-gradient-to-r from-neutral-600 to-neutral-500 text-white rounded-t-2xl border-b border-white/10">
           <CardTitle className="text-xl uppercase tracking-wider font-semibold">
             Settings
           </CardTitle>
@@ -147,7 +147,7 @@ export function ProjectPage() {
         </CardHeader>
 
         {/* Tabs */}
-        <div className="border-b border-slate-700/50 bg-slate-900/30">
+        <div className="border-b border-neutral-700/50 bg-neutral-900/30">
           <div className="flex gap-1 px-6">
             {tabs.map((tab) => (
               <button
@@ -155,13 +155,13 @@ export function ProjectPage() {
                 onClick={() => setActiveTab(tab.id)}
                 className={`px-6 py-4 text-xs uppercase tracking-wider font-semibold transition-all duration-200 border-b-2 relative ${
                   activeTab === tab.id
-                    ? "border-cyan-400 text-cyan-400 bg-slate-800/50"
-                    : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-slate-800/30"
+                    ? "border-neutral-400 text-neutral-400 bg-neutral-800/50"
+                    : "border-transparent text-gray-400 hover:text-gray-200 hover:bg-neutral-800/30"
                 }`}
               >
                 {tab.label}
                 {activeTab === tab.id && (
-                  <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+                  <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-neutral-400 to-transparent" />
                 )}
               </button>
             ))}
@@ -171,21 +171,21 @@ export function ProjectPage() {
         <CardContent className="p-8">
           {activeTab === "overview" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+              <div className="bg-neutral-700/20 backdrop-blur-sm rounded-lg p-5 border border-neutral-600/30">
                 <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
                   Project ID
                 </label>
                 <p className="text-base font-mono text-gray-200 break-all">{project.id}</p>
               </div>
 
-              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+              <div className="bg-neutral-700/20 backdrop-blur-sm rounded-lg p-5 border border-neutral-600/30">
                 <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
                   Project Name
                 </label>
                 <p className="text-lg font-medium text-white">{project.name}</p>
               </div>
 
-              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+              <div className="bg-neutral-700/20 backdrop-blur-sm rounded-lg p-5 border border-neutral-600/30">
                 <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-3 block">
                   Status
                 </label>
@@ -193,14 +193,14 @@ export function ProjectPage() {
                   className={`inline-flex items-center px-4 py-2 text-sm font-semibold uppercase tracking-wide backdrop-blur-sm rounded-lg ${
                     project.enabled
                       ? "bg-green-500/20 text-green-300 border border-green-500/40 shadow-lg shadow-green-500/10"
-                      : "bg-slate-700/40 text-gray-300 border border-slate-600/60"
+                      : "bg-neutral-700/40 text-gray-300 border border-neutral-600/60"
                   }`}
                 >
                   {project.enabled ? "● Enabled" : "○ Disabled"}
                 </span>
               </div>
 
-              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+              <div className="bg-neutral-700/20 backdrop-blur-sm rounded-lg p-5 border border-neutral-600/30">
                 <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
                   Created At
                 </label>
@@ -209,7 +209,7 @@ export function ProjectPage() {
                 </p>
               </div>
 
-              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+              <div className="bg-neutral-700/20 backdrop-blur-sm rounded-lg p-5 border border-neutral-600/30">
                 <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
                   Last Updated
                 </label>
@@ -218,7 +218,7 @@ export function ProjectPage() {
                 </p>
               </div>
 
-              <div className="bg-slate-700/20 backdrop-blur-sm rounded-lg p-5 border border-slate-600/30">
+              <div className="bg-neutral-700/20 backdrop-blur-sm rounded-lg p-5 border border-neutral-600/30">
                 <label className="text-xs uppercase tracking-wider text-gray-400 font-semibold mb-2 block">
                   Last Synced At
                 </label>

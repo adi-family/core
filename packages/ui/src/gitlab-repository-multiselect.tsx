@@ -132,10 +132,10 @@ export function GitlabRepositoryMultiSelect({
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
+              className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
               placeholder="Type at least 3 characters to search repositories..."
             />
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+            <div className="absolute right-3 top-1/2 -tranneutral-y-1/2">
               {loading ? (
                 <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
               ) : (
@@ -151,7 +151,7 @@ export function GitlabRepositoryMultiSelect({
 
           {/* Repository Grid or Empty States */}
           {!search.trim() ? (
-            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700/50 text-center">
+            <div className="bg-neutral-800/50 p-6 rounded-lg border border-neutral-700/50 text-center">
               <div className="text-sm text-gray-400">Start typing to search repositories...</div>
             </div>
           ) : search.trim().length < 3 ? (
@@ -164,7 +164,7 @@ export function GitlabRepositoryMultiSelect({
               <span className="ml-2 text-sm text-gray-400">Searching repositories...</span>
             </div>
           ) : repositories.length === 0 ? (
-            <div className="bg-slate-800/50 p-6 rounded-lg border border-slate-700/50 text-center">
+            <div className="bg-neutral-800/50 p-6 rounded-lg border border-neutral-700/50 text-center">
               <div className="text-sm text-gray-400">No repositories found for "{search}"</div>
             </div>
           ) : (
@@ -180,7 +180,7 @@ export function GitlabRepositoryMultiSelect({
                   group relative overflow-hidden rounded-lg border-2 p-4 text-left transition-all duration-200
                   ${isSelected
                     ? 'border-green-500 bg-green-500/20 shadow-lg shadow-green-500/20'
-                    : 'border-slate-700/50 bg-slate-800/50 hover:border-green-500/50 hover:bg-slate-700/50 hover:shadow-md'
+                    : 'border-neutral-700/50 bg-neutral-800/50 hover:border-green-500/50 hover:bg-neutral-700/50 hover:shadow-md'
                   }
                 `}
               >
@@ -190,7 +190,7 @@ export function GitlabRepositoryMultiSelect({
                     flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center transition-colors
                     ${isSelected
                       ? 'bg-green-500/30 text-green-400'
-                      : 'bg-slate-700/50 text-gray-400 group-hover:bg-green-500/20 group-hover:text-green-400'
+                      : 'bg-neutral-700/50 text-gray-400 group-hover:bg-green-500/20 group-hover:text-green-400'
                     }
                   `}>
                     {isSelected ? (

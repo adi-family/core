@@ -40,7 +40,7 @@ interface TabsListProps {
 export function TabsList({ children, className = '' }: TabsListProps) {
   return (
     <div
-      className={`inline-flex h-10 items-center justify-center rounded-lg bg-slate-800/60 p-1 text-slate-400 ${className}`}
+      className={`inline-flex h-10 items-center justify-center rounded-lg bg-neutral-800/60 p-1 text-neutral-400 ${className}`}
       role="tablist"
     >
       {children}
@@ -64,12 +64,12 @@ export function TabsTrigger({ value, children, className = '' }: TabsTriggerProp
       aria-selected={isActive}
       className={`
         inline-flex items-center justify-center whitespace-nowrap rounded-md px-3 py-1.5 text-sm font-medium
-        ring-offset-slate-950 transition-all
-        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2
+        ring-offset-neutral-950 transition-all
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2
         disabled:pointer-events-none disabled:opacity-50
         ${isActive
-          ? 'bg-slate-900 text-white shadow-sm'
-          : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+          ? 'bg-neutral-900 text-white shadow-sm'
+          : 'text-neutral-400 hover:text-white hover:bg-neutral-800/80'
         }
         ${className}
       `}
@@ -96,7 +96,7 @@ export function TabsContent({ value, children, className = '' }: TabsContentProp
   return (
     <div
       role="tabpanel"
-      className={`mt-2 ring-offset-slate-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-300 focus-visible:ring-offset-2 ${className}`}
+      className={`mt-2 ring-offset-neutral-950 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-neutral-300 focus-visible:ring-offset-2 ${className}`}
     >
       {children}
     </div>

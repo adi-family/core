@@ -197,23 +197,23 @@ export function AdminPage() {
         </div>
 
         {/* Expert Mode Toggle */}
-        <div className="flex items-center gap-3 bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 rounded-lg px-4 py-2.5">
+        <div className="flex items-center gap-3 bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50 rounded-lg px-4 py-2.5">
           <Settings className="h-4 w-4 text-gray-400" />
           <span className="text-sm text-gray-300">Expert Mode</span>
           <button
             onClick={toggleExpertMode}
             className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-              expertMode ? 'bg-blue-500' : 'bg-gray-600'
+              expertMode ? 'bg-neutral-500' : 'bg-gray-600'
             }`}
             aria-label="Toggle expert mode"
           >
             <span
               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                expertMode ? 'translate-x-6' : 'translate-x-1'
+                expertMode ? 'tranneutral-x-6' : 'tranneutral-x-1'
               }`}
             />
           </button>
-          <span className={`text-xs font-medium ${expertMode ? 'text-blue-400' : 'text-gray-500'}`}>
+          <span className={`text-xs font-medium ${expertMode ? 'text-neutral-400' : 'text-gray-500'}`}>
             {expertMode ? 'ON' : 'OFF'}
           </span>
         </div>
@@ -254,7 +254,7 @@ export function AdminPage() {
             )}
 
             {refreshResults && (
-              <div className="mb-6 p-4 bg-blue-500/10 border border-blue-500/30 rounded-xl">
+              <div className="mb-6 p-4 bg-neutral-500/10 border border-neutral-500/30 rounded-xl">
                 <h3 className="font-semibold mb-2 text-white">Refresh Complete</h3>
                 <p className="text-sm mb-3 text-gray-300">{refreshResults.message}</p>
                 <div className="flex gap-4 text-sm mb-4">
@@ -329,7 +329,7 @@ export function AdminPage() {
                             href={`${repo.gitlab_host}/${repo.gitlab_path}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-blue-400 hover:underline font-mono text-xs"
+                            className="text-neutral-400 hover:underline font-mono text-xs"
                           >
                             {repo.gitlab_path}
                           </a>
@@ -471,7 +471,7 @@ export function AdminPage() {
 
           <div className="grid grid-cols-4 gap-4 my-6">
             {[
-              { label: 'Total Cost', value: formatCost(totals.totalCost), color: 'blue' },
+              { label: 'Total Cost', value: formatCost(totals.totalCost), color: 'neutral' },
               { label: 'Token Cost', value: formatCost(totals.tokenCost), subtitle: `${formatTokens(totals.totalTokens)} @ $${PRICING.PER_MILLION_TOKENS}/M`, color: 'purple' },
               { label: 'CI Cost', value: formatCost(totals.ciCost), subtitle: `${totals.ciHours.toFixed(2)}h @ $${PRICING.PER_CI_HOUR.toFixed(4)}/h`, color: 'emerald' },
               { label: 'API Calls', value: usageMetrics.length.toString(), subtitle: 'Last 100 calls', color: 'amber' },

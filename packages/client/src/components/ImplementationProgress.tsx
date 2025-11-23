@@ -8,7 +8,7 @@ interface ImplementationProgressProps {
 export function ImplementationProgress({ task }: ImplementationProgressProps) {
   if (!task.ai_implementation_session_id) {
     return (
-      <div className="bg-slate-800/40 backdrop-blur-sm rounded-lg border border-slate-700/50 p-6 text-center">
+      <div className="bg-neutral-800/40 backdrop-blur-sm rounded-lg border border-neutral-700/50 p-6 text-center">
         <p className="text-gray-400">No implementation in progress</p>
       </div>
     )
@@ -17,7 +17,7 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
   return (
     <div className="space-y-4">
       {/* Progress header */}
-      <div className="bg-gradient-to-r from-blue-900/50 to-purple-900/50 rounded-lg border border-slate-700/50 p-4">
+      <div className="bg-gradient-to-r from-neutral-900/50 to-neutral-800/50 rounded-lg border border-neutral-700/50 p-4">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="text-lg font-semibold text-white mb-1">
@@ -30,8 +30,8 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
 
           {task.ai_implementation_status === 'implementing' && (
             <div className="flex items-center gap-2">
-              <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse" />
-              <span className="text-sm text-blue-300">In Progress</span>
+              <div className="w-3 h-3 bg-neutral-400 rounded-full animate-pulse" />
+              <span className="text-sm text-neutral-300">In Progress</span>
             </div>
           )}
 
@@ -52,7 +52,7 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
       </div>
 
       {/* Progress phases */}
-      <div className="bg-slate-800/40 backdrop-blur-sm rounded-lg border border-slate-700/50 p-6">
+      <div className="bg-neutral-800/40 backdrop-blur-sm rounded-lg border border-neutral-700/50 p-6">
         <div className="space-y-4">
           {phases.map((phase, index) => (
             <div key={phase.name} className="flex items-start gap-4">
@@ -64,7 +64,7 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
                   </div>
                 )}
                 {phase.status === 'active' && (
-                  <div className="w-6 h-6 bg-blue-600 rounded-full flex items-center justify-center">
+                  <div className="w-6 h-6 bg-neutral-600 rounded-full flex items-center justify-center">
                     <div className="w-3 h-3 bg-white rounded-full animate-pulse" />
                   </div>
                 )}
@@ -80,7 +80,7 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
 
               {/* Phase info */}
               <div className="flex-1">
-                <h4 className={`font-medium ${phase.status === 'active' ? 'text-blue-300' :
+                <h4 className={`font-medium ${phase.status === 'active' ? 'text-neutral-300' :
                   phase.status === 'completed' ? 'text-green-300' :
                     phase.status === 'failed' ? 'text-red-300' :
                       'text-gray-400'
@@ -94,7 +94,7 @@ export function ImplementationProgress({ task }: ImplementationProgressProps) {
 
               {/* Connector line */}
               {index < phases.length - 1 && (
-                <div className="absolute left-[11px] w-0.5 h-full bg-slate-700 -z-10" style={{ top: '32px' }} />
+                <div className="absolute left-[11px] w-0.5 h-full bg-neutral-700 -z-10" style={{ top: '32px' }} />
               )}
             </div>
           ))}

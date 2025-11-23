@@ -281,7 +281,7 @@ export function AITaskChat({ tasks, onRefresh }: AITaskChatProps) {
       <div className={`${designTokens.colors.bg.tertiary} px-6 py-4 rounded-t-lg ${designTokens.borders.bottom}`}>
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Bot className="h-8 w-8 text-blue-400" />
+            <Bot className="h-8 w-8 text-neutral-400" />
             <span className={`absolute bottom-0 right-0 ${designTokens.statusDot} bg-green-400 border-2 ${designTokens.colors.border.default}`} />
           </div>
           <div>
@@ -301,8 +301,8 @@ export function AITaskChat({ tasks, onRefresh }: AITaskChatProps) {
             <div
               className={`max-w-[80%] rounded-lg px-4 py-3 ${
                 message.role === 'user'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-700/50 text-gray-100'
+                  ? 'bg-neutral-600 text-white'
+                  : 'bg-neutral-700/50 text-gray-100'
               }`}
             >
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
@@ -315,7 +315,7 @@ export function AITaskChat({ tasks, onRefresh }: AITaskChatProps) {
 
         {loading && (
           <div className="flex justify-start">
-            <div className="bg-slate-700/50 text-gray-100 rounded-lg px-4 py-3">
+            <div className="bg-neutral-700/50 text-gray-100 rounded-lg px-4 py-3">
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
                   <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
@@ -332,7 +332,7 @@ export function AITaskChat({ tasks, onRefresh }: AITaskChatProps) {
       </div>
 
       {/* Input */}
-      <div className="p-4 border-t border-slate-700/50">
+      <div className="p-4 border-t border-neutral-700/50">
         <div className="flex gap-2">
           <input
             type="text"
@@ -341,12 +341,12 @@ export function AITaskChat({ tasks, onRefresh }: AITaskChatProps) {
             onKeyPress={handleKeyPress}
             placeholder="Ask me anything about your tasks..."
             disabled={loading}
-            className="flex-1 bg-slate-700/50 text-white placeholder-gray-400 px-4 py-3 rounded-lg border border-slate-600/50 focus:outline-none focus:border-blue-500 transition-colors disabled:opacity-50"
+            className="flex-1 bg-neutral-700/50 text-white placeholder-gray-400 px-4 py-3 rounded-lg border border-neutral-600/50 focus:outline-none focus:border-neutral-500 transition-colors disabled:opacity-50"
           />
           <button
             onClick={handleSend}
             disabled={loading || !input.trim()}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
+            className="px-6 py-3 bg-neutral-600 hover:bg-neutral-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-lg transition-colors font-medium"
           >
             Send
           </button>
@@ -368,7 +368,7 @@ function QuickAction({ onClick, label }: { onClick: () => void; label: string })
   return (
     <button
       onClick={onClick}
-      className="px-3 py-1.5 text-xs bg-slate-700/50 hover:bg-slate-600/50 text-gray-300 rounded-md transition-colors border border-slate-600/30"
+      className="px-3 py-1.5 text-xs bg-neutral-700/50 hover:bg-neutral-600/50 text-gray-300 rounded-md transition-colors border border-neutral-600/30"
     >
       {label}
     </button>

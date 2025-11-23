@@ -129,7 +129,7 @@ export function TaskPage() {
     const statusLower = status.toLowerCase()
     if (statusLower === "completed" || statusLower === "success") return "text-green-400"
     if (statusLower === "failed" || statusLower === "error") return "text-red-400"
-    if (statusLower.includes("ing") || statusLower === "running") return "text-blue-400"
+    if (statusLower.includes("ing") || statusLower === "running") return "text-neutral-400"
     if (statusLower === "queued") return "text-yellow-400"
     if (statusLower === "pending") return "text-orange-400"
     if (statusLower === "not_started") return "text-gray-500"
@@ -322,7 +322,7 @@ export function TaskPage() {
                 onClick={handleStartAdvancedEvaluation}
                 variant="outline"
                 size="sm"
-                className="bg-blue-600/10 border-blue-500/50 hover:bg-blue-600/20"
+                className="bg-neutral-600/10 border-neutral-500/50 hover:bg-neutral-600/20"
               >
                 <Zap className="h-4 w-4 mr-2" />
                 Run Advanced Evaluation
@@ -346,7 +346,7 @@ export function TaskPage() {
         <CardHeader className={`${designTokens.colors.bg.secondary} ${designTokens.borders.bottom} ${designTokens.spacing.cardHeader}`}>
           <CardTitle className={designTokens.text.h2}>
             {task.task_key && (
-              <span className="text-blue-400 font-mono mr-3">{task.task_key}</span>
+              <span className="text-neutral-400 font-mono mr-3">{task.task_key}</span>
             )}
             {task.title}
           </CardTitle>
@@ -670,7 +670,7 @@ export function TaskPage() {
                       <Badge
                         variant={
                           metrics.priority_quadrant === 'quick_win' ? 'green' :
-                          metrics.priority_quadrant === 'major_project' ? 'blue' :
+                          metrics.priority_quadrant === 'major_project' ? 'neutral' :
                           metrics.priority_quadrant === 'fill_in' ? 'warning' : 'gray'
                         }
                         className="text-sm"
@@ -708,7 +708,7 @@ export function TaskPage() {
                     </Badge>
                   )}
                   {!metrics.is_ai_blocked && !metrics.implementation_status.can_verify && (
-                    <Badge variant="blue" className="flex items-center gap-1">
+                    <Badge variant="neutral" className="flex items-center gap-1">
                       <Shield className="h-3 w-3" />
                       Can't Test
                     </Badge>
@@ -757,7 +757,7 @@ export function TaskPage() {
                     <div className="flex items-center gap-2">
                       <div className="w-32 h-2 bg-gray-700 rounded-full overflow-hidden">
                         <div
-                          className="h-full bg-blue-400"
+                          className="h-full bg-neutral-400"
                           style={{ width: `${result.clarity_score}%` }}
                         />
                       </div>
@@ -833,11 +833,11 @@ export function TaskPage() {
 
                 {/* Caveats */}
                 {metrics.implementation_status.caveats.length > 0 && (
-                  <div className="bg-blue-500/10 p-4 rounded-lg border border-blue-500/30">
-                    <h4 className="text-sm font-semibold text-blue-200 mb-2">Implementation Caveats</h4>
+                  <div className="bg-neutral-500/10 p-4 rounded-lg border border-neutral-500/30">
+                    <h4 className="text-sm font-semibold text-neutral-200 mb-2">Implementation Caveats</h4>
                     <ul className="list-disc list-inside space-y-1">
                       {metrics.implementation_status.caveats.map((caveat, idx) => (
-                        <li key={idx} className="text-sm text-blue-300">{caveat}</li>
+                        <li key={idx} className="text-sm text-neutral-300">{caveat}</li>
                       ))}
                     </ul>
                   </div>
@@ -912,15 +912,15 @@ export function TaskPage() {
 
               {/* Agent Instructions */}
               {task.ai_evaluation_agentic_result.agent_instructions && (
-                <div className="bg-blue-500/10 p-4 rounded-md border border-blue-500/30">
-                  <h4 className="text-sm font-semibold text-blue-200 mb-3">Agent Instructions</h4>
+                <div className="bg-neutral-500/10 p-4 rounded-md border border-neutral-500/30">
+                  <h4 className="text-sm font-semibold text-neutral-200 mb-3">Agent Instructions</h4>
 
                   {task.ai_evaluation_agentic_result.agent_instructions.required_context_files && (
                     <div className="mb-3">
-                      <span className="text-xs font-semibold text-blue-300 uppercase">Required Files:</span>
+                      <span className="text-xs font-semibold text-neutral-300 uppercase">Required Files:</span>
                       <ul className="list-disc list-inside mt-1 space-y-1">
                         {task.ai_evaluation_agentic_result.agent_instructions.required_context_files.map((file, idx) => (
-                          <li key={idx} className="text-sm text-blue-400 font-mono">{file}</li>
+                          <li key={idx} className="text-sm text-neutral-400 font-mono">{file}</li>
                         ))}
                       </ul>
                     </div>
@@ -928,10 +928,10 @@ export function TaskPage() {
 
                   {task.ai_evaluation_agentic_result.agent_instructions.suggested_steps && (
                     <div className="mb-3">
-                      <span className="text-xs font-semibold text-blue-300 uppercase">Suggested Steps:</span>
+                      <span className="text-xs font-semibold text-neutral-300 uppercase">Suggested Steps:</span>
                       <ol className="list-decimal list-inside mt-1 space-y-1">
                         {task.ai_evaluation_agentic_result.agent_instructions.suggested_steps.map((step, idx) => (
-                          <li key={idx} className="text-sm text-blue-400">{step}</li>
+                          <li key={idx} className="text-sm text-neutral-400">{step}</li>
                         ))}
                       </ol>
                     </div>
@@ -939,10 +939,10 @@ export function TaskPage() {
 
                   {task.ai_evaluation_agentic_result.agent_instructions.follow_patterns_from && (
                     <div>
-                      <span className="text-xs font-semibold text-blue-300 uppercase">Follow Patterns From:</span>
+                      <span className="text-xs font-semibold text-neutral-300 uppercase">Follow Patterns From:</span>
                       <ul className="list-disc list-inside mt-1 space-y-1">
                         {task.ai_evaluation_agentic_result.agent_instructions.follow_patterns_from.map((pattern, idx) => (
-                          <li key={idx} className="text-sm text-blue-400 font-mono">{pattern}</li>
+                          <li key={idx} className="text-sm text-neutral-400 font-mono">{pattern}</li>
                         ))}
                       </ul>
                     </div>

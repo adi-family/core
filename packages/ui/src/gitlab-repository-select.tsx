@@ -182,10 +182,10 @@ export function GitlabRepositorySelect({
             }}
             onFocus={handleFocus}
             onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-            className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
+            className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-blue-400 focus:ring-blue-400 pr-10 text-gray-100"
             placeholder="Type at least 3 characters to search repositories..."
           />
-          <div className="absolute right-3 top-1/2 -translate-y-1/2">
+          <div className="absolute right-3 top-1/2 -tranneutral-y-1/2">
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin text-gray-400" />
             ) : (
@@ -197,7 +197,7 @@ export function GitlabRepositorySelect({
           {showDropdown && !loading && (
             <Portal>
               <div
-                className="absolute bg-slate-800 border border-slate-700 shadow-lg max-h-80 overflow-auto rounded"
+                className="absolute bg-neutral-800 border border-neutral-700 shadow-lg max-h-80 overflow-auto rounded"
                 style={{
                   top: `${dropdownPosition.top}px`,
                   left: `${dropdownPosition.left}px`,
@@ -224,7 +224,7 @@ export function GitlabRepositorySelect({
                     key={repo.id}
                     type="button"
                     onClick={() => handleSelectRepository(repo)}
-                    className="w-full px-4 py-3 text-left hover:bg-slate-700/50 transition-colors border-b border-slate-700 last:border-b-0"
+                    className="w-full px-4 py-3 text-left hover:bg-neutral-700/50 transition-colors border-b border-neutral-700 last:border-b-0"
                   >
                     <div className="flex items-center gap-2">
                       <GitBranch className="w-4 h-4 text-gray-400 flex-shrink-0" />
@@ -251,7 +251,7 @@ export function GitlabRepositorySelect({
 
       {/* Selected Repository Display */}
       {selectedRepository && (
-        <div className="bg-slate-800/50 p-3 border border-green-500/40 rounded flex items-start gap-2">
+        <div className="bg-neutral-800/50 p-3 border border-green-500/40 rounded flex items-start gap-2">
           <GitBranch className="w-4 h-4 text-green-400 mt-0.5 flex-shrink-0" />
           <div className="flex-1 min-w-0">
             <div className="text-xs uppercase tracking-wide text-green-400 font-medium">

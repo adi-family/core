@@ -42,8 +42,8 @@ const COLORS = {
   purple: '#8b5cf6',
   pink: '#ec4899',
   teal: '#14b8a6',
-  indigo: '#6366f1',
-  cyan: '#06b6d4',
+  indigo: '#64748b',
+  cyan: '#64748b',
 }
 
 export function TaskStats({ filters }: TaskStatsProps) {
@@ -91,7 +91,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
     <div className="space-y-6 mb-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-        <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+        <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">Total Tasks</CardTitle>
           </CardHeader>
@@ -100,7 +100,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+        <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">Evaluated</CardTitle>
           </CardHeader>
@@ -112,19 +112,19 @@ export function TaskStats({ filters }: TaskStatsProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+        <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">Implemented</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold text-blue-400">{stats.implemented}</div>
+            <div className="text-3xl font-bold text-neutral-400">{stats.implemented}</div>
             <div className="text-xs text-gray-500 mt-1">
               {stats.total > 0 ? Math.round((stats.implemented / stats.total) * 100) : 0}%
             </div>
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+        <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">In Progress</CardTitle>
           </CardHeader>
@@ -136,7 +136,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
           </CardContent>
         </Card>
 
-        <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+        <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">Avg Complexity</CardTitle>
           </CardHeader>
@@ -151,7 +151,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Impact vs Effort Quadrant */}
         {stats.quadrantData.length > 0 && (
-          <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50 lg:col-span-2">
+          <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50 lg:col-span-2">
             <CardHeader>
               <CardTitle className="text-lg text-white">Priority Matrix: Impact vs Effort</CardTitle>
               <p className="text-sm text-gray-400 mt-1">Quick Wins (High Impact, Low Effort) are in the top-left</p>
@@ -265,7 +265,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
 
         {/* Task Types */}
         {stats.taskTypeData.length > 0 && (
-          <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+          <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
             <CardHeader>
               <CardTitle className="text-lg text-white">Task Types</CardTitle>
             </CardHeader>
@@ -294,7 +294,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
 
         {/* Effort Estimates */}
         {stats.effortData.length > 0 && (
-          <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+          <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
             <CardHeader>
               <CardTitle className="text-lg text-white">Effort Estimates</CardTitle>
             </CardHeader>
@@ -317,7 +317,7 @@ export function TaskStats({ filters }: TaskStatsProps) {
 
         {/* Risk Levels */}
         {stats.riskData.length > 0 && (
-          <Card className="bg-slate-800/40 backdrop-blur-xl border border-slate-700/50">
+          <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50">
             <CardHeader>
               <CardTitle className="text-lg text-white">Risk Levels</CardTitle>
             </CardHeader>

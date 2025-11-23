@@ -115,7 +115,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-slate-700/50 pb-4">
+      <div className="border-b border-neutral-700/50 pb-4">
         <h3 className="text-lg uppercase tracking-wide text-gray-100">
           GITLAB PIPELINE EXECUTOR
         </h3>
@@ -139,9 +139,9 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
       )}
 
       {existingConfig && (
-        <div className="bg-blue-500/10 p-4 border border-blue-500/30 backdrop-blur-sm rounded">
+        <div className="bg-neutral-500/10 p-4 border border-neutral-500/30 backdrop-blur-sm rounded">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-blue-400">
+            <div className="flex items-center gap-2 text-neutral-400">
               <CheckCircle2 className="w-4 h-4" />
               <div className="text-xs uppercase tracking-wide font-medium">CONFIGURED</div>
             </div>
@@ -179,7 +179,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
         </div>
       )}
 
-      <div className="space-y-4 p-6 border border-slate-700/50 bg-slate-900/30 backdrop-blur-sm rounded">
+      <div className="space-y-4 p-6 border border-neutral-700/50 bg-neutral-900/30 backdrop-blur-sm rounded">
         <div className="space-y-2">
           <div className="flex items-center justify-between">
             <Label htmlFor="executor_host" className="text-xs uppercase tracking-wide text-gray-300">
@@ -189,7 +189,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
               <button
                 type="button"
                 onClick={() => setHostUnlocked(true)}
-                className="text-xs text-blue-400 hover:text-blue-300 hover:underline"
+                className="text-xs text-neutral-400 hover:text-neutral-300 hover:underline"
               >
                 Customize GitLab URL
               </button>
@@ -201,7 +201,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
             value={host}
             onChange={(e) => setHost(e.target.value)}
             disabled={!hostUnlocked}
-            className="bg-slate-800/50 backdrop-blur-sm border-slate-600 focus:border-blue-400 focus:ring-blue-400 text-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
+            className="bg-neutral-800/50 backdrop-blur-sm border-neutral-600 focus:border-neutral-400 focus:ring-neutral-400 text-gray-100 disabled:opacity-60 disabled:cursor-not-allowed"
             placeholder="https://gitlab.com"
           />
           <p className="text-xs text-gray-400">
@@ -223,7 +223,7 @@ export function GitlabExecutorConfig({ projectId }: GitlabExecutorConfigProps) {
         <button
           onClick={handleSave}
           disabled={saving || !host || !accessTokenSecretId}
-          className="px-4 py-2 bg-blue-500 text-white text-sm font-medium uppercase tracking-wide hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95 transition-all duration-200"
+          className="px-4 py-2 bg-neutral-500 text-white text-sm font-medium uppercase tracking-wide hover:bg-neutral-600 disabled:opacity-50 disabled:cursor-not-allowed shadow-sm active:scale-95 transition-all duration-200"
         >
           {saving ? (
             <span className="flex items-center gap-2">
