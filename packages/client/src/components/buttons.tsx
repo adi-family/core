@@ -236,7 +236,7 @@ export const LargeCardSelectButton = React.forwardRef<HTMLButtonElement, LargeCa
           type="button"
           disabled
           className={cn(
-            'relative overflow-hidden rounded-xl border-2 border-neutral-700/50 bg-gradient-to-br from-neutral-800/50 to-neutral-900/50 p-8 opacity-50 cursor-not-allowed',
+            'relative overflow-hidden rounded-xl border-2 border-neutral-700/50 bg-neutral-800/50 p-8 opacity-50 cursor-not-allowed',
             className
           )}
           {...props}
@@ -269,12 +269,12 @@ export const LargeCardSelectButton = React.forwardRef<HTMLButtonElement, LargeCa
         ref={ref}
         type="button"
         className={cn(
-          'group relative overflow-hidden rounded-xl border-2 border-neutral-500/30 bg-gradient-to-br from-neutral-800/90 to-neutral-900/90 p-8 transition-all duration-300 hover:border-neutral-500 hover:shadow-2xl hover:shadow-neutral-500/20 cursor-pointer',
+          'group relative overflow-hidden rounded-xl border-2 border-neutral-500/30 bg-neutral-800/90 p-8 transition-all duration-300 hover:border-neutral-500 hover:shadow-2xl hover:shadow-neutral-500/20 cursor-pointer',
           className
         )}
         {...props}
       >
-        <div className="absolute inset-0 bg-gradient-to-br from-neutral-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+        <div className="absolute inset-0 bg-neutral-500/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
         <div className="relative flex flex-col items-center space-y-6">
           <div className="w-20 h-20 rounded-2xl bg-neutral-500/10 flex items-center justify-center group-hover:bg-neutral-500/20 transition-colors duration-300">
@@ -343,22 +343,24 @@ export interface SidebarToggleButtonProps extends React.ButtonHTMLAttributes<HTM
   icon: LucideIcon
   isCollapsed?: boolean
   tooltip?: string
+  label?: string
 }
 
 export const SidebarToggleButton = React.forwardRef<HTMLButtonElement, SidebarToggleButtonProps>(
-  ({ icon: Icon, isCollapsed, tooltip, className, ...props }, ref) => {
+  ({ icon: Icon, isCollapsed, tooltip, label, className, ...props }, ref) => {
     const button = (
       <button
         ref={ref}
         type="button"
         className={cn(
-          'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 p-2 rounded-lg transition-all duration-200',
-          isCollapsed && 'rotate-180',
+          'text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 rounded-lg transition-all duration-200 cursor-pointer',
+          !isCollapsed && label ? 'flex items-center gap-2 w-[calc(100%+2rem)] -mx-4 px-4 py-2' : 'w-full p-2 flex justify-center',
           className
         )}
         {...props}
       >
-        <Icon className="h-4 w-4" />
+        <Icon className={cn('h-4 w-4 transition-transform duration-200', isCollapsed && 'rotate-180')} />
+        {!isCollapsed && label && <span className="text-sm">{label}</span>}
       </button>
     )
 

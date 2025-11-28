@@ -217,7 +217,7 @@ export function FileSpaceMultistageForm() {
         <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50 shadow-2xl hover:shadow-neutral-500/10 hover:border-neutral-600/60 transition-all duration-300 rounded-2xl">
           <CardContent className="pt-6">
             <div className="text-center py-8">
-              <div className="mx-auto w-16 h-16 bg-gradient-to-br from-neutral-400 to-neutral-500 rounded-xl flex items-center justify-center mb-4">
+              <div className="mx-auto w-16 h-16 bg-neutral-500 rounded-xl flex items-center justify-center mb-4">
                 <Check className="w-10 h-10 text-white" />
               </div>
               <div className="text-lg font-medium mb-2 text-neutral-300 uppercase tracking-wide">
@@ -239,7 +239,7 @@ export function FileSpaceMultistageForm() {
   return (
     <div className="mx-auto p-6 max-w-7xl">
       <Card className="bg-neutral-800/40 backdrop-blur-xl border border-neutral-700/50 shadow-2xl rounded-2xl">
-        <CardHeader className="bg-gradient-to-r from-neutral-600 to-neutral-500 text-white rounded-t-2xl">
+        <CardHeader className="bg-neutral-600 text-white rounded-t-2xl">
           <CardTitle className="text-xl uppercase tracking-wide text-white">
             CREATE FILE SPACE
           </CardTitle>

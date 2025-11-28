@@ -10,7 +10,6 @@ import {
   FolderOpen,
   Play,
 } from 'lucide-react'
-import { designTokens } from '@/theme/tokens'
 
 export interface NavItem {
   to: string
@@ -22,11 +21,11 @@ export interface NavItem {
 }
 
 export const modeNav: NavItem[] = [
-  { to: '/', label: 'Command', icon: Command, activeColor: 'text-white' },
-  { to: '/ship', label: 'Ship', icon: Rocket, activeColor: designTokens.colors.text.ship },
-  { to: '/review', label: 'Review', icon: Search, activeColor: designTokens.colors.text.review },
-  { to: '/build', label: 'Build', icon: Zap, activeColor: designTokens.colors.text.build },
-  { to: '/insights', label: 'Insights', icon: BarChart3, activeColor: 'text-purple-400' },
+  { to: '/', label: 'Command', icon: Command },
+  { to: '/ship', label: 'Ship', icon: Rocket },
+  { to: '/review', label: 'Review', icon: Search },
+  { to: '/build', label: 'Build', icon: Zap },
+  { to: '/analytics', label: 'Analytics', icon: BarChart3 },
 ]
 
 export const mainNav: NavItem[] = [

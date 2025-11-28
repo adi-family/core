@@ -8,7 +8,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "nx run-many -t dev --parallel 10",
+    "dev": "nx run-many -t dev --parallel 10 --output-style=stream",
     "build": "nx run-many -t build",
     "build:all": "nx run-many -t build && npm run worker:build:all",
     "typecheck": "nx run-many -t typecheck",

@@ -233,7 +233,7 @@ export function TaskSourceMultistageForm() {
       <Card className="border-neutral-700/50 bg-neutral-800/50 backdrop-blur-sm shadow-md hover:shadow-lg transition-all duration-300">
         <CardContent className="pt-6">
           <div className="text-center py-8">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-neutral-400 to-neutral-500 flex items-center justify-center mb-4">
+            <div className="mx-auto w-16 h-16 bg-neutral-500 flex items-center justify-center mb-4">
               <Check className="w-10 h-10 text-white" />
             </div>
             <div className="text-lg font-medium mb-2 text-neutral-300 uppercase tracking-wide">

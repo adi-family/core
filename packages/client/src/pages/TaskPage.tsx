@@ -1,16 +1,8 @@
 import { useEffect, useState, useMemo } from "react"
 import { useParams } from "react-router-dom"
-import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@adi-simple/ui/card'
 import { Badge } from '@adi-simple/ui/badge'
 import { Button } from '@adi-simple/ui/button'
-import { Calendar, ExternalLink, ArrowLeft, Circle, CheckCircle2, Loader2, XCircle, Clock, RefreshCw, GitMerge, Star, AlertTriangle, Shield, Eye, TrendingUp, Zap } from "lucide-react"
+import { Calendar, ExternalLink, ArrowLeft, Circle, CheckCircle2, Loader2, XCircle, Clock, RefreshCw, GitMerge, Star, AlertTriangle, Shield, Eye, TrendingUp, Zap, FileText } from "lucide-react"
 import { createAuthenticatedClient } from "@/lib/client"
 import { navigateTo } from "@/utils/navigation"
 import { useAuth } from "@clerk/clerk-react"
@@ -266,39 +258,37 @@ export function TaskPage() {
 
   if (loading) {
     return (
-      <AnimatedPageContainer>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-4 text-neutral-300">Loading task...</div>
-          </CardContent>
-        </Card>
-      </AnimatedPageContainer>
+      <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+        <div className={designTokens.cards.default}>
+          <div className="p-6 text-center py-12">
+            <div className={designTokens.text.bodySecondary}>Loading task...</div>
+          </div>
+        </div>
+      </div>
     )
   }
 
   if (error || !task) {
     return (
-      <AnimatedPageContainer>
-        <Card>
-          <CardContent className="pt-6">
-            <div className="text-center py-4 text-neutral-500">{error || "Task not found"}</div>
-            <div className="text-center mt-4">
-              <Button onClick={() => navigateTo("/tasks")} variant="outline">
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back to Tasks
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </AnimatedPageContainer>
+      <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+        <div className={designTokens.cards.default}>
+          <div className="p-6 text-center py-12">
+            <div className={`${designTokens.text.bodySecondary} mb-4`}>{error || "Task not found"}</div>
+            <Button onClick={() => navigateTo("/tasks")} variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Tasks
+            </Button>
+          </div>
+        </div>
+      </div>
     )
   }
 
   return (
-    <AnimatedPageContainer>
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="flex items-center justify-between">
+    <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-6">
           <Button onClick={() => navigateTo("/tasks")} variant="outline" size="sm">
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to Tasks
@@ -341,20 +331,22 @@ export function TaskPage() {
           </div>
         </div>
 
-        {/* Task Details Card */}
-        <Card>
-        <CardHeader className={`${designTokens.colors.bg.secondary} ${designTokens.borders.bottom} ${designTokens.spacing.cardHeader}`}>
-          <CardTitle className={designTokens.text.h2}>
+        <div className="flex items-center gap-3 mb-2">
+          <FileText className="h-8 w-8 text-white" />
+          <h1 className={designTokens.text.mode}>
             {task.task_key && (
               <span className="text-neutral-400 font-mono mr-3">{task.task_key}</span>
             )}
             {task.title}
-          </CardTitle>
-          <CardDescription className={designTokens.text.caption}>
-            {task.task_key ? `UUID: ${task.id}` : `Task ID: ${task.id}`}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className={`${designTokens.spacing.cardPadding} ${designTokens.spacing.section}`}>
+          </h1>
+        </div>
+        <p className={designTokens.text.bodySecondary}>
+          {task.task_key ? `UUID: ${task.id}` : `Task ID: ${task.id}`}
+        </p>
+      </div>
+
+      {/* Task Details Card */}
+      <div className={`${designTokens.cards.default} p-6 space-y-6`}>
           {/* Description */}
           {task.description && (
             <div>
@@ -640,7 +632,7 @@ export function TaskPage() {
 
                 {/* Quick Win Score & Priority */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-gradient-to-br from-neutral-500/10 to-neutral-600/10 p-4 rounded-lg border border-neutral-500/30">
+                  <div className="bg-neutral-500/10 p-4 rounded-lg border border-neutral-500/30">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-semibold text-neutral-200 flex items-center gap-2">
                         <Star className="h-4 w-4" />
@@ -1010,9 +1002,7 @@ export function TaskPage() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
       </div>
-    </AnimatedPageContainer>
+    </div>
   )
 }

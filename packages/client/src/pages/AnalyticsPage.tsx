@@ -5,7 +5,7 @@ import { Link } from "react-router-dom"
 import { createAuthenticatedClient } from "@/lib/client"
 import { designTokens } from "@/theme/tokens"
 import { useProject } from "@/contexts/ProjectContext"
-import { TrendingUp, TrendingDown, DollarSign, Clock, Target, Award, Activity } from "lucide-react"
+import { TrendingUp, TrendingDown, DollarSign, Clock, Target, Activity } from "lucide-react"
 import {
   tasksStore,
   fetchTasks,
@@ -13,8 +13,9 @@ import {
   fetchUsageMetrics,
 } from "@/stores"
 import { calculateCostBreakdown } from "@/config/pricing"
+import { TaskStats } from "@/components/TaskStats"
 
-export function InsightsPage() {
+export function AnalyticsPage() {
   const { getToken } = useAuth()
   const client = useMemo(() => createAuthenticatedClient(getToken), [getToken])
   const { selectedProjectId } = useProject()
@@ -94,22 +95,6 @@ export function InsightsPage() {
     return Math.round(((thisWeek.shipped - lastWeek.shipped) / lastWeek.shipped) * 100)
   }, [thisWeek.shipped, lastWeek.shipped])
 
-  // Get biggest wins
-  const biggestWins = useMemo(() => {
-    const completed = projectTasks.filter(task =>
-      task.ai_implementation_status === 'completed'
-    ).slice(0, 3)
-
-    return completed.map(task => {
-      const evalResult = task.ai_evaluation_simple_result
-      return {
-        title: task.title,
-        impact: evalResult?.estimated_impact || 'medium',
-        complexity: evalResult?.complexity_score || 50,
-      }
-    })
-  }, [projectTasks])
-
   // Weekly velocity data (mock for now - would come from backend)
   const weeklyData = useMemo(() => {
     return [
@@ -126,7 +111,7 @@ export function InsightsPage() {
   if (loading) {
     return (
       <div className={`min-h-screen ${designTokens.colors.bg.primary} flex items-center justify-center`}>
-        <div className={designTokens.text.bodySecondary}>Loading Insights...</div>
+        <div className={designTokens.text.bodySecondary}>Loading Analytics...</div>
       </div>
     )
   }
@@ -140,7 +125,7 @@ export function InsightsPage() {
         </Link>
         <div className="flex items-center gap-3 mb-2">
           <Activity className="h-8 w-8 text-neutral-400" />
-          <h1 className={designTokens.text.mode}>Insights</h1>
+          <h1 className={designTokens.text.mode}>Analytics</h1>
         </div>
         <p className={`${designTokens.text.bodySecondary}`}>
           Understand your velocity, impact, and efficiency
@@ -254,51 +239,16 @@ export function InsightsPage() {
         </div>
       </div>
 
-      {/* Biggest Wins */}
-      <div>
-        <div className="flex items-center gap-2 mb-4">
-          <Award className="h-5 w-5 text-neutral-300" />
-          <h2 className={designTokens.text.h2}>Biggest Wins This Week</h2>
-        </div>
-
-        <div className="space-y-3">
-          {biggestWins.length === 0 ? (
-            <div className={designTokens.cards.default}>
-              <div className="p-8 text-center">
-                <p className={designTokens.text.bodySecondary}>
-                  No completed tasks yet. Ship something to see your wins!
-                </p>
-              </div>
-            </div>
-          ) : (
-            biggestWins.map((win, index) => (
-              <div key={index} className={designTokens.cards.default}>
-                <div className="p-6 flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div className={`w-8 h-8 rounded-full ${designTokens.colors.mode.ship.bg} flex items-center justify-center text-white font-bold`}>
-                      {index + 1}
-                    </div>
-                    <div>
-                      <div className={`${designTokens.text.body} font-medium mb-1`}>
-                        {win.title}
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`${designTokens.text.caption} px-2 py-0.5 ${designTokens.colors.impact.high.bg} text-white rounded`}>
-                          {win.impact.toUpperCase()} Impact
-                        </span>
-                        <span className={`${designTokens.text.caption} px-2 py-0.5 ${designTokens.colors.bg.tertiary} rounded`}>
-                          Complexity: {Math.round(win.complexity)}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <Award className="h-6 w-6 text-neutral-300" />
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+      {/* Task Analysis */}
+      <div className="mb-8">
+        <h2 className={`${designTokens.text.h2} mb-4`}>Task Analysis</h2>
+        <TaskStats
+          filters={{
+            project_id: selectedProjectId || undefined,
+          }}
+        />
       </div>
+
     </div>
   )
 }

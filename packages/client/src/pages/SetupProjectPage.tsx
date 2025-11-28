@@ -1,8 +1,6 @@
 import { type FormEvent, useState, useMemo, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@clerk/clerk-react"
-import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
-import { PageCard } from "@/components/PageCard"
 import { Button } from '@adi-simple/ui/button'
 import { Input } from '@adi-simple/ui/input'
 import { GitlabSecretAutocomplete } from '@adi-simple/ui/gitlab-secret-autocomplete'
@@ -11,6 +9,8 @@ import { useExpertMode } from "@/contexts/ExpertModeContext"
 import { DEFAULT_HOSTS } from '@adi-simple/config/shared'
 import { createProjectConfig, createProjectGitLabExecutorConfig } from '@adi/api-contracts'
 import type { CreateProjectInput, Secret } from "@adi-simple/types"
+import { designTokens } from "@/theme/tokens"
+import { FolderPlus, CheckCircle } from "lucide-react"
 
 export function SetupProjectPage() {
   const navigate = useNavigate()
@@ -84,24 +84,42 @@ export function SetupProjectPage() {
 
   if (success) {
     return (
-      <AnimatedPageContainer>
-        <PageCard title="Success" description="Your project has been created">
-          <div className="text-center py-8">
+      <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+        <div className="mb-8">
+          <div className="flex items-center gap-3 mb-2">
+            <CheckCircle className="h-8 w-8 text-white" />
+            <h1 className={designTokens.text.mode}>Success</h1>
+          </div>
+          <p className={designTokens.text.bodySecondary}>
+            Your project has been created
+          </p>
+        </div>
+        <div className={designTokens.cards.default}>
+          <div className="p-6 text-center py-12">
             <div className="text-neutral-300 font-medium text-lg">
               Project created successfully
             </div>
           </div>
-        </PageCard>
-      </AnimatedPageContainer>
+        </div>
+      </div>
     )
   }
 
   return (
-    <AnimatedPageContainer>
-      <PageCard
-        title="New Project"
-        description="Add a new project"
-      >
+    <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <FolderPlus className="h-8 w-8 text-white" />
+          <h1 className={designTokens.text.mode}>New Project</h1>
+        </div>
+        <p className={designTokens.text.bodySecondary}>
+          Add a new project
+        </p>
+      </div>
+
+      {/* Form */}
+      <div className={`${designTokens.cards.default} p-6`}>
         <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="bg-neutral-700/10 border border-neutral-700/30 text-neutral-500 px-4 py-3 rounded-lg backdrop-blur-sm">
@@ -205,7 +223,7 @@ export function SetupProjectPage() {
               </Button>
             </div>
           </form>
-      </PageCard>
-    </AnimatedPageContainer>
+      </div>
+    </div>
   )
 }

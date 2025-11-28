@@ -2,14 +2,6 @@ import { useEffect, useMemo } from "react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@clerk/clerk-react"
 import { useSnapshot } from "valtio"
-import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@adi-simple/ui/card'
 import { Button } from '@adi-simple/ui/button'
 import { TaskSourceRow } from "@/components/TaskSourceRow"
 import { createAuthenticatedClient } from "@/lib/client"
@@ -25,6 +17,7 @@ import {
   getTaskSourcesByProject,
   syncTaskSource
 } from "@/stores"
+import { ListChecks } from "lucide-react"
 
 export function TaskSourcesPage() {
   const navigate = useNavigate()
@@ -65,27 +58,31 @@ export function TaskSourcesPage() {
   )
 
   return (
-    <AnimatedPageContainer>
-      <Card className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default} rounded-lg`}>
-        <CardHeader className={`${designTokens.spacing.cardHeader} ${designTokens.borders.bottom}`}>
-          <div className="flex justify-between items-center">
-            <div>
-              <CardTitle className={designTokens.text.h2}>
-                Task Sources
-              </CardTitle>
-              <CardDescription className={`${designTokens.text.bodySecondary} mt-1`}>
-                Manage issue tracking integrations for projects
-              </CardDescription>
+    <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <ListChecks className="h-8 w-8 text-white" />
+              <h1 className={designTokens.text.mode}>Task Sources</h1>
             </div>
-            <Button
-              onClick={() => navigate("/create-task-source")}
-              className={`${designTokens.colors.accent.primary} hover:${designTokens.colors.accent.hover} ${designTokens.colors.text.primary} px-4 py-2 rounded-lg transition-colors`}
-            >
-              Create Task Source
-            </Button>
+            <p className={designTokens.text.bodySecondary}>
+              Manage issue tracking integrations for projects
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className={designTokens.spacing.cardPadding}>
+          <Button
+            onClick={() => navigate("/create-task-source")}
+            className={designTokens.buttons.primary}
+          >
+            Create Task Source
+          </Button>
+        </div>
+      </div>
+
+      {/* Content */}
+      <div className={designTokens.cards.default}>
+        <div className="p-6">
           {loading ? (
             <div className="flex justify-center items-center py-12">
               <div className={designTokens.text.bodySecondary}>Loading task sources...</div>
@@ -105,7 +102,7 @@ export function TaskSourcesPage() {
               )}
             </div>
           ) : (
-            <div className={designTokens.spacing.section}>
+            <div className="space-y-3">
               {filteredTaskSources.map((taskSource) => {
                 const project = projects.find((p) => p.id === taskSource.project_id)
                 return (
@@ -119,8 +116,8 @@ export function TaskSourcesPage() {
               })}
             </div>
           )}
-        </CardContent>
-      </Card>
-    </AnimatedPageContainer>
+        </div>
+      </div>
+    </div>
   )
 }

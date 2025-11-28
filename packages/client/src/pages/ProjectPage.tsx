@@ -1,16 +1,8 @@
 import { useEffect, useState, useMemo } from "react"
 import { useParams, useNavigate, useSearchParams } from "react-router-dom"
 import { useAuth } from "@clerk/clerk-react"
-import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@adi-simple/ui/card'
 import { Button } from '@adi-simple/ui/button'
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Settings } from "lucide-react"
 import { createAuthenticatedClient } from "@/lib/client"
 import type { Project } from "../../../types"
 import { GitlabExecutorConfig } from "@/components/GitlabExecutorConfig"
@@ -60,50 +52,44 @@ export function ProjectPage() {
 
   if (loading) {
     return (
-      <AnimatedPageContainer>
-        <Card className="border-neutral-700/50 bg-neutral-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
-          <CardContent className="pt-6">
-            <div className="text-center py-8 text-neutral-300">
-              <div className="text-lg">Loading project...</div>
-            </div>
-          </CardContent>
-        </Card>
-      </AnimatedPageContainer>
+      <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+        <div className={designTokens.cards.default}>
+          <div className="p-6 text-center py-12">
+            <div className={designTokens.text.bodySecondary}>Loading project...</div>
+          </div>
+        </div>
+      </div>
     )
   }
 
   if (error) {
     return (
-      <AnimatedPageContainer>
-        <Card className="border-neutral-700/50 bg-neutral-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
-          <CardContent className="pt-6">
-            <div className="text-center py-8">
-              <div className="text-neutral-500 text-lg mb-6">{error}</div>
-              <Button
-                onClick={() => navigate("/projects")}
-                variant="outline"
-              >
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back to Projects
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </AnimatedPageContainer>
+      <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+        <div className={designTokens.cards.default}>
+          <div className="p-6 text-center py-12">
+            <div className={`${designTokens.text.bodySecondary} mb-6`}>{error}</div>
+            <Button
+              onClick={() => navigate("/projects")}
+              variant="outline"
+            >
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Projects
+            </Button>
+          </div>
+        </div>
+      </div>
     )
   }
 
   if (!project) {
     return (
-      <AnimatedPageContainer>
-        <Card className="border-neutral-700/50 bg-neutral-800/40 backdrop-blur-xl shadow-2xl rounded-2xl">
-          <CardContent className="pt-6">
-            <div className="text-center py-8 text-neutral-300">
-              <div className="text-lg">Project not found</div>
-            </div>
-          </CardContent>
-        </Card>
-      </AnimatedPageContainer>
+      <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+        <div className={designTokens.cards.default}>
+          <div className="p-6 text-center py-12">
+            <div className={designTokens.text.bodySecondary}>Project not found</div>
+          </div>
+        </div>
+      </div>
     )
   }
 
@@ -114,7 +100,8 @@ export function ProjectPage() {
   ]
 
   return (
-    <AnimatedPageContainer>
+    <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+      {/* Back Button */}
       <div className="mb-6">
         <Button
           onClick={() => navigate("/projects")}
@@ -126,49 +113,36 @@ export function ProjectPage() {
         </Button>
       </div>
 
-      {/* Project Header */}
+      {/* Header */}
       <div className="mb-8">
-        <h1 className="text-5xl font-bold tracking-tight uppercase mb-3 bg-gradient-to-r from-white via-gray-200 to-white bg-clip-text text-transparent">
-          {project.name}
-        </h1>
-        <p className="text-neutral-400 text-sm uppercase tracking-wide">
+        <div className="flex items-center gap-3 mb-2">
+          <Settings className="h-8 w-8 text-white" />
+          <h1 className={designTokens.text.mode}>{project.name}</h1>
+        </div>
+        <p className={designTokens.text.bodySecondary}>
           Project Configuration & Management
         </p>
       </div>
 
-      <Card className={`border-neutral-700/50 bg-neutral-800/40 backdrop-blur-xl shadow-2xl hover:shadow-neutral-500/10 ${designTokens.animations.hover} rounded-2xl`}>
-        <CardHeader className="bg-gradient-to-r from-neutral-600 to-neutral-500 text-white rounded-t-2xl border-b border-white/10">
-          <CardTitle className="text-xl uppercase tracking-wider font-semibold">
-            Settings
-          </CardTitle>
-          <CardDescription className="text-neutral-100 text-sm">
-            Configure your project settings and integrations
-          </CardDescription>
-        </CardHeader>
-
-        {/* Tabs */}
-        <div className="border-b border-neutral-700/50 bg-neutral-900/30">
-          <div className="flex gap-1 px-6">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-6 py-4 text-xs uppercase tracking-wider font-semibold transition-all duration-200 border-b-2 relative ${
-                  activeTab === tab.id
-                    ? "border-neutral-400 text-neutral-400 bg-neutral-800/50"
-                    : "border-transparent text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/30"
-                }`}
-              >
-                {tab.label}
-                {activeTab === tab.id && (
-                  <div className="absolute inset-x-0 top-0 h-0.5 bg-gradient-to-r from-transparent via-neutral-400 to-transparent" />
-                )}
-              </button>
-            ))}
-          </div>
+      {/* Tabs */}
+      <div className={`${designTokens.cards.default} mb-6`}>
+        <div className="flex gap-1 px-6 border-b border-neutral-700/50">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-6 py-4 text-xs uppercase tracking-wider font-semibold transition-all duration-200 border-b-2 relative ${
+                activeTab === tab.id
+                  ? "border-neutral-400 text-white bg-neutral-800/50"
+                  : "border-transparent text-neutral-400 hover:text-neutral-200 hover:bg-neutral-800/30"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
-        <CardContent className="p-8">
+        <div className="p-6">
           {activeTab === "overview" && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="bg-neutral-700/20 backdrop-blur-sm rounded-lg p-5 border border-neutral-600/30">
@@ -240,8 +214,8 @@ export function ProjectPage() {
           {activeTab === "ai-providers" && (
             <AIProviderSettings projectId={project.id} />
           )}
-        </CardContent>
-      </Card>
-    </AnimatedPageContainer>
+        </div>
+      </div>
+    </div>
   )
 }

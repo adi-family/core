@@ -167,7 +167,7 @@ export function CommandCenter({ isSidebarCollapsed, toggleSidebar }: CommandCent
                     className={`w-full flex items-center gap-3 px-4 py-3 text-left transition-colors ${
                       isSelected
                         ? designTokens.colors.bg.tertiary
-                        : 'hover:' + designTokens.colors.bg.secondary
+                        : `hover:${  designTokens.colors.bg.secondary}`
                     }`}
                   >
                     <Icon className={`${designTokens.icons.standard} ${

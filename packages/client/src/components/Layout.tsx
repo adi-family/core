@@ -65,7 +65,7 @@ export function Layout() {
   }, [client])
 
   return (
-    <div className={`min-h-screen ${designTokens.colors.bg.primary} flex flex-col`}>
+    <div className={`h-screen ${designTokens.colors.bg.primary} flex flex-col`}>
       {/* Global Alerts - Only shown when present */}
       {alerts.length > 0 && (
         <div className="bg-neutral-500/10 border-b border-neutral-500/30">
@@ -109,7 +109,7 @@ export function Layout() {
       {/* Main Content Area with Sidebar */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        <aside className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0`}>
+        <aside className={`${isSidebarCollapsed ? 'w-16' : 'w-64'} h-full transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0`}>
           <div className="h-full overflow-y-auto">
             <Sidebar isCollapsed={isSidebarCollapsed} onToggle={toggleSidebar} />
           </div>

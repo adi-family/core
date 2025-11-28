@@ -1,20 +1,10 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react"
 import { useAuth } from "@clerk/clerk-react"
 import { useSnapshot } from "valtio"
-import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@adi-simple/ui/card'
 import { Select } from '@adi-simple/ui/select'
 import { Label } from '@adi-simple/ui/label'
 import { Input } from '@adi-simple/ui/input'
 import { TaskRow } from "@/components/TaskRow"
-import { TaskStats } from "@/components/TaskStats"
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/Tabs"
 import { CreateTaskDialog } from "@/components/CreateTaskDialog"
 import { createAuthenticatedClient } from "@/lib/client"
 import { designTokens } from "@/theme/tokens"
@@ -24,6 +14,7 @@ import { toast } from "sonner"
 import type { Task } from "../../../types"
 import { listTasksConfig, implementTaskConfig, evaluateTaskConfig } from '@adi/api-contracts'
 import { projectsStore, fetchProjects, taskSourcesStore, fetchTaskSources, deleteTask } from "@/stores"
+import { ListTodo } from "lucide-react"
 
 type SortOption = 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc'
 
@@ -42,7 +33,7 @@ export function TasksPage() {
   const [searchQuery, setSearchQuery] = useState<string>("")
   const [page, setPage] = useState(1)
   const [hasMore, setHasMore] = useState(true)
-  const [totalCount, setTotalCount] = useState(0)
+  const [_totalCount, setTotalCount] = useState(0)
   const observerTarget = useRef<HTMLDivElement>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
 
@@ -226,171 +217,150 @@ export function TasksPage() {
   const filteredTasks = tasks
 
   return (
-    <AnimatedPageContainer>
-      <Card className={`${designTokens.colors.bg.secondary} ${designTokens.borders.default} rounded-lg`}>
-        <CardHeader className={`${designTokens.spacing.cardHeader} ${designTokens.borders.bottom}`}>
-          <div className="flex items-center justify-between">
-            <div className="flex-1">
-              <CardTitle className={designTokens.text.h2}>Tasks</CardTitle>
-              <CardDescription className={`${designTokens.text.bodySecondary} mt-1`}>View all tasks in the system</CardDescription>
+    <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <ListTodo className="h-8 w-8 text-white" />
+              <h1 className={designTokens.text.mode}>Tasks</h1>
             </div>
-            <button
-              onClick={() => setIsCreateDialogOpen(true)}
-              className={`px-4 py-2 ${designTokens.colors.accent.primary} hover:${designTokens.colors.accent.hover} ${designTokens.colors.text.primary} rounded-lg transition-colors mr-4`}
-            >
-              + Create Task
-            </button>
-            {!loading && (
-              <div className={`${designTokens.colors.bg.tertiary} px-4 py-2 rounded-lg ${designTokens.borders.default}`}>
-                <div className="text-xs text-neutral-200 mb-0.5">Total Tasks</div>
-                <div className="text-2xl font-bold text-white">
-                  {totalCount > 0 ? totalCount : filteredTasks.length}
-                </div>
-                {filteredTasks.length < totalCount && (
-                  <div className="text-xs text-neutral-300 mt-1">
-                    Showing {filteredTasks.length}
-                  </div>
-                )}
-              </div>
-            )}
+            <p className={designTokens.text.bodySecondary}>
+              View and manage all tasks in the system
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className={`${designTokens.spacing.cardPadding} text-neutral-100`}>
-          <div className="mb-6 space-y-4">
+          <button
+            onClick={() => setIsCreateDialogOpen(true)}
+            className={designTokens.buttons.primary}
+          >
+            + Create Task
+          </button>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className={`${designTokens.cards.default} p-6 mb-6`}>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="searchInput" className="block mb-2">
+              Search Tasks
+            </Label>
+            <Input
+              id="searchInput"
+              type="text"
+              placeholder="Search by title or description..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <Label htmlFor="searchInput" className="block mb-2">
-                Search Tasks
+              <Label htmlFor="taskSourceFilter" className="block mb-2">
+                Filter by Task Source
               </Label>
-              <Input
-                id="searchInput"
-                type="text"
-                placeholder="Search by title or description..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full"
-              />
+              <Select
+                id="taskSourceFilter"
+                value={selectedTaskSourceId}
+                onChange={(e) => setSelectedTaskSourceId(e.target.value)}
+              >
+                <option value="">All Task Sources</option>
+                {projectTaskSources.map((taskSource) => (
+                  <option key={taskSource.id} value={taskSource.id}>
+                    {taskSource.name} ({taskSource.type})
+                  </option>
+                ))}
+              </Select>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="taskSourceFilter" className="block mb-2">
-                  Filter by Task Source
-                </Label>
-                <Select
-                  id="taskSourceFilter"
-                  value={selectedTaskSourceId}
-                  onChange={(e) => setSelectedTaskSourceId(e.target.value)}
-                >
-                  <option value="">All Task Sources</option>
-                  {projectTaskSources.map((taskSource) => (
-                    <option key={taskSource.id} value={taskSource.id}>
-                      {taskSource.name} ({taskSource.type})
-                    </option>
-                  ))}
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor="sortBy" className="block mb-2">
+                Sort By
+              </Label>
+              <Select
+                id="sortBy"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+              >
+                <option value="quick_win_desc">Quick Win Score (High to Low)</option>
+                <option value="quick_win_asc">Quick Win Score (Low to High)</option>
+                <option value="complexity_asc">Complexity (Low to High)</option>
+                <option value="complexity_desc">Complexity (High to Low)</option>
+                <option value="created_desc">Created Date (Newest First)</option>
+                <option value="created_asc">Created Date (Oldest First)</option>
+              </Select>
+            </div>
 
-              <div>
-                <Label htmlFor="sortBy" className="block mb-2">
-                  Sort By
-                </Label>
-                <Select
-                  id="sortBy"
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value as SortOption)}
-                >
-                  <option value="quick_win_desc">Quick Win Score (High to Low)</option>
-                  <option value="quick_win_asc">Quick Win Score (Low to High)</option>
-                  <option value="complexity_asc">Complexity (Low to High)</option>
-                  <option value="complexity_desc">Complexity (High to Low)</option>
-                  <option value="created_desc">Created Date (Newest First)</option>
-                  <option value="created_asc">Created Date (Oldest First)</option>
-                </Select>
-              </div>
-
-              <div>
-                <Label htmlFor="filterEvaluated" className="block mb-2">
-                  Filter
-                </Label>
-                <Select
-                  id="filterEvaluated"
-                  value={filterEvaluated ? "evaluated" : "all"}
-                  onChange={(e) => setFilterEvaluated(e.target.value === "evaluated")}
-                >
-                  <option value="all">All Tasks</option>
-                  <option value="evaluated">Only Evaluated</option>
-                </Select>
-              </div>
+            <div>
+              <Label htmlFor="filterEvaluated" className="block mb-2">
+                Filter
+              </Label>
+              <Select
+                id="filterEvaluated"
+                value={filterEvaluated ? "evaluated" : "all"}
+                onChange={(e) => setFilterEvaluated(e.target.value === "evaluated")}
+              >
+                <option value="all">All Tasks</option>
+                <option value="evaluated">Only Evaluated</option>
+              </Select>
             </div>
           </div>
+        </div>
+      </div>
 
+      {/* Task List */}
+      <div className={designTokens.cards.default}>
+        <div className="p-6">
           {loading ? (
             <div className="flex justify-center items-center py-12">
-              <div className="text-neutral-500">Loading tasks...</div>
+              <div className={designTokens.text.bodySecondary}>Loading tasks...</div>
             </div>
           ) : filteredTasks.length === 0 ? (
             <div className="flex justify-center items-center py-12">
-              <div className="text-neutral-500">No tasks found</div>
+              <div className={designTokens.text.bodySecondary}>No tasks found</div>
             </div>
           ) : (
-            <Tabs defaultValue="backlog" className="w-full">
-              <TabsList className="mb-6">
-                <TabsTrigger value="backlog">Backlog</TabsTrigger>
-                <TabsTrigger value="analysis">Analysis</TabsTrigger>
-              </TabsList>
+            <>
+              <div className="space-y-3">
+                {filteredTasks.map((task) => {
+                  const taskSource = taskSources.find((ts) => ts.id === task.task_source_id) as any
+                  const project = projects.find((p) => p.id === task.project_id) as any
+                  return (
+                    <TaskRow
+                      key={task.id}
+                      task={task}
+                      taskSource={taskSource}
+                      project={project}
+                      onViewDetails={() => navigateTo(`/tasks/${task.id}`)}
+                      onStartImplementation={handleStartImplementation}
+                      onEvaluate={handleEvaluate}
+                      onDelete={handleDelete}
+                    />
+                  )
+                })}
+              </div>
 
-              <TabsContent value="backlog">
-                <div className="space-y-3">
-                  {filteredTasks.map((task) => {
-                    const taskSource = taskSources.find((ts) => ts.id === task.task_source_id) as any
-                    const project = projects.find((p) => p.id === task.project_id) as any
-                    return (
-                      <TaskRow
-                        key={task.id}
-                        task={task}
-                        taskSource={taskSource}
-                        project={project}
-                        onViewDetails={() => navigateTo(`/tasks/${task.id}`)}
-                        onStartImplementation={handleStartImplementation}
-                        onEvaluate={handleEvaluate}
-                        onDelete={handleDelete}
-                      />
-                    )
-                  })}
+              {/* Infinite scroll loading indicator and observer target */}
+              {loadingMore && (
+                <div className="flex justify-center items-center py-8">
+                  <div className={designTokens.text.bodySecondary}>Loading more tasks...</div>
                 </div>
+              )}
 
-                {/* Infinite scroll loading indicator and observer target */}
-                {loadingMore && (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="text-neutral-400">Loading more tasks...</div>
-                  </div>
-                )}
+              {/* Observer target for infinite scroll */}
+              <div ref={observerTarget} className="h-4" />
 
-                {/* Observer target for infinite scroll */}
-                <div ref={observerTarget} className="h-4" />
-
-                {!hasMore && filteredTasks.length > 0 && (
-                  <div className="flex justify-center items-center py-8">
-                    <div className="text-neutral-500 text-sm">No more tasks to load</div>
-                  </div>
-                )}
-              </TabsContent>
-
-              <TabsContent value="analysis">
-                <TaskStats
-                  filters={{
-                    project_id: selectedProjectId || undefined,
-                    task_source_id: selectedTaskSourceId || undefined,
-                    evaluated_only: filterEvaluated ? 'true' : undefined,
-                    sort_by: sortBy,
-                    search: searchQuery || undefined
-                  }}
-                />
-              </TabsContent>
-            </Tabs>
+              {!hasMore && filteredTasks.length > 0 && (
+                <div className="flex justify-center items-center py-8">
+                  <div className={`${designTokens.text.bodySecondary} text-sm`}>No more tasks to load</div>
+                </div>
+              )}
+            </>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
       <CreateTaskDialog
         isOpen={isCreateDialogOpen}
@@ -401,6 +371,6 @@ export function TasksPage() {
           fetchData(1, false)
         }}
       />
-    </AnimatedPageContainer>
+    </div>
   )
 }

@@ -66,11 +66,11 @@ const navigationCommands: CommandItem[] = [
     action: (ctx) => ctx.navigate('/build'),
   },
   {
-    id: 'go-insights',
-    label: 'Go to Insights',
+    id: 'go-analytics',
+    label: 'Go to Analytics',
     icon: BarChart3,
-    keywords: ['analytics', 'stats', 'metrics'],
-    action: (ctx) => ctx.navigate('/insights'),
+    keywords: ['insights', 'stats', 'metrics'],
+    action: (ctx) => ctx.navigate('/analytics'),
   },
   {
     id: 'go-tasks',

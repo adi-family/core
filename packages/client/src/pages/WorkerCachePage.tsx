@@ -1,13 +1,6 @@
 import { useEffect, useState, useMemo } from "react"
 import { useAuth } from "@clerk/clerk-react"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@adi-simple/ui/card'
-import {
   Table,
   TableBody,
   TableCell,
@@ -18,9 +11,10 @@ import {
 import { Badge } from '@adi-simple/ui/badge'
 import { createAuthenticatedClient } from "@/lib/client"
 import { getWorkerCacheConfig } from '@adi/api-contracts/worker-cache'
-import { Loader2, CheckCircle2, Circle } from 'lucide-react'
+import { Loader2, CheckCircle2, Circle, Database } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import type { WorkerCache } from '@adi-simple/types'
+import { designTokens } from "@/theme/tokens"
 
 export function WorkerCachePage() {
   const { getToken } = useAuth()
@@ -70,18 +64,28 @@ export function WorkerCachePage() {
   }, [])
 
   return (
-    <div className="mx-auto">
-      <Card className="border-neutral-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200">
-        <CardHeader className="bg-gradient-to-r from-neutral-600 to-neutral-500 text-white">
-          <CardTitle className="text-2xl uppercase tracking-wide">Worker Cache</CardTitle>
-          <CardDescription className="text-neutral-300">View worker processing status and locks</CardDescription>
-        </CardHeader>
-        <CardContent className="p-6">
+    <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <Database className="h-8 w-8 text-white" />
+          <h1 className={designTokens.text.mode}>Worker Cache</h1>
+        </div>
+        <p className={designTokens.text.bodySecondary}>
+          View worker processing status and locks
+        </p>
+      </div>
+
+      {/* Content */}
+      <div className={designTokens.cards.default}>
+        <div className="p-6">
           {loading ? (
-            <div className="text-center py-8 text-sm uppercase tracking-wide text-neutral-500">Loading...</div>
+            <div className="flex justify-center items-center py-12">
+              <div className={designTokens.text.bodySecondary}>Loading...</div>
+            </div>
           ) : cache.length === 0 ? (
-            <div className="text-center py-8 text-sm uppercase tracking-wide text-neutral-500">
-              No cache entries found
+            <div className="flex justify-center items-center py-12">
+              <div className={designTokens.text.bodySecondary}>No cache entries found</div>
             </div>
           ) : (
             <Table>
@@ -112,12 +116,12 @@ export function WorkerCachePage() {
                     <TableCell className="font-mono text-xs">
                       {entry.processing_worker_id || "-"}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="text-neutral-400 text-sm">
                       {entry.processing_started_at
                         ? new Date(entry.processing_started_at).toLocaleString()
                         : "-"}
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">
+                    <TableCell className="text-neutral-400 text-sm">
                       {entry.last_processed_at
                         ? new Date(entry.last_processed_at).toLocaleString()
                         : "-"}
@@ -130,8 +134,8 @@ export function WorkerCachePage() {
               </TableBody>
             </Table>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

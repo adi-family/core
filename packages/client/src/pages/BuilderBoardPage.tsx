@@ -1,7 +1,6 @@
 import { useState, useCallback, useMemo, useEffect } from "react"
 import { useAuth } from "@clerk/clerk-react"
 import { Link } from "react-router-dom"
-import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import { KanbanBoard } from "@/components/KanbanBoard"
 import { useProject } from "@/contexts/ProjectContext"
 import { createAuthenticatedClient } from "@/lib/client"
@@ -56,19 +55,19 @@ export function BuilderBoardPage() {
 
   if (!selectedProjectId) {
     return (
-      <AnimatedPageContainer>
-        <div className="flex items-center justify-center h-screen">
+      <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+        <div className="flex items-center justify-center h-96">
           <div className="text-center">
             <p className="text-neutral-400 text-lg mb-4">No project selected</p>
             <p className="text-neutral-500 text-sm">Select a project to view the builder board</p>
           </div>
         </div>
-      </AnimatedPageContainer>
+      </div>
     )
   }
 
   return (
-    <AnimatedPageContainer>
+    <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
       {/* Header */}
       <div className="mb-8">
         <Link to="/" className={`${designTokens.text.caption} ${designTokens.colors.text.secondary} hover:${designTokens.colors.text.primary} mb-2 inline-block`}>
@@ -78,7 +77,7 @@ export function BuilderBoardPage() {
           <Zap className={`h-8 w-8 ${designTokens.colors.text.build}`} />
           <h1 className={designTokens.text.mode}>Build Mode</h1>
         </div>
-        <p className={`${designTokens.text.bodySecondary}`}>
+        <p className={designTokens.text.bodySecondary}>
           Focus on complex features requiring expertise
         </p>
       </div>
@@ -118,7 +117,7 @@ export function BuilderBoardPage() {
           </div>
         </div>
       )}
-    </AnimatedPageContainer>
+    </div>
   )
 }
 

@@ -9,7 +9,7 @@ import { CommandCenterPage } from "./pages/CommandCenterPage"
 import { ShipModePage } from "./pages/ShipModePage"
 import { ReviewModePage } from "./pages/ReviewModePage"
 import { BuilderBoardPage } from "./pages/BuilderBoardPage"
-import { InsightsPage } from "./pages/InsightsPage"
+import { AnalyticsPage } from "./pages/AnalyticsPage"
 import { HomePage } from "./pages/HomePage"
 import { ProjectsPage } from "./pages/ProjectsPage"
 import { ProjectPage } from "./pages/ProjectPage"
@@ -109,7 +109,7 @@ export function App() {
                     <Route path="ship" element={<ShipModePage />} />
                     <Route path="review" element={<ReviewModePage />} />
                     <Route path="build" element={<BuilderBoardPage />} />
-                    <Route path="insights" element={<InsightsPage />} />
+                    <Route path="analytics" element={<AnalyticsPage />} />
 
                     {/* Legacy Routes - keeping for compatibility */}
                     <Route path="home" element={<HomePage />} />

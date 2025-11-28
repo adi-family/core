@@ -22,7 +22,7 @@ export function NavItem({ to, label, icon: Icon, isCollapsed, badge, activeColor
 
   if (isCollapsed) {
     return (
-      <Link to={to} className={`relative p-2 rounded-lg ${baseStyles}`} title={label}>
+      <Link to={to} className={`relative w-full p-2 rounded-lg flex justify-center ${baseStyles}`} title={label}>
         <Icon className={designTokens.icons.standard} />
         {badge !== undefined && badge > 0 && (
           <span className="absolute -top-1 -right-1 w-4 h-4 bg-neutral-700 rounded-full flex items-center justify-center text-[9px] text-white font-bold">
@@ -34,7 +34,7 @@ export function NavItem({ to, label, icon: Icon, isCollapsed, badge, activeColor
   }
 
   return (
-    <Link to={to} className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-all ${baseStyles}`}>
+    <Link to={to} className={`flex items-center gap-3 -mx-4 px-4 py-2 rounded-lg transition-all ${baseStyles}`}>
       <Icon className={designTokens.icons.standard} />
       <span className={designTokens.text.body}>{label}</span>
       {badge !== undefined && badge > 0 && (

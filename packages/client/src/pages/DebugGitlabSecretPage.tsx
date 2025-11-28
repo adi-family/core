@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react"
 import { useAuth } from "@clerk/clerk-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@adi-simple/ui/card'
 import { Input } from '@adi-simple/ui/input'
 import { Label } from '@adi-simple/ui/label'
 import { ProjectSelect } from "@adi-simple/ui/project-select"
@@ -8,6 +7,8 @@ import { GitlabSecretAutocomplete } from "@adi-simple/ui/gitlab-secret-autocompl
 import { GitlabRepositorySelect } from "@adi-simple/ui/gitlab-repository-select"
 import { createAuthenticatedClient } from "@/lib/client"
 import type { Secret } from "@adi-simple/types"
+import { designTokens } from "@/theme/tokens"
+import { Bug } from "lucide-react"
 
 export function DebugGitlabSecretPage() {
   const { getToken } = useAuth()
@@ -22,17 +23,20 @@ export function DebugGitlabSecretPage() {
   const [selectedRepository, setSelectedRepository] = useState<any>(null)
 
   return (
-    <div className="mx-auto">
-      <Card className="border-neutral-200/60 bg-white/90 backdrop-blur-md shadow-lg hover:shadow-xl transition-all duration-200 mb-6">
-        <CardHeader className="bg-gradient-to-r from-neutral-600 to-neutral-500 text-white">
-          <CardTitle className="text-2xl uppercase tracking-wide">
-            Debug: Gitlab Components
-          </CardTitle>
-          <CardDescription className="text-neutral-300">
-            Test and debug GitLab integration components
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+    <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+      {/* Header */}
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-2">
+          <Bug className="h-8 w-8 text-white" />
+          <h1 className={designTokens.text.mode}>Debug: Gitlab Components</h1>
+        </div>
+        <p className={designTokens.text.bodySecondary}>
+          Test and debug GitLab integration components
+        </p>
+      </div>
+
+      {/* Content */}
+      <div className={`${designTokens.cards.default} p-6 space-y-6`}>
           {/* GitlabSecretAutocomplete Section */}
           <div className="p-4 border border-neutral-200/60 bg-neutral-50/50 space-y-4">
             <h3 className="text-xs uppercase tracking-wide font-medium">GITLAB SECRET AUTOCOMPLETE</h3>
@@ -227,8 +231,7 @@ export function DebugGitlabSecretPage() {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+      </div>
     </div>
   )
 }

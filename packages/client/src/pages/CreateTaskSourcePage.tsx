@@ -1,10 +1,10 @@
-import { AnimatedPageContainer } from "@/components/AnimatedPageContainer"
 import { TaskSourceMultistageForm } from "@/components/TaskSourceMultistageForm"
+import { designTokens } from "@/theme/tokens"
 
 export function CreateTaskSourcePage() {
   return (
-    <AnimatedPageContainer>
+    <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
       <TaskSourceMultistageForm />
-    </AnimatedPageContainer>
+    </div>
   )
 }

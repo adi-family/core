@@ -1,12 +1,11 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useAuth } from '@clerk/clerk-react'
 import { createAuthenticatedClient } from '@/lib/client'
-import { AnimatedPageContainer } from '@/components/AnimatedPageContainer'
 import { TabsContainer, InfoPanel, ContentCard } from '@/components/TabsContainer'
 import { Button } from '@adi-simple/ui/button'
 import { designTokens } from '@/theme/tokens'
 import { useExpertMode } from '@/contexts/ExpertModeContext'
-import { Settings, CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react'
+import { Settings, CheckCircle, XCircle, Clock, DollarSign, Wrench } from 'lucide-react'
 import {
   PRICING,
   calculateCostBreakdown,
@@ -187,11 +186,15 @@ export function AdminPage() {
   ]
 
   return (
-    <AnimatedPageContainer>
+    <div className={`min-h-screen ${designTokens.colors.bg.primary} px-6 py-8`}>
+      {/* Header */}
       <div className="mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold mb-2 text-white">System Administration</h1>
-          <p className="text-neutral-400">
+          <div className="flex items-center gap-3 mb-2">
+            <Wrench className="h-8 w-8 text-white" />
+            <h1 className={designTokens.text.mode}>System Administration</h1>
+          </div>
+          <p className={designTokens.text.bodySecondary}>
             Manage worker repositories and API usage tracking
           </p>
         </div>
@@ -541,6 +544,6 @@ export function AdminPage() {
           </ContentCard>
         </div>
       )}
-    </AnimatedPageContainer>
+    </div>
   )
 }

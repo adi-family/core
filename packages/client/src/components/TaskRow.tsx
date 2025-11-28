@@ -125,7 +125,7 @@ export function TaskRow({
   return (
     <div className={`border backdrop-blur-xl hover:bg-neutral-800/60 transition-all duration-200 rounded-lg overflow-hidden ${
       isQuickWin
-        ? 'border-neutral-500/60 bg-gradient-to-r from-neutral-700/20 via-neutral-800/40 to-neutral-800/40 shadow-lg shadow-neutral-500/10'
+        ? 'border-neutral-500/60 bg-neutral-700/30 shadow-lg shadow-neutral-500/10'
         : 'border-neutral-700/50 bg-neutral-800/40'
     }`}>
       {/* Status Bar at Top */}
