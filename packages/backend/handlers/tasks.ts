@@ -24,6 +24,7 @@ import * as taskSourceQueries from '@db/task-sources'
 import { publishTaskEval, publishTaskImpl } from '@adi/queue/publisher'
 import { evaluateTaskAdvanced } from '@adi/micros-task-eval/service'
 import { createSecuredHandlers } from '../utils/auth'
+import { EvaluationStatus, ImplementationStatus } from '@adi-simple/config'
 
 export function createTaskHandlers(sql: Sql) {
   const { handler } = createSecuredHandlers(sql)
@@ -120,43 +121,46 @@ export function createTaskHandlers(sql: Sql) {
     })
 
     const evaluatedTasks = tasks.filter(t =>
-      t.ai_evaluation_simple_status === 'completed' ||
-      t.ai_evaluation_advanced_status === 'completed'
+      t.ai_evaluation_simple_status === EvaluationStatus.Completed ||
+      t.ai_evaluation_advanced_status === EvaluationStatus.Completed
     )
 
     const implementedTasks = tasks.filter(t =>
-      t.ai_implementation_status === 'completed'
+      t.ai_implementation_status === ImplementationStatus.Completed
     )
 
     const inProgressTasks = tasks.filter(t =>
-      t.ai_implementation_status === 'implementing' ||
-      t.ai_evaluation_simple_status === 'evaluating' ||
-      t.ai_evaluation_advanced_status === 'evaluating'
+      t.ai_implementation_status === ImplementationStatus.Implementing ||
+      t.ai_evaluation_simple_status === EvaluationStatus.Evaluating ||
+      t.ai_evaluation_advanced_status === EvaluationStatus.Evaluating
     )
 
     const taskTypeCounts: Record<string, number> = {}
     tasks.forEach(task => {
-      const taskType = (task.ai_evaluation_simple_result as any)?.task_type || 'unknown'
+      const result = task.ai_evaluation_simple_result
+      const taskType = result?.task_type || 'unknown'
       taskTypeCounts[taskType] = (taskTypeCounts[taskType] || 0) + 1
     })
 
     const effortCounts: Record<string, number> = {}
     tasks.forEach(task => {
-      const effort = (task.ai_evaluation_simple_result as any)?.effort_estimate || 'unknown'
+      const result = task.ai_evaluation_simple_result
+      const effort = result?.effort_estimate || 'unknown'
       effortCounts[effort] = (effortCounts[effort] || 0) + 1
     })
 
     const riskCounts: Record<string, number> = {}
     tasks.forEach(task => {
-      const risk = (task.ai_evaluation_simple_result as any)?.risk_level || 'unknown'
+      const result = task.ai_evaluation_simple_result
+      const risk = result?.risk_level || 'unknown'
       riskCounts[risk] = (riskCounts[risk] || 0) + 1
     })
 
-    const complexityScores = tasks
-      .filter(t => (t.ai_evaluation_simple_result as any)?.complexity_score)
-      .map(t => (t.ai_evaluation_simple_result as any).complexity_score)
+    const complexityScores = tasks.flatMap(t =>
+      t.ai_evaluation_simple_result?.complexity_score ? [t.ai_evaluation_simple_result.complexity_score] : []
+    )
     const avgComplexity = complexityScores.length > 0
-      ? (complexityScores.reduce((a: number, b: number) => a + b, 0) / complexityScores.length).toFixed(1)
+      ? (complexityScores.reduce((a, b) => a + b, 0) / complexityScores.length).toFixed(1)
       : '0.0'
 
     const impactEffortMap: Record<string, number> = {
@@ -165,22 +169,22 @@ export function createTaskHandlers(sql: Sql) {
       high: 3
     }
 
-    const quadrantData = tasks
-      .filter(t => (t.ai_evaluation_simple_result as any)?.estimated_impact && (t.ai_evaluation_simple_result as any)?.estimated_effort)
-      .map(t => {
-        const result = t.ai_evaluation_simple_result as any
-        const impact = impactEffortMap[result.estimated_impact] || 2
-        const effort = impactEffortMap[result.estimated_effort] || 2
+    const quadrantData = tasks.flatMap(t => {
+      const result = t.ai_evaluation_simple_result
+      if (!result?.estimated_impact || !result?.estimated_effort) return []
 
-        return {
-          x: effort,
-          y: impact,
-          title: t.title.length > 40 ? `${t.title.substring(0, 40)  }...` : t.title,
-          id: t.id,
-          impactLabel: result.estimated_impact,
-          effortLabel: result.estimated_effort
-        }
-      })
+      const impact = impactEffortMap[result.estimated_impact] || 2
+      const effort = impactEffortMap[result.estimated_effort] || 2
+
+      return [{
+        x: effort,
+        y: impact,
+        title: t.title.length > 40 ? `${t.title.substring(0, 40)}...` : t.title,
+        id: t.id,
+        impactLabel: result.estimated_impact,
+        effortLabel: result.estimated_effort
+      }]
+    })
 
     return {
       total: tasks.length,
@@ -195,18 +199,14 @@ export function createTaskHandlers(sql: Sql) {
           value
         }))
         .sort((a, b) => b.value - a.value),
-      effortData: ['xs', 's', 'm', 'l', 'xl', 'unknown']
-        .filter(effort => effortCounts[effort])
-        .map(effort => ({
-          name: effort.toUpperCase(),
-          value: effortCounts[effort]
-        })),
-      riskData: ['low', 'medium', 'high', 'unknown']
-        .filter(risk => riskCounts[risk])
-        .map(risk => ({
-          name: risk.charAt(0).toUpperCase() + risk.slice(1),
-          value: riskCounts[risk]
-        }))
+      effortData: (['xs', 's', 'm', 'l', 'xl', 'unknown'] as const).flatMap(effort => {
+        const value = effortCounts[effort]
+        return value ? [{ name: effort.toUpperCase(), value }] : []
+      }),
+      riskData: (['low', 'medium', 'high', 'unknown'] as const).flatMap(risk => {
+        const value = riskCounts[risk]
+        return value ? [{ name: risk.charAt(0).toUpperCase() + risk.slice(1), value }] : []
+      })
     }
   })
 

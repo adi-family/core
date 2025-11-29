@@ -15,6 +15,7 @@ import type { Sql } from 'postgres'
 import { createLogger } from '@utils/logger'
 import { publishTaskSync } from '@adi/queue/publisher'
 import { createSecuredHandlers } from '../utils/auth'
+import { createTaskSourceInputSchema, updateTaskSourceInputSchema } from '@adi-simple/types'
 
 const logger = createLogger({ namespace: 'task-sources-handler' })
 
@@ -42,10 +43,10 @@ export function createTaskSourceHandlers(sql: Sql) {
   })
 
   const createTaskSource = handler(createTaskSourceConfig, async (ctx) => {
-    const { project_id } = ctx.body as any
-    await ctx.acl.project(project_id).admin()
+    const input = createTaskSourceInputSchema.parse(ctx.body)
+    await ctx.acl.project(input.project_id).admin()
 
-    const taskSource = await taskSourceQueries.createTaskSource(sql, ctx.body as any)
+    const taskSource = await taskSourceQueries.createTaskSource(sql, input)
 
     const provider = taskSource.type === 'gitlab_issues' ? 'gitlab' : taskSource.type === 'github_issues' ? 'github' : 'jira'
     await publishTaskSync({ taskSourceId: taskSource.id, provider })
@@ -58,7 +59,8 @@ export function createTaskSourceHandlers(sql: Sql) {
     const { id } = ctx.params
     const taskSource = await taskSourceQueries.findTaskSourceById(sql, id)
     await ctx.acl.project(taskSource.project_id).admin()
-    return taskSourceQueries.updateTaskSource(sql, id, ctx.body as any)
+    const input = updateTaskSourceInputSchema.parse(ctx.body)
+    return taskSourceQueries.updateTaskSource(sql, id, input)
   })
 
   const deleteTaskSource = handler(deleteTaskSourceConfig, async (ctx) => {
