@@ -3,7 +3,6 @@
  */
 
 import type { Sql } from 'postgres'
-import { handler } from '@adi-family/http'
 import {
   getSessionMessagesConfig,
   getSessionPipelineExecutionsConfig,
@@ -13,84 +12,45 @@ import {
 import * as messageQueries from '@db/messages'
 import * as pipelineExecutionQueries from '@db/pipeline-executions'
 import * as sessionQueries from '@db/sessions'
-import * as taskQueries from '@db/tasks'
-import * as userAccessQueries from '@db/user-access'
-import { getUserIdFromClerkToken, requireProjectAccess } from '../utils/auth'
-import { createLogger } from '@utils/logger'
-
-const logger = createLogger({ namespace: 'sessions-handler' })
+import { createSecuredHandlers } from '../utils/auth'
 
 export function createSessionHandlers(sql: Sql) {
-  async function verifySessionAccess(userId: string, sessionId: string): Promise<void> {
-    const session = await sessionQueries.findSessionById(sql, sessionId)
-
-    if (!session.task_id) {
-      throw new Error('Forbidden: Session not associated with a task')
-    }
-
-    const task = await taskQueries.findTaskById(sql, session.task_id)
-
-    if (!task.project_id) {
-      throw new Error('Forbidden: Task not associated with a project')
-    }
-
-    await requireProjectAccess(sql, userId, task.project_id)
-  }
+  const { handler } = createSecuredHandlers(sql)
 
   const getSessionMessages = handler(getSessionMessagesConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { sessionId } = ctx.params
-
-    await verifySessionAccess(userId, sessionId)
-
-    const messages = await messageQueries.findMessagesBySessionId(sql, sessionId)
-    return messages
+    await ctx.acl.session(sessionId).viewer()
+    return messageQueries.findMessagesBySessionId(sql, sessionId)
   })
 
   const getSessionPipelineExecutions = handler(getSessionPipelineExecutionsConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { sessionId } = ctx.params
-
-    await verifySessionAccess(userId, sessionId)
-
-    const executions = await pipelineExecutionQueries.findPipelineExecutionsBySessionId(sql, sessionId)
-    return executions
+    await ctx.acl.session(sessionId).viewer()
+    return pipelineExecutionQueries.findPipelineExecutionsBySessionId(sql, sessionId)
   })
 
   const getSession = handler(getSessionConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { id } = ctx.params
-
-    await verifySessionAccess(userId, id)
-
-    const session = await sessionQueries.findSessionById(sql, id)
-    return session
+    await ctx.acl.session(id).viewer()
+    return sessionQueries.findSessionById(sql, id)
   })
 
   const listSessions = handler(listSessionsConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
-
-    // Get all accessible projects for the user
-    const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, userId)
-
+    const accessibleProjectIds = await ctx.acl.accessibleProjectIds()
     if (accessibleProjectIds.length === 0) {
       return []
     }
 
-    // Get all sessions and filter by accessible projects
     const allSessions = await sessionQueries.findAllSessions(sql)
     const filteredSessions = []
 
     for (const session of allSessions) {
       if (session.task_id) {
         try {
-          const task = await taskQueries.findTaskById(sql, session.task_id)
-          if (task.project_id && accessibleProjectIds.includes(task.project_id)) {
-            filteredSessions.push(session)
-          }
-        } catch (error) {
-          // Skip sessions with missing tasks
-          logger.warn(`Task not found for session ${session.id}:`, error)
+          await ctx.acl.session(session.id).viewer()
+          filteredSessions.push(session)
+        } catch {
+          // Skip sessions the user doesn't have access to
         }
       }
     }

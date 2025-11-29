@@ -3,7 +3,6 @@
  */
 
 import type { Sql } from 'postgres'
-import { handler } from '@adi-family/http'
 import {
   gitlabOAuthAuthorizeConfig,
   gitlabOAuthExchangeConfig,
@@ -15,18 +14,18 @@ import {
   githubOAuthExchangeConfig
 } from '@adi/api-contracts'
 import * as secretQueries from '@db/secrets'
-import * as userAccessQueries from '@db/user-access'
 import { createLogger } from '@utils/logger'
 import { buildUrl } from '@utils/url'
 import { refreshGitLabToken, refreshJiraToken } from '@backend/services/oauth-token-refresh'
-import { getUserIdFromClerkToken } from '../utils/auth'
+import { createSecuredHandlers } from '../utils/auth'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 
 const logger = createLogger({ namespace: 'oauth-handler' })
 
 export function createOAuthHandlers(sql: Sql) {
-  const gitlabAuthorize = handler(gitlabOAuthAuthorizeConfig, async (ctx) => {
-    await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
+  const { handler } = createSecuredHandlers(sql)
+
+  const gitlabAuthorize = handler(gitlabOAuthAuthorizeConfig, async () => {
     const gitlabHost = process.env.GITLAB_ROOT_OAUTH_HOST || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
     const clientId = process.env.GITLAB_OAUTH_CLIENT_ID
     const redirectUri = process.env.GITLAB_OAUTH_REDIRECT_URI
@@ -36,32 +35,22 @@ export function createOAuthHandlers(sql: Sql) {
     }
 
     const state = crypto.randomUUID()
-    const scopes = 'api'
-
     const authUrl = buildUrl(`${gitlabHost}/oauth/authorize`, {
       client_id: clientId,
       redirect_uri: redirectUri,
       response_type: 'code',
       state,
-      scope: scopes
+      scope: 'api'
     })
 
     logger.info('Initiating GitLab OAuth flow', { clientId, gitlabHost, state, redirectUri })
-
     return { authUrl, state }
   })
 
   const gitlabExchange = handler(gitlabOAuthExchangeConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { projectId, code, secretName } = ctx.body
+    await ctx.acl.project(projectId).admin()
 
-    // CRITICAL: Verify user has admin access to the project before storing OAuth token
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, projectId, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You must have admin access to this project to configure OAuth')
-    }
-
-    // Always use GITLAB_ROOT_OAUTH_HOST for OAuth operations
     const host = process.env.GITLAB_ROOT_OAUTH_HOST || process.env.GITLAB_OAUTH_HOST || 'https://gitlab.com'
     const clientId = process.env.GITLAB_OAUTH_CLIENT_ID
     const clientSecret = process.env.GITLAB_OAUTH_CLIENT_SECRET
@@ -71,13 +60,9 @@ export function createOAuthHandlers(sql: Sql) {
       throw new Error('GitLab OAuth is not configured on the server')
     }
 
-    // Exchange code for token
-    const tokenUrl = `${host}/oauth/token`
-    const tokenResponse = await fetch(tokenUrl, {
+    const tokenResponse = await fetch(`${host}/oauth/token`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         client_id: clientId,
         client_secret: clientSecret,
@@ -95,16 +80,12 @@ export function createOAuthHandlers(sql: Sql) {
 
     const tokenData = await tokenResponse.json() as any
     const { access_token, refresh_token, expires_in, scope } = tokenData
-
-    // Calculate expiration
     const expiresAt = new Date(Date.now() + expires_in * 1000)
 
-    // Fetch user info to verify token using GitLabApiClient
     const gitlabClient = new GitLabApiClient(host, access_token, 'oauth')
     const userData = await gitlabClient.getCurrentUser()
     logger.info('GitLab OAuth successful', { username: userData.username, host })
 
-    // Store OAuth token as secret
     const secret = await secretQueries.upsertSecret(sql, {
       project_id: projectId,
       name: secretName,
@@ -123,48 +104,30 @@ export function createOAuthHandlers(sql: Sql) {
       success: true,
       secretId: secret.id,
       expiresAt: expiresAt.toISOString(),
-      user: {
-        username: userData.username,
-        name: userData.name,
-        email: userData.email
-      }
+      user: { username: userData.username, name: userData.name, email: userData.email }
     }
   })
 
   const gitlabRefresh = handler(gitlabOAuthRefreshConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { secretId } = ctx.params
-
     const secret = await secretQueries.findSecretById(sql, secretId)
 
     if (secret.token_type !== 'oauth' || secret.oauth_provider !== 'gitlab') {
       throw new Error('Secret is not a GitLab OAuth token')
     }
 
-    // Verify user has access to the secret's project
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, secret.project_id, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You do not have admin access to this secret\'s project')
-    }
-
-    // Use shared refresh utility
+    await ctx.acl.project(secret.project_id).admin()
     await refreshGitLabToken(sql, secret)
 
-    // Fetch updated secret to get new expiration
     const updatedSecret = await secretQueries.findSecretById(sql, secretId)
-
-    return {
-      success: true,
-      expiresAt: updatedSecret.expires_at || null
-    }
+    return { success: true, expiresAt: updatedSecret.expires_at || null }
   })
 
   // ============================================================================
   // JIRA OAUTH
   // ============================================================================
 
-  const jiraAuthorize = handler(jiraOAuthAuthorizeConfig, async (ctx) => {
-    await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
+  const jiraAuthorize = handler(jiraOAuthAuthorizeConfig, async () => {
     const clientId = process.env.JIRA_OAUTH_CLIENT_ID
     const redirectUri = process.env.JIRA_OAUTH_REDIRECT_URI
 
@@ -173,12 +136,10 @@ export function createOAuthHandlers(sql: Sql) {
     }
 
     const state = crypto.randomUUID()
-    const scopes = 'read:jira-work write:jira-work offline_access'
-
     const authUrl = buildUrl('https://auth.atlassian.com/authorize', {
       audience: 'api.atlassian.com',
       client_id: clientId,
-      scope: scopes,
+      scope: 'read:jira-work write:jira-work offline_access',
       redirect_uri: redirectUri,
       state,
       response_type: 'code',
@@ -186,21 +147,13 @@ export function createOAuthHandlers(sql: Sql) {
     })
 
     logger.info('Initiating Jira OAuth flow', { clientId, state, redirectUri })
-
     return { authUrl, state }
   })
 
   const jiraExchange = handler(jiraOAuthExchangeConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { projectId, code, secretName, cloudId } = ctx.body
+    await ctx.acl.project(projectId).admin()
 
-    // CRITICAL: Verify user has admin access to the project before storing OAuth token
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, projectId, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You must have admin access to this project to configure OAuth')
-    }
-
-    // Get OAuth config from environment
     const clientId = process.env.JIRA_OAUTH_CLIENT_ID
     const clientSecret = process.env.JIRA_OAUTH_CLIENT_SECRET
     const redirectUri = process.env.JIRA_OAUTH_REDIRECT_URI
@@ -209,13 +162,9 @@ export function createOAuthHandlers(sql: Sql) {
       throw new Error('Jira OAuth is not configured on the server')
     }
 
-    // Exchange code for tokens
-    const tokenUrl = 'https://auth.atlassian.com/oauth/token'
-    const tokenResponse = await fetch(tokenUrl, {
+    const tokenResponse = await fetch('https://auth.atlassian.com/oauth/token', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         grant_type: 'authorization_code',
         client_id: clientId,
@@ -233,17 +182,10 @@ export function createOAuthHandlers(sql: Sql) {
 
     const tokenData = await tokenResponse.json() as any
     const { access_token, refresh_token, expires_in, scope } = tokenData
-
-    // Calculate expiration timestamp
     const expiresAt = new Date(Date.now() + expires_in * 1000)
 
-    // Fetch accessible resources (Jira sites)
-    const resourcesUrl = 'https://api.atlassian.com/oauth/token/accessible-resources'
-    const resourcesResponse = await fetch(resourcesUrl, {
-      headers: {
-        Authorization: `Bearer ${access_token}`,
-        Accept: 'application/json'
-      }
+    const resourcesResponse = await fetch('https://api.atlassian.com/oauth/token/accessible-resources', {
+      headers: { Authorization: `Bearer ${access_token}`, Accept: 'application/json' }
     })
 
     if (!resourcesResponse.ok) {
@@ -254,7 +196,6 @@ export function createOAuthHandlers(sql: Sql) {
     const resources = await resourcesResponse.json() as any[]
     logger.info('Fetched accessible Jira sites', { count: resources.length })
 
-    // Store OAuth token as secret
     const secret = await secretQueries.upsertSecret(sql, {
       project_id: projectId,
       name: secretName,
@@ -273,49 +214,30 @@ export function createOAuthHandlers(sql: Sql) {
       success: true,
       secretId: secret.id,
       expiresAt: expiresAt.toISOString(),
-      sites: resources.map((r: any) => ({
-        id: r.id,
-        url: r.url,
-        name: r.name,
-        scopes: r.scopes
-      }))
+      sites: resources.map((r: any) => ({ id: r.id, url: r.url, name: r.name, scopes: r.scopes }))
     }
   })
 
   const jiraRefresh = handler(jiraOAuthRefreshConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { secretId } = ctx.params
-
     const secret = await secretQueries.findSecretById(sql, secretId)
 
     if (secret.token_type !== 'oauth' || secret.oauth_provider !== 'jira') {
       throw new Error('Secret is not a Jira OAuth token')
     }
 
-    // Verify user has access to the secret's project
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, secret.project_id, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You do not have admin access to this secret\'s project')
-    }
-
-    // Use shared refresh utility
+    await ctx.acl.project(secret.project_id).admin()
     await refreshJiraToken(sql, secret)
 
-    // Fetch updated secret to get new expiration
     const updatedSecret = await secretQueries.findSecretById(sql, secretId)
-
-    return {
-      success: true,
-      expiresAt: updatedSecret.expires_at || null
-    }
+    return { success: true, expiresAt: updatedSecret.expires_at || null }
   })
 
   // ============================================================================
   // GITHUB OAUTH
   // ============================================================================
 
-  const githubAuthorize = handler(githubOAuthAuthorizeConfig, async (ctx) => {
-    await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
+  const githubAuthorize = handler(githubOAuthAuthorizeConfig, async () => {
     const clientId = process.env.GITHUB_OAUTH_CLIENT_ID
     const redirectUri = process.env.GITHUB_OAUTH_REDIRECT_URI
 
@@ -324,29 +246,20 @@ export function createOAuthHandlers(sql: Sql) {
     }
 
     const state = crypto.randomUUID()
-    const scopes = 'repo workflow'
-
     const authUrl = buildUrl('https://github.com/login/oauth/authorize', {
       client_id: clientId,
       redirect_uri: redirectUri,
-      scope: scopes,
+      scope: 'repo workflow',
       state
     })
 
     logger.info('Initiating GitHub OAuth flow', { clientId, state, redirectUri })
-
     return { authUrl, state }
   })
 
   const githubExchange = handler(githubOAuthExchangeConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
     const { projectId, code, secretName } = ctx.body
-
-    // CRITICAL: Verify user has admin access to the project before storing OAuth token
-    const hasAccess = await userAccessQueries.hasProjectAccess(sql, userId, projectId, 'admin')
-    if (!hasAccess) {
-      throw new Error('Forbidden: You must have admin access to this project to configure OAuth')
-    }
+    await ctx.acl.project(projectId).admin()
 
     const clientId = process.env.GITHUB_OAUTH_CLIENT_ID
     const clientSecret = process.env.GITHUB_OAUTH_CLIENT_SECRET
@@ -356,14 +269,9 @@ export function createOAuthHandlers(sql: Sql) {
       throw new Error('GitHub OAuth is not configured on the server')
     }
 
-    // Exchange code for token
-    const tokenUrl = 'https://github.com/login/oauth/access_token'
-    const tokenResponse = await fetch(tokenUrl, {
+    const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
       method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      },
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
       body: JSON.stringify({
         client_id: clientId,
         client_secret: clientSecret,
@@ -386,7 +294,6 @@ export function createOAuthHandlers(sql: Sql) {
       throw new Error('Failed to obtain GitHub access token')
     }
 
-    // Fetch user info to verify token
     const userResponse = await fetch('https://api.github.com/user', {
       headers: {
         'Authorization': `Bearer ${access_token}`,
@@ -403,10 +310,8 @@ export function createOAuthHandlers(sql: Sql) {
     const userData = await userResponse.json() as any
     logger.info('GitHub OAuth successful', { login: userData.login })
 
-    // Parse scopes
     const scopes = scope ? scope.split(',').map((s: string) => s.trim()) : []
 
-    // Store OAuth token as secret (GitHub OAuth tokens don't expire)
     const secret = await secretQueries.upsertSecret(sql, {
       project_id: projectId,
       name: secretName,
@@ -414,8 +319,8 @@ export function createOAuthHandlers(sql: Sql) {
       description: `GitHub OAuth token for ${userData.login} (auto-managed)`,
       oauth_provider: 'github',
       token_type: 'oauth',
-      refresh_token: undefined, // GitHub OAuth tokens don't have refresh tokens
-      expires_at: undefined, // GitHub OAuth tokens don't expire
+      refresh_token: undefined,
+      expires_at: undefined,
       scopes: scope || ''
     })
 
@@ -424,10 +329,7 @@ export function createOAuthHandlers(sql: Sql) {
     return {
       success: true,
       secretId: secret.id,
-      user: {
-        login: userData.login,
-        name: userData.name
-      },
+      user: { login: userData.login, name: userData.name },
       scopes
     }
   })

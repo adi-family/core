@@ -1,13 +1,12 @@
 import type { Sql } from 'postgres'
 import { z } from 'zod'
-import { handler } from '@adi-family/http'
 import { getUsageMetricsConfig, getWorkerReposConfig, refreshWorkerReposConfig } from '@adi/api-contracts/admin'
 import { findRecentUsageMetrics, findAggregatedUsageMetrics } from '@adi-simple/db/api-usage-metrics'
 import { findWorkerRepositoryStatus, findWorkerRepositoriesWithProjects } from '@adi-simple/db/worker-repositories'
 import { CIRepositoryManager } from '@adi-simple/worker/ci-repository-manager'
 import { createLogger } from '@utils/logger'
 import { assertNever } from '@utils/assert-never'
-import { getUserIdFromClerkToken, requireAdminAccess } from '../utils/auth'
+import { createSecuredHandlers } from '../utils/auth'
 
 const logger = createLogger({ namespace: 'admin-handler' })
 
@@ -25,9 +24,10 @@ export const refreshResultSchema = z.object({
 export type RefreshResult = z.infer<typeof refreshResultSchema>
 
 export function createAdminHandlers(sql: Sql) {
+  const { handler } = createSecuredHandlers(sql)
+
   const getUsageMetrics = handler(getUsageMetricsConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
-    await requireAdminAccess(sql, userId)
+    await ctx.acl.isAdmin()
 
     const { query } = ctx
     const filters = {
@@ -37,30 +37,22 @@ export function createAdminHandlers(sql: Sql) {
       goal: query?.goal,
     }
 
-    const limit = query?.limit ?? 100;
-
     const [recent, aggregated] = await Promise.all([
-      findRecentUsageMetrics(sql, filters, limit),
+      findRecentUsageMetrics(sql, filters, query?.limit ?? 100),
       findAggregatedUsageMetrics(sql, filters),
     ])
 
-    return {
-      recent,
-      aggregated,
-    }
+    return { recent, aggregated }
   })
 
   const getWorkerRepos = handler(getWorkerReposConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
-    await requireAdminAccess(sql, userId)
-
+    await ctx.acl.isAdmin()
     const repositories = await findWorkerRepositoryStatus(sql)
     return { repositories }
   })
 
   const refreshWorkerRepos = handler(refreshWorkerReposConfig, async (ctx) => {
-    const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
-    await requireAdminAccess(sql, userId)
+    await ctx.acl.isAdmin()
 
     logger.info('Starting worker repository refresh...')
 
