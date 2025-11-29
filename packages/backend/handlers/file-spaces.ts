@@ -3,8 +3,7 @@
  */
 
 import type { Sql } from 'postgres'
-import { z } from 'zod'
-import { handler, type HandlerContext } from '@adi-family/http'
+import { handler } from '@adi-family/http'
 import {
   listFileSpacesConfig,
   getFileSpaceConfig,
@@ -15,75 +14,13 @@ import {
 } from '@adi/api-contracts/file-spaces'
 import * as fileSpaceQueries from '@db/file-spaces'
 import * as userAccessQueries from '@db/user-access'
-import * as apiKeyQueries from '@db/api-keys'
-import { verifyToken } from '@clerk/backend'
-import { CLERK_SECRET_KEY } from '../config'
-import { createLogger } from '@utils/logger'
+import { authenticate } from '../utils/auth'
 
-const logger = createLogger({ namespace: 'file-spaces-handler' })
-
-export const authResultSchema = z.object({
-  userId: z.string().optional(),
-  projectId: z.string().optional(),
-  isApiKey: z.boolean()
-})
-
-export type AuthResult = z.infer<typeof authResultSchema>
+export { authResultSchema, type AuthResult } from '../utils/auth'
 
 export function createFileSpaceHandlers(sql: Sql) {
-  async function authenticate(ctx: HandlerContext<any, any, any>): Promise<AuthResult> {
-    const authHeader = ctx.headers.get('Authorization')
-    if (!authHeader) {
-      throw new Error('Unauthorized: No Authorization header')
-    }
-
-    const token = authHeader.replace('Bearer ', '')
-    if (!token) {
-      throw new Error('Unauthorized: Invalid token format')
-    }
-
-    // Check if this is an API key (starts with adk_)
-    if (token.startsWith('adk_')) {
-      logger.debug('Authenticating with API key')
-      const validation = await apiKeyQueries.validateApiKey(sql, token)
-
-      if (!validation.valid || !validation.projectId) {
-        throw new Error('Unauthorized: Invalid API key')
-      }
-
-      // Check if API key has permission to access file spaces
-      if (!validation.apiKey?.permissions?.read_project) {
-        throw new Error('Forbidden: API key does not have permission to access file spaces')
-      }
-
-      return {
-        projectId: validation.projectId,
-        isApiKey: true
-      }
-    }
-
-    // Otherwise, treat as Clerk JWT token
-    logger.debug('Authenticating with Clerk token')
-    if (!CLERK_SECRET_KEY) {
-      throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
-    }
-
-    try {
-      const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
-      if (!payload.sub) {
-        throw new Error('Unauthorized: Invalid token payload')
-      }
-      return {
-        userId: payload.sub,
-        isApiKey: false
-      }
-    } catch (error) {
-      logger.error('Token verification failed:', error)
-      throw new Error('Unauthorized: Token verification failed')
-    }
-  }
   const listFileSpaces = handler(listFileSpacesConfig, async (ctx) => {
-    const auth = await authenticate(ctx)
+    const auth = await authenticate(sql, ctx)
     const { project_id } = ctx.query || {}
 
     // API key authentication - restrict to API key's project
@@ -111,7 +48,7 @@ export function createFileSpaceHandlers(sql: Sql) {
   })
 
   const getFileSpace = handler(getFileSpaceConfig, async (ctx) => {
-    const auth = await authenticate(ctx)
+    const auth = await authenticate(sql, ctx)
     const { id } = ctx.params
 
     const fileSpace = await fileSpaceQueries.findFileSpaceById(sql, id)
@@ -133,7 +70,7 @@ export function createFileSpaceHandlers(sql: Sql) {
   })
 
   const createFileSpace = handler(createFileSpaceConfig, async (ctx) => {
-    const auth = await authenticate(ctx)
+    const auth = await authenticate(sql, ctx)
     const { project_id } = ctx.body as any
 
     // API key authentication - check project match and write permission
@@ -155,7 +92,7 @@ export function createFileSpaceHandlers(sql: Sql) {
   })
 
   const updateFileSpace = handler(updateFileSpaceConfig, async (ctx) => {
-    const auth = await authenticate(ctx)
+    const auth = await authenticate(sql, ctx)
     const { id } = ctx.params
 
     const fileSpace = await fileSpaceQueries.findFileSpaceById(sql, id)
@@ -177,7 +114,7 @@ export function createFileSpaceHandlers(sql: Sql) {
   })
 
   const deleteFileSpace = handler(deleteFileSpaceConfig, async (ctx) => {
-    const auth = await authenticate(ctx)
+    const auth = await authenticate(sql, ctx)
     const { id } = ctx.params
 
     const fileSpace = await fileSpaceQueries.findFileSpaceById(sql, id)
@@ -200,7 +137,7 @@ export function createFileSpaceHandlers(sql: Sql) {
   })
 
   const getTaskFileSpaces = handler(getTaskFileSpacesConfig, async (ctx) => {
-    const auth = await authenticate(ctx)
+    const auth = await authenticate(sql, ctx)
     const { id } = ctx.params
 
     // Get task's project and check access

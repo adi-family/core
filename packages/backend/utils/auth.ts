@@ -6,7 +6,10 @@ import { verifyToken } from '@clerk/backend'
 import { createLogger } from '@utils/logger'
 import { CLERK_SECRET_KEY } from '../config'
 import type { Sql } from 'postgres'
+import type { HandlerContext } from '@adi-family/http'
+import { z } from 'zod'
 import * as userAccessQueries from '@db/user-access'
+import * as apiKeyQueries from '@db/api-keys'
 import type { Role } from '@db/user-access'
 
 const logger = createLogger({ namespace: 'auth-utils' })
@@ -89,5 +92,72 @@ export async function requireAdminAccess(sql: Sql, userId: string): Promise<void
   const hasAdminAccess = await userAccessQueries.hasAdminAccess(sql, userId)
   if (!hasAdminAccess) {
     throw new Error('Forbidden: Admin access required. You must be an owner or admin of at least one project.')
+  }
+}
+
+export const authResultSchema = z.object({
+  userId: z.string().optional(),
+  projectId: z.string().optional(),
+  isApiKey: z.boolean()
+})
+
+export type AuthResult = z.infer<typeof authResultSchema>
+
+/**
+ * Authenticate request using either API key or Clerk JWT token
+ * @param sql - Postgres connection
+ * @param ctx - Handler context with headers
+ * @returns AuthResult with userId or projectId and authentication type
+ * @throws Error if authentication fails
+ */
+export async function authenticate(sql: Sql, ctx: HandlerContext<any, any, any>): Promise<AuthResult> {
+  const authHeader = ctx.headers.get('Authorization')
+  if (!authHeader) {
+    throw new Error('Unauthorized: No Authorization header')
+  }
+
+  const token = authHeader.replace('Bearer ', '')
+  if (!token) {
+    throw new Error('Unauthorized: Invalid token format')
+  }
+
+  // Check if this is an API key (starts with adk_)
+  if (token.startsWith('adk_')) {
+    logger.debug('Authenticating with API key')
+    const validation = await apiKeyQueries.validateApiKey(sql, token)
+
+    if (!validation.valid || !validation.projectId) {
+      throw new Error('Unauthorized: Invalid API key')
+    }
+
+    // Check if API key has permission to access file spaces
+    if (!validation.apiKey?.permissions?.read_project) {
+      throw new Error('Forbidden: API key does not have permission to access file spaces')
+    }
+
+    return {
+      projectId: validation.projectId,
+      isApiKey: true
+    }
+  }
+
+  // Otherwise, treat as Clerk JWT token
+  logger.debug('Authenticating with Clerk token')
+  if (!CLERK_SECRET_KEY) {
+    throw new Error('Authentication not configured: CLERK_SECRET_KEY missing')
+  }
+
+  try {
+    const payload = await verifyToken(token, { secretKey: CLERK_SECRET_KEY })
+    if (!payload.sub) {
+      throw new Error('Unauthorized: Invalid token payload')
+    }
+    return {
+      userId: payload.sub,
+      isApiKey: false
+    }
+  } catch (error) {
+    logger.error('Token verification failed:', error)
+    throw new Error('Unauthorized: Token verification failed')
   }
 }
