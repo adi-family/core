@@ -5,6 +5,7 @@
  */
 
 import type { Sql } from 'postgres'
+import type { GitlabSource } from '@types'
 import { GitLabApiClient } from '@shared/gitlab-api-client'
 import { retry, isRetryableError } from '@utils/retry'
 import { createLogger } from '@utils/logger'
@@ -123,12 +124,7 @@ export async function updatePipelineStatus(executionId: string, sql: Sql): Promi
     )
 
     // Parse source from JSONB
-    const source = workerRepo.source_gitlab as unknown as {
-      type: string
-      project_id?: string
-      host?: string
-      access_token_encrypted?: string
-    }
+    const source = workerRepo.source_gitlab as GitlabSource
 
     // Validate source configuration
     if (source.type !== 'gitlab') {
@@ -140,10 +136,10 @@ export async function updatePipelineStatus(executionId: string, sql: Sql): Promi
     validateGitLabSource(source)
 
     // Decrypt access token
-    const accessToken = decryptGitLabToken(source.access_token_encrypted!)
+    const accessToken = decryptGitLabToken(source.access_token_encrypted)
 
     // Fetch pipeline status from GitLab with retry logic
-    const gitlabClient = new GitLabApiClient(source.host!, accessToken)
+    const gitlabClient = new GitLabApiClient(source.host, accessToken)
 
     const pipeline = await retry(
       async () => {

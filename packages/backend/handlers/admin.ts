@@ -88,7 +88,7 @@ export function createAdminHandlers(sql: Sql) {
       logger.info(`\n📤 Refreshing repository for project: ${repo.project_name}`)
 
       try {
-        const source = repo.source_gitlab as any
+        const source = repo.source_gitlab
 
         if (!source || source.type !== 'gitlab') {
           const error = 'Invalid or missing GitLab source'

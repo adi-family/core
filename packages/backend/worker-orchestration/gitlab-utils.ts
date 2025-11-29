@@ -1,15 +1,9 @@
 import { decrypt } from '@shared/crypto-utils'
+import type { GitlabSource } from '@types'
 
-export interface GitLabSource {
-  type: string
-  project_id?: string
-  project_path?: string
-  host?: string
-  user?: string
-  access_token_encrypted?: string
-}
+export type { GitlabSource as GitLabSource }
 
-export function validateGitLabSource(source: GitLabSource): void {
+export function validateGitLabSource(source: GitlabSource): void {
   if (!source.project_id || !source.host || !source.access_token_encrypted) {
     throw new Error(
       `Invalid GitLab source configuration. Missing required fields: ${[
@@ -39,7 +33,7 @@ interface GitlabCredentials {
   accessToken: string
 }
 
-export function extractGitLabCredentials(source: GitLabSource): GitlabCredentials {
+export function extractGitLabCredentials(source: GitlabSource): GitlabCredentials {
   validateGitLabSource(source)
 
   return {

@@ -9,6 +9,17 @@ export const gitlabMetadataSchema = z.object({
 
 export type GitlabMetadata = z.infer<typeof gitlabMetadataSchema>
 
+export const gitlabSourceSchema = z.object({
+  type: z.literal('gitlab'),
+  project_id: z.string().optional(),
+  project_path: z.string().optional(),
+  host: z.string(),
+  user: z.string(),
+  access_token_encrypted: z.string()
+})
+
+export type GitlabSource = z.infer<typeof gitlabSourceSchema>
+
 export const githubMetadataSchema = z.object({
   provider: z.literal('github'),
   repo: z.string(),
@@ -638,7 +649,7 @@ export type UpdateTaskSourceInput = z.infer<typeof updateTaskSourceInputSchema>
 export const workerRepositorySchema = z.object({
   id: z.string(),
   project_id: z.string(),
-  source_gitlab: z.unknown(),
+  source_gitlab: gitlabSourceSchema,
   current_version: z.string().nullable(),
   created_at: z.string(),
   updated_at: z.string()
@@ -648,7 +659,7 @@ export type WorkerRepository = z.infer<typeof workerRepositorySchema>
 
 export const createWorkerRepositoryInputSchema = z.object({
   project_id: z.string(),
-  source_gitlab: z.unknown(),
+  source_gitlab: gitlabSourceSchema,
   current_version: z.string()
 })
 

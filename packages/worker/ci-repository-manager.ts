@@ -7,21 +7,14 @@ import { createLogger } from '../utils/logger'
 import { assertNever } from "@utils/assert-never.ts"
 import { getAllFiles } from '@utils/file-system'
 import { fileURLToPath } from 'url'
+import type { GitlabSource } from '@types'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
 
 const logger = createLogger({ namespace: 'ci-repository-manager' })
 
-export interface WorkerRepositorySourceGitlab {
-  type: 'gitlab'
-  project_id?: string
-  project_path?: string
-  host: string
-  user: string
-  access_token_encrypted: string
-}
-
+export type WorkerRepositorySourceGitlab = GitlabSource
 export type WorkerRepositorySource = WorkerRepositorySourceGitlab;
 
 interface CreateGitlabWorkerRepositoryConfig {

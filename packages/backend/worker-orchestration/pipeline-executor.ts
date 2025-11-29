@@ -38,7 +38,7 @@ interface PipelineContext {
   session: { id: string; task_id: string | null; runner: string | null }
   task: { id: string; project_id: string | null }
   project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null; ai_provider_configs: AIProviderConfig | null }
-  workerRepo: { id: string; current_version: string | null; source_gitlab: unknown }
+  workerRepo: { id: string; current_version: string | null; source_gitlab: GitLabSource }
   source: GitLabSource
   userId: string | null
 }
@@ -49,13 +49,13 @@ interface PipelineContext {
 async function ensureWorkerRepository(
   project: { id: string; name: string; job_executor_gitlab: GitlabExecutorConfig | null },
   sql: Sql
-): Promise<{ id: string; current_version: string | null; source_gitlab: unknown }> {
+): Promise<{ id: string; current_version: string | null; source_gitlab: GitLabSource }> {
   try {
     // Fetch worker repository directly from database (bypass authentication)
     const workerRepo = await findWorkerRepositoryByProjectId(sql, project.id)
 
     try {
-      const source = workerRepo.source_gitlab as unknown as GitLabSource
+      const source = workerRepo.source_gitlab
       if (source && source.type === 'gitlab' && source.project_id && source.host && source.access_token_encrypted) {
         const gitlabToken = decryptGitLabToken(source.access_token_encrypted)
         const gitlabClient = new GitLabApiClient(source.host, gitlabToken)
@@ -131,7 +131,7 @@ async function ensureWorkerRepository(
   // Save to database directly (bypass authentication)
   const workerRepo = await createWorkerRepository(sql, {
     project_id: project.id,
-    source_gitlab: source as unknown,
+    source_gitlab: source,
     current_version: version,
   })
 

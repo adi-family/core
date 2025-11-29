@@ -1,5 +1,5 @@
 import type { Sql } from 'postgres'
-import type { WorkerRepository, CreateWorkerRepositoryInput, UpdateWorkerRepositoryInput } from '@types'
+import type { WorkerRepository, CreateWorkerRepositoryInput, UpdateWorkerRepositoryInput, GitlabSource } from '@types'
 import { filterPresentColumns, get, findOneById, deleteById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
 
@@ -57,7 +57,7 @@ interface WorkerRepoWithProject {
   id: string
   project_id: string
   project_name: string
-  source_gitlab: any
+  source_gitlab: GitlabSource
   current_version: string
 }
 

@@ -406,9 +406,11 @@ const mockWorkerRepositories: WorkerRepository[] = [
     id: "wr-1",
     project_id: "1",
     source_gitlab: {
-      repo: "company/web-app-worker",
+      type: 'gitlab',
+      project_path: "company/web-app-worker",
       host: DEFAULT_HOSTS.gitlab,
-      access_token_secret_id: "secret-1"
+      user: "ci-bot",
+      access_token_encrypted: "encrypted-token-1"
     },
     current_version: "v1.2.3",
     created_at: "2024-01-01",
@@ -418,9 +420,11 @@ const mockWorkerRepositories: WorkerRepository[] = [
     id: "wr-2",
     project_id: "2",
     source_gitlab: {
-      repo: "company/mobile-worker",
+      type: 'gitlab',
+      project_path: "company/mobile-worker",
       host: DEFAULT_HOSTS.gitlab,
-      access_token_secret_id: "secret-3"
+      user: "ci-bot",
+      access_token_encrypted: "encrypted-token-2"
     },
     current_version: "v2.0.1",
     created_at: "2024-01-05",
@@ -430,9 +434,11 @@ const mockWorkerRepositories: WorkerRepository[] = [
     id: "wr-3",
     project_id: "3",
     source_gitlab: {
-      repo: "company/api-worker",
+      type: 'gitlab',
+      project_path: "company/api-worker",
       host: DEFAULT_HOSTS.gitlab,
-      access_token_secret_id: "secret-1"
+      user: "ci-bot",
+      access_token_encrypted: "encrypted-token-3"
     },
     current_version: "v1.5.0",
     created_at: "2024-01-10",
