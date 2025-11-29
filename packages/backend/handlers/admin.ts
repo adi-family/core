@@ -6,6 +6,7 @@ import { findRecentUsageMetrics, findAggregatedUsageMetrics } from '@adi-simple/
 import { findWorkerRepositoryStatus, findWorkerRepositoriesWithProjects } from '@adi-simple/db/worker-repositories'
 import { CIRepositoryManager } from '@adi-simple/worker/ci-repository-manager'
 import { createLogger } from '@utils/logger'
+import { assertNever } from '@utils/assert-never'
 import { getUserIdFromClerkToken, requireAdminAccess } from '../utils/auth'
 
 const logger = createLogger({ namespace: 'admin-handler' })
@@ -85,13 +86,13 @@ export function createAdminHandlers(sql: Sql) {
     let failedCount = 0
 
     for (const repo of repositories) {
-      logger.info(`\n📤 Refreshing repository for project: ${repo.project_name}`)
+      logger.info(`📤 Refreshing repository for project: ${repo.project_name}`)
 
       try {
         const source = repo.source_gitlab
 
-        if (!source || source.type !== 'gitlab') {
-          const error = 'Invalid or missing GitLab source'
+        if (!source) {
+          const error = 'Missing source configuration'
           logger.warn(`⚠️  ${error}`)
           results.push({
             project: repo.project_name,
@@ -100,6 +101,13 @@ export function createAdminHandlers(sql: Sql) {
           })
           failedCount++
           continue
+        }
+
+        switch (source.type) {
+          case 'gitlab':
+            break
+          default:
+            assertNever(source.type)
         }
 
         if (!repo.current_version) {
@@ -114,9 +122,9 @@ export function createAdminHandlers(sql: Sql) {
           continue
         }
 
-        logger.info(`   Version: ${repo.current_version}`)
-        logger.info(`   Project: ${source.project_path}`)
-        logger.info(`   Host: ${source.host}`)
+        logger.info(`Version: ${repo.current_version}`)
+        logger.info(`Project: ${source.project_path}`)
+        logger.info(`Host: ${source.host}`)
 
         // Force upload CI files
         const uploadedFiles = await manager.uploadCIFiles({
@@ -125,7 +133,7 @@ export function createAdminHandlers(sql: Sql) {
           force: true,
         })
 
-        logger.info(`    Successfully uploaded ${uploadedFiles} file(s)`)
+        logger.info(`Successfully uploaded ${uploadedFiles} file(s)`)
         results.push({
           project: repo.project_name,
           success: true,
@@ -134,7 +142,7 @@ export function createAdminHandlers(sql: Sql) {
         successCount++
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : String(error)
-        logger.error(`    Failed to refresh repository:`, error)
+        logger.error(`Failed to refresh repository:`, error)
         results.push({
           project: repo.project_name,
           success: false,
@@ -145,7 +153,7 @@ export function createAdminHandlers(sql: Sql) {
     }
 
     const message = `Refresh complete: ${successCount} succeeded, ${failedCount} failed`
-    logger.info(`\n ${message}`)
+    logger.info(message)
 
     return {
       success: successCount > 0 || failedCount === 0,
