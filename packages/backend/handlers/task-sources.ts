@@ -16,8 +16,20 @@ import { createLogger } from '@utils/logger'
 import { publishTaskSync } from '@adi/queue/publisher'
 import { createSecuredHandlers } from '../utils/auth'
 import { createTaskSourceInputSchema, updateTaskSourceInputSchema } from '@adi-simple/types'
+import { assertNever } from '@utils/assert-never'
+import type { TaskSource } from '@adi-simple/types'
 
 const logger = createLogger({ namespace: 'task-sources-handler' })
+
+const getProviderFromTaskSource = (type: TaskSource['type']): 'gitlab' | 'github' | 'jira' => {
+  switch (type) {
+    case 'gitlab_issues': return 'gitlab'
+    case 'github_issues': return 'github'
+    case 'jira': return 'jira'
+    case 'manual': throw new Error('Manual task sources cannot be synced')
+    default: return assertNever(type)
+  }
+}
 
 export function createTaskSourceHandlers(sql: Sql) {
   const { handler } = createSecuredHandlers(sql)
@@ -48,8 +60,7 @@ export function createTaskSourceHandlers(sql: Sql) {
 
     const taskSource = await taskSourceQueries.createTaskSource(sql, input)
 
-    const provider = taskSource.type === 'gitlab_issues' ? 'gitlab' : taskSource.type === 'github_issues' ? 'github' : 'jira'
-    await publishTaskSync({ taskSourceId: taskSource.id, provider })
+    await publishTaskSync({ taskSourceId: taskSource.id, provider: getProviderFromTaskSource(taskSource.type) })
     logger.info(`Triggered immediate sync for newly created task source ${taskSource.id}`)
 
     return taskSource
@@ -76,8 +87,7 @@ export function createTaskSourceHandlers(sql: Sql) {
     const taskSource = await taskSourceQueries.findTaskSourceById(sql, id)
     await ctx.acl.project(taskSource.project_id).admin()
 
-    const provider = taskSource.type === 'gitlab_issues' ? 'gitlab' : taskSource.type === 'github_issues' ? 'github' : 'jira'
-    await publishTaskSync({ taskSourceId: id, provider })
+    await publishTaskSync({ taskSourceId: id, provider: getProviderFromTaskSource(taskSource.type) })
     logger.info(`Manually triggered sync for task source ${id}`)
 
     return { success: true, message: `Task source ${id} sync queued successfully` }
