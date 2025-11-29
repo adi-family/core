@@ -23,7 +23,7 @@ import {
 import * as queries from '../../db/projects'
 import * as userAccessQueries from '../../db/user-access'
 import * as secretQueries from '../../db/secrets'
-import { ENCRYPTION_KEY } from '../config'
+import { ENCRYPTION_KEY as _ENCRYPTION_KEY } from '../config'
 import { validateAIProviderConfig } from '../services/ai-provider-validator'
 import { getUserIdFromClerkToken, requireProjectAccess } from '../utils/auth'
 import type { AnthropicConfig, OpenAIConfig, GoogleConfig } from '@types'
