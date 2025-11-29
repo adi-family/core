@@ -391,13 +391,15 @@ export class GitLabApiClient {
   async getCurrentUser(): Promise<{
     id: number
     username: string
-    name: string
+    name: string | null
+    email: string | null
     namespace_id: number
   }> {
     return this.request<{
       id: number
       username: string
-      name: string
+      name: string | null
+      email: string | null
       namespace_id: number
     }>('GET', '/user')
   }

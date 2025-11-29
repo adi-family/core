@@ -20,6 +20,7 @@ import { createLogger } from '@utils/logger'
 import { buildUrl } from '@utils/url'
 import { refreshGitLabToken, refreshJiraToken } from '@backend/services/oauth-token-refresh'
 import { getUserIdFromClerkToken } from '../utils/auth'
+import { GitLabApiClient } from '@shared/gitlab-api-client'
 
 const logger = createLogger({ namespace: 'oauth-handler' })
 
@@ -98,19 +99,9 @@ export function createOAuthHandlers(sql: Sql) {
     // Calculate expiration
     const expiresAt = new Date(Date.now() + expires_in * 1000)
 
-    // Fetch user info to verify token
-    const userResponse = await fetch(`${host}/api/v4/user`, {
-      headers: {
-        'Authorization': `Bearer ${access_token}`
-      }
-    })
-
-    if (!userResponse.ok) {
-      logger.error('Failed to fetch GitLab user', { status: userResponse.status })
-      throw new Error('Failed to verify GitLab token')
-    }
-
-    const userData = await userResponse.json() as any
+    // Fetch user info to verify token using GitLabApiClient
+    const gitlabClient = new GitLabApiClient(host, access_token, 'oauth')
+    const userData = await gitlabClient.getCurrentUser()
     logger.info('GitLab OAuth successful', { username: userData.username, host })
 
     // Store OAuth token as secret
