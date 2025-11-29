@@ -25,6 +25,44 @@ export const supportedProviders: Provider[] = ['anthropic', 'openai', 'google']
  * Task Status Enums
  * Centralized status definitions for all task types across the system
  */
+export enum EvaluationStatus {
+  Pending = 'pending',
+  Queued = 'queued',
+  Evaluating = 'evaluating',
+  Completed = 'completed',
+  Failed = 'failed'
+}
+
+export enum ImplementationStatus {
+  Pending = 'pending',
+  Queued = 'queued',
+  Implementing = 'implementing',
+  Completed = 'completed',
+  Failed = 'failed'
+}
+
+export enum PipelineStatus {
+  Pending = 'pending',
+  Running = 'running',
+  Success = 'success',
+  Failed = 'failed',
+  Canceled = 'canceled'
+}
+
+export enum RemoteStatus {
+  Opened = 'opened',
+  Closed = 'closed'
+}
+
+export enum SyncStatus {
+  Pending = 'pending',
+  Queued = 'queued',
+  Syncing = 'syncing',
+  Completed = 'completed',
+  Failed = 'failed'
+}
+
+// Legacy array format (for backwards compatibility)
 export const TASK_STATUS = {
   sync: ['pending', 'queued', 'syncing', 'completed', 'failed'] as const,
   evaluation: ['pending', 'queued', 'evaluating', 'completed', 'failed'] as const,
@@ -34,11 +72,11 @@ export const TASK_STATUS = {
 } as const
 
 // Type exports for convenience
-export type TaskSyncStatus = typeof TASK_STATUS.sync[number]
-export type TaskEvaluationStatus = typeof TASK_STATUS.evaluation[number]
-export type TaskImplementationStatus = typeof TASK_STATUS.implementation[number]
-export type PipelineExecutionStatus = typeof TASK_STATUS.pipeline[number]
-export type RemoteTaskStatus = typeof TASK_STATUS.remote[number]
+export type TaskSyncStatus = SyncStatus
+export type TaskEvaluationStatus = EvaluationStatus
+export type TaskImplementationStatus = ImplementationStatus
+export type PipelineExecutionStatus = PipelineStatus
+export type RemoteTaskStatus = RemoteStatus
 
 /**
  * Default third-party service hosts
@@ -65,6 +103,13 @@ export const AI_MODEL_DEFAULTS = {
   maxTokensForEvaluation: 4000,
   maxTokensForPlatform: 8000,
   maxTokensForValidation: 10,
+} as const
+
+/**
+ * API version constants for AI providers
+ */
+export const API_VERSIONS = {
+  anthropic: '2023-06-01',
 } as const
 
 /**

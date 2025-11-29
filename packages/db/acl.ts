@@ -179,7 +179,7 @@ const createProjectsAcl = (ctx: AclContext, projectIds: string[]) => {
   }
 }
 
-type RoleChecker = {
+interface RoleChecker {
   viewer: () => Promise<void>
   developer: () => Promise<void>
   admin: () => Promise<void>

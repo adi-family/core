@@ -1,6 +1,6 @@
 import type { AnthropicConfig, OpenAIConfig, GoogleConfig, AIProviderValidationResult } from '@types'
 import { createLogger } from '@utils/logger'
-import { AI_MODEL_DEFAULTS } from '@adi-simple/config'
+import { AI_MODEL_DEFAULTS, API_VERSIONS } from '@adi-simple/config'
 
 const logger = createLogger({ namespace: 'ai-provider-validator' })
 
@@ -25,7 +25,7 @@ export async function validateAnthropicConfig(
       headers: {
         'Content-Type': 'application/json',
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
+        'anthropic-version': API_VERSIONS.anthropic,
         ...(config.type === 'self-hosted' && config.additional_headers ? config.additional_headers : {})
       },
       body: JSON.stringify({
