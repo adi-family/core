@@ -17,6 +17,7 @@ import {
 import * as secretQueries from '@db/secrets'
 import * as userAccessQueries from '@db/user-access'
 import { createLogger } from '@utils/logger'
+import { buildUrl } from '@utils/url'
 import { refreshGitLabToken, refreshJiraToken } from '@backend/services/oauth-token-refresh'
 import { getUserIdFromClerkToken } from '../utils/auth'
 
@@ -36,19 +37,17 @@ export function createOAuthHandlers(sql: Sql) {
     const state = crypto.randomUUID()
     const scopes = 'api'
 
-    const authUrl = new URL(`${gitlabHost}/oauth/authorize`)
-    authUrl.searchParams.set('client_id', clientId)
-    authUrl.searchParams.set('redirect_uri', redirectUri)
-    authUrl.searchParams.set('response_type', 'code')
-    authUrl.searchParams.set('state', state)
-    authUrl.searchParams.set('scope', scopes)
+    const authUrl = buildUrl(`${gitlabHost}/oauth/authorize`, {
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      state,
+      scope: scopes
+    })
 
     logger.info('Initiating GitLab OAuth flow', { clientId, gitlabHost, state, redirectUri })
 
-    return {
-      authUrl: authUrl.toString(),
-      state
-    }
+    return { authUrl, state }
   })
 
   const gitlabExchange = handler(gitlabOAuthExchangeConfig, async (ctx) => {
@@ -185,22 +184,19 @@ export function createOAuthHandlers(sql: Sql) {
     const state = crypto.randomUUID()
     const scopes = 'read:jira-work write:jira-work offline_access'
 
-    // Build authorization URL
-    const authUrl = new URL('https://auth.atlassian.com/authorize')
-    authUrl.searchParams.set('audience', 'api.atlassian.com')
-    authUrl.searchParams.set('client_id', clientId)
-    authUrl.searchParams.set('scope', scopes)
-    authUrl.searchParams.set('redirect_uri', redirectUri)
-    authUrl.searchParams.set('state', state)
-    authUrl.searchParams.set('response_type', 'code')
-    authUrl.searchParams.set('prompt', 'consent')
+    const authUrl = buildUrl('https://auth.atlassian.com/authorize', {
+      audience: 'api.atlassian.com',
+      client_id: clientId,
+      scope: scopes,
+      redirect_uri: redirectUri,
+      state,
+      response_type: 'code',
+      prompt: 'consent'
+    })
 
     logger.info('Initiating Jira OAuth flow', { clientId, state, redirectUri })
 
-    return {
-      authUrl: authUrl.toString(),
-      state
-    }
+    return { authUrl, state }
   })
 
   const jiraExchange = handler(jiraOAuthExchangeConfig, async (ctx) => {
@@ -339,18 +335,16 @@ export function createOAuthHandlers(sql: Sql) {
     const state = crypto.randomUUID()
     const scopes = 'repo workflow'
 
-    const authUrl = new URL('https://github.com/login/oauth/authorize')
-    authUrl.searchParams.set('client_id', clientId)
-    authUrl.searchParams.set('redirect_uri', redirectUri)
-    authUrl.searchParams.set('scope', scopes)
-    authUrl.searchParams.set('state', state)
+    const authUrl = buildUrl('https://github.com/login/oauth/authorize', {
+      client_id: clientId,
+      redirect_uri: redirectUri,
+      scope: scopes,
+      state
+    })
 
     logger.info('Initiating GitHub OAuth flow', { clientId, state, redirectUri })
 
-    return {
-      authUrl: authUrl.toString(),
-      state
-    }
+    return { authUrl, state }
   })
 
   const githubExchange = handler(githubOAuthExchangeConfig, async (ctx) => {

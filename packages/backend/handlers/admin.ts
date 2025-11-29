@@ -3,24 +3,14 @@ import { z } from 'zod'
 import { handler } from '@adi-family/http'
 import { getUsageMetricsConfig, getWorkerReposConfig, refreshWorkerReposConfig } from '@adi/api-contracts/admin'
 import { findRecentUsageMetrics, findAggregatedUsageMetrics } from '@adi-simple/db/api-usage-metrics'
-import { findWorkerRepositoryStatus } from '@adi-simple/db/worker-repositories'
+import { findWorkerRepositoryStatus, findWorkerRepositoriesWithProjects } from '@adi-simple/db/worker-repositories'
 import { CIRepositoryManager } from '@adi-simple/worker/ci-repository-manager'
 import { createLogger } from '@utils/logger'
 import { getUserIdFromClerkToken, requireAdminAccess } from '../utils/auth'
 
 const logger = createLogger({ namespace: 'admin-handler' })
 
-const _workerRepositoryRowSchema = z.object({
-  id: z.string(),
-  project_id: z.string(),
-  project_name: z.string(),
-  current_version: z.string(),
-  source_gitlab: z.any()
-})
-
-type WorkerRepositoryRow = z.infer<typeof _workerRepositoryRowSchema>
-
-const _refreshResultSchema = z.object({
+export const refreshResultSchema = z.object({
   project: z.string(),
   success: z.boolean(),
   error: z.string().optional(),
@@ -31,7 +21,7 @@ const _refreshResultSchema = z.object({
   })).optional()
 })
 
-type RefreshResult = z.infer<typeof _refreshResultSchema>
+export type RefreshResult = z.infer<typeof refreshResultSchema>
 
 export function createAdminHandlers(sql: Sql) {
   const getUsageMetrics = handler(getUsageMetricsConfig, async (ctx) => {
@@ -73,17 +63,7 @@ export function createAdminHandlers(sql: Sql) {
 
     logger.info('Starting worker repository refresh...')
 
-    const repositories = await sql<WorkerRepositoryRow[]>`
-      SELECT
-        wr.id,
-        wr.project_id,
-        wr.current_version,
-        wr.source_gitlab,
-        p.name as project_name
-      FROM worker_repositories wr
-      JOIN projects p ON p.id = wr.project_id
-      ORDER BY p.name
-    `
+    const repositories = await findWorkerRepositoriesWithProjects(sql)
 
     if (repositories.length === 0) {
       return {

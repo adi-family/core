@@ -8,6 +8,7 @@ import type { Sql } from 'postgres'
 import * as userAccessQueries from '@db/user-access'
 import * as sessionQueries from '@db/sessions'
 import * as taskQueries from '@db/tasks'
+import { findRecentMessages } from '@db/messages'
 import { getUserIdFromClerkToken } from '../utils/auth'
 import { createLogger } from '@utils/logger'
 
@@ -27,12 +28,7 @@ export function createMessageHandlers(sql: Sql) {
       return []
     }
 
-    // Get all messages
-    const allMessages = await sql`
-      SELECT * FROM messages
-      ORDER BY created_at DESC
-      LIMIT 100
-    `
+    const allMessages = await findRecentMessages(sql, 100)
 
     // Filter messages by accessible projects
     const filteredMessages = []

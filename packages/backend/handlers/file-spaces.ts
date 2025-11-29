@@ -22,13 +22,13 @@ import { createLogger } from '@utils/logger'
 
 const logger = createLogger({ namespace: 'file-spaces-handler' })
 
-const _authResultSchema = z.object({
+export const authResultSchema = z.object({
   userId: z.string().optional(),
   projectId: z.string().optional(),
   isApiKey: z.boolean()
 })
 
-type AuthResult = z.infer<typeof _authResultSchema>
+export type AuthResult = z.infer<typeof authResultSchema>
 
 export function createFileSpaceHandlers(sql: Sql) {
   async function authenticate(ctx: HandlerContext<any, any, any>): Promise<AuthResult> {

@@ -6,6 +6,10 @@ export const findAllMessages = async (sql: Sql): Promise<Message[]> => {
   return get(sql<Message[]>`SELECT * FROM messages ORDER BY created_at DESC`);
 }
 
+export const findRecentMessages = async (sql: Sql, limit: number): Promise<Message[]> => {
+  return get(sql<Message[]>`SELECT * FROM messages ORDER BY created_at DESC LIMIT ${limit}`)
+}
+
 export const findMessagesBySessionId = async (sql: Sql, sessionId: string): Promise<Message[]> => {
   return get(sql<Message[]>`SELECT * FROM messages WHERE session_id = ${sessionId} ORDER BY created_at ASC`)
 }
