@@ -23,6 +23,7 @@
     "./github-icon": "./src/github-icon.tsx",
     "./jira-icon": "./src/jira-icon.tsx",
     "./jira-secret-autocomplete": "./src/jira-secret-autocomplete.tsx",
+    "./github-oauth-button": "./src/github-oauth-button.tsx",
     "./project-select": "./src/project-select.tsx",
     "./task-source-select": "./src/task-source-select.tsx",
     "./file-space-select": "./src/file-space-select.tsx",

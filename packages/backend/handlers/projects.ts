@@ -22,16 +22,11 @@ import {
 } from '@adi/api-contracts/projects'
 import * as queries from '../../db/projects'
 import * as userAccessQueries from '../../db/user-access'
-import * as workerRepoQueries from '../../db/worker-repositories'
 import * as secretQueries from '../../db/secrets'
-import { createLogger } from '@utils/logger'
-import { GITLAB_HOST, GITLAB_TOKEN, GITLAB_USER, ENCRYPTION_KEY } from '../config'
-import { CIRepositoryManager } from '@worker/ci-repository-manager'
+import { ENCRYPTION_KEY } from '../config'
 import { validateAIProviderConfig } from '../services/ai-provider-validator'
 import { getUserIdFromClerkToken, requireProjectAccess } from '../utils/auth'
 import type { AnthropicConfig, OpenAIConfig, GoogleConfig } from '@types'
-
-const logger = createLogger({ namespace: 'projects-handler' })
 
 export function createProjectHandlers(sql: Sql) {
   async function getUserId(ctx: HandlerContext<any, any, any>): Promise<string> {
@@ -97,51 +92,6 @@ export function createProjectHandlers(sql: Sql) {
       role: 'owner',
       granted_by: userId,
     })
-
-    // Auto-create worker repository
-    if (GITLAB_HOST && GITLAB_TOKEN && GITLAB_USER && ENCRYPTION_KEY) {
-      try {
-        logger.info(`🔧 Auto-creating worker repository for project: ${project.name}`)
-
-        try {
-          await workerRepoQueries.findWorkerRepositoryByProjectId(sql, project.id)
-          logger.info(`Worker repository already exists for project ${project.id}`)
-        } catch (error) {
-          if (error instanceof Error && error.constructor.name === 'NotFoundException') {
-            const manager = new CIRepositoryManager()
-            const version = '2025-10-18-01'
-            const projectIdShort = project.id.split('-')[0]
-            const customPath = `adi-worker-${project.name.toLowerCase().replace(/[^a-z0-9-]/g, '-')}-${projectIdShort}`
-
-            const source = await manager.createWorkerRepository({
-              projectName: project.name,
-              sourceType: 'gitlab',
-              host: GITLAB_HOST,
-              accessToken: GITLAB_TOKEN,
-              user: GITLAB_USER,
-              customPath,
-            })
-
-            logger.info(`✓ Created GitLab repository: ${source.project_path}`)
-
-            await manager.uploadCIFiles({ source, version })
-            logger.info(`✓ Uploaded CI files (version: ${version})`)
-
-            await workerRepoQueries.createWorkerRepository(sql, {
-              project_id: project.id,
-              source_gitlab: source as unknown,
-              current_version: version,
-            })
-
-            logger.info(`✅ Worker repository auto-created for project ${project.id}`)
-          } else {
-            throw error
-          }
-        }
-      } catch (error) {
-        logger.error(`⚠️  Failed to auto-create worker repository for project ${project.id}:`, error)
-      }
-    }
 
     return project
   })

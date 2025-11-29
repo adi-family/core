@@ -59,18 +59,20 @@ export function OAuthCallbackPage() {
       // Determine which OAuth provider (check session storage)
       const gitlabState = sessionStorage.getItem('gitlab_oauth_state')
       const jiraState = sessionStorage.getItem('jira_oauth_state')
+      const githubState = sessionStorage.getItem('github_oauth_state')
       const isGitLab = gitlabState === state
       const isJira = jiraState === state
+      const isGitHub = githubState === state
 
       // Verify state matches one of the providers
-      if (!isGitLab && !isJira) {
+      if (!isGitLab && !isJira && !isGitHub) {
         setStatus('error')
         setMessage('OAuth state mismatch. Please try again.')
 
         if (window.opener) {
           window.opener.postMessage(
             {
-              type: isGitLab ? 'GITLAB_OAUTH_ERROR' : 'JIRA_OAUTH_ERROR',
+              type: 'OAUTH_ERROR',
               error: 'State mismatch',
             },
             window.location.origin
@@ -83,6 +85,13 @@ export function OAuthCallbackPage() {
         return
       }
 
+      // Determine message type based on provider
+      const getMessageType = (success: boolean) => {
+        if (isGitLab) return success ? 'GITLAB_OAUTH_SUCCESS' : 'GITLAB_OAUTH_ERROR'
+        if (isJira) return success ? 'JIRA_OAUTH_SUCCESS' : 'JIRA_OAUTH_ERROR'
+        return success ? 'GITHUB_OAUTH_SUCCESS' : 'GITHUB_OAUTH_ERROR'
+      }
+
       // Send success to parent window
       setStatus('success')
       setMessage('Authorization successful! Completing setup...')
@@ -90,7 +99,7 @@ export function OAuthCallbackPage() {
       if (window.opener) {
         window.opener.postMessage(
           {
-            type: isGitLab ? 'GITLAB_OAUTH_SUCCESS' : 'JIRA_OAUTH_SUCCESS',
+            type: getMessageType(true),
             code,
             state,
           },

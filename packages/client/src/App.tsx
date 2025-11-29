@@ -5,6 +5,7 @@ import { ExpertModeProvider } from "./contexts/ExpertModeContext"
 import { ProjectProvider } from "./contexts/ProjectContext"
 import { designTokens } from "./theme/tokens"
 import { Layout } from "./components/Layout"
+import { RequireProject } from "./components/RequireProject"
 import { CommandCenterPage } from "./pages/CommandCenterPage"
 import { ShipModePage } from "./pages/ShipModePage"
 import { ReviewModePage } from "./pages/ReviewModePage"
@@ -14,6 +15,7 @@ import { HomePage } from "./pages/HomePage"
 import { ProjectsPage } from "./pages/ProjectsPage"
 import { ProjectPage } from "./pages/ProjectPage"
 import { SetupProjectPage } from "./pages/SetupProjectPage"
+import { SetupFlowPage } from "./pages/SetupFlowPage"
 import { TasksPage } from "./pages/TasksPage"
 import { TaskPage } from "./pages/TaskPage"
 import { SessionsPage } from "./pages/SessionsPage"
@@ -102,36 +104,41 @@ export function App() {
                 <Navigate to="/sign-in" replace />
               </SignedOut>
               <SignedIn>
-                <Routes>
-                  <Route path="/" element={<Layout />}>
-                    {/* Power User Mode Routes */}
-                    <Route index element={<CommandCenterPage />} />
-                    <Route path="ship" element={<ShipModePage />} />
-                    <Route path="review" element={<ReviewModePage />} />
-                    <Route path="build" element={<BuilderBoardPage />} />
-                    <Route path="analytics" element={<AnalyticsPage />} />
+                <RequireProject>
+                  <Routes>
+                    {/* Setup Flow - shown when user has no projects */}
+                    <Route path="/setup" element={<SetupFlowPage />} />
 
-                    {/* Legacy Routes - keeping for compatibility */}
-                    <Route path="home" element={<HomePage />} />
-                    <Route path="board" element={<BuilderBoardPage />} />
-                    <Route path="projects" element={<ProjectsPage />} />
-                    <Route path="projects/:id" element={<ProjectPage />} />
-                    <Route path="setup-project" element={<SetupProjectPage />} />
-                    <Route path="tasks" element={<TasksPage />} />
-                    <Route path="tasks/:id" element={<TaskPage />} />
-                    <Route path="sessions" element={<SessionsPage />} />
-                    <Route path="messages" element={<MessagesPage />} />
-                    <Route path="worker-cache" element={<WorkerCachePage />} />
-                    <Route path="file-spaces" element={<FileSpacesPage />} />
-                    <Route path="create-file-space" element={<CreateFileSpacePage />} />
-                    <Route path="task-sources" element={<TaskSourcesPage />} />
-                    <Route path="create-task-source" element={<CreateTaskSourcePage />} />
-                    <Route path="pipeline-executions" element={<PipelineExecutionsPage />} />
-                    <Route path="pipeline-artifacts" element={<PipelineArtifactsPage />} />
-                    <Route path="admin" element={<AdminPage />} />
-                    <Route path="debug" element={<DebugGitlabSecretPage />} />
-                  </Route>
-                </Routes>
+                    <Route path="/" element={<Layout />}>
+                      {/* Power User Mode Routes */}
+                      <Route index element={<CommandCenterPage />} />
+                      <Route path="ship" element={<ShipModePage />} />
+                      <Route path="review" element={<ReviewModePage />} />
+                      <Route path="build" element={<BuilderBoardPage />} />
+                      <Route path="analytics" element={<AnalyticsPage />} />
+
+                      {/* Legacy Routes - keeping for compatibility */}
+                      <Route path="home" element={<HomePage />} />
+                      <Route path="board" element={<BuilderBoardPage />} />
+                      <Route path="projects" element={<ProjectsPage />} />
+                      <Route path="projects/:id" element={<ProjectPage />} />
+                      <Route path="setup-project" element={<SetupProjectPage />} />
+                      <Route path="tasks" element={<TasksPage />} />
+                      <Route path="tasks/:id" element={<TaskPage />} />
+                      <Route path="sessions" element={<SessionsPage />} />
+                      <Route path="messages" element={<MessagesPage />} />
+                      <Route path="worker-cache" element={<WorkerCachePage />} />
+                      <Route path="file-spaces" element={<FileSpacesPage />} />
+                      <Route path="create-file-space" element={<CreateFileSpacePage />} />
+                      <Route path="task-sources" element={<TaskSourcesPage />} />
+                      <Route path="create-task-source" element={<CreateTaskSourcePage />} />
+                      <Route path="pipeline-executions" element={<PipelineExecutionsPage />} />
+                      <Route path="pipeline-artifacts" element={<PipelineArtifactsPage />} />
+                      <Route path="admin" element={<AdminPage />} />
+                      <Route path="debug" element={<DebugGitlabSecretPage />} />
+                    </Route>
+                  </Routes>
+                </RequireProject>
               </SignedIn>
             </>
           }
