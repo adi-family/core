@@ -12,6 +12,7 @@ import { hasProjectAccess, hasAdminAccess, getUserAccessibleProjects } from './u
 import { findPipelineExecutionById } from './pipeline-executions'
 import { findSessionById } from './sessions'
 import { findTaskById } from './tasks'
+import { findSecretById } from './secrets'
 
 type ProjectRole = 'owner' | 'admin' | 'developer' | 'viewer'
 
@@ -138,6 +139,26 @@ const createExecutionAcl = (ctx: AclContext, executionId: string) => {
 }
 
 /**
+ * Secret-level ACL checker (resolves to project)
+ */
+const createSecretAcl = (ctx: AclContext, secretId: string) => {
+  const checkRole = async (minRole: ProjectRole): Promise<void> => {
+    const secret = await findSecretById(ctx.sql, secretId)
+    const hasAccess = await hasProjectAccess(ctx.sql, ctx.userId, secret.project_id, minRole)
+    if (!hasAccess) {
+      throw new NotEnoughRightsException(`Forbidden: Requires ${minRole} access to secret's project`)
+    }
+  }
+
+  return {
+    viewer: () => checkRole('viewer'),
+    developer: () => checkRole('developer'),
+    admin: () => checkRole('admin'),
+    owner: () => checkRole('owner'),
+  }
+}
+
+/**
  * Multi-project ACL checker
  */
 const createProjectsAcl = (ctx: AclContext, projectIds: string[]) => {
@@ -179,6 +200,8 @@ export interface Acl {
   session: (id: string) => RoleChecker
   /** Check access via execution (resolves: execution → session → task → project) */
   execution: (id: string) => RoleChecker
+  /** Check access via secret (resolves: secret → project) */
+  secret: (id: string) => RoleChecker
   /** Check if user is admin of any project */
   isAdmin: () => Promise<void>
   /** Get list of project IDs user has access to */
@@ -207,6 +230,7 @@ export const createAcl = (ctx: AclContext): Acl => ({
   task: (id: string) => createTaskAcl(ctx, id),
   session: (id: string) => createSessionAcl(ctx, id),
   execution: (id: string) => createExecutionAcl(ctx, id),
+  secret: (id: string) => createSecretAcl(ctx, id),
 
   isAdmin: async () => {
     const isAdmin = await hasAdminAccess(ctx.sql, ctx.userId)

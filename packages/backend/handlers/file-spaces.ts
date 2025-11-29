@@ -23,7 +23,6 @@ export function createFileSpaceHandlers(sql: Sql) {
     const auth = await authenticate(sql, ctx)
     const { project_id } = ctx.query || {}
 
-    // API key authentication - restrict to API key's project
     if (auth.isApiKey) {
       if (project_id && project_id !== auth.projectId) {
         throw new Error('Forbidden: API key does not have access to this project')
@@ -31,7 +30,6 @@ export function createFileSpaceHandlers(sql: Sql) {
       return fileSpaceQueries.findFileSpacesByProjectId(sql, auth.projectId!)
     }
 
-    // Clerk authentication - check user access
     if (project_id) {
       const hasAccess = await userAccessQueries.hasProjectAccess(sql, auth.userId!, project_id)
       if (!hasAccess) {
@@ -41,7 +39,6 @@ export function createFileSpaceHandlers(sql: Sql) {
       return fileSpaceQueries.findFileSpacesByProjectId(sql, project_id)
     }
 
-    // List all file spaces from accessible projects
     const accessibleProjectIds = await userAccessQueries.getUserAccessibleProjects(sql, auth.userId!)
     const allFileSpaces = await fileSpaceQueries.findAllFileSpaces(sql)
     return allFileSpaces.filter(fs => accessibleProjectIds.includes(fs.project_id))
@@ -53,13 +50,11 @@ export function createFileSpaceHandlers(sql: Sql) {
 
     const fileSpace = await fileSpaceQueries.findFileSpaceById(sql, id)
 
-    // API key authentication - check project match
     if (auth.isApiKey) {
       if (fileSpace.project_id !== auth.projectId) {
         throw new Error('Forbidden: API key does not have access to this file space')
       }
     } else {
-      // Clerk authentication - check user access
       const hasAccess = await userAccessQueries.hasProjectAccess(sql, auth.userId!, fileSpace.project_id)
       if (!hasAccess) {
         throw new Error('Forbidden: You do not have access to this file space')
@@ -73,7 +68,6 @@ export function createFileSpaceHandlers(sql: Sql) {
     const auth = await authenticate(sql, ctx)
     const { project_id } = ctx.body as any
 
-    // API key authentication - check project match and write permission
     if (auth.isApiKey) {
       if (project_id !== auth.projectId) {
         throw new Error('Forbidden: API key does not have access to this project')
