@@ -115,7 +115,7 @@ export function createTaskHandlers(sql: Sql) {
       project_id,
       task_source_id,
       evaluated_only: evaluated_only === 'true' ? true : undefined,
-      sort_by: sort_by as 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc' | undefined,
+      sort_by,
       search
     })
 

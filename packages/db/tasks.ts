@@ -2,6 +2,7 @@ import type { Sql } from 'postgres'
 import type { Task, CreateTaskInput, UpdateTaskInput } from '@types'
 import { filterPresentColumns, get, findOneById, deleteById } from './utils'
 import { NotFoundException } from '../utils/exceptions'
+import { TaskSortBy } from '@adi/api-contracts/tasks'
 
 export const findAllTasks = async (sql: Sql): Promise<Task[]> => {
   return get(sql<Task[]>`SELECT * FROM tasks ORDER BY created_at DESC`)
@@ -11,7 +12,7 @@ export interface TaskQueryOptions {
   project_id?: string
   task_source_id?: string
   evaluated_only?: boolean
-  sort_by?: 'created_desc' | 'created_asc' | 'quick_win_desc' | 'quick_win_asc' | 'complexity_asc' | 'complexity_desc'
+  sort_by?: TaskSortBy
   page?: number
   per_page?: number
   search?: string
@@ -66,11 +67,11 @@ function buildTaskWhereClause(options: {
 /**
  * Build ORDER BY clause for task queries
  */
-function buildTaskOrderByClause(sort_by?: string): string {
+function buildTaskOrderByClause(sort_by?: TaskSortBy): string {
   switch (sort_by) {
-    case 'created_asc':
+    case TaskSortBy.CreatedAsc:
       return 'ORDER BY created_at ASC'
-    case 'quick_win_desc':
+    case TaskSortBy.QuickWinDesc:
       // Quick win = high impact / low effort
       // Using COALESCE to handle null values, putting them last
       return `ORDER BY
@@ -80,7 +81,7 @@ function buildTaskOrderByClause(sort_by?: string): string {
         END,
         (COALESCE((ai_evaluation_simple_result->>'estimated_impact')::text, 'low')) DESC,
         (COALESCE((ai_evaluation_simple_result->>'estimated_effort')::text, 'high')) ASC`
-    case 'quick_win_asc':
+    case TaskSortBy.QuickWinAsc:
       return `ORDER BY
         CASE
           WHEN ai_evaluation_simple_result IS NULL THEN 1
@@ -88,28 +89,28 @@ function buildTaskOrderByClause(sort_by?: string): string {
         END,
         (COALESCE((ai_evaluation_simple_result->>'estimated_impact')::text, 'low')) ASC,
         (COALESCE((ai_evaluation_simple_result->>'estimated_effort')::text, 'high')) DESC`
-    case 'complexity_asc':
+    case TaskSortBy.ComplexityAsc:
       return `ORDER BY
         CASE
           WHEN ai_evaluation_simple_result IS NULL THEN 1
           ELSE 0
         END,
         COALESCE((ai_evaluation_simple_result->>'complexity_score')::numeric, 999) ASC`
-    case 'complexity_desc':
+    case TaskSortBy.ComplexityDesc:
       return `ORDER BY
         CASE
           WHEN ai_evaluation_simple_result IS NULL THEN 1
           ELSE 0
         END,
         COALESCE((ai_evaluation_simple_result->>'complexity_score')::numeric, 0) DESC`
-    case 'created_desc':
+    case TaskSortBy.CreatedDesc:
     default:
       return 'ORDER BY created_at DESC'
   }
 }
 
 export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions): Promise<Task[]> => {
-  const { sort_by = 'created_desc' } = options
+  const { sort_by = TaskSortBy.CreatedDesc } = options
 
   const { whereClause, params } = buildTaskWhereClause(options)
   const orderByClause = buildTaskOrderByClause(sort_by)
@@ -120,7 +121,7 @@ export const findTasksWithFilters = async (sql: Sql, options: TaskQueryOptions):
 }
 
 export const findTasksWithFiltersPaginated = async (sql: Sql, options: TaskQueryOptions): Promise<PaginatedTasksResult> => {
-  const { sort_by = 'created_desc', page = 1, per_page = 20 } = options
+  const { sort_by = TaskSortBy.CreatedDesc, page = 1, per_page = 20 } = options
 
   const { whereClause, params } = buildTaskWhereClause(options)
 

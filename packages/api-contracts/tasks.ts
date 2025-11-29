@@ -113,11 +113,22 @@ export const getTasksByProjectConfig = {
   }
 } as const
 
+export enum TaskSortBy {
+  CreatedDesc = 'created_desc',
+  CreatedAsc = 'created_asc',
+  QuickWinDesc = 'quick_win_desc',
+  QuickWinAsc = 'quick_win_asc',
+  ComplexityAsc = 'complexity_asc',
+  ComplexityDesc = 'complexity_desc'
+}
+
+export const taskSortBySchema = z.nativeEnum(TaskSortBy)
+
 export const getTaskStatsQuerySchema = z.object({
   project_id: z.string().optional(),
   task_source_id: z.string().optional(),
   evaluated_only: z.string().optional(),
-  sort_by: z.string().optional(),
+  sort_by: taskSortBySchema.optional(),
   search: z.string().optional()
 })
 
