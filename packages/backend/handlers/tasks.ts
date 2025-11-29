@@ -114,7 +114,7 @@ export function createTaskHandlers(sql: Sql) {
     const tasks = await taskQueries.findTasksWithFilters(sql, {
       project_id,
       task_source_id,
-      evaluated_only: evaluated_only === 'true' ? true : undefined,
+      evaluated_only,
       sort_by,
       search
     })
