@@ -6,11 +6,14 @@ import { verifyToken } from '@clerk/backend'
 import { createLogger } from '@utils/logger'
 import { CLERK_SECRET_KEY } from '../config'
 import type { Sql } from 'postgres'
-import type { HandlerContext } from '@adi-family/http'
+import type { HandlerContext, HandlerConfig, Handler } from '@adi-family/http'
+import { handler as baseHandler } from '@adi-family/http'
 import { z } from 'zod'
 import * as userAccessQueries from '@db/user-access'
 import * as apiKeyQueries from '@db/api-keys'
 import type { Role } from '@db/user-access'
+import { createAcl, type Acl } from '@db/acl'
+import { NotFoundException, BadRequestException, NotEnoughRightsException, AuthRequiredException } from '@utils/exceptions'
 
 const logger = createLogger({ namespace: 'auth-utils' })
 
@@ -161,3 +164,113 @@ export async function authenticate(sql: Sql, ctx: HandlerContext<any, any, any>)
     throw new Error('Unauthorized: Token verification failed')
   }
 }
+
+/**
+ * Secured handler context - provides ACL and sql
+ */
+export interface SecuredHandlerContext<TParams, TQuery, TBody> {
+  params: TParams
+  query: TQuery
+  body: TBody
+  headers: Headers
+  acl: Acl
+  sql: Sql
+  userId: string
+}
+
+type SecuredHandlerFunction<TParams, TQuery, TBody, TResponse> = (
+  ctx: SecuredHandlerContext<TParams, TQuery, TBody>
+) => Promise<TResponse>
+
+/**
+ * Map custom exceptions to HTTP status codes
+ */
+const mapExceptionToHttpError = (error: unknown): never => {
+  if (error instanceof NotFoundException) {
+    const httpError: any = new Error(error.message)
+    httpError.statusCode = 404
+    httpError.name = 'NotFoundException'
+    throw httpError
+  }
+
+  if (error instanceof BadRequestException) {
+    const httpError: any = new Error(error.message)
+    httpError.statusCode = 400
+    httpError.name = 'BadRequestException'
+    throw httpError
+  }
+
+  if (error instanceof AuthRequiredException) {
+    const httpError: any = new Error(error.message)
+    httpError.statusCode = 401
+    httpError.name = 'AuthRequiredException'
+    throw httpError
+  }
+
+  if (error instanceof NotEnoughRightsException) {
+    const httpError: any = new Error(error.message)
+    httpError.statusCode = 403
+    httpError.name = 'NotEnoughRightsException'
+    throw httpError
+  }
+
+  throw error
+}
+
+/**
+ * Create a secured handler that enforces ACL-based access control
+ *
+ * Handlers using this wrapper:
+ * - Provides `acl` for access checks and `sql` for queries
+ * - Automatically authenticate user via Clerk JWT
+ * - Map exceptions to proper HTTP status codes
+ *
+ * @example
+ * const getProject = securedHandler(sql, getProjectConfig, async (ctx) => {
+ *   await ctx.acl.project(ctx.params.id).viewer()
+ *   return queries.findProjectById(ctx.sql, ctx.params.id)
+ * })
+ */
+export function securedHandler<TParams = object, TQuery = object, TBody = unknown, TResponse = unknown>(
+  sql: Sql,
+  config: HandlerConfig<TParams, TQuery, TBody, TResponse>,
+  fn: SecuredHandlerFunction<TParams, TQuery, TBody, TResponse>
+): Handler<TParams, TQuery, TBody, TResponse> {
+  return baseHandler(config, async (ctx) => {
+    try {
+      const userId = await getUserIdFromClerkToken(ctx.headers.get('Authorization'))
+      const acl = createAcl({ userId, sql })
+
+      const securedCtx: SecuredHandlerContext<TParams, TQuery, TBody> = {
+        params: ctx.params,
+        query: ctx.query,
+        body: ctx.body,
+        headers: ctx.headers,
+        acl,
+        sql,
+        userId
+      }
+
+      return await fn(securedCtx)
+    } catch (error) {
+      return mapExceptionToHttpError(error)
+    }
+  })
+}
+
+/**
+ * Factory to create secured handlers with pre-bound sql connection
+ *
+ * @example
+ * const { handler } = createSecuredHandlers(sql)
+ *
+ * const getProject = handler(getProjectConfig, async (ctx) => {
+ *   return ctx.acl.viewer.gte(ctx.params.id).query(sql => findProjectById(sql, ctx.params.id))
+ * })
+ */
+export const createSecuredHandlers = (sql: Sql) => ({
+  handler: <TParams = object, TQuery = object, TBody = unknown, TResponse = unknown>(
+    config: HandlerConfig<TParams, TQuery, TBody, TResponse>,
+    fn: SecuredHandlerFunction<TParams, TQuery, TBody, TResponse>
+  ) => securedHandler(sql, config, fn)
+})
