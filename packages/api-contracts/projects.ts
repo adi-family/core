@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-const anthropicCloudConfigSchema = z.object({
+export const anthropicCloudConfigSchema = z.object({
   type: z.literal('cloud'),
   api_key_secret_id: z.string(),
   model: z.string().optional(),
@@ -9,7 +9,7 @@ const anthropicCloudConfigSchema = z.object({
   temperature: z.number().optional()
 })
 
-const anthropicSelfHostedConfigSchema = z.object({
+export const anthropicSelfHostedConfigSchema = z.object({
   type: z.literal('self-hosted'),
   api_key_secret_id: z.string(),
   endpoint_url: z.string(),
@@ -19,16 +19,16 @@ const anthropicSelfHostedConfigSchema = z.object({
   additional_headers: z.record(z.string(), z.string()).optional()
 })
 
-const anthropicConfigSchema = z.union([anthropicCloudConfigSchema, anthropicSelfHostedConfigSchema])
+export const anthropicConfigSchema = z.union([anthropicCloudConfigSchema, anthropicSelfHostedConfigSchema])
 
-const openAICloudConfigSchema = z.object({
+export const openAICloudConfigSchema = z.object({
   type: z.literal('cloud'),
   api_key_secret_id: z.string(),
   organization_id: z.string().optional(),
   model: z.string().optional()
 })
 
-const openAIAzureConfigSchema = z.object({
+export const openAIAzureConfigSchema = z.object({
   type: z.literal('azure'),
   api_key_secret_id: z.string(),
   endpoint_url: z.string(),
@@ -39,7 +39,7 @@ const openAIAzureConfigSchema = z.object({
   temperature: z.number().optional()
 })
 
-const openAISelfHostedConfigSchema = z.object({
+export const openAISelfHostedConfigSchema = z.object({
   type: z.literal('self-hosted'),
   api_key_secret_id: z.string(),
   endpoint_url: z.string(),
@@ -49,9 +49,9 @@ const openAISelfHostedConfigSchema = z.object({
   additional_headers: z.record(z.string(), z.string()).optional()
 })
 
-const openAIConfigSchema = z.union([openAICloudConfigSchema, openAIAzureConfigSchema, openAISelfHostedConfigSchema])
+export const openAIConfigSchema = z.union([openAICloudConfigSchema, openAIAzureConfigSchema, openAISelfHostedConfigSchema])
 
-const googleCloudConfigSchema = z.object({
+export const googleCloudConfigSchema = z.object({
   type: z.literal('cloud'),
   api_key_secret_id: z.string(),
   model: z.string().optional(),
@@ -59,7 +59,7 @@ const googleCloudConfigSchema = z.object({
   temperature: z.number().optional()
 })
 
-const googleVertexConfigSchema = z.object({
+export const googleVertexConfigSchema = z.object({
   type: z.literal('vertex'),
   api_key_secret_id: z.string(),
   project_id: z.string(),
@@ -69,7 +69,7 @@ const googleVertexConfigSchema = z.object({
   temperature: z.number().optional()
 })
 
-const googleSelfHostedConfigSchema = z.object({
+export const googleSelfHostedConfigSchema = z.object({
   type: z.literal('self-hosted'),
   api_key_secret_id: z.string(),
   endpoint_url: z.string(),
@@ -79,22 +79,22 @@ const googleSelfHostedConfigSchema = z.object({
   additional_headers: z.record(z.string(), z.string()).optional()
 })
 
-const googleConfigSchema = z.union([googleCloudConfigSchema, googleVertexConfigSchema, googleSelfHostedConfigSchema])
+export const googleConfigSchema = z.union([googleCloudConfigSchema, googleVertexConfigSchema, googleSelfHostedConfigSchema])
 
-const aiProviderConfigSchema = z.object({
+export const aiProviderConfigSchema = z.object({
   anthropic: anthropicConfigSchema.optional(),
   openai: openAIConfigSchema.optional(),
   google: googleConfigSchema.optional()
 })
 
-const gitlabExecutorConfigSchema = z.object({
+export const gitlabExecutorConfigSchema = z.object({
   host: z.string(),
   access_token_secret_id: z.string(),
   verified_at: z.string().optional(),
   user: z.string().optional()
 })
 
-const aiProviderValidationResponseSchema = z.object({
+export const aiProviderValidationResponseSchema = z.object({
   valid: z.boolean(),
   endpoint_reachable: z.boolean(),
   authentication_valid: z.boolean(),
@@ -105,7 +105,7 @@ const aiProviderValidationResponseSchema = z.object({
 
 export type AIProviderValidationResponse = z.infer<typeof aiProviderValidationResponseSchema>
 
-const projectSchema = z.object({
+export const projectSchema = z.object({
   id: z.string(),
   name: z.string(),
   enabled: z.boolean(),
@@ -138,53 +138,61 @@ export const getProjectConfig = {
   }
 } as const
 
+export const createProjectBodySchema = z.object({
+  name: z.string(),
+  enabled: z.boolean().optional(),
+  key: z.string().optional()
+})
+
 export const createProjectConfig = {
   method: 'POST',
   route: route.static('/api/projects'),
   body: {
-    schema: z.object({
-      name: z.string(),
-      enabled: z.boolean().optional(),
-      key: z.string().optional()
-    })
+    schema: createProjectBodySchema
   },
   response: {
     schema: projectSchema
   }
 } as const
+
+export const updateProjectBodySchema = z.object({
+  name: z.string().optional(),
+  enabled: z.boolean().optional(),
+  key: z.string().optional()
+})
 
 export const updateProjectConfig = {
   method: 'PATCH',
   route: route.dynamic('/api/projects/:id', z.object({ id: z.string() })),
   body: {
-    schema: z.object({
-      name: z.string().optional(),
-      enabled: z.boolean().optional(),
-      key: z.string().optional()
-    })
+    schema: updateProjectBodySchema
   },
   response: {
     schema: projectSchema
   }
 } as const
 
+export const successResponseSchema = z.object({ success: z.boolean() })
+
 export const deleteProjectConfig = {
   method: 'DELETE',
   route: route.dynamic('/api/projects/:id', z.object({ id: z.string() })),
   response: {
-    schema: z.object({ success: z.boolean() })
+    schema: successResponseSchema
   }
 } as const
+
+export const projectStatsResponseSchema = z.object({
+  total_tasks: z.number(),
+  completed_tasks: z.number(),
+  pending_tasks: z.number()
+})
 
 export const getProjectStatsConfig = {
   method: 'GET',
   route: route.dynamic('/api/projects/:id/stats', z.object({ id: z.string() })),
   response: {
-    schema: z.object({
-      total_tasks: z.number(),
-      completed_tasks: z.number(),
-      pending_tasks: z.number()
-    })
+    schema: projectStatsResponseSchema
   }
 } as const
 
@@ -217,7 +225,7 @@ export const deleteProjectAIProviderConfig = {
     provider: z.string()
   })),
   response: {
-    schema: z.object({ success: z.boolean() })
+    schema: successResponseSchema
   }
 } as const
 
@@ -262,6 +270,6 @@ export const deleteProjectGitLabExecutorConfig = {
   method: 'DELETE',
   route: route.dynamic('/api/projects/:id/job-executor-gitlab', z.object({ id: z.string() })),
   response: {
-    schema: z.object({ success: z.boolean() })
+    schema: successResponseSchema
   }
 } as const

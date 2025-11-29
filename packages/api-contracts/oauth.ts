@@ -34,16 +34,18 @@ export const gitlabOAuthAuthorizeConfig = {
   }
 } as const
 
+export const gitlabOAuthExchangeBodySchema = z.object({
+  projectId: z.string(),
+  code: z.string(),
+  secretName: z.string(),
+  gitlabHost: z.string().optional()
+})
+
 export const gitlabOAuthExchangeConfig = {
   method: 'POST',
   route: route.static('/api/oauth/gitlab/exchange'),
   body: {
-    schema: z.object({
-      projectId: z.string(),
-      code: z.string(),
-      secretName: z.string(),
-      gitlabHost: z.string().optional()
-    })
+    schema: gitlabOAuthExchangeBodySchema
   },
   response: {
     schema: gitlabOAuthExchangeResponseSchema
@@ -96,16 +98,18 @@ export const jiraOAuthAuthorizeConfig = {
   }
 } as const
 
+export const jiraOAuthExchangeBodySchema = z.object({
+  projectId: z.string(),
+  code: z.string(),
+  secretName: z.string(),
+  cloudId: z.string().optional()
+})
+
 export const jiraOAuthExchangeConfig = {
   method: 'POST',
   route: route.static('/api/oauth/jira/exchange'),
   body: {
-    schema: z.object({
-      projectId: z.string(),
-      code: z.string(),
-      secretName: z.string(),
-      cloudId: z.string().optional()
-    })
+    schema: jiraOAuthExchangeBodySchema
   },
   response: {
     schema: jiraOAuthExchangeResponseSchema
@@ -146,15 +150,17 @@ export const githubOAuthAuthorizeConfig = {
   }
 } as const
 
+export const githubOAuthExchangeBodySchema = z.object({
+  projectId: z.string(),
+  code: z.string(),
+  secretName: z.string()
+})
+
 export const githubOAuthExchangeConfig = {
   method: 'POST',
   route: route.static('/api/oauth/github/exchange'),
   body: {
-    schema: z.object({
-      projectId: z.string(),
-      code: z.string(),
-      secretName: z.string()
-    })
+    schema: githubOAuthExchangeBodySchema
   },
   response: {
     schema: githubOAuthExchangeResponseSchema

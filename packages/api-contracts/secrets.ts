@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-const secretSchema = z.object({
+export const secretSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().nullable(),
@@ -13,11 +13,11 @@ const secretSchema = z.object({
   updated_at: z.string()
 })
 
-const secretWithProjectSchema = secretSchema.extend({
+export const secretWithProjectSchema = secretSchema.extend({
   project_id: z.string()
 })
 
-const gitLabTokenValidationResponseSchema = z.object({
+export const gitLabTokenValidationResponseSchema = z.object({
   validated: z.boolean(),
   username: z.string().optional(),
   scopeValidation: z.object({
@@ -27,7 +27,7 @@ const gitLabTokenValidationResponseSchema = z.object({
   error: z.string().optional()
 })
 
-const jiraTokenValidationResponseSchema = z.object({
+export const jiraTokenValidationResponseSchema = z.object({
   valid: z.boolean(),
   username: z.string().optional(),
   accountId: z.string().optional(),
@@ -35,7 +35,7 @@ const jiraTokenValidationResponseSchema = z.object({
   error: z.string().optional()
 })
 
-const gitLabRepositoryResponseSchema = z.record(z.string(), z.unknown())
+export const gitLabRepositoryResponseSchema = z.record(z.string(), z.unknown())
 
 export type SecretResponse = z.infer<typeof secretSchema>
 export type SecretWithProjectResponse = z.infer<typeof secretWithProjectSchema>
@@ -43,14 +43,16 @@ export type GitLabTokenValidationResponse = z.infer<typeof gitLabTokenValidation
 export type JiraTokenValidationResponse = z.infer<typeof jiraTokenValidationResponseSchema>
 export type GitLabRepositoryResponse = z.infer<typeof gitLabRepositoryResponseSchema>
 
+export const secretValueResponseSchema = z.object({
+  value: z.string(),
+  token_type: z.enum(['api', 'oauth', 'pat']).nullable()
+})
+
 export const getSecretValueConfig = {
   method: 'GET',
   route: route.dynamic('/api/secrets/:id/value', z.object({ id: z.string() })),
   response: {
-    schema: z.object({
-      value: z.string(),
-      token_type: z.enum(['api', 'oauth', 'pat']).nullable()
-    })
+    schema: secretValueResponseSchema
   }
 } as const
 
@@ -78,96 +80,110 @@ export const getSecretConfig = {
   }
 } as const
 
+export const createSecretBodySchema = z.object({
+  project_id: z.string(),
+  name: z.string(),
+  value: z.string(),
+  description: z.string().optional()
+})
+
+export const createSecretResponseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  created_at: z.string()
+})
+
 export const createSecretConfig = {
   method: 'POST',
   route: route.static('/api/secrets'),
   body: {
-    schema: z.object({
-      project_id: z.string(),
-      name: z.string(),
-      value: z.string(),
-      description: z.string().optional()
-    })
+    schema: createSecretBodySchema
   },
   response: {
-    schema: z.object({
-      id: z.string(),
-      name: z.string(),
-      description: z.string().nullable(),
-      created_at: z.string()
-    })
+    schema: createSecretResponseSchema
   }
 } as const
+
+export const validateGitLabRawTokenBodySchema = z.object({
+  token: z.string(),
+  hostname: z.string(),
+  scopes: z.array(z.string())
+})
 
 export const validateGitLabRawTokenConfig = {
   method: 'POST',
   route: route.static('/api/secrets/validate-gitlab-raw-token'),
   body: {
-    schema: z.object({
-      token: z.string(),
-      hostname: z.string(),
-      scopes: z.array(z.string())
-    })
+    schema: validateGitLabRawTokenBodySchema
   },
   response: {
     schema: gitLabTokenValidationResponseSchema
   }
 } as const
+
+export const validateGitLabTokenBodySchema = z.object({
+  secretId: z.string(),
+  hostname: z.string(),
+  scopes: z.array(z.string())
+})
 
 export const validateGitLabTokenConfig = {
   method: 'POST',
   route: route.static('/api/secrets/validate-gitlab-token'),
   body: {
-    schema: z.object({
-      secretId: z.string(),
-      hostname: z.string(),
-      scopes: z.array(z.string())
-    })
+    schema: validateGitLabTokenBodySchema
   },
   response: {
     schema: gitLabTokenValidationResponseSchema
   }
 } as const
 
+export const getGitLabRepositoriesBodySchema = z.object({
+  secretId: z.string(),
+  host: z.string(),
+  search: z.string().optional(),
+  perPage: z.number().optional()
+})
+
 export const getGitLabRepositoriesConfig = {
   method: 'POST',
   route: route.static('/api/secrets/gitlab-repositories'),
   body: {
-    schema: z.object({
-      secretId: z.string(),
-      host: z.string(),
-      search: z.string().optional(),
-      perPage: z.number().optional()
-    })
+    schema: getGitLabRepositoriesBodySchema
   },
   response: {
     schema: z.array(gitLabRepositoryResponseSchema)
   }
 } as const
 
+export const validateJiraRawTokenBodySchema = z.object({
+  token: z.string(),
+  email: z.string().optional(),
+  hostname: z.string()
+})
+
 export const validateJiraRawTokenConfig = {
   method: 'POST',
   route: route.static('/api/secrets/validate-jira-raw-token'),
   body: {
-    schema: z.object({
-      token: z.string(),
-      email: z.string().optional(),
-      hostname: z.string()
-    })
+    schema: validateJiraRawTokenBodySchema
   },
   response: {
     schema: jiraTokenValidationResponseSchema
   },
 } as const
 
+export const validateJiraTokenBodySchema = z.object({
+  secretId: z.string(),
+  hostname: z.string()
+})
+
 export const validateJiraTokenConfig = {
   method: 'POST',
   route: route.static('/api/secrets/validate-jira-token'),
   body: {
-    schema: z.object({
-      secretId: z.string(),
-      hostname: z.string()
-    })
+    schema: validateJiraTokenBodySchema
   },
   response: {
     schema: jiraTokenValidationResponseSchema

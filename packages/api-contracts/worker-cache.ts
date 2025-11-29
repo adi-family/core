@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-const workerCacheSchema = z.object({
+export const workerCacheSchema = z.object({
   id: z.number(),
   issue_id: z.string(),
   project_id: z.string(),

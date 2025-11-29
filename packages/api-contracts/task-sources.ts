@@ -1,21 +1,21 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-const gitlabIssuesConfigSchema = z.object({
+export const gitlabIssuesConfigSchema = z.object({
   repo: z.string(),
   labels: z.array(z.string()),
   host: z.string().optional(),
   access_token_secret_id: z.string().optional()
 })
 
-const githubIssuesConfigSchema = z.object({
+export const githubIssuesConfigSchema = z.object({
   repo: z.string(),
   labels: z.array(z.string()).optional(),
   host: z.string().optional(),
   access_token_secret_id: z.string().optional()
 })
 
-const jiraConfigSchema = z.object({
+export const jiraConfigSchema = z.object({
   project_key: z.string().optional(),
   jql_filter: z.string().optional(),
   host: z.string(),
@@ -23,7 +23,7 @@ const jiraConfigSchema = z.object({
   cloud_id: z.string().optional()
 })
 
-const taskSourceSchema = z.discriminatedUnion('type', [
+export const taskSourceSchema = z.discriminatedUnion('type', [
   z.object({
     id: z.string(),
     project_id: z.string(),
@@ -70,13 +70,15 @@ export type GitLabIssuesConfig = z.infer<typeof gitlabIssuesConfigSchema>
 export type JiraConfig = z.infer<typeof jiraConfigSchema>
 export type GitHubIssuesConfig = z.infer<typeof githubIssuesConfigSchema>
 
+export const listTaskSourcesQuerySchema = z.object({
+  project_id: z.string().optional()
+})
+
 export const listTaskSourcesConfig = {
   method: 'GET',
   route: route.static('/api/task-sources'),
   query: {
-    schema: z.object({
-      project_id: z.string().optional()
-    }).optional()
+    schema: listTaskSourcesQuerySchema.optional()
   },
   response: {
     schema: z.array(taskSourceSchema)
@@ -91,7 +93,7 @@ export const getTaskSourceConfig = {
   }
 } as const
 
-const createTaskSourceBodySchema = z.discriminatedUnion('type', [
+export const createTaskSourceBodySchema = z.discriminatedUnion('type', [
   z.object({
     project_id: z.string(),
     name: z.string(),
@@ -129,7 +131,7 @@ export const createTaskSourceConfig = {
   }
 } as const
 
-const updateTaskSourceBodySchema = z.union([
+export const updateTaskSourceBodySchema = z.union([
   z.object({
     name: z.string().optional(),
     type: z.literal('gitlab_issues').optional(),
@@ -164,6 +166,11 @@ export const updateTaskSourceConfig = {
   }
 } as const
 
+export const syncTaskSourceResponseSchema = z.object({
+  success: z.boolean(),
+  message: z.string()
+})
+
 export const syncTaskSourceConfig = {
   method: 'POST',
   route: route.dynamic('/api/task-sources/:id/sync', z.object({ id: z.string() })),
@@ -171,17 +178,16 @@ export const syncTaskSourceConfig = {
     schema: z.object({}).optional()
   },
   response: {
-    schema: z.object({
-      success: z.boolean(),
-      message: z.string()
-    })
+    schema: syncTaskSourceResponseSchema
   }
 } as const
+
+export const deleteTaskSourceResponseSchema = z.object({ success: z.boolean() })
 
 export const deleteTaskSourceConfig = {
   method: 'DELETE',
   route: route.dynamic('/api/task-sources/:id', z.object({ id: z.string() })),
   response: {
-    schema: z.object({ success: z.boolean() })
+    schema: deleteTaskSourceResponseSchema
   }
 } as const

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-const fileSpaceSchema = z.object({
+export const fileSpaceSchema = z.object({
   id: z.string(),
   name: z.string(),
   type: z.enum(['gitlab', 'github']),
@@ -13,13 +13,15 @@ const fileSpaceSchema = z.object({
   updated_at: z.string()
 })
 
+export const listFileSpacesQuerySchema = z.object({
+  project_id: z.string().optional()
+})
+
 export const listFileSpacesConfig = {
   method: 'GET',
   route: route.static('/api/file-spaces'),
   query: {
-    schema: z.object({
-      project_id: z.string().optional()
-    }),
+    schema: listFileSpacesQuerySchema,
   },
   response: {
     schema: z.array(fileSpaceSchema)
@@ -34,6 +36,15 @@ export const getFileSpaceConfig = {
   }
 } as const
 
+export const createFileSpaceBodySchema = z.object({
+  name: z.string(),
+  type: z.enum(['gitlab', 'github']),
+  project_id: z.string(),
+  enabled: z.boolean().optional(),
+  default_branch: z.string().optional(),
+  config: z.any()
+})
+
 /**
  * Create file space
  * POST /api/file-spaces
@@ -42,14 +53,7 @@ export const createFileSpaceConfig = {
   method: 'POST',
   route: route.static('/api/file-spaces'),
   body: {
-    schema: z.object({
-      name: z.string(),
-      type: z.enum(['gitlab', 'github']),
-      project_id: z.string(),
-      enabled: z.boolean().optional(),
-      default_branch: z.string().optional(),
-      config: z.any()
-    })
+    schema: createFileSpaceBodySchema
   },
   response: {
     schema: fileSpaceSchema
@@ -68,6 +72,14 @@ export const getTaskFileSpacesConfig = {
   }
 } as const
 
+export const updateFileSpaceBodySchema = z.object({
+  name: z.string().optional(),
+  type: z.string().optional(),
+  enabled: z.boolean().optional(),
+  default_branch: z.string().optional(),
+  config: z.any().optional()
+})
+
 /**
  * Update file space
  * PATCH /api/file-spaces/:id
@@ -76,18 +88,14 @@ export const updateFileSpaceConfig = {
   method: 'PATCH',
   route: route.dynamic('/api/file-spaces/:id', z.object({ id: z.string() })),
   body: {
-    schema: z.object({
-      name: z.string().optional(),
-      type: z.string().optional(),
-      enabled: z.boolean().optional(),
-      default_branch: z.string().optional(),
-      config: z.any().optional()
-    })
+    schema: updateFileSpaceBodySchema
   },
   response: {
     schema: fileSpaceSchema
   }
 } as const
+
+export const deleteFileSpaceResponseSchema = z.object({ success: z.boolean() })
 
 /**
  * Delete file space
@@ -97,6 +105,6 @@ export const deleteFileSpaceConfig = {
   method: 'DELETE',
   route: route.dynamic('/api/file-spaces/:id', z.object({ id: z.string() })),
   response: {
-    schema: z.object({ success: z.boolean() })
+    schema: deleteFileSpaceResponseSchema
   }
 } as const

@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 
-const gitLabSourceSchema = z.object({
+export const gitLabSourceSchema = z.object({
   type: z.string(),
   project_id: z.string().optional(),
   project_path: z.string().optional(),
@@ -10,7 +10,7 @@ const gitLabSourceSchema = z.object({
   access_token_encrypted: z.string().optional()
 })
 
-const workerRepositorySchema = z.object({
+export const workerRepositorySchema = z.object({
   id: z.string(),
   project_id: z.string(),
   source_gitlab: gitLabSourceSchema,
@@ -27,15 +27,17 @@ export const getWorkerRepositoryByProjectConfig = {
   }
 } as const
 
+export const createWorkerRepositoryBodySchema = z.object({
+  project_id: z.string(),
+  source_gitlab: gitLabSourceSchema,
+  current_version: z.string()
+})
+
 export const createWorkerRepositoryConfig = {
   method: 'POST',
   route: route.static('/api/worker-repositories'),
   body: {
-    schema: z.object({
-      project_id: z.string(),
-      source_gitlab: gitLabSourceSchema,
-      current_version: z.string()
-    })
+    schema: createWorkerRepositoryBodySchema
   },
   response: {
     schema: workerRepositorySchema
