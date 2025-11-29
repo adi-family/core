@@ -4,6 +4,7 @@ import { checkQuotaAvailable, type QuotaCheck } from '@db/user-quotas.ts'
 import { getProjectAIProviderConfig } from '@db/projects.ts'
 import { getDecryptedSecretValue } from './secrets'
 import { getPlatformAnthropicConfig, type PlatformAnthropicConfig, FREE_QUOTA_DISABLED, FREE_QUOTA_DISABLED_MESSAGE } from '../config'
+import { assertNever } from '@utils/assert-never'
 
 /**
  * Result of AI provider selection for evaluation
@@ -93,22 +94,25 @@ async function resolveAnthropicConfig(
 ): Promise<ResolvedAnthropicConfig> {
   const apiKey = await getDecryptedSecretValue(sql, config.api_key_secret_id)
 
-  if (config.type === 'cloud') {
-    return {
-      type: 'cloud',
-      api_key: apiKey,
-      model: config.model,
-      max_tokens: config.max_tokens,
-    }
-  }
-
-  return {
-    type: 'self-hosted',
-    api_key: apiKey,
-    endpoint_url: config.endpoint_url,
-    model: config.model,
-    max_tokens: config.max_tokens,
-    additional_headers: config.additional_headers,
+  switch (config.type) {
+    case 'cloud':
+      return {
+        type: 'cloud',
+        api_key: apiKey,
+        model: config.model,
+        max_tokens: config.max_tokens,
+      }
+    case 'self-hosted':
+      return {
+        type: 'self-hosted',
+        api_key: apiKey,
+        endpoint_url: config.endpoint_url,
+        model: config.model,
+        max_tokens: config.max_tokens,
+        additional_headers: config.additional_headers,
+      }
+    default:
+      return assertNever(config)
   }
 }
 
