@@ -17,6 +17,7 @@ import { createAdminHandlers } from './handlers/admin'
 import { createSecretHandlers } from './handlers/secrets'
 import { createFileSpaceHandlers } from './handlers/file-spaces'
 import { createOAuthHandlers } from './handlers/oauth'
+import { createSdkWorkerHandlers } from './handlers/sdk-workers'
 import { createLogger } from '@utils/logger'
 import { setupGracefulShutdown } from './utils/graceful-shutdown'
 import { NotFoundException, BadRequestException, NotEnoughRightsException, AuthRequiredException } from '@utils/exceptions'
@@ -36,6 +37,7 @@ const adminHandlers = createAdminHandlers(sql)
 const secretHandlers = createSecretHandlers(sql)
 const fileSpaceHandlers = createFileSpaceHandlers(sql)
 const oauthHandlers = createOAuthHandlers(sql)
+const sdkWorkerHandlers = createSdkWorkerHandlers(sql)
 
 // Collect all handlers
 const allHandlers = [
@@ -120,6 +122,17 @@ const allHandlers = [
   oauthHandlers.jiraRefresh,
   oauthHandlers.githubAuthorize,
   oauthHandlers.githubExchange,
+  // SDK Workers
+  sdkWorkerHandlers.listSdkWorkers,
+  sdkWorkerHandlers.getSdkWorker,
+  sdkWorkerHandlers.createSdkWorker,
+  sdkWorkerHandlers.deleteSdkWorker,
+  sdkWorkerHandlers.sdkWorkerRegister,
+  sdkWorkerHandlers.sdkWorkerHeartbeat,
+  sdkWorkerHandlers.sdkWorkerGetNext,
+  sdkWorkerHandlers.sdkWorkerPostMessage,
+  sdkWorkerHandlers.sdkWorkerFinish,
+  sdkWorkerHandlers.sdkWorkerGetMessages,
 ]
 
 // Create native request handler

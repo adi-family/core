@@ -20,10 +20,12 @@
     "./messages": "./messages.ts",
     "./alerts": "./alerts.ts",
     "./oauth": "./oauth.ts",
-    "./worker-cache": "./worker-cache.ts"
+    "./worker-cache": "./worker-cache.ts",
+    "./sdk-workers": "./sdk-workers.ts"
   },
   "dependencies": {
     "@adi-family/http": "^1.0.3",
+    "@adi-simple/types": "*",
     "@adi-simple/utils": "*",
     "zod": "^4.1.12"
   }

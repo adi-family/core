@@ -55,7 +55,7 @@ export const TASK_IMPL_DLQ_CONFIG: QueueConfig = {
   durable: true
 }
 
-// Worker queues for custom worker microservice
+// Worker queues for adi-runner microservice (renamed from custom-microservice)
 export const WORKER_TASKS_QUEUE = 'worker-tasks'
 export const WORKER_TASKS_DLQ = 'worker-tasks.dlq'
 export const WORKER_TASKS_DLX = 'worker-tasks.dlx'

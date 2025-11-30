@@ -207,7 +207,7 @@ export const aiProviderValidationResultSchema = z.object({
 
 export type AIProviderValidationResult = z.infer<typeof aiProviderValidationResultSchema>
 
-export const workerTypeSchema = z.enum(['gitlab-ci', 'custom-microservice'])
+export const workerTypeSchema = z.enum(['gitlab-ci', 'adi-runner', 'sdk'])
 
 export type WorkerType = z.infer<typeof workerTypeSchema>
 
@@ -219,7 +219,7 @@ export const projectSchema = z.object({
   task_sequence: z.number().default(0),
   job_executor_gitlab: gitlabExecutorConfigSchema.nullable(),
   ai_provider_configs: aiProviderConfigSchema.nullable(),
-  default_worker_type: workerTypeSchema.default('custom-microservice'),
+  default_worker_type: workerTypeSchema.default('adi-runner'),
   allow_worker_override: z.boolean().default(true),
   created_at: z.string(),
   updated_at: z.string(),
@@ -1006,3 +1006,131 @@ export const workerResponseMessageSchema = z.object({
 })
 
 export type WorkerResponseMessage = z.infer<typeof workerResponseMessageSchema>
+
+// SDK Worker types for custom runners (local claude code, custom implementations, etc.)
+export const sdkWorkerStatusSchema = z.enum(['online', 'offline', 'busy'])
+export type SdkWorkerStatus = z.infer<typeof sdkWorkerStatusSchema>
+
+export const sdkWorkerCapabilitiesSchema = z.object({
+  maxConcurrentTasks: z.number().default(1),
+  supportedTaskTypes: z.array(z.enum(['evaluation', 'implementation'])).default(['evaluation', 'implementation']),
+  timeout: z.number().default(3600000), // 1 hour default
+  tags: z.array(z.string()).default([])
+})
+export type SdkWorkerCapabilities = z.infer<typeof sdkWorkerCapabilitiesSchema>
+
+export const sdkWorkerSchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  name: z.string(),
+  description: z.string().nullable(),
+  api_key_hash: z.string(),
+  last_heartbeat_at: z.string().nullable(),
+  status: sdkWorkerStatusSchema,
+  capabilities: sdkWorkerCapabilitiesSchema,
+  metadata: z.record(z.string(), z.unknown()).default({}),
+  created_at: z.string(),
+  updated_at: z.string()
+})
+export type SdkWorker = z.infer<typeof sdkWorkerSchema>
+
+export const createSdkWorkerInputSchema = z.object({
+  project_id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  capabilities: sdkWorkerCapabilitiesSchema.optional()
+})
+export type CreateSdkWorkerInput = z.infer<typeof createSdkWorkerInputSchema>
+
+export const sdkWorkerTaskStatusSchema = z.enum(['pending', 'in_progress', 'completed', 'failed', 'timeout'])
+export type SdkWorkerTaskStatus = z.infer<typeof sdkWorkerTaskStatusSchema>
+
+export const sdkWorkerTaskSchema = z.object({
+  id: z.string(),
+  worker_id: z.string(),
+  session_id: z.string(),
+  status: sdkWorkerTaskStatusSchema,
+  assigned_at: z.string(),
+  started_at: z.string().nullable(),
+  completed_at: z.string().nullable(),
+  result: z.unknown().nullable(),
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    details: z.unknown().optional()
+  }).nullable(),
+  created_at: z.string(),
+  updated_at: z.string()
+})
+export type SdkWorkerTask = z.infer<typeof sdkWorkerTaskSchema>
+
+export const sdkWorkerMessageDirectionSchema = z.enum(['worker_to_server', 'server_to_worker'])
+export type SdkWorkerMessageDirection = z.infer<typeof sdkWorkerMessageDirectionSchema>
+
+export const sdkWorkerMessageSchema = z.object({
+  id: z.string(),
+  task_id: z.string(),
+  direction: sdkWorkerMessageDirectionSchema,
+  message_type: z.string(),
+  payload: z.unknown(),
+  created_at: z.string()
+})
+export type SdkWorkerMessage = z.infer<typeof sdkWorkerMessageSchema>
+
+// SDK Worker API types (for the SDK client)
+export const sdkWorkerRegisterInputSchema = z.object({
+  name: z.string(),
+  description: z.string().optional(),
+  capabilities: sdkWorkerCapabilitiesSchema.optional(),
+  metadata: z.record(z.string(), z.unknown()).optional()
+})
+export type SdkWorkerRegisterInput = z.infer<typeof sdkWorkerRegisterInputSchema>
+
+export const sdkWorkerRegisterResponseSchema = z.object({
+  worker: sdkWorkerSchema,
+  apiKey: z.string() // Only returned once on registration
+})
+export type SdkWorkerRegisterResponse = z.infer<typeof sdkWorkerRegisterResponseSchema>
+
+export const sdkWorkerHeartbeatInputSchema = z.object({
+  status: sdkWorkerStatusSchema.optional(),
+  metadata: z.record(z.string(), z.unknown()).optional()
+})
+export type SdkWorkerHeartbeatInput = z.infer<typeof sdkWorkerHeartbeatInputSchema>
+
+export const sdkWorkerTaskContextSchema = z.object({
+  taskId: z.string(),
+  sessionId: z.string(),
+  projectId: z.string(),
+  taskType: z.enum(['evaluation', 'implementation']),
+  task: taskSchema,
+  project: projectSchema,
+  aiProvider: aiProviderConfigSchema.nullable(),
+  timeout: z.number()
+})
+export type SdkWorkerTaskContext = z.infer<typeof sdkWorkerTaskContextSchema>
+
+export const sdkWorkerGetNextResponseSchema = z.object({
+  task: sdkWorkerTaskSchema.nullable(),
+  context: sdkWorkerTaskContextSchema.nullable()
+})
+export type SdkWorkerGetNextResponse = z.infer<typeof sdkWorkerGetNextResponseSchema>
+
+export const sdkWorkerPostMessageInputSchema = z.object({
+  taskId: z.string(),
+  messageType: z.string(),
+  payload: z.unknown()
+})
+export type SdkWorkerPostMessageInput = z.infer<typeof sdkWorkerPostMessageInputSchema>
+
+export const sdkWorkerFinishInputSchema = z.object({
+  taskId: z.string(),
+  status: z.enum(['completed', 'failed']),
+  result: z.unknown().optional(),
+  error: z.object({
+    code: z.string(),
+    message: z.string(),
+    details: z.unknown().optional()
+  }).optional()
+})
+export type SdkWorkerFinishInput = z.infer<typeof sdkWorkerFinishInputSchema>
