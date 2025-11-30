@@ -24,6 +24,7 @@
   },
   "dependencies": {
     "@adi-family/http": "^1.0.3",
+    "@adi-simple/utils": "*",
     "zod": "^4.1.12"
   }
 }

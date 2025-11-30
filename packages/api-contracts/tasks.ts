@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import { route } from '@adi-family/http'
 import { taskSchema as taskSchemaFromTypes, sessionSchema as sessionSchemaFromTypes, pipelineArtifactSchema } from '@adi-simple/types'
-import { stringOrBoolean } from '@utils/zod'
+import { stringOrBoolean } from '@adi-simple/utils/zod'
 
 export const taskSchema = taskSchemaFromTypes
 export type Task = z.infer<typeof taskSchema>
