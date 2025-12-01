@@ -77,7 +77,7 @@ export async function executeClaudeAgent(
   let output = ''
   let cost = 0
   let iterations = 0
-  let usage: any = undefined
+  let usage: unknown = undefined
 
   logger.info('🤖 Starting Claude Agent SDK...')
   logger.info(`Workspace: ${options.workspacePath}`)

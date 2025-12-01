@@ -9,7 +9,7 @@ interface ListPageProps<T> {
   title: string
   description?: string
   fetchFn: () => Promise<Response>
-  presenter: new (...args: any[]) => BasePresenter<T>
+  presenter: new (...args: unknown[]) => BasePresenter<T>
   buildPresenter?: (item: T) => BasePresenter<T>
   emptyMessage?: string
   headerActions?: ReactNode

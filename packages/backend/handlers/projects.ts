@@ -96,7 +96,7 @@ export function createProjectHandlers(sql: Sql) {
       throw new Error(`Invalid provider: ${provider}`)
     }
 
-    const apiKeySecretId = (config as any).api_key_secret_id
+    const apiKeySecretId = config.api_key_secret_id
     if (!apiKeySecretId) {
       throw new Error('API key secret ID is required')
     }
@@ -112,7 +112,7 @@ export function createProjectHandlers(sql: Sql) {
       ctx.sql,
       id,
       provider as 'anthropic' | 'openai' | 'google',
-      config as any
+      config
     )
 
     return await queries.getProjectAIProviderConfigs(ctx.sql, id) || {}
@@ -138,7 +138,8 @@ export function createProjectHandlers(sql: Sql) {
       throw new Error(`Invalid provider: ${provider}`)
     }
 
-    const apiKey = (config as any).api_key
+    // For validation, api_key is passed in the config body (not in the schema)
+    const apiKey = (config as Record<string, unknown>).api_key as string | undefined
     if (!apiKey) {
       throw new Error('API key is required for validation')
     }

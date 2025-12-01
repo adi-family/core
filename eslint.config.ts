@@ -28,6 +28,7 @@ export default tseslint.config(
       "**/.next/**",
       "**/.cache",
       "**/.cache/**",
+      "**/.vitepress/cache/**",
       "**/out",
       "**/out/**",
       "**/*.min.js",
@@ -48,6 +49,7 @@ export default tseslint.config(
       "packages/ui/src/EntitySelectDemo.tsx",
       "packages/ui/src/ComboboxDemo.tsx",
       "packages/worker/scripts/**",
+      "packages/docs/**",
     ],
   },
 

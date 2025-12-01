@@ -23,6 +23,22 @@ import { sql as defaultSql } from '@db/client'
 
 const logger = createLogger({ namespace: 'pipeline-executor' })
 
+interface FileSpace {
+  id: string
+  name: string
+  config: Record<string, unknown>
+  [key: string]: unknown
+}
+
+interface FileSpaceConfig {
+  name: string
+  id: string
+  repo: string
+  host?: unknown
+  token?: string
+  accessToken?: string
+}
+
 export interface TriggerPipelineInput {
   sessionId: string
   apiClient: BackendClient
@@ -517,30 +533,32 @@ async function fetchFileSpaceToken(
 /**
  * Build file space configuration from database record
  */
-async function buildFileSpaceConfig(fileSpace: any, sql: Sql): Promise<any | null> {
+async function buildFileSpaceConfig(fileSpace: FileSpace, sql: Sql): Promise<FileSpaceConfig | null> {
   if (!fileSpace) {
     logger.warn('⚠️  File space is undefined, skipping')
     return null
   }
 
-  const config = fileSpace.config as any
-  if (!config.repo) {
+  const config = fileSpace.config
+  const repo = config.repo as string | undefined
+  if (!repo) {
     logger.warn(`⚠️  File space ${fileSpace.name} has no repo URL, skipping`)
     return null
   }
 
   // Construct full Git URL from host and repo path
-  let repoUrl = config.repo
+  let repoUrl = repo
   if (!repoUrl.startsWith('http://') && !repoUrl.startsWith('https://')) {
     // If repo is just a path (e.g., "nakit-yok/frontend"), construct full URL
-    if (!config.host) {
+    const host = config.host as string | undefined
+    if (!host) {
       logger.warn(`⚠️  File space ${fileSpace.name} has relative repo path but no host, skipping`)
       return null
     }
     // Ensure host doesn't have trailing slash and repo doesn't have leading slash
-    const host = config.host.replace(/\/$/, '')
-    const repoPath = config.repo.replace(/^\//, '')
-    repoUrl = `${host}/${repoPath}`
+    const cleanHost = host.replace(/\/$/, '')
+    const repoPath = repo.replace(/^\//, '')
+    repoUrl = `${cleanHost}/${repoPath}`
 
     // Add .git extension if not present
     if (!repoUrl.endsWith('.git')) {
@@ -548,7 +566,7 @@ async function buildFileSpaceConfig(fileSpace: any, sql: Sql): Promise<any | nul
     }
   }
 
-  const spaceConfig: any = {
+  const spaceConfig: FileSpaceConfig = {
     name: fileSpace.name,
     id: fileSpace.id,
     repo: repoUrl,

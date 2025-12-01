@@ -133,7 +133,7 @@ async function processIssues(
   taskSource: TaskSource,
   projectId: string,
   existingStateMap: Map<string, any>
-): Promise<{ tasksCreated: number; tasksUpdated: number; errors: string[]; syncStateUpdates: any[] }> {
+): Promise<{ tasksCreated: number; tasksUpdated: number; errors: string[]; syncStateUpdates: unknown[] }> {
   const result = {
     tasksCreated: 0,
     tasksUpdated: 0,

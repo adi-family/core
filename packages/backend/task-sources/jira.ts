@@ -21,6 +21,31 @@ interface JiraSearchResponse {
   nextPageToken?: string;
 }
 
+interface ADFNode {
+  type?: string;
+  text?: string;
+  content?: ADFNode[];
+  [key: string]: unknown;
+}
+
+interface ADFDocument {
+  content?: ADFNode[];
+  [key: string]: unknown;
+}
+
+interface Secret {
+  id: string;
+  refresh_token?: string;
+  expires_at?: string;
+  [key: string]: unknown;
+}
+
+interface OAuthTokenResponse {
+  access_token: string;
+  refresh_token?: string;
+  expires_in: number;
+}
+
 /**
  * Extract plain text from Atlassian Document Format (ADF)
  * Jira API v3 returns description as ADF object, not plain text
@@ -30,14 +55,14 @@ function extractTextFromADF(adf: unknown): string {
     return '';
   }
 
-  const doc = adf as any;
+  const doc = adf as ADFDocument;
 
   // If it's already a string, return it
   if (typeof doc === 'string') {
     return doc;
   }
 
-  const extractFromNode = (node: any): string => {
+  const extractFromNode = (node: ADFNode): string => {
     if (!node) return '';
 
     // Text node - return the text content
@@ -55,7 +80,7 @@ function extractTextFromADF(adf: unknown): string {
 
   // Extract text from all content nodes
   if (Array.isArray(doc.content)) {
-    return doc.content.map((node: any) => {
+    return doc.content.map((node) => {
       const text = extractFromNode(node);
       // Add newline after paragraphs, headings, etc.
       if (node.type === 'paragraph' || node.type === 'heading') {
@@ -110,7 +135,7 @@ export class JiraTaskSource extends BaseTaskSource {
   /**
    * Refresh OAuth token if expired
    */
-  private async refreshOAuthToken(secret: any): Promise<string> {
+  private async refreshOAuthToken(secret: Secret): Promise<string> {
     if (!secret.refresh_token) {
       throw new Error('OAuth token expired and no refresh token available')
     }
@@ -144,7 +169,7 @@ export class JiraTaskSource extends BaseTaskSource {
       throw new Error(`Failed to refresh OAuth token: ${errorText}`)
     }
 
-    const tokenData = await refreshResponse.json() as any
+    const tokenData = await refreshResponse.json() as OAuthTokenResponse
     const newExpiresAt = new Date(Date.now() + tokenData.expires_in * 1000).toISOString()
 
     await updateSecret(sql, secret.id, {
@@ -230,7 +255,7 @@ export class JiraTaskSource extends BaseTaskSource {
     jqlQuery: string,
     nextPageToken?: string
   ): Promise<JiraSearchResponse> {
-    const requestBody: any = {
+    const requestBody: Record<string, unknown> = {
       jql: jqlQuery,
       maxResults: 100,
       fields: ['summary', 'description', 'updated', 'key']

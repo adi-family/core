@@ -58,10 +58,10 @@ export function TaskPage() {
             const artifacts = await client.run(listPipelineArtifactsConfig, {}) as PipelineArtifact[]
             const evaluationArtifact = artifacts.find(
               (a) => a.artifact_type === 'text' &&
-                     (a.metadata as any)?.task_id === taskData.id
+                     (a.metadata as unknown)?.task_id === taskData.id
             )
             if (evaluationArtifact) {
-              const content = (evaluationArtifact.metadata as any)?.evaluation_content
+              const content = (evaluationArtifact.metadata as unknown)?.evaluation_content
               if (content) {
                 setEvaluationReport(content)
               }
@@ -571,7 +571,7 @@ export function TaskPage() {
               </h3>
               <div className="space-y-3">
                 {mergeRequestArtifacts.map((artifact) => {
-                  const metadata = artifact.metadata as any
+                  const metadata = artifact.metadata as unknown
                   return (
                     <div key={artifact.id} className="bg-white/5 backdrop-blur-sm p-4 rounded-lg border border-white/10 space-y-2">
                       <div className="flex items-center justify-between">

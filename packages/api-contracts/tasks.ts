@@ -73,7 +73,7 @@ export const implementTaskConfig = {
 export const evaluateTaskResponseSchema = z.object({
   success: z.boolean(),
   message: z.string().optional(),
-  evaluation: z.any().optional()
+  evaluation: z.unknown().optional()
 })
 
 export const evaluateTaskConfig = {

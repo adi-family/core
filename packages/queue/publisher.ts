@@ -19,7 +19,7 @@ export async function createPublisher() {
   const ch = await channel.value
 
   return {
-    async publish<T = any>(queue: string, message: T, options: PublishOptions = {}): Promise<void> {
+    async publish<T = unknown>(queue: string, message: T, options: PublishOptions = {}): Promise<void> {
       try {
         const buffer = Buffer.from(JSON.stringify(message))
 

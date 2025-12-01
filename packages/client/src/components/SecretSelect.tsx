@@ -40,7 +40,7 @@ export function SecretSelect({
           // Fetch all secrets accessible to user
           data = await client.run(listSecretsConfig)
         }
-        setSecrets(data as any)
+        setSecrets(data as unknown)
       } catch (error) {
         console.error("Error fetching secrets:", error)
       } finally {

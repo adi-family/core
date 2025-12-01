@@ -122,7 +122,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
           tooltip={`${isCollapsed ? 'Expand' : 'Collapse'} sidebar ${formatHotkey(HOTKEYS.ToggleSidebar)}`}
         />
         <button
-          onClick={() => (window as any).__toggleKeyboardShortcuts?.()}
+          onClick={() => (window as unknown).__toggleKeyboardShortcuts?.()}
           className={isCollapsed ? 'w-full p-2 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 rounded-lg transition-colors cursor-pointer flex justify-center' : 'flex items-center gap-2 w-[calc(100%+2rem)] -mx-4 px-4 py-2 text-neutral-400 hover:bg-neutral-800 hover:text-neutral-200 rounded-lg transition-colors cursor-pointer'}
         >
           <Keyboard className="h-4 w-4" />

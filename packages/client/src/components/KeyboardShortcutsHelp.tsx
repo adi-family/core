@@ -8,9 +8,9 @@ export function KeyboardShortcutsHelp() {
 
   // Expose toggle function globally for the nav button
   useEffect(() => {
-    ;(window as any).__toggleKeyboardShortcuts = () => setIsOpen(prev => !prev)
+    ;(window as unknown).__toggleKeyboardShortcuts = () => setIsOpen(prev => !prev)
     return () => {
-      delete (window as any).__toggleKeyboardShortcuts
+      delete (window as unknown).__toggleKeyboardShortcuts
     }
   }, [])
 

@@ -104,7 +104,7 @@ export const createApiKey = async (
       ${input.name},
       ${keyHash},
       ${keyPrefix},
-      ${sql.json(permissions as any)},
+      ${sql.json(permissions)},
       ${input.expires_at || null},
       ${createdBy}
     )
@@ -130,7 +130,7 @@ export const updateApiKey = async (
   input: UpdateApiKeyInput
 ): Promise<ApiKey> => {
   const updates: string[] = []
-  const values: any[] = []
+  const values: unknown[] = []
 
   if (input.name !== undefined) {
     updates.push(`name = $${updates.length + 1}`)

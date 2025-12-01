@@ -13,10 +13,10 @@ export const findProjectById = async (sql: Sql, id: string): Promise<Project> =>
 
 const createProjectCols = ['name', 'enabled', 'key'] as const
 export const createProject = async (sql: Sql, input: CreateProjectInput): Promise<Project> => {
-  const presentCols = filterPresentColumns(input as any, createProjectCols)
+  const presentCols = filterPresentColumns(input, createProjectCols)
 
   const [project] = await get(sql<Project[]>`
-    INSERT INTO projects ${sql(input as any, presentCols)}
+    INSERT INTO projects ${sql(input, presentCols)}
     RETURNING *
   `)
   if (!project) {
@@ -57,7 +57,7 @@ export const setProjectJobExecutor = async (
   const projects = await get(sql<Project[]>`
     UPDATE projects
     SET
-      job_executor_gitlab = ${sql.json(config as any)},
+      job_executor_gitlab = ${sql.json(config)},
       updated_at = NOW()
     WHERE id = ${projectId}
     RETURNING *
@@ -127,7 +127,7 @@ export const setProjectAIProviderConfig = async (
   const projects = await get(sql<Project[]>`
     UPDATE projects
     SET
-      ai_provider_configs = COALESCE(ai_provider_configs, '{}'::jsonb) || jsonb_build_object(${provider}::text, ${sql.json(config as any)}),
+      ai_provider_configs = COALESCE(ai_provider_configs, '{}'::jsonb) || jsonb_build_object(${provider}::text, ${sql.json(config)}),
       updated_at = NOW()
     WHERE id = ${projectId}
     RETURNING *

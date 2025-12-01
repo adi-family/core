@@ -79,8 +79,8 @@ export function TasksPage() {
       const tasksData = await tasksDataPromise
 
       // Handle both old array format and new paginated format for backwards compatibility
-      const newTasks = Array.isArray(tasksData) ? tasksData : (tasksData as any).data
-      const pagination = Array.isArray(tasksData) ? null : (tasksData as any).pagination
+      const newTasks = Array.isArray(tasksData) ? tasksData : (tasksData as unknown).data
+      const pagination = Array.isArray(tasksData) ? null : (tasksData as unknown).pagination
 
       if (!Array.isArray(newTasks)) {
         console.error("Invalid API response: expected array of tasks or paginated response")

@@ -12,7 +12,7 @@ export const artifactSchema = z.object({
   pipeline_execution_id: z.string(),
   artifact_type: pipelineArtifactTypeSchema,
   reference_url: z.string(),
-  metadata: z.any().nullable(),
+  metadata: z.unknown().nullable(),
   created_at: z.string().or(z.date())
 })
 
@@ -71,7 +71,7 @@ export const getExecutionArtifactsConfig = {
 export const createExecutionArtifactBodySchema = z.object({
   artifact_type: pipelineArtifactTypeSchema,
   reference_url: z.string(),
-  metadata: z.any().optional()
+  metadata: z.unknown().optional()
 })
 
 export const createExecutionArtifactConfig = {
@@ -133,7 +133,7 @@ export const saveExecutionApiUsageBodySchema = z.object({
   cache_read_input_tokens: z.number().optional(),
   ci_duration_seconds: z.number().optional(),
   iteration_number: z.number().optional(),
-  metadata: z.any().optional()
+  metadata: z.unknown().optional()
 })
 
 export const saveExecutionApiUsageResponseSchema = z.object({

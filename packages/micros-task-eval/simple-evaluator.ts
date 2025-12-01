@@ -81,7 +81,7 @@ export interface SimpleEvaluationUsage {
  * Create Anthropic client with optional proxy support
  */
 function createAnthropicClient(aiConfig?: AIProviderConfig): Anthropic {
-  const config: any = {
+  const config: unknown = {
     apiKey: aiConfig?.api_key || process.env.ANTHROPIC_API_KEY!
   }
 

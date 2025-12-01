@@ -426,7 +426,7 @@ async function main() {
     const agentResults: {
       exitCode: number;
       output: string;
-      changes: Record<string, any>,
+      changes: Record<string, unknown>,
       errors: string[];
     } = {
       exitCode: 0,

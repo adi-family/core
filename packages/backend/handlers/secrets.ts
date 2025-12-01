@@ -28,6 +28,26 @@ import { createSecretInputSchema } from '@types'
 
 const logger = createLogger({ namespace: 'secrets-handler' })
 
+interface GitLabUserResponse {
+  username: string
+  id: number
+  [key: string]: unknown
+}
+
+interface JiraResourceResponse {
+  id: string
+  name: string
+  url: string
+  [key: string]: unknown
+}
+
+interface JiraUserResponse {
+  displayName: string
+  accountId: string
+  emailAddress?: string
+  [key: string]: unknown
+}
+
 const toSecretResponse = (secret: Secret) => secretSchema.parse(secret)
 const toSecretWithProjectResponse = (secret: Secret) => secretWithProjectSchema.parse(secret)
 
@@ -38,7 +58,7 @@ export function createSecretHandlers(sql: Sql) {
    * Authenticate request using API key
    * Workers need to access secrets, so we support API key auth for getSecretValue
    */
-  async function authenticateApiKey(ctx: HandlerContext<any, any, any>): Promise<string> {
+  async function authenticateApiKey(ctx: HandlerContext<unknown, unknown, unknown>): Promise<string> {
     const authHeader = ctx.headers.get('Authorization')
     if (!authHeader) {
       throw new Error('Unauthorized: No Authorization header')
@@ -147,7 +167,7 @@ export function createSecretHandlers(sql: Sql) {
         }
       }
 
-      const user = await response.json() as any
+      const user = await response.json() as GitLabUserResponse
 
       return {
         validated: true,
@@ -187,7 +207,7 @@ export function createSecretHandlers(sql: Sql) {
         }
       }
 
-      const user = await response.json() as any
+      const user = await response.json() as GitLabUserResponse
 
       return {
         validated: true,
@@ -270,7 +290,7 @@ export function createSecretHandlers(sql: Sql) {
         }
       }
 
-      const user = await response.json() as any
+      const user = await response.json() as GitLabUserResponse
 
       return {
         valid: true,
@@ -311,7 +331,7 @@ export function createSecretHandlers(sql: Sql) {
           }
         }
 
-        const resources = await response.json() as any[]
+        const resources = await response.json() as JiraResourceResponse[]
 
         return {
           valid: true,
@@ -342,7 +362,7 @@ export function createSecretHandlers(sql: Sql) {
           }
         }
 
-        const user = await response.json() as any
+        const user = await response.json() as JiraUserResponse
 
         return {
           valid: true,

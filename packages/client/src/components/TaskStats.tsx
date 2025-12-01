@@ -198,12 +198,12 @@ export function TaskStats({ filters }: TaskStatsProps) {
                     }}
                     labelStyle={{ color: '#fff' }}
                     itemStyle={{ color: '#fff' }}
-                    formatter={(value: any, name: string, props: any) => {
+                    formatter={(value: unknown, name: string, props: unknown) => {
                       if (name === 'Effort') return [props.payload.effortLabel, 'Effort']
                       if (name === 'Impact') return [props.payload.impactLabel, 'Impact']
                       return [value, name]
                     }}
-                    labelFormatter={(label: any, payload: any) => {
+                    labelFormatter={(label: unknown, payload: unknown) => {
                       if (payload && payload[0]) {
                         return payload[0].payload.title
                       }

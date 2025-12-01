@@ -4,6 +4,11 @@ import { AI_MODEL_DEFAULTS, API_VERSIONS } from '@adi-simple/config'
 
 const logger = createLogger({ namespace: 'ai-provider-validator' })
 
+interface OpenAIModelsResponse {
+  data?: unknown[]
+  [key: string]: unknown
+}
+
 export async function validateAnthropicConfig(
   config: AnthropicConfig,
   apiKey: string
@@ -118,7 +123,7 @@ export async function validateOpenAIConfig(
     if (response.ok) {
       result.authentication_valid = true
       result.valid = true
-      const data = await response.json() as any
+      const data = await response.json() as OpenAIModelsResponse
       result.details = {
         status: response.status,
         endpoint,
@@ -195,7 +200,7 @@ export async function validateGoogleConfig(
     if (response.ok) {
       result.authentication_valid = true
       result.valid = true
-      const data = await response.json() as any
+      const data = await response.json() as OpenAIModelsResponse
       result.details = {
         status: response.status,
         endpoint,

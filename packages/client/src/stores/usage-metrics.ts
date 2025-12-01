@@ -18,7 +18,7 @@ const apiUsageMetricSchema = z.object({
   cache_read_input_tokens: z.number(),
   ci_duration_seconds: z.number().nullable(),
   iteration_number: z.number().nullable(),
-  metadata: z.any().nullable(),
+  metadata: z.unknown().nullable(),
   created_at: z.union([z.date(), z.string()])
 })
 

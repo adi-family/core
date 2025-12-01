@@ -19,7 +19,7 @@ interface ChatMessage {
   timestamp: Date
   action?: {
     type: 'create_task' | 'evaluate_task' | 'implement_task' | 'schedule_tasks'
-    data?: any
+    data?: unknown
   }
 }
 

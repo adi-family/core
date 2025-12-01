@@ -52,7 +52,7 @@ function getModel(task: WorkerTaskMessage): string {
  * Parse workspace configuration from task context
  */
 function parseWorkspaceConfig(task: WorkerTaskMessage): WorkspaceConfig[] {
-  const workspace = task.context.workspace as any
+  const workspace = task.context.workspace as unknown
   if (!workspace || !workspace.repositories) {
     return []
   }
@@ -62,7 +62,7 @@ function parseWorkspaceConfig(task: WorkerTaskMessage): WorkspaceConfig[] {
     return []
   }
 
-  return repositories.map((repo: any) => ({
+  return repositories.map((repo: unknown) => ({
     name: repo.name || 'workspace',
     repo: repo.url || repo.repo,
     branch: repo.branch,

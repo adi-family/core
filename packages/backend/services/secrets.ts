@@ -93,7 +93,7 @@ export async function updateEncryptedSecret(
   id: string,
   input: UpdateSecretInput
 ): Promise<Secret> {
-  const updateData: any = {
+  const updateData: Record<string, unknown> = {
     updated_at: new Date()
   }
 

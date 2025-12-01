@@ -66,7 +66,7 @@ export function createFileSpaceHandlers(sql: Sql) {
 
   const createFileSpace = handler(createFileSpaceConfig, async (ctx) => {
     const auth = await authenticate(sql, ctx)
-    const { project_id } = ctx.body as any
+    const { project_id } = ctx.body
 
     if (auth.isApiKey) {
       if (project_id !== auth.projectId) {
@@ -82,7 +82,7 @@ export function createFileSpaceHandlers(sql: Sql) {
       }
     }
 
-    return fileSpaceQueries.createFileSpace(sql, ctx.body as any)
+    return fileSpaceQueries.createFileSpace(sql, ctx.body)
   })
 
   const updateFileSpace = handler(updateFileSpaceConfig, async (ctx) => {
@@ -104,7 +104,7 @@ export function createFileSpaceHandlers(sql: Sql) {
       }
     }
 
-    return fileSpaceQueries.updateFileSpace(sql, id, ctx.body as any)
+    return fileSpaceQueries.updateFileSpace(sql, id, ctx.body)
   })
 
   const deleteFileSpace = handler(deleteFileSpaceConfig, async (ctx) => {

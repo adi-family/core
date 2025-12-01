@@ -3,9 +3,9 @@
  */
 
 export interface Logger {
-  info: (message: string, ...args: any[]) => void
-  warn: (message: string, ...args: any[]) => void
-  error: (message: string, ...args: any[]) => void
+  info: (message: string, ...args: unknown[]) => void
+  warn: (message: string, ...args: unknown[]) => void
+  error: (message: string, ...args: unknown[]) => void
 }
 
 export function createLogger(config?: { namespace?: string }): Logger {
@@ -13,13 +13,13 @@ export function createLogger(config?: { namespace?: string }): Logger {
   const prefix = `[${namespace}]`
 
   return {
-    info: (message: string, ...args: any[]) => {
+    info: (message: string, ...args: unknown[]) => {
       console.log(`${prefix} INFO `, message, ...args)
     },
-    warn: (message: string, ...args: any[]) => {
+    warn: (message: string, ...args: unknown[]) => {
       console.warn(`${prefix} WARN `, message, ...args)
     },
-    error: (message: string, ...args: any[]) => {
+    error: (message: string, ...args: unknown[]) => {
       console.error(`${prefix} ERROR`, message, ...args)
     },
   }

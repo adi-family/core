@@ -201,7 +201,7 @@ export const aiProviderValidationResultSchema = z.object({
   endpoint_reachable: z.boolean(),
   authentication_valid: z.boolean(),
   error: z.string().optional(),
-  details: z.record(z.string(), z.any()).optional(),
+  details: z.record(z.string(), z.unknown()).optional(),
   tested_at: z.string()
 })
 
@@ -866,7 +866,7 @@ export const apiUsageMetricSchema = z.object({
   cache_read_input_tokens: z.number(),
   ci_duration_seconds: z.number().nullable(),
   iteration_number: z.number().nullable(),
-  metadata: z.any().nullable(),
+  metadata: z.unknown().nullable(),
   created_at: z.date()
 })
 
@@ -886,7 +886,7 @@ export const createApiUsageMetricInputSchema = z.object({
   cache_read_input_tokens: z.number(),
   ci_duration_seconds: z.number().nullable().optional(),
   iteration_number: z.number().nullable().optional(),
-  metadata: z.any().nullable().optional()
+  metadata: z.unknown().nullable().optional()
 })
 
 export type CreateApiUsageMetricInput = z.infer<typeof createApiUsageMetricInputSchema>

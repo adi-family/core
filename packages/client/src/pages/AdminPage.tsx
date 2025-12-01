@@ -222,7 +222,7 @@ export function AdminPage() {
         </div>
       </div>
 
-      <TabsContainer tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as any)} />
+      <TabsContainer tabs={tabs} activeTab={activeTab} onTabChange={(id) => setActiveTab(id as unknown)} />
 
       {/* Worker Repositories Tab */}
       {activeTab === 'repositories' && (

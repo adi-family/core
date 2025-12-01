@@ -142,7 +142,7 @@ const actionCommands: CommandItem[] = [
     label: 'Show Keyboard Shortcuts',
     icon: Keyboard,
     keywords: ['help', 'hotkeys'],
-    action: () => (window as any).__toggleKeyboardShortcuts?.(),
+    action: () => (window as unknown).__toggleKeyboardShortcuts?.(),
   },
 ]
 

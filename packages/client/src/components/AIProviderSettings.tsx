@@ -148,7 +148,7 @@ export function AIProviderSettings({ projectId }: AIProviderSettingsProps) {
     try {
       const updatedConfig = await client.run(updateProjectAIProviderConfig, {
         params: { id: projectId, provider: snap.selectedProvider },
-        body: snap.formData as any,
+        body: snap.formData as unknown,
       })
 
       store.currentConfigs = {

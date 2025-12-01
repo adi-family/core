@@ -3,7 +3,7 @@
  * Uses @adi/http with native Node.js HTTP server
  */
 
-import { createServer } from 'http'
+import { createServer, type IncomingMessage, type ServerResponse } from 'http'
 import { createHandler } from './utils/custom-native-handler'
 import { sql } from '@db/client'
 import { createProjectHandlers } from './handlers/projects'
@@ -136,10 +136,10 @@ const allHandlers = [
 ]
 
 // Create native request handler
-const requestHandler = createHandler(allHandlers as any)
+const requestHandler = createHandler(allHandlers as unknown[])
 
 // CORS and middleware wrapper
-const wrappedHandler = async (req: any, res: any) => {
+const wrappedHandler = async (req: IncomingMessage, res: ServerResponse) => {
   // Handle CORS - validate origin against allowed list
   const requestOrigin = req.headers.origin
 

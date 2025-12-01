@@ -7,23 +7,25 @@ import type { IncomingMessage, ServerResponse } from 'http'
 import type { Handler } from '@adi-family/http'
 import { createHandler as baseCreateHandler } from '@adi-family/http-native'
 
+type EndCallback = (...args: unknown[]) => unknown
+
 /**
  * Intercept response to handle custom exceptions
  */
-function interceptResponse(res: ServerResponse, originalEnd: any): void {
+function interceptResponse(res: ServerResponse, originalEnd: EndCallback): void {
   const chunks: Buffer[] = []
 
   // Override write to capture response body
   const originalWrite = res.write.bind(res)
-  res.write = function(chunk: any, ...args: any[]): boolean {
+  res.write = function(chunk: unknown, ...args: unknown[]): boolean {
     if (chunk) {
-      chunks.push(Buffer.from(chunk))
+      chunks.push(Buffer.from(chunk as string | Buffer))
     }
     return originalWrite(chunk, ...args)
-  } as any
+  } as typeof res.write
 
   // Override end to inspect and modify the response
-  res.end = function(chunk?: any, ...args: any[]): any {
+  res.end = function(chunk?: unknown, ...args: unknown[]): ServerResponse {
     if (chunk) {
       chunks.push(Buffer.from(chunk))
     }
@@ -68,14 +70,14 @@ function interceptResponse(res: ServerResponse, originalEnd: any): void {
 
     // Pass through as-is
     const fullBody = Buffer.concat(chunks)
-    return originalEnd.call(res, fullBody, ...args)
-  } as any
+    return originalEnd.call(res, fullBody, ...args) as ServerResponse
+  } as typeof res.end
 }
 
 /**
  * Create a custom request handler with proper exception handling
  */
-export function createHandler(handlers: Handler<any, any, any, any>[]): (req: IncomingMessage, res: ServerResponse) => Promise<void> {
+export function createHandler(handlers: Handler<unknown, unknown, unknown, unknown>[]): (req: IncomingMessage, res: ServerResponse) => Promise<void> {
   const baseHandler = baseCreateHandler(handlers)
 
   return async (req: IncomingMessage, res: ServerResponse) => {

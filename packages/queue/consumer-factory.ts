@@ -16,7 +16,7 @@ export interface Runner {
   stop: () => void | Promise<void>
 }
 
-export interface ConsumerConfig<_T = any> {
+export interface ConsumerConfig<_T = unknown> {
   queueName: string
   queueConfig: QueueConfig
   prefetchCount: number
@@ -30,7 +30,7 @@ export interface ConsumerConfig<_T = any> {
  * @param config Consumer configuration
  * @returns Runner with start/stop methods
  */
-export function createQueueConsumer<T = any>(
+export function createQueueConsumer<T = unknown>(
   sql: Sql,
   config: ConsumerConfig<T>
 ): Runner {

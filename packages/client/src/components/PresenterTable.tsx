@@ -10,7 +10,7 @@ import { Button } from '@adi-simple/ui/button'
 import type { BasePresenter } from "@/presenters/base"
 
 interface PresenterTableProps<T, P extends BasePresenter<T>> {
-  presenter: new (model: T, ...args: any[]) => P
+  presenter: new (model: T, ...args: unknown[]) => P
   items: T[]
   loading?: boolean
   emptyMessage?: string

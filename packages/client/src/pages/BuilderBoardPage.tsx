@@ -26,7 +26,7 @@ export function BuilderBoardPage() {
       const data = await client.run(listTasksConfig, {
         query: { project_id: selectedProjectId }
       })
-      setTasks(Array.isArray(data) ? data : (data as any).data || [])
+      setTasks(Array.isArray(data) ? data : (data as unknown).data || [])
     } catch (error) {
       console.error("Error fetching tasks:", error)
       toast.error("Failed to fetch tasks")

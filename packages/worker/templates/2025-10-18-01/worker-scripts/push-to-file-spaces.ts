@@ -48,7 +48,7 @@ async function hasChanges(workspacePath: string): Promise<boolean> {
 /**
  * Get the GitLab API client for a file space
  */
-function getGitLabClient(fileSpace: any, token: string, tokenType: 'oauth' | 'pat' | 'api' | null): GitLabApiClient | null {
+function getGitLabClient(fileSpace: unknown, token: string, tokenType: 'oauth' | 'pat' | 'api' | null): GitLabApiClient | null {
   if (!fileSpace.config || typeof fileSpace.config !== 'object') {
     return null
   }
@@ -88,7 +88,7 @@ function getGitLabClient(fileSpace: any, token: string, tokenType: 'oauth' | 'pa
 /**
  * Get the GitHub API client for a file space
  */
-function getGitHubClient(fileSpace: any, token: string): GitHubApiClient | null {
+function getGitHubClient(fileSpace: unknown, token: string): GitHubApiClient | null {
   if (!fileSpace.config || typeof fileSpace.config !== 'object') {
     return null
   }
@@ -114,7 +114,7 @@ function getGitHubClient(fileSpace: any, token: string): GitHubApiClient | null 
 /**
  * Extract project path from repository URL or config
  */
-function getProjectPath(fileSpace: any): string | null {
+function getProjectPath(fileSpace: unknown): string | null {
   if (!fileSpace.config || typeof fileSpace.config !== 'object' || !('repo' in fileSpace.config)) {
     return null
   }
@@ -316,7 +316,7 @@ async function pushWorkspaceToFileSpace(
       mrIid = pr.number
       logger.info(`   ✓ Pull request created: #${pr.number}`)
       logger.info(`   🔗 URL: ${pr.html_url}`)
-    } catch (error: any) {
+    } catch (error) {
       // Check if PR already exists
       if (error?.message?.includes('A pull request already exists') || error?.message?.includes('already exists')) {
         logger.info(`   ℹ️  Pull request already exists, skipping creation`)
@@ -350,7 +350,7 @@ async function pushWorkspaceToFileSpace(
       mrIid = mr.iid
       logger.info(`   ✓ Merge request created: !${mr.iid}`)
       logger.info(`   🔗 URL: ${mr.web_url}`)
-    } catch (error: any) {
+    } catch (error) {
       // Check if MR already exists (409 Conflict)
       if (error?.cause?.response?.statusCode === 409 || error?.message?.includes('409') || error?.message?.includes('already exists')) {
         const mrMatch = error.message?.match(/!(\d+)/)

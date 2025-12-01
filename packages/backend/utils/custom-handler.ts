@@ -7,6 +7,11 @@ import type { Handler, HandlerConfig, HandlerFunction } from '@adi-family/http'
 import { handler as baseHandler } from '@adi-family/http'
 import { NotFoundException, BadRequestException, NotEnoughRightsException, AuthRequiredException } from '@utils/exceptions'
 
+interface HttpError extends Error {
+  statusCode: number
+  name: string
+}
+
 /**
  * Custom handler that wraps the base handler with proper error handling
  */
@@ -23,28 +28,28 @@ export function handler<TParams = {}, TQuery = {}, TBody = unknown, TResponse = 
       // Map our custom exceptions to proper HTTP errors
       // We'll add a special property to mark them for the adapter
       if (error instanceof NotFoundException) {
-        const httpError: any = new Error(error.message)
+        const httpError = new Error(error.message) as HttpError
         httpError.statusCode = 404
         httpError.name = 'NotFoundException'
         throw httpError
       }
 
       if (error instanceof BadRequestException) {
-        const httpError: any = new Error(error.message)
+        const httpError = new Error(error.message) as HttpError
         httpError.statusCode = 400
         httpError.name = 'BadRequestException'
         throw httpError
       }
 
       if (error instanceof AuthRequiredException) {
-        const httpError: any = new Error(error.message)
+        const httpError = new Error(error.message) as HttpError
         httpError.statusCode = 401
         httpError.name = 'AuthRequiredException'
         throw httpError
       }
 
       if (error instanceof NotEnoughRightsException) {
-        const httpError: any = new Error(error.message)
+        const httpError = new Error(error.message) as HttpError
         httpError.statusCode = 403
         httpError.name = 'NotEnoughRightsException'
         throw httpError

@@ -8,7 +8,7 @@ export const fileSpaceSchema = z.object({
   project_id: z.string(),
   enabled: z.boolean(),
   default_branch: z.string().optional(),
-  config: z.any(), // FileSpaceConfig type
+  config: z.unknown(), // FileSpaceConfig type
   created_at: z.string(),
   updated_at: z.string()
 })
@@ -42,7 +42,7 @@ export const createFileSpaceBodySchema = z.object({
   project_id: z.string(),
   enabled: z.boolean().optional(),
   default_branch: z.string().optional(),
-  config: z.any()
+  config: z.unknown()
 })
 
 /**
@@ -77,7 +77,7 @@ export const updateFileSpaceBodySchema = z.object({
   type: z.string().optional(),
   enabled: z.boolean().optional(),
   default_branch: z.string().optional(),
-  config: z.any().optional()
+  config: z.unknown().optional()
 })
 
 /**

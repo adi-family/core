@@ -17,6 +17,11 @@ import { NotFoundException, BadRequestException, NotEnoughRightsException, AuthR
 
 const logger = createLogger({ namespace: 'auth-utils' })
 
+interface HttpError extends Error {
+  statusCode: number
+  name: string
+}
+
 /**
  * Extract and verify user ID from Clerk authentication token
  * @param authHeader - The Authorization header value (e.g., "Bearer <token>")
@@ -113,7 +118,7 @@ export type AuthResult = z.infer<typeof authResultSchema>
  * @returns AuthResult with userId or projectId and authentication type
  * @throws Error if authentication fails
  */
-export async function authenticate(sql: Sql, ctx: HandlerContext<any, any, any>): Promise<AuthResult> {
+export async function authenticate(sql: Sql, ctx: HandlerContext<unknown, unknown, unknown>): Promise<AuthResult> {
   const authHeader = ctx.headers.get('Authorization')
   if (!authHeader) {
     throw new Error('Unauthorized: No Authorization header')
@@ -187,28 +192,28 @@ type SecuredHandlerFunction<TParams, TQuery, TBody, TResponse> = (
  */
 const mapExceptionToHttpError = (error: unknown): never => {
   if (error instanceof NotFoundException) {
-    const httpError: any = new Error(error.message)
+    const httpError = new Error(error.message) as HttpError
     httpError.statusCode = 404
     httpError.name = 'NotFoundException'
     throw httpError
   }
 
   if (error instanceof BadRequestException) {
-    const httpError: any = new Error(error.message)
+    const httpError = new Error(error.message) as HttpError
     httpError.statusCode = 400
     httpError.name = 'BadRequestException'
     throw httpError
   }
 
   if (error instanceof AuthRequiredException) {
-    const httpError: any = new Error(error.message)
+    const httpError = new Error(error.message) as HttpError
     httpError.statusCode = 401
     httpError.name = 'AuthRequiredException'
     throw httpError
   }
 
   if (error instanceof NotEnoughRightsException) {
-    const httpError: any = new Error(error.message)
+    const httpError = new Error(error.message) as HttpError
     httpError.statusCode = 403
     httpError.name = 'NotEnoughRightsException'
     throw httpError

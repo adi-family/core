@@ -22,6 +22,26 @@ import { GitLabApiClient } from '@shared/gitlab-api-client'
 
 const logger = createLogger({ namespace: 'oauth-handler' })
 
+interface OAuthTokenResponse {
+  access_token: string
+  refresh_token?: string
+  expires_in: number
+  scope?: string
+}
+
+interface JiraAccessibleResource {
+  id: string
+  url: string
+  name: string
+  scopes: string[]
+}
+
+interface GitHubUserResponse {
+  login: string
+  id: number
+  [key: string]: unknown
+}
+
 export function createOAuthHandlers(sql: Sql) {
   const { handler } = createSecuredHandlers(sql)
 
@@ -78,7 +98,7 @@ export function createOAuthHandlers(sql: Sql) {
       throw new Error(`Failed to exchange authorization code: ${errorText}`)
     }
 
-    const tokenData = await tokenResponse.json() as any
+    const tokenData = await tokenResponse.json() as OAuthTokenResponse
     const { access_token, refresh_token, expires_in, scope } = tokenData
     const expiresAt = new Date(Date.now() + expires_in * 1000)
 
@@ -180,7 +200,7 @@ export function createOAuthHandlers(sql: Sql) {
       throw new Error(`Failed to exchange authorization code: ${errorText}`)
     }
 
-    const tokenData = await tokenResponse.json() as any
+    const tokenData = await tokenResponse.json() as OAuthTokenResponse
     const { access_token, refresh_token, expires_in, scope } = tokenData
     const expiresAt = new Date(Date.now() + expires_in * 1000)
 
@@ -193,7 +213,7 @@ export function createOAuthHandlers(sql: Sql) {
       throw new Error('Failed to fetch accessible Jira sites')
     }
 
-    const resources = await resourcesResponse.json() as any[]
+    const resources = await resourcesResponse.json() as JiraAccessibleResource[]
     logger.info('Fetched accessible Jira sites', { count: resources.length })
 
     const secret = await secretQueries.upsertSecret(sql, {
@@ -214,7 +234,7 @@ export function createOAuthHandlers(sql: Sql) {
       success: true,
       secretId: secret.id,
       expiresAt: expiresAt.toISOString(),
-      sites: resources.map((r: any) => ({ id: r.id, url: r.url, name: r.name, scopes: r.scopes }))
+      sites: resources.map((r) => ({ id: r.id, url: r.url, name: r.name, scopes: r.scopes }))
     }
   })
 
@@ -286,7 +306,7 @@ export function createOAuthHandlers(sql: Sql) {
       throw new Error(`Failed to exchange authorization code: ${errorText}`)
     }
 
-    const tokenData = await tokenResponse.json() as any
+    const tokenData = await tokenResponse.json() as unknown
     const { access_token, scope } = tokenData
 
     if (!access_token) {
@@ -307,7 +327,7 @@ export function createOAuthHandlers(sql: Sql) {
       throw new Error('Failed to verify GitHub token')
     }
 
-    const userData = await userResponse.json() as any
+    const userData = await userResponse.json() as GitHubUserResponse
     logger.info('GitHub OAuth successful', { login: userData.login })
 
     const scopes = scope ? scope.split(',').map((s: string) => s.trim()) : []
