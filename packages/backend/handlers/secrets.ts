@@ -290,7 +290,7 @@ export function createSecretHandlers(sql: Sql) {
         }
       }
 
-      const user = await response.json() as GitLabUserResponse
+      const user = await response.json() as JiraUserResponse
 
       return {
         valid: true,

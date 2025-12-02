@@ -133,12 +133,12 @@ async function processIssues(
   taskSource: TaskSource,
   projectId: string,
   existingStateMap: Map<string, any>
-): Promise<{ tasksCreated: number; tasksUpdated: number; errors: string[]; syncStateUpdates: unknown[] }> {
+): Promise<{ tasksCreated: number; tasksUpdated: number; errors: string[]; syncStateUpdates: { task_source_id: string; issue_id: string; issue_updated_at: string }[] }> {
   const result = {
     tasksCreated: 0,
     tasksUpdated: 0,
     errors: [] as string[],
-    syncStateUpdates: [] as any[]
+    syncStateUpdates: [] as { task_source_id: string; issue_id: string; issue_updated_at: string }[]
   }
 
   for (const issue of issues) {

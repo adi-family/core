@@ -82,7 +82,7 @@ export function createFileSpaceHandlers(sql: Sql) {
       }
     }
 
-    return fileSpaceQueries.createFileSpace(sql, ctx.body)
+    return fileSpaceQueries.createFileSpace(sql, ctx.body as Parameters<typeof fileSpaceQueries.createFileSpace>[1])
   })
 
   const updateFileSpace = handler(updateFileSpaceConfig, async (ctx) => {
@@ -104,7 +104,7 @@ export function createFileSpaceHandlers(sql: Sql) {
       }
     }
 
-    return fileSpaceQueries.updateFileSpace(sql, id, ctx.body)
+    return fileSpaceQueries.updateFileSpace(sql, id, ctx.body as Parameters<typeof fileSpaceQueries.updateFileSpace>[2])
   })
 
   const deleteFileSpace = handler(deleteFileSpaceConfig, async (ctx) => {

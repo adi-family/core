@@ -4,7 +4,7 @@ import { API_BASE_URL, API_TOKEN } from './config'
 export type BackendClient = BaseClient
 
 export function createBackendApiClient(): BackendClient {
-  const customFetch = (input: RequestInfo | URL, init?: RequestInit) => {
+  const customFetch = (input: URL | Request | string, init?: RequestInit) => {
     const headers = new Headers(init?.headers || {})
 
     if (API_TOKEN) {

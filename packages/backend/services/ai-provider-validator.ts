@@ -6,6 +6,7 @@ const logger = createLogger({ namespace: 'ai-provider-validator' })
 
 interface OpenAIModelsResponse {
   data?: unknown[]
+  models?: unknown[]
   [key: string]: unknown
 }
 

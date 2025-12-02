@@ -1,4 +1,4 @@
-import type { MaybeRow, PendingQuery, Sql } from 'postgres'
+import type { JSONValue, MaybeRow, PendingQuery, Sql } from 'postgres'
 import type {
   ApiUsageMetric,
   CreateApiUsageMetricInput,
@@ -52,7 +52,7 @@ export const createApiUsageMetric = async (
       ${input.cache_read_input_tokens},
       ${input.ci_duration_seconds ?? null},
       ${input.iteration_number ?? null},
-      ${input.metadata ? sql.json(input.metadata) : null}
+      ${input.metadata ? sql.json(input.metadata as JSONValue) : null}
     )
     RETURNING *
   `)

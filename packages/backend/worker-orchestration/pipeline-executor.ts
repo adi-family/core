@@ -539,8 +539,8 @@ async function buildFileSpaceConfig(fileSpace: FileSpace, sql: Sql): Promise<Fil
     return null
   }
 
-  const config = fileSpace.config
-  const repo = config.repo as string | undefined
+  const config = fileSpace.config as { repo?: string; host?: string; access_token_secret_id?: string }
+  const repo = config.repo
   if (!repo) {
     logger.warn(`⚠️  File space ${fileSpace.name} has no repo URL, skipping`)
     return null
@@ -550,7 +550,7 @@ async function buildFileSpaceConfig(fileSpace: FileSpace, sql: Sql): Promise<Fil
   let repoUrl = repo
   if (!repoUrl.startsWith('http://') && !repoUrl.startsWith('https://')) {
     // If repo is just a path (e.g., "nakit-yok/frontend"), construct full URL
-    const host = config.host as string | undefined
+    const host = config.host
     if (!host) {
       logger.warn(`⚠️  File space ${fileSpace.name} has relative repo path but no host, skipping`)
       return null

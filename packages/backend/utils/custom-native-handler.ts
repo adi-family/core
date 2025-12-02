@@ -7,27 +7,42 @@ import type { IncomingMessage, ServerResponse } from 'http'
 import type { Handler } from '@adi-family/http'
 import { createHandler as baseCreateHandler } from '@adi-family/http-native'
 
-type EndCallback = (...args: unknown[]) => unknown
-
 /**
  * Intercept response to handle custom exceptions
  */
-function interceptResponse(res: ServerResponse, originalEnd: EndCallback): void {
+function interceptResponse(res: ServerResponse, originalEnd: typeof res.end): void {
   const chunks: Buffer[] = []
 
   // Override write to capture response body
-  const originalWrite = res.write.bind(res)
-  res.write = function(chunk: unknown, ...args: unknown[]): boolean {
+  const originalWrite = res.write.bind(res) as typeof res.write
+  res.write = function(
+    chunk: Parameters<typeof res.write>[0],
+    encodingOrCallback?: BufferEncoding | ((error: Error | null | undefined) => void),
+    callback?: (error: Error | null | undefined) => void
+  ): boolean {
     if (chunk) {
       chunks.push(Buffer.from(chunk as string | Buffer))
     }
-    return originalWrite(chunk, ...args)
+    // Call originalWrite with the correct number of arguments
+    if (callback !== undefined) {
+      return originalWrite.call(res, chunk, encodingOrCallback as BufferEncoding, callback)
+    }
+    if (encodingOrCallback !== undefined) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      return originalWrite.call(res, chunk, encodingOrCallback as any)
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (originalWrite as any).call(res, chunk)
   } as typeof res.write
 
   // Override end to inspect and modify the response
-  res.end = function(chunk?: unknown, ...args: unknown[]): ServerResponse {
-    if (chunk) {
-      chunks.push(Buffer.from(chunk))
+  res.end = function(
+    chunk?: Parameters<typeof res.end>[0],
+    encodingOrCallback?: BufferEncoding | (() => void),
+    callback?: () => void
+  ): ServerResponse {
+    if (chunk && typeof chunk !== 'function') {
+      chunks.push(Buffer.from(chunk as string | Buffer))
     }
 
     // Check if this is a 500 error that should be remapped
@@ -60,7 +75,14 @@ function interceptResponse(res: ServerResponse, originalEnd: EndCallback): void 
           if (newStatusCode && newError) {
             res.statusCode = newStatusCode
             const newBody = JSON.stringify({ error: newError, message: json.message })
-            return originalEnd.call(res, newBody, ...args)
+            // Call originalEnd with callback if provided
+            if (typeof encodingOrCallback === 'function') {
+              return originalEnd.call(res, newBody, 'utf-8', encodingOrCallback)
+            }
+            if (callback !== undefined) {
+              return originalEnd.call(res, newBody, (encodingOrCallback || 'utf-8') as BufferEncoding, callback)
+            }
+            return originalEnd.call(res, newBody, 'utf-8')
           }
         }
       } catch (_e) {
@@ -70,7 +92,17 @@ function interceptResponse(res: ServerResponse, originalEnd: EndCallback): void 
 
     // Pass through as-is
     const fullBody = Buffer.concat(chunks)
-    return originalEnd.call(res, fullBody, ...args) as ServerResponse
+    if (typeof encodingOrCallback === 'function') {
+      return originalEnd.call(res, fullBody, 'utf-8', encodingOrCallback)
+    }
+    if (callback !== undefined) {
+      return originalEnd.call(res, fullBody, (encodingOrCallback || 'utf-8') as BufferEncoding, callback)
+    }
+    if (encodingOrCallback !== undefined) {
+      return originalEnd.call(res, fullBody, encodingOrCallback as BufferEncoding)
+    }
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return (originalEnd as any).call(res, fullBody)
   } as typeof res.end
 }
 
@@ -82,7 +114,7 @@ export function createHandler(handlers: Handler<unknown, unknown, unknown, unkno
 
   return async (req: IncomingMessage, res: ServerResponse) => {
     // Intercept the response to handle custom exceptions
-    const originalEnd = res.end.bind(res)
+    const originalEnd = res.end.bind(res) as typeof res.end
     interceptResponse(res, originalEnd)
 
     // Call the base handler

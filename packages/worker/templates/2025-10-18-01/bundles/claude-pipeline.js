@@ -13064,11 +13064,10 @@ function getGitHubClient(fileSpace, token) {
   return new GitHubApiClient(token, host);
 }
 function getProjectPath(fileSpace) {
-  if (!fileSpace.config || typeof fileSpace.config !== "object" || !("repo" in fileSpace.config)) {
+  const repo = fileSpace.config?.repo;
+  if (!repo) {
     return null;
   }
-  const config = fileSpace.config;
-  let repo = config.repo;
   if (repo.startsWith("http://") || repo.startsWith("https://")) {
     try {
       const url = new URL(repo);
@@ -13078,8 +13077,7 @@ function getProjectPath(fileSpace) {
       return null;
     }
   }
-  repo = repo.replace(/^\//, "").replace(/\.git$/, "");
-  return repo;
+  return repo.replace(/^\//, "").replace(/\.git$/, "");
 }
 async function pushWorkspaceToFileSpace(workspacePath, fileSpace, taskId, taskTitle, taskDescription, accessToken, tokenType) {
   const workspaceName = workspacePath.split("/").pop() || "unknown";
@@ -13208,7 +13206,8 @@ Task ID: ${taskId}`;
       logger2.info(`   \u2713 Pull request created: #${pr.number}`);
       logger2.info(`   \uD83D\uDD17 URL: ${pr.html_url}`);
     } catch (error) {
-      if (error?.message?.includes("A pull request already exists") || error?.message?.includes("already exists")) {
+      const errMsg = error instanceof Error ? error.message : String(error);
+      if (errMsg.includes("A pull request already exists") || errMsg.includes("already exists")) {
         logger2.info(`   \u2139\uFE0F  Pull request already exists, skipping creation`);
         mrUrl = `https://github.com/${owner}/${repo}/pulls`;
         mrIid = "unknown";
@@ -13231,9 +13230,11 @@ Task ID: ${taskId}`;
       logger2.info(`   \u2713 Merge request created: !${mr.iid}`);
       logger2.info(`   \uD83D\uDD17 URL: ${mr.web_url}`);
     } catch (error) {
-      if (error?.cause?.response?.statusCode === 409 || error?.message?.includes("409") || error?.message?.includes("already exists")) {
-        const mrMatch = error.message?.match(/!(\d+)/);
-        const existingMrNumber = mrMatch ? mrMatch[1] : "unknown";
+      const errMsg = error instanceof Error ? error.message : String(error);
+      const errCause = error instanceof Error && error.cause && typeof error.cause === "object" ? error.cause : null;
+      if (errCause?.response?.statusCode === 409 || errMsg.includes("409") || errMsg.includes("already exists")) {
+        const mrMatch = errMsg.match(/!(\d+)/);
+        const existingMrNumber = mrMatch?.[1] ?? "unknown";
         logger2.info(`   \u2139\uFE0F  Merge request already exists: !${existingMrNumber}, skipping creation`);
         mrUrl = `${gitlabClient["host"]}/${projectPath}/-/merge_requests/${existingMrNumber}`;
         mrIid = existingMrNumber;

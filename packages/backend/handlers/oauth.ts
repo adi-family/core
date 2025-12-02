@@ -306,7 +306,7 @@ export function createOAuthHandlers(sql: Sql) {
       throw new Error(`Failed to exchange authorization code: ${errorText}`)
     }
 
-    const tokenData = await tokenResponse.json() as unknown
+    const tokenData = await tokenResponse.json() as { access_token?: string; scope?: string }
     const { access_token, scope } = tokenData
 
     if (!access_token) {

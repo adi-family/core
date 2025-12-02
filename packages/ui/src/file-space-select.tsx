@@ -37,7 +37,7 @@ export function FileSpaceSelect({
         const data = await client.run(listFileSpacesConfig, {
           query: projectId ? { project_id: projectId } : undefined
         })
-        setFileSpaces(data)
+        setFileSpaces(data as FileSpace[])
         setLoading(false)
       } catch (error) {
         console.error("Error fetching file spaces:", error)

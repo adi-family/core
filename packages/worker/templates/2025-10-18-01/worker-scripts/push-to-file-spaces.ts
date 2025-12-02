@@ -32,6 +32,16 @@ interface PushResult {
   errors: { fileSpaceId: string; error: string }[]
 }
 
+interface FileSpaceConfig {
+  host?: string
+  access_token_secret_id?: string
+  repo?: string
+}
+
+interface FileSpaceInput {
+  config?: FileSpaceConfig | null
+}
+
 /**
  * Check if a workspace directory has uncommitted changes
  */
@@ -48,12 +58,12 @@ async function hasChanges(workspacePath: string): Promise<boolean> {
 /**
  * Get the GitLab API client for a file space
  */
-function getGitLabClient(fileSpace: unknown, token: string, tokenType: 'oauth' | 'pat' | 'api' | null): GitLabApiClient | null {
+function getGitLabClient(fileSpace: FileSpaceInput, token: string, tokenType: 'oauth' | 'pat' | 'api' | null): GitLabApiClient | null {
   if (!fileSpace.config || typeof fileSpace.config !== 'object') {
     return null
   }
 
-  const config = fileSpace.config as { host?: string; access_token_secret_id?: string; repo?: string }
+  const config = fileSpace.config
 
   // Extract host from config or repo URL
   let host = config.host || 'https://gitlab.com'
@@ -88,12 +98,12 @@ function getGitLabClient(fileSpace: unknown, token: string, tokenType: 'oauth' |
 /**
  * Get the GitHub API client for a file space
  */
-function getGitHubClient(fileSpace: unknown, token: string): GitHubApiClient | null {
+function getGitHubClient(fileSpace: FileSpaceInput, token: string): GitHubApiClient | null {
   if (!fileSpace.config || typeof fileSpace.config !== 'object') {
     return null
   }
 
-  const config = fileSpace.config as { host?: string; access_token_secret_id?: string; repo?: string }
+  const config = fileSpace.config
 
   // Extract host from config
   const host = config.host || 'https://api.github.com'
@@ -114,13 +124,11 @@ function getGitHubClient(fileSpace: unknown, token: string): GitHubApiClient | n
 /**
  * Extract project path from repository URL or config
  */
-function getProjectPath(fileSpace: unknown): string | null {
-  if (!fileSpace.config || typeof fileSpace.config !== 'object' || !('repo' in fileSpace.config)) {
+function getProjectPath(fileSpace: FileSpaceInput): string | null {
+  const repo = fileSpace.config?.repo
+  if (!repo) {
     return null
   }
-
-  const config = fileSpace.config as { repo: string; host?: string }
-  let repo = config.repo
 
   // If repo is a full URL, extract the path
   if (repo.startsWith('http://') || repo.startsWith('https://')) {
@@ -135,8 +143,7 @@ function getProjectPath(fileSpace: unknown): string | null {
   }
 
   // If repo is already a path (e.g., "username/project"), clean it up
-  repo = repo.replace(/^\//, '').replace(/\.git$/, '')
-  return repo
+  return repo.replace(/^\//, '').replace(/\.git$/, '')
 }
 
 /**
@@ -316,9 +323,10 @@ async function pushWorkspaceToFileSpace(
       mrIid = pr.number
       logger.info(`   ✓ Pull request created: #${pr.number}`)
       logger.info(`   🔗 URL: ${pr.html_url}`)
-    } catch (error) {
+    } catch (error: unknown) {
       // Check if PR already exists
-      if (error?.message?.includes('A pull request already exists') || error?.message?.includes('already exists')) {
+      const errMsg = error instanceof Error ? error.message : String(error)
+      if (errMsg.includes('A pull request already exists') || errMsg.includes('already exists')) {
         logger.info(`   ℹ️  Pull request already exists, skipping creation`)
         // Estimate PR URL (best effort)
         mrUrl = `https://github.com/${owner}/${repo}/pulls`
@@ -350,16 +358,18 @@ async function pushWorkspaceToFileSpace(
       mrIid = mr.iid
       logger.info(`   ✓ Merge request created: !${mr.iid}`)
       logger.info(`   🔗 URL: ${mr.web_url}`)
-    } catch (error) {
+    } catch (error: unknown) {
       // Check if MR already exists (409 Conflict)
-      if (error?.cause?.response?.statusCode === 409 || error?.message?.includes('409') || error?.message?.includes('already exists')) {
-        const mrMatch = error.message?.match(/!(\d+)/)
-        const existingMrNumber = mrMatch ? mrMatch[1] : 'unknown'
+      const errMsg = error instanceof Error ? error.message : String(error)
+      const errCause = error instanceof Error && error.cause && typeof error.cause === 'object' ? error.cause as { response?: { statusCode?: number } } : null
+      if (errCause?.response?.statusCode === 409 || errMsg.includes('409') || errMsg.includes('already exists')) {
+        const mrMatch = errMsg.match(/!(\d+)/)
+        const existingMrNumber = mrMatch?.[1] ?? 'unknown'
 
         logger.info(`   ℹ️  Merge request already exists: !${existingMrNumber}, skipping creation`)
 
         mrUrl = `${gitlabClient['host']}/${projectPath}/-/merge_requests/${existingMrNumber}`
-        mrIid = existingMrNumber
+        mrIid = existingMrNumber as string | number
       } else {
         throw error
       }

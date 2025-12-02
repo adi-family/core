@@ -93,8 +93,12 @@ export async function updateEncryptedSecret(
   id: string,
   input: UpdateSecretInput
 ): Promise<Secret> {
-  const updateData: Record<string, unknown> = {
-    updated_at: new Date()
+  const updateData = {
+    encrypted_value: null as string | null,
+    encryption_version: null as string | null,
+    is_encrypted: null as boolean | null,
+    value: null as string | null,
+    description: null as string | null,
   }
 
   if (input.value !== undefined) {

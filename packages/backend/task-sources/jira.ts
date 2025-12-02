@@ -2,7 +2,7 @@ import { BaseTaskSource } from './base';
 import { createLogger } from '@utils/logger.ts';
 import { sql } from '@db/client.ts';
 import { findSecretById, updateSecret } from '@db/secrets.ts';
-import type { JiraMetadata, TaskSource, TaskSourceIssue, TaskSourceJiraConfig } from "@types";
+import type { JiraMetadata, Secret, TaskSource, TaskSourceIssue, TaskSourceJiraConfig } from "@types";
 import { JIRA_OAUTH_CLIENT_ID, JIRA_OAUTH_CLIENT_SECRET } from '@backend/config';
 
 interface JiraSearchResponseIssue {
@@ -30,13 +30,6 @@ interface ADFNode {
 
 interface ADFDocument {
   content?: ADFNode[];
-  [key: string]: unknown;
-}
-
-interface Secret {
-  id: string;
-  refresh_token?: string;
-  expires_at?: string;
   [key: string]: unknown;
 }
 
@@ -194,7 +187,7 @@ export class JiraTaskSource extends BaseTaskSource {
       throw new Error('Access token secret ID is required for Jira integration')
     }
 
-    const secret = await findSecretById(sql, this.jiraConfig.access_token_secret_id)
+    const secret = await findSecretById(sql, this.jiraConfig.access_token_secret_id) as Secret
 
     if (secret.token_type === 'oauth' && secret.expires_at) {
       const expiresAt = new Date(secret.expires_at)

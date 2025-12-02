@@ -4,7 +4,7 @@
  * Extracted from evaluation-pipeline.ts to run in microservice
  */
 
-import Anthropic from '@anthropic-ai/sdk'
+import Anthropic, { type ClientOptions } from '@anthropic-ai/sdk'
 import { HttpsProxyAgent } from 'https-proxy-agent'
 import { createLogger } from '@utils/logger'
 import { AI_MODEL_DEFAULTS } from '@adi-simple/config'
@@ -81,7 +81,7 @@ export interface SimpleEvaluationUsage {
  * Create Anthropic client with optional proxy support
  */
 function createAnthropicClient(aiConfig?: AIProviderConfig): Anthropic {
-  const config: unknown = {
+  const config: ClientOptions = {
     apiKey: aiConfig?.api_key || process.env.ANTHROPIC_API_KEY!
   }
 
@@ -93,7 +93,8 @@ function createAnthropicClient(aiConfig?: AIProviderConfig): Anthropic {
   // Configure proxy if credentials are provided
   if (process.env.PROXY_HOST && process.env.PROXY_USER && process.env.PROXY_PASS) {
     const proxyUrl = `http://${process.env.PROXY_USER}:${process.env.PROXY_PASS}@${process.env.PROXY_HOST}`
-    config.httpAgent = new HttpsProxyAgent(proxyUrl)
+    const agent = new HttpsProxyAgent(proxyUrl)
+    config.fetchOptions = { dispatcher: agent as unknown as RequestInit['dispatcher'] }
     logger.info(`✓ Using proxy: ${process.env.PROXY_HOST}`)
   }
 

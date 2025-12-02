@@ -74,11 +74,11 @@ export async function syncTaskEvaluationStatus(
       logger.info(`🔄 Syncing task ${task.id} evaluation status (pipeline: ${pipelineStatus})`)
 
       if (pipelineStatus === 'success') {
-        await handleSuccessfulPipeline(sql, execution, task as unknown)
+        await handleSuccessfulPipeline(sql, execution, task)
       } else if (pipelineStatus === 'failed') {
-        await handleFailedPipeline(sql, task as unknown)
+        await handleFailedPipeline(sql, task)
       } else if (pipelineStatus === 'canceled') {
-        await handleCanceledPipeline(sql, task as unknown)
+        await handleCanceledPipeline(sql, task)
       }
     } else if (isImplementationPipeline) {
       // Only update if task is still in 'implementing' state
@@ -123,8 +123,9 @@ async function handleSuccessfulPipeline(
   try {
     const artifacts = await artifactQueries.findPipelineArtifactsByExecutionId(sql, execution.id)
 
-    const evalArtifact = artifacts.find((a: unknown) =>
-      a.metadata?.task_id === task.id &&
+    const evalArtifact = artifacts.find((a) =>
+      a.metadata && typeof a.metadata === 'object' && 'task_id' in a.metadata &&
+      a.metadata.task_id === task.id &&
       a.artifact_type === 'text'
     )
 
